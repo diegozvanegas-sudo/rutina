@@ -203,6 +203,7 @@ function moverAhorro(id, tipo) {
 }
 
 registrar({
+  'abrir-finanzas'({ p }) { pestana = p; },
   'fin-pestana'({ p }) { pestana = p; repintar(); window.scrollTo(0, 0); },
   'fin-tipo'({ tipo }) { form.tipo = tipo; form.categoria = null; repintar(); },
   'fin-cat'({ id }) { form.categoria = id; repintar(); },

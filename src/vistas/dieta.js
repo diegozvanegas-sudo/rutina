@@ -153,6 +153,7 @@ function resumenCambio(tipo, r) {
 }
 
 registrar({
+  'abrir-dieta'({ p }) { pestana = p; },
   'dieta-pestana'({ p }) { pestana = p; repintar(); },
   'dieta-plan'({ tipo }) { planVista = tipo; repintar(); },
   'dieta-ir-planes'(ds, el, ev) { ev.preventDefault(); pestana = 'planes'; repintar(); window.scrollTo(0, 0); },

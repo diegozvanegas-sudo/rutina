@@ -376,3 +376,16 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .cardio > .boton { justify-self: start; }
 .rango-ed { display: inline-flex; align-items: center; gap: 4px; }
 .rango-ed input { width: 64px; min-height: 40px; padding: 6px 8px; text-align: center; }
+
+/* Tablero: todo lleva a su sección */
+a.kpi { text-decoration: none; color: var(--ink); }
+a.kpi:hover, a.kpi:focus-visible { border-color: var(--brand); }
+a.kpi small span { color: var(--brand); }
+.titulo-enlace { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-decoration: none; color: var(--ink); margin-bottom: 4px; min-height: 32px; }
+.titulo-enlace h2 { margin: 0; }
+.titulo-enlace span { color: var(--brand); font-size: 22px; line-height: 1; }
+.titulo-enlace:hover h2 { color: var(--brand); }
+.revision li a { display: flex; gap: 10px; align-items: flex-start; flex: 1; text-decoration: none; color: var(--ink); padding: 6px 8px; margin: -6px -8px; border-radius: 10px; min-height: 40px; }
+.revision li a:hover { background: var(--surface-2); }
+.revision li .txt { flex: 1; }
+.revision li .flecha { color: var(--brand); font-size: 20px; }

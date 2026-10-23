@@ -38,7 +38,14 @@ const VISTAS = {
   ajustes: ['⚙️', 'Ajustes', vistaAjustes],
 };
 const $ = (id) => document.getElementById(id);
-const actual = () => (VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : 'hoy');
+// "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta"
+const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] ? v : 'hoy'; };
+function abrirPestana() {
+  const [v, sub] = location.hash.slice(1).split('/');
+  if (!sub || !VISTAS[v]) return;
+  ejecutar('abrir-' + v, { dataset: { p: decodeURIComponent(sub) } });
+  history.replaceState(null, '', '#' + v);
+}
 
 function enlaces() {
   const avisos = alertas().length;
@@ -180,7 +187,7 @@ document.addEventListener('focusin', (ev) => {
 window.addEventListener('scroll', () => { $('tip').hidden = true; }, { passive: true });
 
 alCambiar(pedirPintar);
-window.addEventListener('hashchange', () => { menu(false); pintar(); });
+window.addEventListener('hashchange', () => { menu(false); abrirPestana(); pintar(); window.scrollTo(0, 0); });
 
 // Reloj: temporizadores, cronómetros y la espera de la pastilla, sin repintar toda la pantalla
 setInterval(() => {
@@ -208,4 +215,5 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && new Date().toDateString() !== fechaPintada) { fechaPintada = new Date().toDateString(); pintar(); }
 });
 
+abrirPestana();
 pintar();

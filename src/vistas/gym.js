@@ -228,6 +228,7 @@ function cambiarReps(id, texto) {
 registrar({
   'ir-dia'({ dia }) { diaVista = dia; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
   semana(ds, el) { semanaVista = Number(el.value); repintar(); },
+  'abrir-gym'({ p }) { diaVista = p; },
   'gym-objetivos'() { editandoObjetivos = !editandoObjetivos; repintar(); },
   'gym-objetivo'({ m, k }, el) {
     const obj = e().config.objetivos, actual = [...(obj[m] || obj._ || [10, 20])];

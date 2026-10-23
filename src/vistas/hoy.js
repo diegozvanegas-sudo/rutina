@@ -8,6 +8,7 @@ import { diaDeHoy, tarjetaCalentamiento, tarjetaSemana, semanaActual } from './g
 import { estadoFila } from '../gym.js';
 import { tarjetaComidasHoy } from './dieta.js';
 import { alertas } from './recordatorios.js';
+import { puntajeDia } from '../progreso.js';
 
 function saludo() {
   const h = new Date().getHours();
@@ -33,8 +34,9 @@ function entrenamiento() {
 }
 
 export function vistaHoy() {
-  const metas = avanceMetas(), avisos = alertas();
-  return '<div class="cab-hoy"><div><h1>' + saludo() + '</h1><p class="sub">' + fechaLarga(iso()) + ' · semana ' + semanaActual() + '</p></div></div>' +
+  const metas = avanceMetas(), avisos = alertas(), p = puntajeDia();
+  return '<div class="cab-hoy"><div><h1>' + saludo() + '</h1><p class="sub">' + fechaLarga(iso()) + ' · semana ' + semanaActual() + '</p></div>' +
+    '<a class="puntaje-hoy" href="#progreso" title="Puntaje del día: mañana, metas, gym y dieta"><b>' + (p ? p.total : 0) + '</b><small>/100 hoy</small></a></div>' +
     (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
       avisos.slice(0, 3).map((a) => esc(a.icono + ' ' + a.nombre) + (a.estado === 'vencido' ? ' (vencido)' : '')).join(' · ') + '</span></a>' : '') +
     '<div class="tablero">' +

@@ -12,6 +12,9 @@ npm run build     # versión para publicar en dist/
 
 ## Pantallas
 - **Hoy**: tablero con la mañana, las metas, el entrenamiento que toca (con calentamiento) y la semana.
+- **Progreso**: tablero con gráficos (7, 30 o 90 días): indicadores, constancia de 12 semanas, puntaje por día, peso con la meta,
+  series del gym por semana, metas cumplidas, ingresos y gastos por mes y gasto por categoría. Incluye el **puntaje del día** (0–100:
+  mañana, metas, gym si toca y dieta) y una **revisión semanal** automática con lo que mejoró y lo que falta.
 - **Mañana**: checklist en orden con hora, espera pastilla → desayuno, colgarse 60 s, estiramiento guiado, gratitud, caminar 1 h y racha.
 - **Metas**: agua, pasos, calorías y lectura, con historial de 7 y 30 días.
 - **Dieta**: plan del día según el gym (entreno inferior, superior o descanso), comidas que se marcan y suman a las calorías,

@@ -15,6 +15,7 @@ import { vistaEditar } from './vistas/editar.js';
 import { vistaDieta } from './vistas/dieta.js';
 import { vistaFinanzas } from './vistas/finanzas.js';
 import { vistaRecordatorios, alertas } from './vistas/recordatorios.js';
+import { vistaProgreso } from './vistas/progreso.js';
 import { iniciarNube, nube, textoNube } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 
@@ -25,6 +26,7 @@ iniciarHoja();
 
 const VISTAS = {
   hoy: ['🏠', 'Hoy', vistaHoy],
+  progreso: ['📈', 'Progreso', vistaProgreso],
   manana: ['☀️', 'Mañana', vistaManana],
   metas: ['🎯', 'Metas', vistaMetas],
   dieta: ['🥗', 'Dieta', vistaDieta],
@@ -147,6 +149,30 @@ registrar({
   'menu-cerrar'() { menu(false); },
 });
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') menu(false); });
+
+// Cuadro de los gráficos: al pasar el mouse, tocar o enfocar una marca con data-tip
+function mostrarTip(el, x, y) {
+  const t = $('tip'), texto = el && el.dataset.tip;
+  if (!texto) { t.hidden = true; return; }
+  t.textContent = texto;
+  t.hidden = false;
+  const r = t.getBoundingClientRect();
+  t.style.left = Math.max(8, Math.min(window.innerWidth - r.width - 8, x - r.width / 2)) + 'px';
+  t.style.top = Math.max(8, y - r.height - 14) + 'px';
+}
+document.addEventListener('pointermove', (ev) => {
+  const el = ev.target.closest && ev.target.closest('[data-tip]');
+  if (el) mostrarTip(el, ev.clientX, ev.clientY); else if (!$('tip').hidden) $('tip').hidden = true;
+});
+document.addEventListener('pointerdown', (ev) => {
+  const el = ev.target.closest && ev.target.closest('[data-tip]');
+  if (el) mostrarTip(el, ev.clientX, ev.clientY);
+});
+document.addEventListener('focusin', (ev) => {
+  const el = ev.target.closest && ev.target.closest('[data-tip]');
+  if (el) { const r = el.getBoundingClientRect(); mostrarTip(el, r.left + r.width / 2, r.top); }
+});
+window.addEventListener('scroll', () => { $('tip').hidden = true; }, { passive: true });
 
 alCambiar(pedirPintar);
 window.addEventListener('hashchange', () => { menu(false); pintar(); });

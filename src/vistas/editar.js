@@ -132,6 +132,11 @@ function nuevo(listaRuta) {
   // Dieta
   if (/\.comidas$/.test(listaRuta)) return { nombre: 'Nueva comida', items: [] };
   if (listaRuta === 'dieta.alimentos') return { id: 'a' + uid(), nombre: 'Nuevo alimento', por: 'g', p: 0, g: 0, c: 0, kcal: 0, grupo: 'otro' };
+  // Finanzas
+  if (listaRuta === 'finanzas.categorias.gasto') return { id: 'c' + uid(), nombre: 'Nueva categoría', icono: '🏷️', grupo: 'deseo', presupuesto: 0 };
+  if (listaRuta === 'finanzas.fijos') return { id: 'f' + uid(), nombre: 'Nuevo pago', monto: 0, categoria: 'servicios', metodo: 'debito', dia: 1 };
+  if (listaRuta === 'finanzas.metas') return { id: 'meta' + uid(), nombre: 'Nueva meta', icono: '🎯', objetivo: 0 };
+  if (listaRuta === 'finanzas.deudas') return { id: 'd' + uid(), nombre: 'Tarjeta o crédito', saldo: 0, tasa: 2, cuota: 0, dia: 1 };
   return null;
 }
 
@@ -181,6 +186,12 @@ registrar({
     if (ruta === 'sesiones' && e().habitos.some((h) => h.sesion === item.id)) { toast('Esa sesión la usa un hábito de la mañana: cámbialo primero'); return; }
     if (ruta === 'dieta.alimentos' && Object.values(e().dieta.planes).some((p) => p.comidas.some((c) => c.items.some((x) => x.alimento === item.id)))) {
       toast('Ese alimento está en un plan: quítalo de las comidas primero'); return;
+    }
+    if (ruta === 'finanzas.categorias.gasto' && e().finanzas.movimientos.some((m) => m.categoria === item.id)) {
+      toast('Esa categoría tiene movimientos: no se puede borrar (cámbiale el nombre si quieres)'); return;
+    }
+    if (ruta === 'finanzas.metas' && e().finanzas.movimientos.some((m) => m.meta === item.id)) {
+      toast('Esa meta tiene aportes: saca la plata primero'); return;
     }
     if (!confirm('¿Borrar "' + nombre + '"?' + (ruta === 'rutina' || /\.ejercicios$/.test(ruta) ? '\nLos registros de semanas pasadas quedan guardados pero no se verán.' : ''))) return;
     arr.splice(Number(i), 1);

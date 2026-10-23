@@ -2,6 +2,7 @@
 import { HABITOS, METAS, ESPERA, RUTINA, SESIONES } from './datos_iniciales.js';
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
+import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
 import { tipoDeDia, totalPlan } from './dieta.js';
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 
@@ -18,6 +19,8 @@ function inicial() {
     rutina: copia(RUTINA),
     sesiones: copia(SESIONES),
     dieta: dietaInicial(),
+    finanzas: FINANZAS(),
+    recordatorios: RECORDATORIOS(),
     dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...} }
     semanas: {},  // número de semana: { idFila: { peso, unidad, reps } }
     activo: null, // temporizador en curso: { tipo, fin, ... }
@@ -38,6 +41,8 @@ export function cargar() {
   if (!estado.hojaAplicada) { aplicarHoja(estado); estado.hojaAplicada = true; }
   if (!estado.diasV2) { moverDias(estado); estado.diasV2 = true; }
   if (!estado.dieta) estado.dieta = dietaInicial();
+  if (!estado.finanzas) estado.finanzas = FINANZAS();
+  if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
   return estado;
 }
 export const e = () => estado || cargar();

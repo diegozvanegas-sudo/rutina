@@ -19,6 +19,11 @@ npm run build     # versión para publicar en dist/
 - **Gym**: semana actual primero (semana 1 = lunes 12 oct 2026), semanas pasadas en el selector. Contador de series, colores
   (amarillo faltan · verde completo · azul SUBE PESO), último registro, peso sugerido, descanso automático, notas y resumen por músculo.
 - **Sesiones**: calentamientos por día, estiramientos y fortalecimiento de rodilla, en modo guiado.
+- **Finanzas**: registrar gastos, ingresos y ahorro (con método de pago: efectivo, débito, crédito, Nequi, Daviplata, transferencia),
+  resumen del mes (tasa de ahorro, regla 50/30/20, por categoría y método, proyección), presupuesto por categoría, pagos fijos,
+  metas de ahorro con fondo de emergencia (6 meses de gastos) y deudas (meses para pagar, estrategia avalancha).
+- **Recordatorios**: mantenimiento de la moto por km o por meses (lo que pase primero) con odómetro y fecha estimada,
+  plantillas (aceite, SOAT, tecnomecánica, cadena, llantas…) y los pagos fijos y cuotas de Finanzas, que aparecen solos.
 - **Editar**: rutina (días, ejercicios, series × reps, descansos), hábitos de la mañana y sesiones: agregar, cambiar, reordenar y borrar.
 - **Ajustes**: nube, Google Sheets, metas, espera de la pastilla, sonido, exportar/importar JSON y CSV.
 

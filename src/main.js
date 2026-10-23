@@ -13,6 +13,8 @@ import { vistaSesiones } from './vistas/sesiones.js';
 import { vistaAjustes } from './vistas/ajustes.js';
 import { vistaEditar } from './vistas/editar.js';
 import { vistaDieta } from './vistas/dieta.js';
+import { vistaFinanzas } from './vistas/finanzas.js';
+import { vistaRecordatorios, alertas } from './vistas/recordatorios.js';
 import { iniciarNube, nube, textoNube } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 
@@ -26,6 +28,8 @@ const VISTAS = {
   manana: ['☀️', 'Mañana', vistaManana],
   metas: ['🎯', 'Metas', vistaMetas],
   dieta: ['🥗', 'Dieta', vistaDieta],
+  finanzas: ['💰', 'Finanzas', vistaFinanzas],
+  recordatorios: ['🔔', 'Recordatorios', vistaRecordatorios],
   gym: ['🏋️', 'Gym', vistaGym],
   sesiones: ['🧘', 'Sesiones', vistaSesiones],
   editar: ['✏️', 'Editar', vistaEditar],
@@ -35,8 +39,10 @@ const $ = (id) => document.getElementById(id);
 const actual = () => (VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : 'hoy');
 
 function enlaces() {
+  const avisos = alertas().length;
   return Object.entries(VISTAS).map(([k, [icono, nombre]]) =>
-    '<a href="#' + k + '"' + (k === actual() ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span></a>').join('');
+    '<a href="#' + k + '"' + (k === actual() ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span>' +
+    (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');
 }
 
 // Barra lateral: fija a la derecha en el computador; en el celular se abre con ☰ desde la derecha

@@ -43,3 +43,17 @@ test('peso: lista ordenada y promedio de los últimos 7', () => {
   assert.deepEqual(pesos(dias).map((x) => x.peso), [88, 87, 86]);
   assert.equal(tendencia(pesos(dias)), 87);
 });
+
+test('macros por kg: con el mismo peso el plan no cambia; con menos peso se acerca a P, C y G', async () => {
+  const { macrosPorKg, kcalDeMacros } = await import('../src/dieta.js');
+  const config = { ...CONFIG_DIETA, ...macrosPorKg(PLANES, ALIMENTOS, 87) };
+  assert.deepEqual(macrosPorKg(PLANES, ALIMENTOS, 87).carbKg, { inferior: 2.74, superior: 2.06, descanso: 1.16 });
+  const obj87 = objetivo(config, 'inferior', 87);
+  assert.equal(obj87.kcal, Math.round(kcalDeMacros(obj87.p, obj87.c, obj87.g)));
+  const igual = recalcular(PLANES.inferior, ALIMENTOS, obj87).plan;
+  assert.deepEqual(igual.comidas.flatMap((c) => c.items.map((i) => i.cant)), PLANES.inferior.comidas.flatMap((c) => c.items.map((i) => i.cant)));
+  const obj80 = objetivo(config, 'inferior', 80), r = recalcular(PLANES.inferior, ALIMENTOS, obj80);
+  assert.ok(Math.abs(r.despues.p - obj80.p) <= 8, 'P ' + Math.round(r.despues.p) + ' vs ' + obj80.p);
+  assert.ok(Math.abs(r.despues.c - obj80.c) <= 8, 'C ' + Math.round(r.despues.c) + ' vs ' + obj80.c);
+  assert.ok(Math.abs(r.despues.g - obj80.g) <= 6, 'G ' + Math.round(r.despues.g) + ' vs ' + obj80.g);
+});

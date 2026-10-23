@@ -3,13 +3,17 @@ import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS } from './datos_ini
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
-import { tipoDeDia, totalPlan } from './dieta.js';
+import { tipoDeDia, totalPlan, macrosPorKg } from './dieta.js';
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 
 const CLAVE = 'rutina_v1';
 const copia = (o) => JSON.parse(JSON.stringify(o));
 
-const dietaInicial = () => ({ config: copia(CONFIG_DIETA), alimentos: copia(ALIMENTOS), planes: copia(PLANES), anterior: null });
+const dietaInicial = () => {
+  const d = { config: copia(CONFIG_DIETA), alimentos: copia(ALIMENTOS), planes: copia(PLANES), anterior: null };
+  Object.assign(d.config, macrosPorKg(d.planes, d.alimentos, d.config.pesoBase));
+  return d;
+};
 
 function inicial() {
   return {
@@ -41,6 +45,8 @@ export function cargar() {
   if (!estado.hojaAplicada) { aplicarHoja(estado); estado.hojaAplicada = true; }
   if (!estado.diasV2) { moverDias(estado); estado.diasV2 = true; }
   if (!estado.dieta) estado.dieta = dietaInicial();
+  // Carbos y grasa por kg: se toman de los planes que ya tiene el celular, así recalcular con el mismo peso no cambia nada
+  if (!estado.dieta.config.carbKg) Object.assign(estado.dieta.config, macrosPorKg(estado.dieta.planes, estado.dieta.alimentos, estado.dieta.config.pesoBase));
   estado.config.objetivos ??= copia(OBJETIVOS);
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
@@ -170,7 +176,7 @@ export const planDieta = (fecha = iso()) => e().dieta.planes[tipoDieta(fecha)];
 // Comidas marcadas: guardan sus calorías y proteína del momento (si después cambia el plan, el día no cambia)
 export function comidasDelDia(fecha = iso()) {
   const c = (e().dias[fecha] && e().dias[fecha].comidas) || {};
-  return Object.values(c).reduce((t, x) => ({ kcal: t.kcal + (x.kcal || 0), p: t.p + (x.p || 0), n: t.n + 1 }), { kcal: 0, p: 0, n: 0 });
+  return Object.values(c).reduce((t, x) => ({ kcal: t.kcal + (x.kcal || 0), p: t.p + (x.p || 0), c: t.c + (x.c || 0), g: t.g + (x.g || 0), n: t.n + 1 }), { kcal: 0, p: 0, c: 0, g: 0, n: 0 });
 }
 
 // ---------- Copia de seguridad ----------

@@ -25,8 +25,22 @@ export function tipoDeDia(diaRutina) {
   return diaRutina.calentamiento === 'pierna' ? 'inferior' : 'superior';
 }
 
+// Objetivo del plan con un peso: proteína, carbohidratos y grasa por kg; las kcal salen de los macros (4 · P + 4 · C + 9 · G).
+// Sin carbos/grasa por kg (datos de antes) se usa el objetivo de kcal por kg.
+export const kcalDeMacros = (p, c, g) => 4 * p + 4 * c + 9 * g;
 export function objetivo(config, tipo, peso) {
-  return { kcal: Math.round(config.kcalKg[tipo] * peso), p: Math.round(config.protKg[tipo] * peso) };
+  const p = Math.round(config.protKg[tipo] * peso);
+  if (config.carbKg && config.grasaKg && config.carbKg[tipo] != null && config.grasaKg[tipo] != null) {
+    const c = Math.round(config.carbKg[tipo] * peso), g = Math.round(config.grasaKg[tipo] * peso);
+    return { p, c, g, kcal: Math.round(kcalDeMacros(p, c, g)) };
+  }
+  return { p, kcal: Math.round(config.kcalKg[tipo] * peso) };
+}
+// Carbos y grasa por kg que tienen hoy los planes (para empezar sin cambiar nada)
+export function macrosPorKg(planes, alimentos, peso) {
+  const r = (n) => Math.round((n / peso) * 100) / 100, carbKg = {}, grasaKg = {};
+  for (const [t, plan] of Object.entries(planes)) { const x = totalPlan(plan, alimentos); carbKg[t] = r(x.c); grasaKg[t] = r(x.g); }
+  return { carbKg, grasaKg };
 }
 
 function redondear(alimento, cant) {
@@ -34,8 +48,9 @@ function redondear(alimento, cant) {
   return Math.max(paso, Math.round(cant / paso) * paso);
 }
 
-// Ajusta las cantidades a un objetivo: primero la proteína (huevos, carne, pollo, scoop) hasta la proteína objetivo,
-// después los carbos (arroz, avena, plátano) hasta las calorías objetivo. Grasas, verduras y lo "libre" quedan igual.
+// Ajusta las cantidades a un objetivo, en orden: la proteína (huevos, carne, pollo, scoop); la grasa (almendras…), contando
+// la que ya traen los huevos y la carne; y los carbos (arroz, avena, plátano). Verduras y lo "libre" quedan igual.
+// Sin objetivo de carbos y grasa, los carbos ajustan las calorías.
 export function recalcular(plan, alimentos, obj) {
   const nuevo = JSON.parse(JSON.stringify(plan));
   const deGrupo = (grupo) => nuevo.comidas.flatMap((c) => c.items).filter((i) => {
@@ -49,9 +64,20 @@ export function recalcular(plan, alimentos, obj) {
   const pProt = prot.reduce((s, i) => s + valoresItem(i, alimentos).p, 0);
   if (pProt > 0) escalar(prot, Math.max(0.3, (obj.p - (antes.p - pProt)) / pProt));
 
-  const medio = totalPlan(nuevo, alimentos), carbos = deGrupo('carbo');
-  const kCarb = carbos.reduce((s, i) => s + valoresItem(i, alimentos).kcal, 0);
-  if (kCarb > 0) escalar(carbos, Math.max(0.2, (kCarb + obj.kcal - medio.kcal) / kCarb));
+  // Lo que aportan los alimentos de un grupo y lo que aporta todo lo demás
+  const aporte = (items, macro) => items.reduce((s, i) => s + valoresItem(i, alimentos)[macro], 0);
+  const ajustar = (grupo, macro, meta) => {
+    const items = deGrupo(grupo), propio = aporte(items, macro), resto = totalPlan(nuevo, alimentos)[macro] - propio;
+    if (propio > 0) escalar(items, Math.max(0.2, (meta - resto) / propio));
+  };
+  if (obj.c != null && obj.g != null) {
+    ajustar('grasa', 'g', obj.g);
+    ajustar('carbo', 'c', obj.c);
+  } else {
+    const medio = totalPlan(nuevo, alimentos), carbos = deGrupo('carbo');
+    const kCarb = aporte(carbos, 'kcal');
+    if (kCarb > 0) escalar(carbos, Math.max(0.2, (kCarb + obj.kcal - medio.kcal) / kCarb));
+  }
 
   return { plan: nuevo, antes, despues: totalPlan(nuevo, alimentos) };
 }

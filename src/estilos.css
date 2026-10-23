@@ -389,3 +389,13 @@ a.kpi small span { color: var(--brand); }
 .revision li a:hover { background: var(--surface-2); }
 .revision li .txt { flex: 1; }
 .revision li .flecha { color: var(--brand); font-size: 20px; }
+
+/* Macros */
+.macros-hoy { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 6px; font-size: 13px; color: var(--muted); }
+.macros-hoy small { display: block; }
+.macros-hoy b { color: var(--ink); font-size: 15px; }
+.macros-hoy .barra { margin: 4px 0 0; height: 6px; }
+.formula td { min-width: 76px; }
+.formula td input { min-height: 40px; padding: 6px 8px; }
+.kcal-kg { text-align: left; }
+.kcal-kg small { display: block; color: var(--muted); font-size: 11px; }

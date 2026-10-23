@@ -1,7 +1,7 @@
 // Dieta: plan del día (según el gym), comidas marcadas, planes editables, peso corporal y recálculo por peso
 import { e, guardar, repintar, dia, tipoDieta, comidasDelDia } from '../estado.js';
 import { iso, hora, fechaCorta, diaSemana } from '../fechas.js';
-import { totalPlan, totalComida, valoresItem, tipoDeDia, objetivo, recalcular, pesos, tendencia } from '../dieta.js';
+import { totalPlan, totalComida, valoresItem, tipoDeDia, objetivo, recalcular, pesos, tendencia, kcalDeMacros } from '../dieta.js';
 import { esc, barra, registrar, toast, miles } from '../ui.js';
 
 let pestana = 'hoy', planVista = null;
@@ -31,7 +31,8 @@ export function tarjetaComidasHoy(compacta = false) {
   const total = totalPlan(plan, d().alimentos), comido = comidasDelDia();
   return '<div class="fila-resumen"><span>' + TIPOS[tipo] + '</span><span><b>' + miles(comido.kcal) + '</b> / ' + miles(total.kcal) + ' kcal</span></div>' +
     barra(total.kcal ? comido.kcal / total.kcal : 0) +
-    '<div class="fila-resumen nota-corta"><span>Proteína</span><span>' + r0(comido.p) + ' / ' + r0(total.p) + ' g</span></div>' +
+    '<div class="macros-hoy">' + [['Proteína', 'p'], ['Carbos', 'c'], ['Grasa', 'g']].map(([t, k]) =>
+      '<div><small>' + t + '</small><b>' + r0(comido[k]) + '</b> / ' + r0(total[k]) + ' g' + barra(total[k] ? comido[k] / total[k] : 0) + '</div>').join('') + '</div>' +
     '<div class="comidas' + (compacta ? ' compactas' : '') + '">' + plan.comidas.map((c, i) => {
       const t = totalComida(c, d().alimentos), marca = hechas[tipo + ':' + i];
       return '<div class="comida' + (marca ? ' hecha' : '') + '">' +
@@ -62,8 +63,8 @@ function vistaPlanes() {
   const opciones = d().alimentos.map((a) => '<option value="' + esc(a.id) + '">' + esc(a.nombre) + '</option>').join('');
   return '<nav class="chips">' + Object.entries(TIPOS).map(([k, t]) => '<button type="button" class="chip' + (k === planVista ? ' activo' : '') + '" data-accion="dieta-plan" data-tipo="' + k + '">' + t + '</button>').join('') + '</nav>' +
     '<section class="tarjeta"><div class="fila-resumen"><b>' + esc(plan.nombre) + '</b>' + macros(total) + '</div>' +
-    '<p class="nota-corta">Con <b>' + String(peso).replace('.', ',') + ' kg</b> el objetivo es <b>' + miles(obj.kcal) + ' kcal</b> y <b>' + obj.p + ' g de proteína</b>' +
-    ' (' + String(d().config.kcalKg[planVista]).replace('.', ',') + ' kcal y ' + String(d().config.protKg[planVista]).replace('.', ',') + ' g por kg).</p>' +
+    '<p class="nota-corta">Con <b>' + String(peso).replace('.', ',') + ' kg</b> el objetivo es <b>≈ ' + miles(obj.kcal) + ' kcal</b>: proteína <b>' + obj.p + ' g</b>' +
+    (obj.c != null ? ', carbos <b>' + obj.c + ' g</b>, grasa <b>' + obj.g + ' g</b>' : '') + '. <a href="#dieta/peso">Cambiar la fórmula</a></p>' +
     '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="dieta-recalcular" data-tipo="' + planVista + '">⚖️ Recalcular este plan</button>' +
     '<button type="button" class="boton secundario" data-accion="dieta-recalcular" data-tipo="todos">Recalcular los 3</button>' +
     (d().anterior ? '<button type="button" class="boton secundario" data-accion="dieta-deshacer">↶ Deshacer recálculo</button>' : '') + '</div></section>' +
@@ -118,9 +119,13 @@ function vistaPeso() {
     numero('Peso inicial (kg)', 'dieta.config.pesoInicio', inicio, '0.1') + numero('Meta (kg)', 'dieta.config.meta', c.meta, '0.1') +
     numero('Planes calculados con (kg)', 'dieta.config.pesoBase', c.pesoBase, '0.1') +
     numero('Estatura (cm)', 'dieta.config.estatura', c.estatura) + '</div>' +
-    '<p class="nota-corta">Por cada kg de peso, cada plan apunta a:</p><div class="tabla-scroll"><table class="historial"><thead><tr><th></th><th>kcal / kg</th><th>Proteína g / kg</th></tr></thead><tbody>' +
-    Object.entries(TIPOS).map(([k, t]) => '<tr><th>' + t + '</th><td>' + numero('', 'dieta.config.kcalKg.' + k, c.kcalKg[k], '0.1') + '</td><td>' + numero('', 'dieta.config.protKg.' + k, c.protKg[k], '0.01') + '</td></tr>').join('') +
-    '</tbody></table></div><p class="nota-corta">Es una regla simple para ajustar cantidades, no una indicación médica: si el peso se estanca o bajas muy rápido, ajústala con tu nutricionista.</p></section>';
+    '<p class="nota-corta">Por cada kg de peso, cada plan apunta a (gramos por kg):</p><div class="tabla-scroll"><table class="historial formula"><thead><tr><th></th><th>Proteína</th><th>Carbos</th><th>Grasa</th><th>≈ kcal / kg</th></tr></thead><tbody>' +
+    Object.entries(TIPOS).map(([k, t]) => {
+      const kcalKg = kcalDeMacros(c.protKg[k] || 0, (c.carbKg || {})[k] || 0, (c.grasaKg || {})[k] || 0);
+      return '<tr><th>' + t + '</th><td>' + numero('', 'dieta.config.protKg.' + k, c.protKg[k], '0.01') + '</td><td>' + numero('', 'dieta.config.carbKg.' + k, (c.carbKg || {})[k], '0.01') +
+        '</td><td>' + numero('', 'dieta.config.grasaKg.' + k, (c.grasaKg || {})[k], '0.01') + '</td><td class="kcal-kg"><b>' + (Math.round(kcalKg * 10) / 10).toLocaleString('es-CO') + '</b><small>' + miles(kcalKg * ref) + ' kcal con ' + f1(ref) + ' kg</small></td></tr>';
+    }).join('') +
+    '</tbody></table></div><p class="nota-corta">Las kcal salen de los macros: 4 por gramo de proteína y de carbos, 9 por gramo de grasa. Al recalcular se ajusta primero la proteína, después la grasa (contando la de huevos y carne) y al final los carbos.</p><p class="nota-corta">Es una regla simple para ajustar cantidades, no una indicación médica: si el peso se estanca o bajas muy rápido, ajústala con tu nutricionista.</p></section>';
 }
 function numero(titulo, ruta, valor, paso = '1') {
   return '<label class="campo">' + titulo + '<input type="number" inputmode="decimal" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
@@ -149,7 +154,8 @@ export function vistaDieta() {
 }
 
 function resumenCambio(tipo, r) {
-  return TIPOS[tipo] + ': ' + miles(r.antes.kcal) + ' → ' + miles(r.despues.kcal) + ' kcal, proteína ' + r0(r.antes.p) + ' → ' + r0(r.despues.p) + ' g';
+  return TIPOS[tipo] + ': ' + miles(r.antes.kcal) + ' → ' + miles(r.despues.kcal) + ' kcal\n   P ' + r0(r.antes.p) + ' → ' + r0(r.despues.p) +
+    ' · C ' + r0(r.antes.c) + ' → ' + r0(r.despues.c) + ' · G ' + r0(r.antes.g) + ' → ' + r0(r.despues.g) + ' g';
 }
 
 registrar({
@@ -168,7 +174,7 @@ registrar({
     hoy.comidas ??= {};
     if (hoy.comidas[clave]) { delete hoy.comidas[clave]; guardar(); return; }
     const c = d().planes[tipo].comidas[Number(i)], t = totalComida(c, d().alimentos);
-    hoy.comidas[clave] = { ts: Date.now(), nombre: c.nombre, kcal: Math.round(t.kcal), p: Math.round(t.p) };
+    hoy.comidas[clave] = { ts: Date.now(), nombre: c.nombre, kcal: Math.round(t.kcal), p: Math.round(t.p), c: Math.round(t.c), g: Math.round(t.g) };
     guardar();
   },
   'dieta-item'({ ruta }, el) {
@@ -187,7 +193,7 @@ registrar({
     const peso = pesoActual(), tipos = tipo === 'todos' ? Object.keys(TIPOS) : [tipo];
     const resultados = tipos.map((t) => [t, recalcular(d().planes[t], d().alimentos, objetivo(d().config, t, peso))]);
     if (!confirm('Recalcular con ' + String(peso).replace('.', ',') + ' kg:\n\n' + resultados.map(([t, r]) => resumenCambio(t, r)).join('\n') +
-      '\n\nSe ajustan las cantidades de proteína y carbohidratos. Puedes deshacerlo.')) return;
+      '\n\nSe ajustan las cantidades de proteína, grasa y carbohidratos. Puedes deshacerlo.')) return;
     d().anterior = JSON.parse(JSON.stringify(d().planes));
     for (const [t, r] of resultados) d().planes[t] = r.plan;
     if (tipos.length === 3) d().config.pesoBase = peso;

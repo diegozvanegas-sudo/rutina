@@ -237,3 +237,6 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .ed-descansos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .pestanas .chip { font-size: 15px; }
 .boton:disabled { opacity: .45; cursor: not-allowed; }
+.semana-acciones { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: -6px 0 10px; }
+.semana-acciones .sub { margin: 0; }
+.semana-acciones .boton { min-height: 44px; }

@@ -1,6 +1,7 @@
 // Gym: registro de la semana actual (primero) y semanas pasadas; las futuras no se muestran
-import { e, guardar, repintar } from '../estado.js';
+import { e, guardar, repintar, semanaActual, abrirSemana, semanaQuitable, quitarSemana } from '../estado.js';
 import { semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana, reloj } from '../fechas.js';
+export { semanaActual };
 import { estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso } from '../gym.js';
 import { CARDIO } from '../datos_iniciales.js';
 import { esc, barra, registrar, toast } from '../ui.js';
@@ -8,7 +9,6 @@ import { iniciar } from '../temporizador.js';
 
 let semanaVista = null, diaVista = null;
 
-export const semanaActual = () => Math.max(1, semanaDe());
 export function diaDeHoy() {
   const n = diaSemana();
   return e().rutina.find((d) => d.diaSemana === n) || null;
@@ -139,7 +139,10 @@ export function vistaGym() {
   const opciones = [];
   for (let s = actual; s >= 1; s--) opciones.push('<option value="' + s + '"' + (s === semanaVista ? ' selected' : '') + '>Semana ' + s + (s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))) + '</option>');
   return '<div class="cab-vista"><h1>Gym</h1><select data-cambio="semana" aria-label="Semana">' + opciones.join('') + '</select></div>' +
-    '<p class="sub">' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + (semanaVista < actual ? ' · <b>semana pasada</b>' : '') + '</p>' +
+    '<div class="semana-acciones"><p class="sub">' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) +
+      (semanaVista < actual ? ' · <b>semana pasada</b>' : semanaVista > semanaDe() ? ' · <b>abierta antes de tiempo</b>' : '') + '</p>' +
+      (semanaVista === actual ? '<button type="button" class="boton secundario" data-accion="semana-nueva">＋ Nueva semana</button>' : '') +
+      (semanaVista === actual && semanaQuitable() === actual ? '<button type="button" class="boton secundario" data-accion="semana-quitar">Quitar semana ' + actual + '</button>' : '') + '</div>' +
     '<nav class="chips" aria-label="Día">' + e().rutina.filter((x) => x.diaSemana).map((x) => '<button type="button" class="chip' + (x.id === diaVista ? ' activo' : '') + '" data-accion="ir-dia" data-dia="' + x.id + '">' +
       'D' + x.diaSemana + ' · ' + esc(x.nombre) + '</button>').join('') +
     '<button type="button" class="chip' + (diaVista === 'resumen' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="resumen">📊 Resumen</button></nav>' +
@@ -161,6 +164,19 @@ function cambiarReps(id, texto) {
 registrar({
   'ir-dia'({ dia }) { diaVista = dia; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
   semana(ds, el) { semanaVista = Number(el.value); repintar(); },
+  'semana-nueva'() {
+    const n = semanaActual() + 1, lunes = lunesDe(n);
+    if (!confirm('¿Abrir la semana ' + n + ' (' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + ')?\n\nLo que registres desde ahora va a esa semana, y lo de la semana ' + (n - 1) + ' pasa a ser el "último registro".')) return;
+    semanaVista = abrirSemana();
+    repintar();
+    toast('Semana ' + semanaVista + ' abierta');
+  },
+  'semana-quitar'() {
+    if (!confirm('¿Quitar la semana ' + semanaActual() + '? No tiene nada anotado.')) return;
+    quitarSemana();
+    semanaVista = semanaActual();
+    repintar();
+  },
   peso({ fila: id }, el) { (registros(semanaVista)[id] ??= {}).peso = el.value.trim(); guardar(); },
   unidad({ fila: id }, el) { (registros(semanaVista)[id] ??= {}).unidad = el.value; guardar(); },
   reps({ fila: id }, el) { cambiarReps(id, el.value); },

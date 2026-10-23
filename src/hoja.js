@@ -1,8 +1,8 @@
 // Envío a la hoja de Google "Rutina Gym" por medio del Apps Script (apps_script/Codigo.gs).
 // Gym: escribe peso y reps en la columna "Sem N" de la pestaña "Rutina 2.0", igual que a mano.
 // Días: hábitos y metas en la pestaña "Diario App" (una fila por fecha).
-import { e, alGuardarse, avanceMetas } from './estado.js';
-import { lunesDe, sumarDias, hora, semanaDe } from './fechas.js';
+import { e, alGuardarse, avanceMetas, semanaActual } from './estado.js';
+import { lunesDe, sumarDias, hora } from './fechas.js';
 import { registrosDeFila, repsDe } from './gym.js';
 
 export const hoja = { estado: 'inactiva', ultima: null, mensaje: '' };
@@ -44,7 +44,7 @@ export function datosDias(estado, desde, hasta) {
   return filas;
 }
 
-export async function enviarSemana(semana = Math.max(1, semanaDe())) {
+export async function enviarSemana(semana = semanaActual()) {
   const c = config();
   if (!hojaLista()) throw new Error('Falta la dirección del Apps Script o la clave (Ajustes)');
   const lunes = lunesDe(semana);

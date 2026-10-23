@@ -93,3 +93,18 @@ test('CSV del gym: reps con "·" y core con su día', async () => {
   assert.match(csv, /2;2026-10-19;Torso A;Press inclinado mancuernas;Pecho;Back-off;2×8-12;46;kg;10 · 9;2;2;Completo/);
   assert.match(csv, /Empuje \+ Bíceps \(core\);Crunch/);
 });
+
+test('nueva semana antes de tiempo: se vuelve la actual y se puede quitar si está vacía', async () => {
+  const est = await import('../src/estado.js');
+  const { semanaDe } = await import('../src/fechas.js');
+  const cal = Math.max(1, semanaDe());
+  assert.equal(est.semanaActual(), cal);
+  assert.equal(est.abrirSemana(), cal + 1);
+  assert.equal(est.semanaActual(), cal + 1);
+  assert.equal(est.semanaQuitable(), cal + 1);
+  est.e().semanas[cal + 1] = { 'd1-1-1': { reps: '6' } };
+  assert.equal(est.semanaQuitable(), null); // con algo anotado ya no se quita
+  est.e().semanas[cal + 1] = {};
+  est.quitarSemana();
+  assert.equal(est.semanaActual(), cal);
+});

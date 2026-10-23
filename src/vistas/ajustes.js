@@ -1,7 +1,7 @@
 // Ajustes: nube, Google Sheets, metas, espera de la pastilla, sonido y copia de seguridad
-import { e, guardar, repintar, exportar, importar, reiniciar, avanceMetas } from '../estado.js';
+import { e, guardar, repintar, exportar, importar, reiniciar, avanceMetas, semanaActual } from '../estado.js';
 import { csvGym, csvDias } from '../csv.js';
-import { iso, hora, semanaDe } from '../fechas.js';
+import { iso, hora } from '../fechas.js';
 import { nube, configurada, entrar, salir, sincronizar, textoNube } from '../nube.js';
 import { hoja, hojaLista, enviarSemana } from '../hoja.js';
 import { esc, registrar, toast } from '../ui.js';
@@ -80,9 +80,9 @@ registrar({
   async 'nube-salir'() { if (confirm('¿Cerrar la sesión? Los datos siguen en este celular.')) await salir(); },
   'conf-hoja'({ k }, el) { (e().config.hoja ??= {})[k] = el.value.trim(); guardar(); },
   'conf-hoja-auto'(ds, el) { (e().config.hoja ??= {}).auto = el.checked; guardar(); },
-  'hoja-enviar'() { enviar([Math.max(1, semanaDe())]); },
+  'hoja-enviar'() { enviar([semanaActual()]); },
   'hoja-todas'() {
-    const semanas = Object.keys(e().semanas).map(Number).filter((n) => n >= 1 && n <= semanaDe()).sort((a, b) => a - b);
+    const semanas = Object.keys(e().semanas).map(Number).filter((n) => n >= 1 && n <= semanaActual()).sort((a, b) => a - b);
     if (semanas.length && confirm('¿Enviar ' + semanas.length + ' semana(s) a la hoja? Escribe encima de lo que haya en esas columnas.')) enviar(semanas);
   },
   'conf-meta'({ k }, el) { e().config.metas[k] = Math.max(0, Number(el.value) || 0); guardar(); },

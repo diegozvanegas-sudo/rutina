@@ -1,7 +1,7 @@
 // Todo se guarda en el celular (localStorage) en un solo objeto. Funciona sin internet; se puede exportar/importar en Ajustes.
 import { HABITOS, METAS, ESPERA, RUTINA, SESIONES } from './datos_iniciales.js';
 import { aplicarHoja } from './datos_hoja.js';
-import { iso, sumarDias } from './fechas.js';
+import { iso, sumarDias, semanaDe } from './fechas.js';
 
 const CLAVE = 'rutina_v1';
 const copia = (o) => JSON.parse(JSON.stringify(o));
@@ -39,7 +39,8 @@ let pendiente = null, alGuardar = [];
 function escribir() {
   try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (err) {
     clearTimeout(pendiente);
-    pendiente = setTimeout(() => alert('No se pudo guardar en el celular. Exporta una copia en Ajustes.'), 50);
+    // Sin ventana (pruebas) no hay a quién avisar
+    if (typeof alert === 'function') pendiente = setTimeout(() => alert('No se pudo guardar en el celular. Exporta una copia en Ajustes.'), 50);
   }
 }
 // Cada cambio real queda marcado con la hora (cambio) y avisa a la nube y a la hoja (alGuardarse)
@@ -76,6 +77,25 @@ export function dia(fecha = iso()) {
   d.metas ??= { agua: 0, pasos: 0, calorias: 0, lectura: 0 };
   d.crono ??= {};
   return d;
+}
+
+// ---------- Semanas ----------
+// La semana de trabajo es la del calendario (cambia sola cada lunes), o una más adelante si se abrió a mano
+export const semanaActual = () => Math.max(1, semanaDe(), e().semanaAbierta || 0);
+export function abrirSemana() { e().semanaAbierta = semanaActual() + 1; guardar(); return e().semanaAbierta; }
+// Solo se puede deshacer la última semana abierta a mano, y si no tiene nada anotado
+export function semanaQuitable() {
+  const n = e().semanaAbierta;
+  if (!n || n <= semanaDe()) return null;
+  const regs = e().semanas[n] || {};
+  return Object.values(regs).some((r) => String(r.reps || '').trim() || String(r.peso || '').trim()) ? null : n;
+}
+export function quitarSemana() {
+  const n = semanaQuitable();
+  if (!n) return;
+  delete e().semanas[n];
+  e().semanaAbierta = n - 1 > semanaDe() ? n - 1 : null;
+  guardar();
 }
 
 // ---------- Mañana ----------

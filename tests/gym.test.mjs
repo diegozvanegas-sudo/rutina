@@ -143,3 +143,14 @@ test('cardio: texto con lo anotado, en el resumen del día y en el envío a la h
   assert.match(textoDia(d2, 2, estado), /🏃 Cardio cinta 30-35 min: 35 min · vel 3,5 · incl 15 \(cinta 4\)$/);
   assert.equal(datosGym(estado, 2).bloques.find((b) => b.nombre === 'Pierna A').cardio, '35 min · vel 3,5 · incl 15');
 });
+
+test('objetivos por músculo editables: cambian el estado Bajo / En rango / Alto', () => {
+  const regs = {};
+  for (const d of RUTINA) for (const ej of d.ejercicios) if (ej.musculo === 'Pecho') for (const f of ej.filas) regs[f.id] = { reps: Array(f.series).fill(10).join(' ') };
+  const pecho = (obj) => resumenSemana(RUTINA, regs, obj).musculos.Pecho;
+  assert.equal(pecho(undefined).hechas, 15);
+  assert.equal(pecho(undefined).estado, 'En rango');
+  assert.equal(pecho({ _: [10, 20], Pecho: [16, 22] }).estado, 'Bajo');
+  assert.equal(pecho({ _: [10, 20], Pecho: [6, 12] }).estado, 'Alto');
+  assert.deepEqual([pecho({ _: [8, 14] }).min, pecho({ _: [8, 14] }).max], [8, 14]); // los demás usan el general
+});

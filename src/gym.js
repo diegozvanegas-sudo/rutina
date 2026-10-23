@@ -71,7 +71,8 @@ export function aproximacion(peso, unidad = 'kg') {
 }
 
 // Series hechas (sin pasar de las planificadas) por día, total y por músculo en una semana
-export function resumenSemana(rutina, registros = {}) {
+// objetivos: { músculo: [mín, máx], _: [mín, máx] para los demás } (editables en el resumen del gym)
+export function resumenSemana(rutina, registros = {}, objetivos = OBJETIVOS) {
   const dias = [], musculos = {};
   let hechas = 0, plan = 0;
   for (const d of rutina) {
@@ -88,7 +89,7 @@ export function resumenSemana(rutina, registros = {}) {
     hechas += dh; plan += dp;
   }
   for (const [nombre, m] of Object.entries(musculos)) {
-    const [min, max] = OBJETIVOS[nombre] || OBJETIVOS._;
+    const [min, max] = objetivos[nombre] || objetivos._ || OBJETIVOS._;
     Object.assign(m, { min, max, estado: m.hechas < min ? 'Bajo' : m.hechas > max ? 'Alto' : 'En rango' });
   }
   return { dias, hechas, plan, musculos };

@@ -1,5 +1,5 @@
 // Todo se guarda en el celular (localStorage) en un solo objeto. Funciona sin internet; se puede exportar/importar en Ajustes.
-import { HABITOS, METAS, ESPERA, RUTINA, SESIONES } from './datos_iniciales.js';
+import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS } from './datos_iniciales.js';
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
@@ -14,7 +14,7 @@ const dietaInicial = () => ({ config: copia(CONFIG_DIETA), alimentos: copia(ALIM
 function inicial() {
   return {
     version: 1,
-    config: { metas: { ...METAS }, espera: { ...ESPERA }, sonido: true },
+    config: { metas: { ...METAS }, espera: { ...ESPERA }, sonido: true, objetivos: copia(OBJETIVOS) },
     habitos: copia(HABITOS),
     rutina: copia(RUTINA),
     sesiones: copia(SESIONES),
@@ -41,6 +41,7 @@ export function cargar() {
   if (!estado.hojaAplicada) { aplicarHoja(estado); estado.hojaAplicada = true; }
   if (!estado.diasV2) { moverDias(estado); estado.diasV2 = true; }
   if (!estado.dieta) estado.dieta = dietaInicial();
+  estado.config.objetivos ??= copia(OBJETIVOS);
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
   return estado;

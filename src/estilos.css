@@ -374,3 +374,5 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .cardio.hecho { border-color: var(--brand); }
 .campos-cardio { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
 .cardio > .boton { justify-self: start; }
+.rango-ed { display: inline-flex; align-items: center; gap: 4px; }
+.rango-ed input { width: 64px; min-height: 40px; padding: 6px 8px; text-align: center; }

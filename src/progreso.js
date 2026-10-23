@@ -49,7 +49,7 @@ export function revisionSemanal(hoy = iso()) {
     if (prom[0][1] < 0.8) frases.push({ icono: '🎯', texto: 'Tu meta más floja es ' + nombres[prom[0][0]] + ': vas al ' + Math.round(prom[0][1] * 100) + ' % en promedio.' });
   }
   // Gym
-  const r = resumenSemana(e().rutina, e().semanas[semanaDe(hoy)] || {});
+  const r = resumenSemana(e().rutina, e().semanas[semanaDe(hoy)] || {}, e().config.objetivos);
   const bajos = Object.entries(r.musculos).filter(([, m]) => m.estado === 'Bajo').map(([n]) => n);
   frases.push({ icono: '🏋️', texto: 'Semana ' + semanaDe(hoy) + ' del gym: ' + r.hechas + ' de ' + r.plan + ' series (' + Math.round((r.hechas / r.plan) * 100) + ' %).' +
     (bajos.length && diaSemana(hoy) >= 6 ? ' Quedan bajos: ' + bajos.slice(0, 3).join(', ') + '.' : '') });

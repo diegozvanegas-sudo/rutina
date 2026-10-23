@@ -7,7 +7,7 @@ import { CARDIO } from '../datos_iniciales.js';
 import { esc, barra, registrar, toast, copiarTexto } from '../ui.js';
 import { iniciar } from '../temporizador.js';
 
-let semanaVista = null, diaVista = null;
+let semanaVista = null, diaVista = null, editandoObjetivos = false;
 
 export function diaDeHoy() {
   const n = diaSemana();
@@ -173,13 +173,20 @@ function grafico(f, hasta) {
 }
 
 export function tarjetaSemana(sem = semanaActual(), conMusculos = false) {
-  const r = resumenSemana(e().rutina, registros(sem));
+  const r = resumenSemana(e().rutina, registros(sem), e().config.objetivos);
   const pos = (id) => { const d = e().rutina.find((x) => x.id === id); return id === 'core' ? 100 : (d && d.diaSemana) || 99; };
   r.dias.sort((a, b) => pos(a.id) - pos(b.id));
   return '<div class="fila-resumen"><b>Semana ' + sem + '</b><span>' + r.hechas + ' / ' + r.plan + ' series</span></div>' + barra(r.plan ? r.hechas / r.plan : 0) +
     '<div class="dias-semana">' + r.dias.map((d) => (d.id === 'core' ? '<div class="dia-mini"' : '<button type="button" class="dia-mini" data-accion="ir-dia" data-dia="' + d.id + '"') + '><span>' + (DIAS_CORTOS[pos(d.id)] ? DIAS_CORTOS[pos(d.id)] + ' · ' : '') + esc(d.nombre) + '</span><b>' + d.hechas + '/' + d.plan + '</b>' + barra(d.plan ? d.hechas / d.plan : 0) + (d.id === 'core' ? '</div>' : '</button>')).join('') + '</div>' +
-    (conMusculos ? '<h2>Series por músculo</h2><div class="musculos">' + Object.entries(r.musculos).map(([m, x]) =>
-      '<div class="musculo-fila"><div class="fila-resumen"><span>' + esc(m) + '</span><span><b>' + x.hechas + '</b> / ' + x.min + '–' + x.max + ' <span class="estado e-' + x.estado.replace(' ', '-').toLowerCase() + '">' + x.estado + '</span></span></div>' + barra(x.hechas / x.max) + '</div>').join('') + '</div>' : '');
+    (conMusculos ? '<div class="fila-resumen"><h2>Series por músculo</h2><button type="button" class="boton secundario" data-accion="gym-objetivos">' + (editandoObjetivos ? '✓ Listo' : '✏️ Editar objetivos') + '</button></div>' +
+      (editandoObjetivos ? '<p class="nota-corta">Series por semana que buscas para cada músculo: menos del mínimo es "Bajo", más del máximo es "Alto".</p>' : '') +
+      '<div class="musculos">' + Object.entries(r.musculos).map(([m, x]) => {
+        const rango = editandoObjetivos
+          ? '<span class="rango-ed"><input type="number" inputmode="numeric" min="0" data-cambio="gym-objetivo" data-m="' + esc(m) + '" data-k="0" value="' + x.min + '" aria-label="Mínimo de ' + esc(m) + '"> – ' +
+            '<input type="number" inputmode="numeric" min="1" data-cambio="gym-objetivo" data-m="' + esc(m) + '" data-k="1" value="' + x.max + '" aria-label="Máximo de ' + esc(m) + '"></span>'
+          : x.min + '–' + x.max;
+        return '<div class="musculo-fila"><div class="fila-resumen"><span>' + esc(m) + '</span><span><b>' + x.hechas + '</b> / ' + rango + ' <span class="estado e-' + x.estado.replace(' ', '-').toLowerCase() + '">' + x.estado + '</span></span></div>' + barra(x.hechas / x.max) + '</div>';
+      }).join('') + '</div>' : '');
 }
 
 function vistaResumen(sem) {
@@ -221,6 +228,15 @@ function cambiarReps(id, texto) {
 registrar({
   'ir-dia'({ dia }) { diaVista = dia; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
   semana(ds, el) { semanaVista = Number(el.value); repintar(); },
+  'gym-objetivos'() { editandoObjetivos = !editandoObjetivos; repintar(); },
+  'gym-objetivo'({ m, k }, el) {
+    const obj = e().config.objetivos, actual = [...(obj[m] || obj._ || [10, 20])];
+    actual[Number(k)] = Math.max(0, Math.round(Number(el.value) || 0));
+    // Que el mínimo no quede por encima del máximo
+    if (actual[0] > actual[1]) actual[Number(k) === 0 ? 1 : 0] = actual[Number(k)];
+    obj[m] = actual;
+    guardar();
+  },
   cardio({ dia, k }, el) {
     const d = e().rutina.find((x) => x.id === dia), c = (registros(semanaVista)[claveCardio(d)] ??= {});
     if (k === 'nota') c.nota = el.value.trim();

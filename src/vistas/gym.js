@@ -231,7 +231,7 @@ registrar({
   'gym-objetivos'() { editandoObjetivos = !editandoObjetivos; repintar(); },
   'gym-objetivo'({ m, k }, el) {
     const obj = e().config.objetivos, actual = [...(obj[m] || obj._ || [10, 20])];
-    actual[Number(k)] = Math.max(0, Math.round(Number(el.value) || 0));
+    actual[Number(k)] = Math.min(99, Math.max(0, Math.round(Number(el.value) || 0)));
     // Que el mínimo no quede por encima del máximo
     if (actual[0] > actual[1]) actual[Number(k) === 0 ? 1 : 0] = actual[Number(k)];
     obj[m] = actual;

@@ -11,6 +11,14 @@ export function barra(fraccion, clase = '') {
 export const pct = (f) => Math.round((f || 0) * 100) + ' %';
 export const miles = (n) => Math.round(n || 0).toLocaleString('es-CO');
 
+// Identidad de un campo para encontrarlo de nuevo después de repintar: todos sus data-* juntos
+// (con solo uno, campos distintos como el mínimo de Pecho y el de Core quedaban con la misma clave)
+export function claveDeDatos(datos) {
+  if (datos.serie) return 'serie:' + datos.serie;
+  if (!datos.cambio) return null;
+  return Object.keys(datos).filter((k) => k !== 'tipo').sort().map((k) => k + '=' + datos[k]).join('|');
+}
+
 // Acciones de los botones: data-accion="nombre" y los demás data-* como argumentos
 const acciones = {};
 export function registrar(mapa) { Object.assign(acciones, mapa); }

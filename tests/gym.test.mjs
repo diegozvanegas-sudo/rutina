@@ -154,3 +154,13 @@ test('objetivos por músculo editables: cambian el estado Bajo / En rango / Alto
   assert.equal(pecho({ _: [10, 20], Pecho: [6, 12] }).estado, 'Alto');
   assert.deepEqual([pecho({ _: [8, 14] }).min, pecho({ _: [8, 14] }).max], [8, 14]); // los demás usan el general
 });
+
+test('cada campo tiene su propia clave al repintar (el mínimo de Pecho no es el de Core)', async () => {
+  const { claveDeDatos } = await import('../src/ui.js');
+  const pecho = claveDeDatos({ cambio: 'gym-objetivo', m: 'Pecho', k: '1' }), core = claveDeDatos({ cambio: 'gym-objetivo', m: 'Core', k: '1' });
+  assert.notEqual(pecho, core);
+  assert.notEqual(claveDeDatos({ cambio: 'gym-objetivo', m: 'Pecho', k: '0' }), pecho);
+  assert.equal(claveDeDatos({ cambio: 'ed', ruta: 'a.b', tipo: 'num' }), claveDeDatos({ cambio: 'ed', ruta: 'a.b' }));
+  assert.equal(claveDeDatos({ serie: 'd1-1-1' }), 'serie:d1-1-1');
+  assert.equal(claveDeDatos({ accion: 'x' }), null);
+});

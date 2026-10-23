@@ -2,7 +2,7 @@ import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
 import { e, cargar, alCambiar, hechosManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
-import { ejecutar, registrar, prepararAudio, pct, barra, esc } from './ui.js';
+import { ejecutar, registrar, prepararAudio, pct, barra, esc, claveDeDatos } from './ui.js';
 import { revisar, restante, sumar, detener } from './temporizador.js';
 import { resumenSemana } from './gym.js';
 import { vistaHoy } from './vistas/hoy.js';
@@ -73,10 +73,7 @@ function flotante() {
 
 // Identidad de un campo para encontrarlo de nuevo después de repintar
 function claveCampo(el) {
-  const d = el.dataset || {};
-  if (d.serie) return 'serie:' + d.serie;
-  if (d.cambio) return d.cambio + ':' + (d.ruta || d.fila || d.k || d.ej || '');
-  return null;
+  return claveDeDatos(el.dataset || {});
 }
 // Lo escrito y aún no guardado (reps de la serie, el campo donde está el cursor) sobrevive al repintado
 function recordarCampos() {
@@ -112,7 +109,15 @@ function pintar() {
 // Al salir de un campo (change) se repinta; si en ese momento el dedo está sobre un botón,
 // se espera a que termine el toque para que el botón no desaparezca debajo del dedo.
 let dedoAbajo = false, pendiente = false, soltar = null;
-function pedirPintar() { if (dedoAbajo) pendiente = true; else pintar(); }
+// Se repinta un instante después: al pasar con Tab (o "siguiente" en el teclado del celular) el cursor ya está
+// en el campo nuevo, y así se puede dejar ahí después de repintar
+let programado = false;
+function pedirPintar() {
+  if (dedoAbajo) { pendiente = true; return; }
+  if (programado) return;
+  programado = true;
+  setTimeout(() => { programado = false; pintar(); }, 0);
+}
 function vaciar() { dedoAbajo = false; if (pendiente) { pendiente = false; pintar(); } }
 document.addEventListener('pointerdown', () => { dedoAbajo = true; clearTimeout(soltar); prepararAudio(); }, true);
 document.addEventListener('pointerup', () => { clearTimeout(soltar); soltar = setTimeout(vaciar, 400); }, true);

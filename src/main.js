@@ -1,0 +1,172 @@
+import './estilos.css';
+import { registerSW } from 'virtual:pwa-register';
+import { e, cargar, alCambiar, hechosManana, avanceMetas, segundosCrono } from './estado.js';
+import { reloj } from './fechas.js';
+import { ejecutar, registrar, prepararAudio, pct, barra, esc } from './ui.js';
+import { revisar, restante, sumar, detener } from './temporizador.js';
+import { resumenSemana } from './gym.js';
+import { vistaHoy } from './vistas/hoy.js';
+import { vistaManana, textoEspera, revisarCronos } from './vistas/manana.js';
+import { vistaMetas } from './vistas/metas.js';
+import { vistaGym, semanaActual } from './vistas/gym.js';
+import { vistaSesiones } from './vistas/sesiones.js';
+import { vistaAjustes } from './vistas/ajustes.js';
+import { vistaEditar } from './vistas/editar.js';
+import { iniciarNube, nube, textoNube } from './nube.js';
+import { iniciarHoja } from './hoja.js';
+
+registerSW({ immediate: true });
+cargar();
+iniciarNube();
+iniciarHoja();
+
+const VISTAS = {
+  hoy: ['🏠', 'Hoy', vistaHoy],
+  manana: ['☀️', 'Mañana', vistaManana],
+  metas: ['🎯', 'Metas', vistaMetas],
+  gym: ['🏋️', 'Gym', vistaGym],
+  sesiones: ['🧘', 'Sesiones', vistaSesiones],
+  editar: ['✏️', 'Editar', vistaEditar],
+  ajustes: ['⚙️', 'Ajustes', vistaAjustes],
+};
+const $ = (id) => document.getElementById(id);
+const actual = () => (VISTAS[location.hash.slice(1)] ? location.hash.slice(1) : 'hoy');
+
+function enlaces() {
+  return Object.entries(VISTAS).map(([k, [icono, nombre]]) =>
+    '<a href="#' + k + '"' + (k === actual() ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span></a>').join('');
+}
+
+// Barra lateral: fija a la derecha en el computador; en el celular se abre con ☰ desde la derecha
+function lateral() {
+  const total = e().habitos.length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {});
+  return '<div class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b></div>' +
+    '<nav class="nav-lateral" aria-label="Secciones">' + enlaces() + '</nav>' +
+    '<div class="resumen-lateral">' +
+    '<div><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(hechosManana() / total) + '</div>' +
+    '<div><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</div>' +
+    '<div><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</div>' +
+    '</div>' +
+    '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || '') + '">☁️ ' + textoNube() + '</a>';
+}
+
+function flotante() {
+  const a = e().activo, caja = $('flotante');
+  caja.hidden = !a;
+  if (!a) return;
+  caja.innerHTML = '<div class="flot-texto"><small>' + (a.tipo === 'descanso' ? 'Descanso' : 'En curso') + '</small><b>' + esc(a.nombre) + '</b></div>' +
+    '<span class="flot-reloj" id="flot-reloj">' + reloj(restante()) + '</span>' +
+    (a.tipo === 'descanso' ? '<button type="button" class="boton secundario" data-accion="t-sumar">+30 s</button>' : '') +
+    '<button type="button" class="boton secundario" data-accion="t-parar" aria-label="Terminar">✕</button>' +
+    '<span class="flot-barra" id="flot-barra"></span>';
+}
+
+// Identidad de un campo para encontrarlo de nuevo después de repintar
+function claveCampo(el) {
+  const d = el.dataset || {};
+  if (d.serie) return 'serie:' + d.serie;
+  if (d.cambio) return d.cambio + ':' + (d.ruta || d.fila || d.k || d.ej || '');
+  return null;
+}
+// Lo escrito y aún no guardado (reps de la serie, el campo donde está el cursor) sobrevive al repintado
+function recordarCampos() {
+  const activo = document.activeElement, valores = {};
+  document.querySelectorAll('#vista [data-serie]').forEach((el) => { if (el.value) valores[claveCampo(el)] = el.value; });
+  const clave = activo && $('vista').contains(activo) ? claveCampo(activo) : null;
+  if (clave) valores[clave] = activo.value;
+  return { clave, valores, cursor: clave && activo.selectionStart != null ? [activo.selectionStart, activo.selectionEnd] : null };
+}
+function restaurarCampos({ clave, valores, cursor }) {
+  document.querySelectorAll('#vista input, #vista textarea').forEach((el) => {
+    const k = claveCampo(el);
+    if (k && k in valores) el.value = valores[k];
+    if (k && k === clave) {
+      el.focus({ preventScroll: true });
+      try { if (cursor) el.setSelectionRange(cursor[0], cursor[1]); } catch (err) {}
+    }
+  });
+}
+
+let ultimaVista = null;
+function pintar() {
+  const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null;
+  $('vista').innerHTML = VISTAS[v][2]();
+  if (campos) restaurarCampos(campos);
+  $('lateral').innerHTML = lateral();
+  flotante();
+  document.title = VISTAS[v][1] + ' · Rutina';
+  if (v === ultimaVista) window.scrollTo(0, y); else window.scrollTo(0, 0);
+  ultimaVista = v;
+}
+
+// Al salir de un campo (change) se repinta; si en ese momento el dedo está sobre un botón,
+// se espera a que termine el toque para que el botón no desaparezca debajo del dedo.
+let dedoAbajo = false, pendiente = false, soltar = null;
+function pedirPintar() { if (dedoAbajo) pendiente = true; else pintar(); }
+function vaciar() { dedoAbajo = false; if (pendiente) { pendiente = false; pintar(); } }
+document.addEventListener('pointerdown', () => { dedoAbajo = true; clearTimeout(soltar); prepararAudio(); }, true);
+document.addEventListener('pointerup', () => { clearTimeout(soltar); soltar = setTimeout(vaciar, 400); }, true);
+document.addEventListener('pointercancel', () => { clearTimeout(soltar); soltar = setTimeout(vaciar, 400); }, true);
+
+document.addEventListener('click', (ev) => {
+  const el = ev.target.closest('[data-accion]');
+  if (el) ejecutar(el.dataset.accion, el, ev);
+  if (ev.target.closest('#lateral a')) menu(false); // tocar la sección en la que ya está también cierra el menú
+  clearTimeout(soltar);
+  vaciar();
+});
+document.addEventListener('change', (ev) => {
+  const el = ev.target.closest('[data-cambio]');
+  if (el) ejecutar(el.dataset.cambio, el, ev);
+});
+// "Enter"/"Ir" en el teclado del celular guarda el campo
+document.addEventListener('keydown', (ev) => {
+  if (ev.key !== 'Enter' || ev.target.tagName !== 'INPUT') return;
+  const serie = ev.target.dataset.serie;
+  if (serie) { ev.preventDefault(); const b = ev.target.parentNode.querySelector('[data-accion="serie"]'); if (b) b.click(); return; }
+  ev.target.blur();
+});
+
+function menu(abrir) {
+  document.body.classList.toggle('menu-abierto', abrir);
+  $('velo').hidden = !abrir;
+  document.querySelectorAll('[aria-controls="lateral"]').forEach((b) => b.setAttribute('aria-expanded', abrir));
+}
+registrar({
+  't-sumar'() { sumar(30); },
+  't-parar'() { detener(); },
+  menu() { menu(!document.body.classList.contains('menu-abierto')); },
+  'menu-cerrar'() { menu(false); },
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') menu(false); });
+
+alCambiar(pedirPintar);
+window.addEventListener('hashchange', () => { menu(false); pintar(); });
+
+// Reloj: temporizadores, cronómetros y la espera de la pastilla, sin repintar toda la pantalla
+setInterval(() => {
+  revisar();
+  revisarCronos();
+  const fr = $('flot-reloj');
+  if (fr && e().activo) {
+    fr.textContent = reloj(restante());
+    $('flot-barra').style.width = Math.max(0, Math.min(100, 100 - (restante() / e().activo.total) * 100)) + '%';
+  }
+  document.querySelectorAll('[data-crono]').forEach((el) => {
+    const [fecha, id] = el.dataset.crono.split('|'), d = e().dias[fecha];
+    el.textContent = reloj(segundosCrono(d && d.crono[id]));
+  });
+  document.querySelectorAll('[data-espera]').forEach((el) => {
+    const t = textoEspera(Number(el.dataset.espera));
+    el.textContent = t.texto;
+    el.className = 'espera ' + t.clase;
+  });
+}, 500);
+
+// Al volver a la app después de medianoche, "Hoy" debe ser el día nuevo
+let fechaPintada = new Date().toDateString();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && new Date().toDateString() !== fechaPintada) { fechaPintada = new Date().toDateString(); pintar(); }
+});
+
+pintar();

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#101418">
+    <meta name="color-scheme" content="dark">
+    <link rel="icon" type="image/png" href="icons/icono-192.png">
+    <link rel="apple-touch-icon" href="icons/icono-192.png">
+    <title>Rutina</title>
+</head>
+<body>
+<div class="app">
+    <header class="top-movil">
+        <span class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b></span>
+        <button type="button" class="icono menu" data-accion="menu" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false">☰</button>
+    </header>
+    <main id="vista"></main>
+    <aside id="lateral" aria-label="Menú"></aside>
+</div>
+<div id="velo" class="velo" data-accion="menu-cerrar" hidden></div>
+<div id="flotante" class="flotante" role="timer" hidden></div>
+<div id="reproductor" class="reproductor" role="dialog" aria-modal="true" aria-label="Sesión guiada" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

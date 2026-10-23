@@ -1,0 +1,24 @@
+{
+  "name": "rutina",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Rutina diaria: mañana, metas, gym y sesiones guiadas (PWA, funciona sin internet)",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "node --test \"tests/*.test.mjs\"",
+    "iconos": "node tools/generar_iconos.mjs",
+    "db:esquema": "node tools/aplicar_esquema.mjs"
+  },
+  "devDependencies": {
+    "dotenv": "^16.6.1",
+    "pg": "^8.23.1",
+    "vite": "^6.0.0",
+    "vite-plugin-pwa": "^0.21.1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
+  }
+}

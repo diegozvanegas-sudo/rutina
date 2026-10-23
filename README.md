@@ -47,3 +47,9 @@ Instalación (una vez):
 2. Implementar > Nueva implementación > tipo "Aplicación web" > Ejecutar como: yo · Quién tiene acceso: cualquier usuario > Implementar y autorizar.
 3. Copia la URL que termina en `/exec` y pégala en la app (Ajustes > Google Sheets) junto con la misma clave.
 4. "Enviar semana actual" para probar. Después se envía sola un minuto después de cada cambio.
+
+## Publicación
+- GitHub: `github.com/diegozvanegas-sudo/rutina`. Para subir cambios: doble clic en `Subir_a_GitHub.bat`.
+- Cada subida a `main` corre las pruebas y publica en GitHub Pages: https://diegozvanegas-sudo.github.io/rutina/
+  (activar una vez: Settings → Pages → Source: "GitHub Actions").
+- `.env.production` lleva la URL y la llave pública de Supabase (van dentro de la página de todas formas).

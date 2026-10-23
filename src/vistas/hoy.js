@@ -6,6 +6,7 @@ import { cabeceraManana, listaManana } from './manana.js';
 import { tarjetaMeta } from './metas.js';
 import { diaDeHoy, tarjetaCalentamiento, tarjetaSemana, semanaActual } from './gym.js';
 import { estadoFila } from '../gym.js';
+import { tarjetaComidasHoy } from './dieta.js';
 
 function saludo() {
   const h = new Date().getHours();
@@ -39,6 +40,7 @@ export function vistaHoy() {
     ['agua', 'pasos', 'calorias', 'lectura'].map((k) => tarjetaMeta(k, iso(), true)).join('') +
     '<a class="boton secundario ancho" href="#metas">Registrar pasos, calorías y lectura →</a></section>' +
     '<div class="col-gym">' + entrenamiento() + '</div>' +
+    '<section class="tarjeta col-dieta"><div class="fila-resumen"><h2>🥗 Comidas</h2><a href="#dieta" class="nota-corta">Ver plan →</a></div>' + tarjetaComidasHoy(true) + '</section>' +
     '<section class="tarjeta col-semana"><h2>📅 Semana</h2>' + tarjetaSemana() + '</section>' +
     '</div>';
 }

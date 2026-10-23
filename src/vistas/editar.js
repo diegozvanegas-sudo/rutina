@@ -129,6 +129,9 @@ function nuevo(listaRuta) {
     return { id, nombre: 'Nuevo ejercicio', musculo: '', nota: '', filas: filasDeEsquema('3×8-12').map((f, k) => ({ ...f, id: id + '-' + (k + 1) })) };
   }
   if (/\.pasos$/.test(listaRuta)) return { nombre: 'Nuevo ejercicio', musculo: '', seg: 30, lados: false, desc: '' };
+  // Dieta
+  if (/\.comidas$/.test(listaRuta)) return { nombre: 'Nueva comida', items: [] };
+  if (listaRuta === 'dieta.alimentos') return { id: 'a' + uid(), nombre: 'Nuevo alimento', por: 'g', p: 0, g: 0, c: 0, kcal: 0, grupo: 'otro' };
   return null;
 }
 
@@ -176,6 +179,9 @@ registrar({
   'ed-borrar'({ lista: ruta, i, nombre }) {
     const arr = obtener(ruta), item = arr[Number(i)];
     if (ruta === 'sesiones' && e().habitos.some((h) => h.sesion === item.id)) { toast('Esa sesión la usa un hábito de la mañana: cámbialo primero'); return; }
+    if (ruta === 'dieta.alimentos' && Object.values(e().dieta.planes).some((p) => p.comidas.some((c) => c.items.some((x) => x.alimento === item.id)))) {
+      toast('Ese alimento está en un plan: quítalo de las comidas primero'); return;
+    }
     if (!confirm('¿Borrar "' + nombre + '"?' + (ruta === 'rutina' || /\.ejercicios$/.test(ruta) ? '\nLos registros de semanas pasadas quedan guardados pero no se verán.' : ''))) return;
     arr.splice(Number(i), 1);
     guardar();

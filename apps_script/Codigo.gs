@@ -96,13 +96,13 @@ function escribirDias(dias) {
   const libro = SpreadsheetApp.getActive();
   const hoja = libro.getSheetByName(PESTANA_DIAS) || libro.insertSheet(PESTANA_DIAS);
   const encabezado = ['Fecha'].concat(dias[0].habitos.map(function (h) { return h[0]; }),
-    ['Gratitud', 'Agua (ml)', 'Pasos', 'Calorías', 'Lectura (min)', 'Metas %']);
+    ['Gratitud', 'Agua (ml)', 'Pasos', 'Calorías', 'Lectura (min)', 'Metas %', 'Peso (kg)']);
   hoja.getRange(1, 1, 1, encabezado.length).setValues([encabezado]).setFontWeight('bold');
   hoja.setFrozenRows(1);
 
   const fechas = hoja.getLastRow() > 1 ? hoja.getRange(2, 1, hoja.getLastRow() - 1, 1).getDisplayValues().map(function (r) { return r[0]; }) : [];
   dias.forEach(function (d) {
-    const fila = [d.fecha].concat(d.habitos.map(function (h) { return h[1]; }), [d.gratitud, d.agua, d.pasos, d.calorias, d.lectura, d.metas]);
+    const fila = [d.fecha].concat(d.habitos.map(function (h) { return h[1]; }), [d.gratitud, d.agua, d.pasos, d.calorias, d.lectura, d.metas, d.peso]);
     let n = fechas.indexOf(d.fecha);
     if (n < 0) { fechas.push(d.fecha); n = fechas.length - 1; }
     const rango = hoja.getRange(n + 2, 1, 1, fila.length);

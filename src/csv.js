@@ -35,11 +35,11 @@ export function csvGym(estado) {
 
 export function csvDias(estado, avance) {
   const habitos = estado.habitos;
-  const filas = [['Fecha', ...habitos.map((h) => h.nombre), 'Gratitud', 'Agua (ml)', 'Pasos', 'Calorías', 'Lectura (min)', 'Metas cumplidas']];
+  const filas = [['Fecha', ...habitos.map((h) => h.nombre), 'Gratitud', 'Agua (ml)', 'Pasos', 'Calorías', 'Lectura (min)', 'Metas cumplidas', 'Peso (kg)']];
   for (const fecha of Object.keys(estado.dias).sort()) {
     const d = estado.dias[fecha], a = avance(fecha);
     filas.push([fecha, ...habitos.map((h) => (d.habitos && d.habitos[h.id] ? hora(d.habitos[h.id].ts) : '')), d.gratitud || '',
-      a.valores.agua, a.valores.pasos, a.valores.calorias, a.valores.lectura, Math.round(a.total * 100) + ' %']);
+      a.valores.agua, a.valores.pasos, a.valores.calorias, a.valores.lectura, Math.round(a.total * 100) + ' %', d.peso || '']);
   }
   return tabla(filas);
 }

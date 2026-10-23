@@ -54,7 +54,7 @@ small { color: var(--muted); }
   .nav-lateral a { min-height: 0; font-size: 16px; }
   .tablero { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
   .tablero > * { margin: 0; }
-  .col-manana { grid-row: span 3; }
+  .col-manana { grid-row: span 4; }
 }
 
 /* ---------- Piezas ---------- */
@@ -240,3 +240,40 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .semana-acciones { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: -6px 0 10px; }
 .semana-acciones .sub { margin: 0; }
 .semana-acciones .boton { min-height: 44px; }
+
+/* Dieta */
+.comidas { display: grid; gap: 8px; margin-top: 8px; }
+.comida { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 12px; background: var(--bg); }
+.comida .check { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface-2); font-size: 20px; cursor: pointer; color: var(--ink); }
+.comida.hecha .check { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); font-weight: 800; }
+.comida .info { flex: 1; min-width: 0; display: grid; gap: 4px; padding-top: 2px; }
+.comida.hecha b { color: var(--muted); }
+.compactas .comida { padding: 6px 8px; }
+.compactas .comida .check { width: 44px; height: 44px; }
+.macros { font-size: 13px; color: var(--muted); text-align: right; }
+.macros b { color: var(--ink); }
+.titulo-comida { font-weight: 700; font-size: 17px; min-height: 44px; }
+.items { display: grid; gap: 6px; }
+.item { display: grid; grid-template-columns: 1fr 110px 90px 44px; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.item-nombre { font-weight: 600; min-width: 0; }
+.item-cant { display: flex; align-items: center; gap: 4px; }
+.item-cant input { min-height: 44px; padding: 8px; }
+.item-cant span { color: var(--muted); font-size: 13px; }
+.item-kcal { display: grid; font-size: 14px; text-align: right; }
+.item .icono { min-width: 40px; min-height: 40px; }
+.agregar-item { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.macros-ed { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.peso-grande { font-size: 28px; font-weight: 800; min-height: 60px; }
+.datos-peso { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.datos-peso > div { background: var(--bg); border-radius: 10px; padding: 8px 10px; display: grid; }
+.datos-peso b { font-size: 20px; }
+.grafico-peso { width: 100%; height: 90px; color: var(--azul); }
+.linea-meta { stroke: var(--brand); stroke-dasharray: 4 4; stroke-width: 1.5; }
+.lista-pesos { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
+.lista-pesos li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); }
+@media (max-width: 480px) {
+  .item { grid-template-columns: 1fr 100px 40px; }
+  .item-kcal { grid-column: 1 / 3; text-align: left; display: flex; gap: 8px; }
+  .item .icono { grid-row: 1; grid-column: 3; }
+  .macros-ed { grid-template-columns: 1fr 1fr; }
+}

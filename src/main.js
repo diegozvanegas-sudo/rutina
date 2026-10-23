@@ -12,6 +12,7 @@ import { vistaGym, semanaActual } from './vistas/gym.js';
 import { vistaSesiones } from './vistas/sesiones.js';
 import { vistaAjustes } from './vistas/ajustes.js';
 import { vistaEditar } from './vistas/editar.js';
+import { vistaDieta } from './vistas/dieta.js';
 import { iniciarNube, nube, textoNube } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 
@@ -24,6 +25,7 @@ const VISTAS = {
   hoy: ['🏠', 'Hoy', vistaHoy],
   manana: ['☀️', 'Mañana', vistaManana],
   metas: ['🎯', 'Metas', vistaMetas],
+  dieta: ['🥗', 'Dieta', vistaDieta],
   gym: ['🏋️', 'Gym', vistaGym],
   sesiones: ['🧘', 'Sesiones', vistaSesiones],
   editar: ['✏️', 'Editar', vistaEditar],

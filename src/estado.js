@@ -1,10 +1,14 @@
 // Todo se guarda en el celular (localStorage) en un solo objeto. Funciona sin internet; se puede exportar/importar en Ajustes.
 import { HABITOS, METAS, ESPERA, RUTINA, SESIONES } from './datos_iniciales.js';
 import { aplicarHoja } from './datos_hoja.js';
-import { iso, sumarDias, semanaDe } from './fechas.js';
+import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
+import { tipoDeDia, totalPlan } from './dieta.js';
+import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 
 const CLAVE = 'rutina_v1';
 const copia = (o) => JSON.parse(JSON.stringify(o));
+
+const dietaInicial = () => ({ config: copia(CONFIG_DIETA), alimentos: copia(ALIMENTOS), planes: copia(PLANES), anterior: null });
 
 function inicial() {
   return {
@@ -13,6 +17,7 @@ function inicial() {
     habitos: copia(HABITOS),
     rutina: copia(RUTINA),
     sesiones: copia(SESIONES),
+    dieta: dietaInicial(),
     dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...} }
     semanas: {},  // número de semana: { idFila: { peso, unidad, reps } }
     activo: null, // temporizador en curso: { tipo, fin, ... }
@@ -32,6 +37,7 @@ export function cargar() {
   // Una sola vez: últimos registros, descansos y semana 1 traídos de la hoja de Google
   if (!estado.hojaAplicada) { aplicarHoja(estado); estado.hojaAplicada = true; }
   if (!estado.diasV2) { moverDias(estado); estado.diasV2 = true; }
+  if (!estado.dieta) estado.dieta = dietaInicial();
   return estado;
 }
 export const e = () => estado || cargar();
@@ -134,12 +140,30 @@ export function alternarCrono(fecha, id) {
 
 // ---------- Metas ----------
 export function avanceMetas(fecha = iso()) {
-  const m = dia(fecha).metas, meta = e().config.metas;
+  const m = dia(fecha).metas, meta = { ...e().config.metas };
   const lectura = Math.floor(segundosCrono(dia(fecha).crono.lectura) / 60) + (m.lectura || 0);
-  const valores = { agua: m.agua || 0, pasos: m.pasos || 0, calorias: m.calorias || 0, lectura };
+  // Calorías: lo anotado a mano más las comidas marcadas en Dieta; la meta es la del plan que toca ese día
+  const comidas = comidasDelDia(fecha);
+  if (e().dieta) meta.calorias = Math.round(totalPlan(planDieta(fecha), e().dieta.alimentos).kcal);
+  const valores = { agua: m.agua || 0, pasos: m.pasos || 0, calorias: (m.calorias || 0) + comidas.kcal, lectura };
   const partes = Object.fromEntries(Object.keys(meta).map((k) => [k, Math.min(1, meta[k] ? valores[k] / meta[k] : 0)]));
   const total = Object.values(partes).reduce((a, b) => a + b, 0) / Object.keys(partes).length;
-  return { valores, partes, total };
+  return { valores, partes, total, meta };
+}
+
+// ---------- Dieta ----------
+// Plan del día: el elegido a mano ese día o el que toca según la rutina (pierna → inferior, resto → superior, sin entreno → descanso)
+export function tipoDieta(fecha = iso()) {
+  const d = e().dias[fecha];
+  if (d && d.dieta) return d.dieta;
+  const n = diaSemana(fecha);
+  return tipoDeDia(e().rutina.find((x) => x.diaSemana === n));
+}
+export const planDieta = (fecha = iso()) => e().dieta.planes[tipoDieta(fecha)];
+// Comidas marcadas: guardan sus calorías y proteína del momento (si después cambia el plan, el día no cambia)
+export function comidasDelDia(fecha = iso()) {
+  const c = (e().dias[fecha] && e().dias[fecha].comidas) || {};
+  return Object.values(c).reduce((t, x) => ({ kcal: t.kcal + (x.kcal || 0), p: t.p + (x.p || 0), n: t.n + 1 }), { kcal: 0, p: 0, n: 0 });
 }
 
 // ---------- Copia de seguridad ----------

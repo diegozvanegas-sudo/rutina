@@ -6,7 +6,8 @@ import { nube, configurada, entrar, salir, sincronizar, textoNube } from '../nub
 import { hoja, hojaLista, enviarSemana } from '../hoja.js';
 import { esc, registrar, toast } from '../ui.js';
 
-const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', calorias: 'Calorías (kcal)', lectura: 'Lectura (min)' };
+// La meta de calorías la pone el plan de Dieta de cada día
+const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)' };
 
 export function vistaAjustes() {
   const c = e().config;

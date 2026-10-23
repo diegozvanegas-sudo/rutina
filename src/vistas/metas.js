@@ -19,8 +19,9 @@ function controles(k, fecha) {
   }
   if (k === 'calorias') {
     return '<div class="dos">' +
-      '<label class="campo">Total<input type="number" inputmode="numeric" min="0" data-cambio="meta" data-k="calorias" value="' + (dia(fecha).metas.calorias || '') + '" placeholder="0"></label>' +
-      '<label class="campo">Sumar comida<input type="number" inputmode="numeric" min="0" data-cambio="comida" placeholder="kcal"></label></div>';
+      '<label class="campo">Fuera del plan<input type="number" inputmode="numeric" min="0" data-cambio="meta" data-k="calorias" value="' + (dia(fecha).metas.calorias || '') + '" placeholder="0"></label>' +
+      '<label class="campo">Sumar comida<input type="number" inputmode="numeric" min="0" data-cambio="comida" placeholder="kcal"></label></div>' +
+      '<a class="nota-corta" href="#dieta">Las comidas del plan se marcan en 🥗 Dieta y se suman solas.</a>';
   }
   const c = dia(fecha).crono.lectura, corre = c && c.inicio;
   return '<div class="crono"><span class="reloj" data-crono="' + fecha + '|lectura">' + reloj(segundosCrono(c)) + '</span>' +
@@ -29,7 +30,7 @@ function controles(k, fecha) {
 }
 
 export function tarjetaMeta(k, fecha = iso(), compacta = false) {
-  const a = avanceMetas(fecha), meta = e().config.metas[k];
+  const a = avanceMetas(fecha), meta = a.meta[k];
   return '<div class="meta meta-' + k + (a.partes[k] >= 1 ? ' cumplida' : '') + '">' +
     '<div class="fila-resumen"><b>' + NOMBRES[k] + '</b><span>' + formato(k, a.valores[k]) + ' / ' + formato(k, meta) + '</span></div>' +
     barra(a.partes[k], 'meta') + (compacta && k !== 'agua' ? '' : controles(k, fecha)) + '</div>';

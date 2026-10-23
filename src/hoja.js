@@ -40,6 +40,7 @@ export function datosDias(estado, desde, hasta) {
       habitos: estado.habitos.map((h) => [h.nombre, d.habitos && d.habitos[h.id] ? hora(d.habitos[h.id].ts) : '']),
       gratitud: d.gratitud || '', agua: a.valores.agua, pasos: a.valores.pasos, calorias: a.valores.calorias, lectura: a.valores.lectura,
       metas: Math.round(a.total * 100),
+      peso: d.peso || '',
     });
   }
   return filas;

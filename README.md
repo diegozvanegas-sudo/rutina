@@ -14,6 +14,8 @@ npm run build     # versión para publicar en dist/
 - **Hoy**: tablero con la mañana, las metas, el entrenamiento que toca (con calentamiento) y la semana.
 - **Mañana**: checklist en orden con hora, espera pastilla → desayuno, colgarse 60 s, estiramiento guiado, gratitud, caminar 1 h y racha.
 - **Metas**: agua, pasos, calorías y lectura, con historial de 7 y 30 días.
+- **Dieta**: plan del día según el gym (entreno inferior, superior o descanso), comidas que se marcan y suman a las calorías,
+  planes y alimentos editables, peso corporal con promedio de 7 días y recálculo de los planes por peso (proteína y carbos).
 - **Gym**: semana actual primero (semana 1 = lunes 12 oct 2026), semanas pasadas en el selector. Contador de series, colores
   (amarillo faltan · verde completo · azul SUBE PESO), último registro, peso sugerido, descanso automático, notas y resumen por músculo.
 - **Sesiones**: calentamientos por día, estiramientos y fortalecimiento de rodilla, en modo guiado.

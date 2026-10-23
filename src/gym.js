@@ -1,6 +1,21 @@
 // Reglas del registro del gym (sin pantalla, para poder probarlas): series hechas, colores, peso sugerido y resúmenes.
 import { OBJETIVOS } from './datos_iniciales.js';
 
+// Cardio de cada día: se guarda por semana con la clave "cardio@idDía"
+export const CAMPOS_CARDIO = [
+  ['min', 'Minutos', '1'], ['vel', 'Velocidad', '0.1'], ['incl', 'Inclinación', '0.5'], ['fc', 'FC promedio', '1'],
+  ['fcMax', 'FC máxima', '1'], ['km', 'Distancia (km)', '0.01'], ['kcal', 'Calorías', '1'],
+];
+export const claveCardio = (d) => 'cardio@' + d.id;
+export const hayCardio = (c) => c && CAMPOS_CARDIO.some(([k]) => c[k] != null && c[k] !== '');
+export function textoCardio(c) {
+  if (!hayCardio(c)) return '';
+  const n = (v) => String(v).replace('.', ',');
+  return [c.min != null && c.min !== '' ? c.min + ' min' : '', c.vel ? 'vel ' + n(c.vel) : '', c.incl != null && c.incl !== '' ? 'incl ' + n(c.incl) : '',
+    c.fc ? 'FC ' + c.fc + (c.fcMax ? ' (máx ' + c.fcMax + ')' : '') : c.fcMax ? 'FC máx ' + c.fcMax : '', c.km ? n(c.km) + ' km' : '', c.kcal ? c.kcal + ' kcal' : '']
+    .filter(Boolean).join(' · ');
+}
+
 // "10 9 8" -> [10, 9, 8]. Las reps se guardan siempre como texto; aquí solo se cuentan.
 export function repsDe(texto) {
   return (String(texto || '').match(/\d+(?:[.,]\d+)?/g) || []).map((n) => Number(n.replace(',', '.')));

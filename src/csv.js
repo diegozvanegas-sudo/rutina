@@ -1,6 +1,6 @@
 // Exportar a CSV (separado por ";" para que Excel en español lo abra en columnas; Google Sheets también lo detecta).
 // Las reps van con "·" como en la hoja: así nunca se convierten en fecha.
-import { estadoFila, repsDe } from './gym.js';
+import { estadoFila, repsDe, textoCardio } from './gym.js';
 import { lunesDe, hora } from './fechas.js';
 
 const celda = (v) => {
@@ -28,6 +28,11 @@ export function csvGym(estado) {
       if (!est.hechas && !String(r.peso || '').trim()) continue;
       const dia = k.includes('@') ? nombreDia[k.split('@')[1]] + ' (core)' : d.nombre;
       filas.push([sem, lunesDe(sem), dia, ej.nombre, ej.musculo, f.tipo, f.esquema, r.peso || '', r.unidad || 'kg', repsTexto(r.reps), est.hechas, est.plan, ESTADO[est.color]]);
+    }
+    // Cardio de cada día: el detalle va en la columna de reps
+    for (const k of Object.keys(regs).filter((x) => x.startsWith('cardio@'))) {
+      const texto = textoCardio(regs[k]);
+      if (texto) filas.push([sem, lunesDe(sem), nombreDia[k.split('@')[1]] || '', 'Cardio', '', '', '', '', '', texto + (regs[k].nota ? ' (' + regs[k].nota + ')' : ''), '', '', '']);
     }
   }
   return tabla(filas);

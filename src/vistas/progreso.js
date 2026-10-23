@@ -78,6 +78,20 @@ function graficoGym() {
     tablaDatos(['Semana', 'Series', 'Plan'], datos.map((d) => [d.etiqueta, d.v, d.plan])));
 }
 
+function graficoCardio() {
+  const actual = semanaActual(), desde = Math.max(1, actual - 11), datos = [];
+  for (let s = desde; s <= actual; s++) {
+    const regs = e().semanas[s] || {}, dias = Object.keys(regs).filter((k) => k.startsWith('cardio@') && regs[k].min > 0);
+    const min = dias.reduce((t, k) => t + regs[k].min, 0);
+    datos.push({ etiqueta: 'S' + s, v: min, tip: 'Semana ' + s + ': ' + min + ' min de cardio en ' + dias.length + (dias.length === 1 ? ' día' : ' días') });
+  }
+  if (!datos.some((d) => d.v)) return '';
+  // Plan: la suma del mínimo de cada día con cardio ("30-35 min" → 30)
+  const plan = e().rutina.reduce((t, d) => t + (Number(((d.cardio || '').match(/(\d+)/) || [])[1]) || 0), 0);
+  return tarjeta('🏃 Minutos de cardio por semana', barras(datos, plan ? { ref: { v: plan, texto: 'plan ' + plan + ' min' } } : {}) +
+    tablaDatos(['Semana', 'Minutos'], datos.map((d) => [d.etiqueta, d.v])));
+}
+
 function graficoMetas() {
   const fs = rango(dias), nombres = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura' };
   // Cuatro gráficos pequeños con la misma escala (0–100 % de la meta), uno por meta
@@ -115,7 +129,7 @@ function revision() {
 export function vistaProgreso() {
   return '<div class="cab-vista"><h1>Progreso</h1><div class="chips filtro" role="group" aria-label="Rango">' + [7, 30, 90].map((n) =>
     '<button type="button" class="chip' + (n === dias ? ' activo' : '') + '" data-accion="prog-dias" data-n="' + n + '">' + n + ' días</button>').join('') + '</div></div>' +
-    indicadores() + revision() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoGym() + graficoMetas() + graficoPlata() + '</div>';
+    indicadores() + revision() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoGym() + graficoCardio() + graficoMetas() + graficoPlata() + '</div>';
 }
 
 registrar({ 'prog-dias'({ n }) { dias = Number(n); repintar(); } });

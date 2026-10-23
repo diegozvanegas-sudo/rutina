@@ -129,5 +129,17 @@ test('resumen del día en texto: peso × reps, marcas de estado, core del día y
   assert.match(t, /  3×10-15: 50 kg × 12 ⏳ 1\/3/);
   assert.match(t, /Máquina laterales · Hombro\n  4×10-15: —/);
   assert.match(t, /💪 Core\nCrunch · Core\n  2×15: 15 · 15 ⬆ sube peso/); // reps fijas: hacer las 15 cuenta como el tope
-  assert.match(t, /🏃 Cardio cinta 30 min$/);
+  assert.match(t, /🏃 Cardio cinta 30 min: —$/); // sin cardio anotado
+});
+
+test('cardio: texto con lo anotado, en el resumen del día y en el envío a la hoja', async () => {
+  const { textoCardio } = await import('../src/gym.js');
+  const { textoDia } = await import('../src/vistas/gym.js');
+  const { datosGym } = await import('../src/hoja.js');
+  assert.equal(textoCardio({ min: 32, vel: 3.5, incl: 15, fc: 128, fcMax: 141, km: 2.1 }), '32 min · vel 3,5 · incl 15 · FC 128 (máx 141) · 2,1 km');
+  assert.equal(textoCardio({}), '');
+  const rutina = JSON.parse(JSON.stringify(RUTINA)), d2 = rutina.find((d) => d.id === 'd2');
+  const estado = { rutina, semanas: { 2: { 'cardio@d2': { min: 35, vel: 3.5, incl: 15, nota: 'cinta 4' } } } };
+  assert.match(textoDia(d2, 2, estado), /🏃 Cardio cinta 30-35 min: 35 min · vel 3,5 · incl 15 \(cinta 4\)$/);
+  assert.equal(datosGym(estado, 2).bloques.find((b) => b.nombre === 'Pierna A').cardio, '35 min · vel 3,5 · incl 15');
 });

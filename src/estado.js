@@ -107,7 +107,8 @@ export function semanaQuitable() {
   const n = e().semanaAbierta;
   if (!n || n <= semanaDe()) return null;
   const regs = e().semanas[n] || {};
-  return Object.values(regs).some((r) => String(r.reps || '').trim() || String(r.peso || '').trim()) ? null : n;
+  // Cualquier dato anotado (reps, peso o el cardio) cuenta
+  return Object.values(regs).some((r) => Object.values(r || {}).some((v) => v != null && String(v).trim() !== '')) ? null : n;
 }
 export function quitarSemana() {
   const n = semanaQuitable();

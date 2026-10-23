@@ -62,6 +62,7 @@ function escribirGym(gym) {
     if (/^SERIES SEMANALES/i.test(a)) break;
     if (/^D[IÍ]A\s+\d+/i.test(a) || /^CORE/i.test(a)) { actual = { titulo: a, core: /^CORE/i.test(a), filas: [] }; bloques.push(actual); continue; }
     if (actual && TIPOS.indexOf(String(valores[i][2]).trim()) >= 0) actual.filas.push(i + 1);
+    else if (actual && /^cardio/i.test(a)) actual.cardio = i + 1;
   }
   const dias = bloques.filter(function (b) { return !b.core; }), core = bloques.filter(function (b) { return b.core; })[0];
 
@@ -70,6 +71,8 @@ function escribirGym(gym) {
   const escribirBloque = function (deApp, deHoja) {
     if (!deApp || !deHoja) return;
     if (deApp.filas.length !== deHoja.filas.length) avisos.push(deHoja.titulo + ': la app tiene ' + deApp.filas.length + ' filas y la hoja ' + deHoja.filas.length);
+    // Cardio: en la fila "Cardio" del bloque, columna de reps ("32 min · vel 3,5 · incl 15 · FC 128")
+    if (deApp.cardio && deHoja.cardio) { hoja.getRange(deHoja.cardio, col + 2).setNumberFormat('@').setValue(deApp.cardio); escritas++; }
     deApp.filas.forEach(function (f, k) {
       const fila = deHoja.filas[k];
       if (!fila || (!f.peso && !f.reps)) return;

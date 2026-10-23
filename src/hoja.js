@@ -3,7 +3,7 @@
 // Días: hábitos y metas en la pestaña "Diario App" (una fila por fecha).
 import { e, alGuardarse, avanceMetas, semanaActual } from './estado.js';
 import { lunesDe, sumarDias, hora } from './fechas.js';
-import { registrosDeFila, repsDe } from './gym.js';
+import { registrosDeFila, repsDe, textoCardio, claveCardio } from './gym.js';
 
 export const hoja = { estado: 'inactiva', ultima: null, mensaje: '' };
 const config = () => e().config.hoja || {};
@@ -17,6 +17,7 @@ export function datosGym(estado, semana) {
   const core = estado.rutina.find((d) => d.id === 'core');
   const bloque = (d) => ({
     nombre: d.nombre,
+    cardio: d.cardio ? textoCardio(regs[claveCardio(d)]) : '',
     filas: d.ejercicios.flatMap((ej) => ej.filas.map((f) => {
       // El core se anota por día: en la hoja va todo junto (reps de todos los días, el último peso)
       const lista = registrosDeFila(regs, f);

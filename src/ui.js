@@ -42,6 +42,26 @@ export function prepararAudio() {
   try { audio ??= new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch (err) {}
 }
 
+// Copiar al portapapeles; en navegadores sin permiso (http, celulares viejos) usa el método antiguo
+export function copiarTexto(texto, aviso = 'Copiado') {
+  const listo = () => toast('📋 ' + aviso);
+  const viejo = () => {
+    const a = document.createElement('textarea');
+    a.value = texto; a.setAttribute('readonly', ''); a.style.position = 'fixed'; a.style.opacity = '0';
+    document.body.appendChild(a); a.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) {}
+    a.remove();
+    if (ok) listo(); else toast('No se pudo copiar: abre "Ver texto" y cópialo a mano');
+  };
+  if (!(navigator.clipboard && window.isSecureContext)) { viejo(); return; }
+  // Si el permiso del portapapeles se queda esperando, a los 1,5 s se copia con el método antiguo
+  let hecho = false;
+  const una = (f) => () => { if (!hecho) { hecho = true; f(); } };
+  setTimeout(una(viejo), 1500);
+  navigator.clipboard.writeText(texto).then(una(listo), una(viejo));
+}
+
 export function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;

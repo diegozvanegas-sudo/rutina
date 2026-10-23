@@ -113,3 +113,21 @@ test('orden nuevo de días: lun empuje, mar tirón, mié pierna A, vie torso A, 
   const dia = (id) => RUTINA.find((d) => d.id === id).diaSemana;
   assert.deepEqual(['d3', 'd5', 'd2', 'd1', 'd6'].map(dia), [1, 2, 3, 5, 6]);
 });
+
+test('resumen del día en texto: peso × reps, marcas de estado, core del día y cardio', async () => {
+  const { textoDia } = await import('../src/vistas/gym.js');
+  const rutina = JSON.parse(JSON.stringify(RUTINA)), d3 = rutina.find((d) => d.id === 'd3');
+  const estado = { rutina, semanas: { 2: {
+    'd3-1-1': { peso: '100', unidad: 'kg', reps: '12' },          // tope del rango (4-7) → sube peso
+    'd3-1-2': { peso: '100', unidad: 'kg', reps: '10 10' },       // completo
+    'd3-2-1': { peso: '50', unidad: 'kg', reps: '12' },           // faltan series
+    'core-1-1@d3': { reps: '15 15' },
+  } } };
+  const t = textoDia(d3, 2, estado);
+  assert.match(t, /^🏋️ Lun · Empuje \+ Bíceps — Semana 2 \(19 oct – 25 oct\)\nSeries: 4\/25/);
+  assert.match(t, /Press plano \(barra\/máquina\) · Pecho\n  Top 1×4-7: 100 kg × 12 ⬆ sube peso\n  Back-off 2×8-12: 100 kg × 10 · 10 ✅/);
+  assert.match(t, /  3×10-15: 50 kg × 12 ⏳ 1\/3/);
+  assert.match(t, /Máquina laterales · Hombro\n  4×10-15: —/);
+  assert.match(t, /💪 Core\nCrunch · Core\n  2×15: 15 · 15 ⬆ sube peso/); // reps fijas: hacer las 15 cuenta como el tope
+  assert.match(t, /🏃 Cardio cinta 30 min$/);
+});

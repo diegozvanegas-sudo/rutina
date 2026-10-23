@@ -4,7 +4,7 @@ import { semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana, reloj } from '../f
 export { semanaActual };
 import { estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso } from '../gym.js';
 import { CARDIO } from '../datos_iniciales.js';
-import { esc, barra, registrar, toast } from '../ui.js';
+import { esc, barra, registrar, toast, copiarTexto } from '../ui.js';
 import { iniciar } from '../temporizador.js';
 
 let semanaVista = null, diaVista = null;
@@ -84,10 +84,35 @@ export function tarjetaCalentamiento(d, sem = semanaActual()) {
     '</section>';
 }
 
+// Resumen del día en texto, para pegar en WhatsApp, notas o la hoja
+export function textoDia(d, sem, estado = e()) {
+  const regs = estado.semanas[sem] || {}, lunes = lunesDe(sem);
+  const lineaFila = (f, clave) => {
+    const reg = regs[clave] || {}, est = estadoFila(f, reg), reps = repsDe(reg.reps);
+    const peso = String(reg.peso || '').trim(), unidad = reg.unidad || 'kg';
+    const marca = est.color === 'sube' ? ' ⬆ sube peso' : est.color === 'completo' ? ' ✅' : est.color === 'falta' ? ' ⏳ ' + est.hechas + '/' + est.plan : '';
+    const datos = reps.length ? (peso ? peso + ' ' + unidad + ' × ' : '') + reps.join(' · ') : '—';
+    return '  ' + (f.tipo === 'Series' ? '' : f.tipo + ' ') + f.esquema + ': ' + datos + marca;
+  };
+  const bloque = (ej, sufijo = '') => ej.nombre + ' · ' + ej.musculo + '\n' + ej.filas.map((f) => lineaFila(f, f.id + sufijo)).join('\n');
+  const r = resumenSemana([d], regs), lineas = [
+    '🏋️ ' + (d.diaSemana ? DIAS_CORTOS[d.diaSemana] + ' · ' : '') + d.nombre + ' — Semana ' + sem + ' (' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + ')',
+    'Series: ' + r.hechas + '/' + r.plan, '', ...d.ejercicios.map((ej) => bloque(ej)),
+  ];
+  // Core: solo lo anotado ese día
+  const core = estado.rutina.find((x) => x.id === 'core'), sufijo = '@' + d.id;
+  const coreHecho = core ? core.ejercicios.filter((ej) => ej.filas.some((f) => repsDe((regs[f.id + sufijo] || {}).reps).length)) : [];
+  if (coreHecho.length) lineas.push('', '💪 Core', ...coreHecho.map((ej) => bloque(ej, sufijo)));
+  if (d.cardio) lineas.push('', '🏃 ' + d.cardio);
+  return lineas.join('\n');
+}
+
 function vistaDia(d, sem) {
   const r = resumenSemana([d], registros(sem));
   return tarjetaCalentamiento(d, sem) +
     '<div class="fila-resumen sticky-resumen"><b>' + esc(d.nombre) + '</b><span>' + r.hechas + ' / ' + r.plan + ' series</span></div>' + barra(r.plan ? r.hechas / r.plan : 0) +
+    '<div class="copiar-dia"><button type="button" class="boton secundario" data-accion="gym-copiar" data-dia="' + d.id + '">📋 Copiar resumen del día</button>' +
+    '<details><summary>Ver texto</summary><pre class="texto-copia">' + esc(textoDia(d, sem)) + '</pre></details></div>' +
     d.ejercicios.map((ej) => ejercicio(ej, sem)).join('') +
     tarjetaCore(d, sem) +
     (d.cardio ? '<section class="tarjeta"><h2>🏃 ' + esc(d.cardio) + '</h2><p class="nota-corta">' + CARDIO + '</p></section>' : '');
@@ -169,6 +194,10 @@ function cambiarReps(id, texto) {
 registrar({
   'ir-dia'({ dia }) { diaVista = dia; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
   semana(ds, el) { semanaVista = Number(el.value); repintar(); },
+  'gym-copiar'({ dia }) {
+    const d = e().rutina.find((x) => x.id === dia);
+    if (d) copiarTexto(textoDia(d, semanaVista ?? semanaActual()), 'Resumen de ' + d.nombre + ' copiado');
+  },
   'semana-nueva'() {
     const n = semanaActual() + 1, lunes = lunesDe(n);
     if (!confirm('¿Abrir la semana ' + n + ' (' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + ')?\n\nLo que registres desde ahora va a esa semana, y lo de la semana ' + (n - 1) + ' pasa a ser el "último registro".')) return;

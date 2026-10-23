@@ -48,3 +48,12 @@ test('Apps Script: escribe en la columna de la semana, por orden dentro de cada 
   assert.match(msj, /^Semana 2: 3 filas$/);
   assert.throws(() => ctx.escribirGym({ semana: 9, bloques: [] }), /Sem 9/);
 });
+
+test('Apps Script: ubica cada día por su nombre aunque llegue en otro orden', () => {
+  const { escritos, SpreadsheetApp } = hojaFalsa();
+  const ctx = vm.createContext({ SpreadsheetApp, ContentService: {}, LockService: {} });
+  vm.runInContext(fs.readFileSync(new URL('../apps_script/Codigo.gs', import.meta.url), 'utf8'), ctx);
+  // "Pierna A" primero: debe ir al bloque "DÍA 2 · PIERNA A" (fila 13), no al de torso
+  ctx.escribirGym({ semana: 2, bloques: [{ nombre: 'Pierna A', filas: [{ peso: '100', reps: '8' }] }, { nombre: 'Torso A', filas: [{ peso: '50', reps: '6' }] }] });
+  assert.deepEqual(escritos, { '13,12': 100, '13,13': '8', '7,12': 50, '7,13': '6' });
+});

@@ -108,3 +108,8 @@ test('nueva semana antes de tiempo: se vuelve la actual y se puede quitar si est
   est.quitarSemana();
   assert.equal(est.semanaActual(), cal);
 });
+
+test('orden nuevo de días: lun empuje, mar tirón, mié pierna A, vie torso A, sáb pierna B', () => {
+  const dia = (id) => RUTINA.find((d) => d.id === id).diaSemana;
+  assert.deepEqual(['d3', 'd5', 'd2', 'd1', 'd6'].map(dia), [1, 2, 3, 5, 6]);
+});

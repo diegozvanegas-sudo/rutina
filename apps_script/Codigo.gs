@@ -2,6 +2,7 @@
  * Recibe los datos de la app "Rutina" y los escribe en esta hoja de Google.
  *
  * Gym  → pestaña "Rutina 2.0": peso y reps en la columna "Sem N" (fila 4), igual que a mano.
+ *        Cada día se busca por su nombre ("DÍA 3 · EMPUJE + BÍCEPS" ↔ "Empuje + Bíceps"); si no aparece, por su posición.
  *        Las filas se buscan por orden dentro de cada bloque (DÍA 1 … DÍA 5 y CORE): solo cuentan
  *        las filas de tipo "Top set", "Back-off" o "Series". Lo que la app tenga vacío no borra la hoja.
  * Días → pestaña "Diario App" (se crea sola): una fila por fecha con hábitos y metas.
@@ -82,7 +83,11 @@ function escribirGym(gym) {
       escritas++;
     });
   };
-  gym.bloques.forEach(function (b, k) { escribirBloque(b, dias[k]); });
+  const plano = function (s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, ''); };
+  gym.bloques.forEach(function (b, k) {
+    const porNombre = dias.filter(function (d) { return plano(d.titulo.split('·').slice(1).join('·')) === plano(b.nombre); })[0];
+    escribirBloque(b, porNombre || dias[k]);
+  });
   escribirBloque(gym.core, core);
   return 'Semana ' + gym.semana + ': ' + escritas + ' filas' + (avisos.length ? ' (revisar: ' + avisos.join('; ') + ')' : '');
 }

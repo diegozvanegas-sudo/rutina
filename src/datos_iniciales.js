@@ -50,9 +50,9 @@ function dia(id, nombre, diaSemana, calentamiento, cardio, ejercicios, previo) {
   };
 }
 
-// diaSemana: 1 = lunes … 6 = sábado (jueves y domingo descanso). Core: al final de cualquier día, se registra una vez por semana.
+// diaSemana: 1 = lunes … 7 = domingo. Lun empuje, mar tirón, mié pierna A, jue descanso, vie torso A, sáb pierna B, dom descanso. Core: al final de cualquier día, se registra una vez por semana.
 export const RUTINA = [
-  dia('d1', 'Torso A', 1, 'torso', 'Cardio cinta 25-35 min', [
+  dia('d1', 'Torso A', 5, 'torso', 'Cardio cinta 25-35 min', [
     ['Press inclinado mancuernas', 'Pecho', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Remo T / hammer abierto', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Apertura pecho máquina', 'Pecho', 'Top 1×8-12 · Back-off 2×10-15'],
@@ -62,7 +62,7 @@ export const RUTINA = [
     ['Bíceps polea baja / predicador', 'Bíceps', '3×8-12'],
     ['Tríceps invertido', 'Tríceps', '3×10-12'],
   ]),
-  dia('d2', 'Pierna A', 2, 'pierna', 'Cardio cinta 30-35 min', [
+  dia('d2', 'Pierna A', 3, 'pierna', 'Cardio cinta 30-35 min', [
     ['Pantorrilla unilateral', 'Pantorrilla', '4×5-8 al fallo'],
     ['Abductores', 'Abductores', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Sentadilla', 'Cuádriceps', 'Top 1×8-10 · Back-off 1×8-10'],
@@ -71,7 +71,7 @@ export const RUTINA = [
     ['Extensión piernas', 'Cuádriceps', '4×12-15'],
     ['Isquios acostado', 'Isquios', 'Top 1×4-7 · Back-off 3×8-12'],
   ], 'Movilidad previa 5-10 min'),
-  dia('d3', 'Empuje + Bíceps', 3, 'empuje', 'Cardio cinta 30 min', [
+  dia('d3', 'Empuje + Bíceps', 1, 'empuje', 'Cardio cinta 30 min', [
     ['Press plano (barra/máquina)', 'Pecho', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Press inclinado mancuerna', 'Pecho', '3×10-15'],
     ['Máquina laterales', 'Hombro', '4×10-15'],
@@ -81,7 +81,7 @@ export const RUTINA = [
     ['Curl bayesiano', 'Bíceps', 'Top 1×8-10 · Back-off 2×10-15'],
     ['Martillo mancuerna', 'Bíceps', 'Top 1×8-10 · Back-off 2×8-10'],
   ]),
-  dia('d5', 'Tirón + Tríceps', 5, 'tiron', 'Cardio escaladora 25 min', [
+  dia('d5', 'Tirón + Tríceps', 2, 'tiron', 'Cardio escaladora 25 min', [
     ['Jalón polea alta', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Remo hammer abierto', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Posterior máquina', 'Deltoide posterior', 'Top 1×10-12 · Back-off 3×15-20'],

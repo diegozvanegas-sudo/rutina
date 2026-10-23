@@ -31,9 +31,17 @@ export function cargar() {
   for (const s of SESIONES) if (!estado.sesiones.some((x) => x.id === s.id)) estado.sesiones.push(copia(s));
   // Una sola vez: últimos registros, descansos y semana 1 traídos de la hoja de Google
   if (!estado.hojaAplicada) { aplicarHoja(estado); estado.hojaAplicada = true; }
+  if (!estado.diasV2) { moverDias(estado); estado.diasV2 = true; }
   return estado;
 }
 export const e = () => estado || cargar();
+
+// 23 oct 2026: lun empuje, mar tirón, mié pierna A, vie torso A, sáb pierna B. Si ya se cambió a mano, no se toca.
+const DIAS_ANTES = { d1: 1, d2: 2, d3: 3, d5: 5, d6: 6 }, DIAS_AHORA = { d1: 5, d2: 3, d3: 1, d5: 2, d6: 6 };
+function moverDias(est) {
+  if (!est.rutina.every((d) => !(d.id in DIAS_ANTES) || d.diaSemana === DIAS_ANTES[d.id])) return;
+  for (const d of est.rutina) if (d.id in DIAS_AHORA) d.diaSemana = DIAS_AHORA[d.id];
+}
 
 let pendiente = null, alGuardar = [];
 function escribir() {
@@ -142,4 +150,4 @@ export function importar(texto) {
   estado = { ...inicial(), ...datos, nube: estado.nube };
   guardar();
 }
-export function reiniciar() { estado = { ...inicial(), nube: estado.nube }; aplicarHoja(estado); estado.hojaAplicada = true; guardar(); }
+export function reiniciar() { estado = { ...inicial(), nube: estado.nube }; aplicarHoja(estado); estado.hojaAplicada = estado.diasV2 = true; guardar(); }

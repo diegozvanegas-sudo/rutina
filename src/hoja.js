@@ -9,10 +9,11 @@ export const hoja = { estado: 'inactiva', ultima: null, mensaje: '' };
 const config = () => e().config.hoja || {};
 export const hojaLista = () => !!(config().url && config().clave);
 
-// Filas en el orden de la hoja: los días de la rutina (lunes → sábado) y al final el core
+// Días en el orden de la rutina (el de la hoja) y al final el core. El Apps Script ubica cada día por su nombre,
+// así que cambiar el día de la semana en la app no lo mueve de bloque en la hoja.
 export function datosGym(estado, semana) {
   const regs = estado.semanas[semana] || {};
-  const dias = estado.rutina.filter((d) => d.diaSemana).sort((a, b) => a.diaSemana - b.diaSemana);
+  const dias = estado.rutina.filter((d) => d.id !== 'core');
   const core = estado.rutina.find((d) => d.id === 'core');
   const bloque = (d) => ({
     nombre: d.nombre,

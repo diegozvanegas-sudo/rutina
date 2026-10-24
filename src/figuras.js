@@ -161,6 +161,14 @@ export const POSES = {
   'sientelo': { poses: [SENTADO], quieta: true },
   'afirma': { poses: [SENTADO], quieta: true },
   'primer paso': { poses: [SENTADO], quieta: true },
+  'respira y observa': { respira: true },
+  'di ¡alto!': { poses: [SENTADO], quieta: true },
+  'cambiala por una positiva': { poses: [SENTADO], quieta: true },
+  'soy el mejor': { poses: [con(DE_PIE, { m1: [126, 10], m2: [74, 10], s: { m1: 1, m2: -1 } })], quieta: true },
+  'mirate ganando': { poses: [SENTADO], quieta: true },
+  'como a tu mejor amigo': { poses: [SENTADO], quieta: true },
+  'me agrada mi persona': { poses: [SENTADO], quieta: true },
+  'compromiso del dia': { poses: [DE_PIE], quieta: true },
 };
 
 export const claveFigura = (nombre) => String(nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
@@ -215,4 +223,19 @@ export function figura(nombre, { animar: mover = true } = {}) {
     '<circle class="fg-cabeza' + ((f.resalta || []).includes('cabeza') ? ' fg-resalta' : '') + '" r="9" cx="' + r1(a.cabeza[0]) + '" cy="' + r1(a.cabeza[1]) + '">' +
     animar('cx', cab.map((q) => r1(q[0])), dur) + animar('cy', cab.map((q) => r1(q[1])), dur) + '</circle>' +
     parte('p1', 'fg-cerca') + parte('m1', 'fg-cerca') + encima + '</svg>';
+}
+
+// ---------- Lo que se elige en Editar para cada ejercicio de una sesión ----------
+// p.foto: foto propia (data URL), p.figura: clave de POSES ('' = según el nombre, '-' = ninguna), p.video: enlace propio
+export const OPCIONES_FIGURA = Object.keys(POSES).sort((a, b) => a.localeCompare(b, 'es'));
+export const videoValido = (url) => /^https?:\/\/\S+$/i.test(String(url || '').trim());
+
+export function figuraPaso(p, opciones) {
+  if (p.foto && /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(p.foto)) return '<img class="figura foto-paso" src="' + p.foto + '" alt="Cómo se hace">';
+  if (p.figura === '-') return '';
+  return figura(p.figura || p.nombre, opciones);
+}
+export function videoPaso(p) {
+  if (videoValido(p.video)) return p.video.trim();
+  return esFisico(p.figura && p.figura !== '-' ? p.figura : p.nombre) ? urlVideo(p.nombre) : '';
 }

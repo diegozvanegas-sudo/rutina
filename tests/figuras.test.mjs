@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { SESIONES } from '../src/datos_iniciales.js';
 import { LIBROS } from '../src/libros/index.js';
-import { POSES, figura, tieneFigura, esFisico, urlVideo } from '../src/figuras.js';
+import { POSES, figura, tieneFigura, esFisico, urlVideo, figuraPaso, videoPaso } from '../src/figuras.js';
 
 const pasos = [...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])].flatMap((s) => s.pasos);
 
@@ -28,4 +28,17 @@ test('video solo para ejercicios físicos', () => {
   assert.ok(!esFisico('Respiración 4-4-8'));
   assert.ok(!esFisico('Cuello'));
   assert.match(urlVideo('Gato-vaca'), /^https:\/\/www\.youtube\.com\/results\?search_query=Gato-vaca/);
+});
+
+test('en Editar se elige figura, foto propia y video para cada ejercicio', () => {
+  const foto = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+  assert.equal(figuraPaso({ nombre: 'Mi ejercicio' }), ''); // sin figura conocida
+  assert.equal(figuraPaso({ nombre: 'Mi ejercicio', figura: 'puente de gluteo' }), figura('puente de gluteo'));
+  assert.equal(figuraPaso({ nombre: 'Gato-vaca', figura: '-' }), '');
+  assert.match(figuraPaso({ nombre: 'Gato-vaca', foto }), /^<img class="figura foto-paso" src="data:image\/jpeg/);
+  assert.equal(figuraPaso({ nombre: 'Gato-vaca', foto: 'javascript:alert(1)' }), figura('Gato-vaca')); // solo fotos reales
+  assert.equal(videoPaso({ nombre: 'Gato-vaca', video: 'https://youtu.be/abc' }), 'https://youtu.be/abc');
+  assert.equal(videoPaso({ nombre: 'Gato-vaca', video: 'javascript:alert(1)' }), urlVideo('Gato-vaca'));
+  assert.equal(videoPaso({ nombre: 'Respiración 4-4-8' }), '');
+  assert.equal(videoPaso({ nombre: 'Mi plancha', figura: 'flexiones escapulares' }), urlVideo('Mi plancha'));
 });

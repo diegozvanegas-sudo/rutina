@@ -464,3 +464,8 @@ a.kpi small span { color: var(--brand); }
 .paso-con-figura .figura { width: 84px; flex: none; margin: 0; background: var(--bg); border-radius: 10px; }
 @media (prefers-reduced-motion: reduce) { .figura .fg-resalta { animation: none; } }
 .pasos .paso-con-figura { margin-left: -20px; }
+.foto-paso { object-fit: cover; aspect-ratio: 200 / 170; border-radius: 12px; background: var(--surface-2); }
+.ed-medios { display: grid; grid-template-columns: 120px 1fr; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.ed-medios-vista .figura { width: 120px; margin: 0; background: var(--bg); border-radius: 10px; }
+.ed-medios-campos { display: grid; gap: 6px; min-width: 0; }
+@media (max-width: 420px) { .ed-medios { grid-template-columns: 1fr; } .ed-medios-vista .figura { margin: 0 auto; } }

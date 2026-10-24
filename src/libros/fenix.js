@@ -1051,6 +1051,9 @@ const CONSEJOS = [
   { id: 'negativo', icono: '🌧️', texto: 'Tengo pensamientos negativos', claves: ['negativo', 'pensamientos negativos', 'pesimista', 'quejas', 'quejarme', 'mente'], dias: [4, 11, 9],
     ahora: ['Di "¡ALTO!" mentalmente y sustitúyelo por una afirmación (Ley de la Sustitución).', 'Revisa tu dieta mental: corta noticias, redes y conversaciones tóxicas hoy.', 'Escribe 3 logros recientes para recordarte de qué eres capaz.'],
     afirmacion: 'Estoy aprendiendo y mejorando cada día.' },
+  { id: 'hablo-mal', icono: '🗣️', texto: 'Me hablo mal a mí mismo', claves: ['me hablo mal', 'hablo mal', 'autocritica', 'critico', 'dialogo interno', 'no sirvo', 'soy un fracaso', 'me insulto', 'me trato mal', 'inutil'], dias: [4, 10, 5],
+    ahora: ['Haz la sesión guiada "Me hablo bien" (6 minutos).', 'Cada vez que te escuches criticándote, di ¡ALTO! y cambia la frase por su versión positiva y en presente.', 'Repite en voz alta: "Soy el mejor y siempre tiendo a mejorar." Ser el mejor es ser mejor que ayer.'],
+    sesion: 'dialogo-interno', pregunta: '¿Le hablaría a alguien que quiero como me hablo a mí?', afirmacion: 'Soy el mejor y siempre tiendo a mejorar.' },
   { id: 'victima', icono: '🫵', texto: 'Siento que todo es culpa de otros', claves: ['culpa de otros', 'victima', 'injusto', 'excusas', 'quejas'], dias: [5, 6, 24],
     ahora: ['Cambia "No puedo porque…" por "¿Cómo puedo lograrlo?"', 'Pregúntate: "¿Qué puedo hacer yo para cambiar esto?"', 'Intenta un día entero sin quejarte.'],
     afirmacion: 'Soy 100% responsable de mi vida.' },
@@ -1150,7 +1153,7 @@ const CONSEJOS = [
 
 // Grupos para mostrar las situaciones ordenadas
 const GRUPOS = [
-  ['🧠 Mente y emociones', ['preocupado', 'estres', 'negativo', 'rabia', 'miedo', 'autoestima', 'victima', 'perdonarme', 'critica', 'comparo', 'decidir']],
+  ['🧠 Mente y emociones', ['hablo-mal', 'preocupado', 'estres', 'negativo', 'rabia', 'miedo', 'autoestima', 'victima', 'perdonarme', 'critica', 'comparo', 'decidir']],
   ['💪 Cuerpo y salud', ['energia', 'dormir', 'entrenar', 'ansiedad-comer', 'estancado', 'enfermo', 'cuerpo']],
   ['🕊️ Espíritu y sentido', ['vacio', 'rumbo', 'paz', 'gratitud', 'duelo', 'trascender']],
   ['🚀 Metas, hábitos y dinero', ['procrastino', 'abandono', 'motivacion', 'cambiar-vida', 'dinero', 'celular', 'problema', 'ideas', 'aprender']],
@@ -1246,11 +1249,23 @@ export default {
       ['fortalezas', '💪 Mis fortalezas, para leer cada mañana (día 24)'],
       ['valores', '⚖️ Mis valores y principios (día 24)'],
       ['dinero', '💭 Si no tuviera que preocuparme por el dinero, dedicaría mi vida a… (día 27)'],
-      ['afirmaciones', '🗣 Mis afirmaciones (en presente, positivas y en primera persona)'],
+      ['afirmaciones', '🗣 Mis afirmaciones (en presente, positivas y en primera persona). Ej.: Soy el mejor y siempre tiendo a mejorar'],
     ],
   },
-  // Sesiones guiadas (días 9, 14 y 23): aparecen también en 🧘 Sesiones
+  // Sesiones guiadas (días 4, 5, 9, 10, 14 y 23): aparecen también en 🧘 Sesiones
   sesiones: [
+    {
+      id: 'dialogo-interno', nombre: 'Me hablo bien', tipo: 'mente', pasos: [
+        t('Respira y observa', 'Diálogo interno', 40, 'Tres respiraciones lentas, exhalando largo. Sin juzgar, nota qué te has estado diciendo hoy.'),
+        t('Di ¡ALTO!', 'Ley de la Sustitución', 30, 'Recuerda una frase con la que te hablas mal ("no sirvo", "siempre fallo"). Escúchala y di con fuerza, mentalmente: ¡ALTO!'),
+        t('Cámbiala por una positiva', 'Ley de la Sustitución', 45, 'Tu mente solo tiene un pensamiento a la vez: reemplázala en presente y en positivo. "No soy capaz" → "Estoy aprendiendo y mejorando cada día".'),
+        t('Soy el mejor', 'Afirmación', 60, 'En voz alta y con emoción, 10 veces, cada vez más convencido: "Soy el mejor y siempre tiendo a mejorar." Ser el mejor es ser mejor que ayer.'),
+        t('Mírate ganando', 'Visualización', 60, 'Recuerda un logro tuyo, grande o pequeño. Revívelo con detalle: qué hiciste, cómo te sentiste. Esa persona eres tú.'),
+        t('Como a tu mejor amigo', 'Autocompasión', 45, '¿Qué le dirías a tu mejor amigo si estuviera en tu lugar? Dítelo a ti, con las mismas palabras y el mismo cariño.'),
+        t('Me agrada mi persona', 'Autoestima', 30, 'Cinco veces en voz alta: "Me agrada mi persona." (días 5 y 10)'),
+        t('Compromiso del día', 'Acción', 30, 'Decide: hoy, cada vez que me hable mal, digo ¡ALTO! y lo cambio. Abre los ojos y empieza.'),
+      ],
+    },
     {
       id: 'respiracion-448', nombre: 'Respiración 4-4-8', tipo: 'mente', pasos: [
         t('Postura', 'Calma', 20, 'Siéntate derecho, hombros sueltos, una mano en el abdomen. Suelta el aire.'),

@@ -4,6 +4,7 @@ import { e, guardar, repintar } from '../estado.js';
 import { filasDeEsquema, DESCANSOS } from '../datos_iniciales.js';
 import { reloj } from '../fechas.js';
 import { esc, registrar, toast } from '../ui.js';
+import { figuraPaso, OPCIONES_FIGURA, videoValido } from '../figuras.js';
 
 let pestana = 'rutina', diaEd = null, sesionEd = null;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -11,7 +12,33 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const TIPOS_HABITO = { check: 'Marcar', cuenta: 'Cuenta regresiva', cronometro: 'Cronómetro', texto: 'Con texto', sesion: 'Sesión guiada', pastilla: 'Pastilla (inicia la espera)', espera: 'Espera después de la pastilla' };
 const CALENTAMIENTOS = { '': 'Sin calentamiento', torso: 'Torso', empuje: 'Empuje', tiron: 'Tirón', pierna: 'Pierna' };
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const TIPOS_SESION = { calentamiento: 'Calentamiento', estiramiento: 'Estiramiento', fortalecimiento: 'Fortalecimiento', otro: 'Otro' };
+const TIPOS_SESION = { calentamiento: 'Calentamiento', estiramiento: 'Estiramiento', fortalecimiento: 'Fortalecimiento', mente: 'Mente', otro: 'Otro' };
+const FIGURAS = { '': 'Automática (según el nombre)', '-': 'Sin figura', ...Object.fromEntries(OPCIONES_FIGURA.map((k) => [k, k[0].toUpperCase() + k.slice(1)])) };
+
+// Imagen y video de un ejercicio de sesión: figura animada, foto propia o ninguna, y enlace de video
+function mediosPaso(p, r) {
+  return '<div class="ed-medios"><div class="ed-medios-vista">' + (figuraPaso(p, { animar: false }) || '<span class="nota-corta">Sin imagen</span>') + '</div><div class="ed-medios-campos">' +
+    (p.foto ? '<p class="nota-corta">Usa tu foto. Quítala para volver a la figura.</p>' : lista('Figura animada', r + '.figura', p.figura || '', FIGURAS)) +
+    '<div class="botones-rapidos"><label class="boton secundario">📷 ' + (p.foto ? 'Cambiar foto' : 'Subir foto') +
+    '<input type="file" accept="image/*" hidden data-cambio="ed-foto" data-ruta="' + r + '"></label>' +
+    (p.foto ? '<button type="button" class="boton secundario" data-accion="ed-foto-quitar" data-ruta="' + r + '">Quitar foto</button>' : '') + '</div>' +
+    '<label class="campo">🎥 Video (enlace de YouTube u otro; vacío = buscar en YouTube)<input type="url" inputmode="url" data-cambio="ed-video" data-ruta="' + r + '" value="' + esc(p.video || '') + '" placeholder="https://www.youtube.com/watch?v=…"></label>' +
+    '</div></div>';
+}
+
+// Foto del celular reducida a 480 px (JPEG) para que quepa en el almacenamiento y en la nube
+async function reducirFoto(archivo, max = 480) {
+  const url = URL.createObjectURL(archivo);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.75);
+  } finally { URL.revokeObjectURL(url); }
+}
 
 function obtener(ruta) {
   return ruta.split('.').reduce((o, k) => (o == null ? o : o[k]), e());
@@ -99,7 +126,8 @@ function editorSesiones() {
           '<div class="dos">' + (porReps ? campo('Reps', r + '.reps', p.reps, ' placeholder="10-12"') : numero('Segundos', r + '.seg', p.seg)) +
           numero('Descanso entre series (s)', r + '.descanso', p.descanso ?? 30) + '</div>' +
           '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.lados"' + (p.lados ? ' checked' : '') + '> Por lado (izquierdo y derecho)</label>' +
-          '<label class="campo">Descripción<textarea rows="2" data-cambio="ed" data-ruta="' + r + '.desc">' + esc(p.desc || '') + '</textarea></label></section>';
+          '<label class="campo">Descripción<textarea rows="2" data-cambio="ed" data-ruta="' + r + '.desc">' + esc(p.desc || '') + '</textarea></label>' +
+          mediosPaso(p, r) + '</section>';
       }).join('') +
       '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="sesiones.' + i + '.pasos">＋ Ejercicio</button>');
 }
@@ -173,6 +201,19 @@ registrar({
   'ed-modo'({ ruta }, el) {
     const p = obtener(ruta);
     if (el.value === 'reps') { delete p.seg; p.reps ??= '10'; p.series ??= 3; p.descanso ??= 45; } else { delete p.reps; p.seg ??= 30; }
+    guardar();
+  },
+  async 'ed-foto'({ ruta }, el) {
+    const archivo = el.files && el.files[0];
+    if (!archivo) return;
+    try { obtener(ruta).foto = await reducirFoto(archivo); } catch (err) { toast('No se pudo leer esa imagen. Prueba con una foto JPG o PNG.'); return; }
+    guardar();
+  },
+  'ed-foto-quitar'({ ruta }) { delete obtener(ruta).foto; guardar(); },
+  'ed-video'({ ruta }, el) {
+    const v = el.value.trim(), p = obtener(ruta);
+    if (v && !videoValido(v)) { toast('Pega un enlace que empiece por https://'); repintar(); return; }
+    if (v) p.video = v; else delete p.video;
     guardar();
   },
   'ed-mover'({ lista: ruta, i, n }) {

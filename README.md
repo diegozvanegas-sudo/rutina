@@ -34,12 +34,14 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
 - **Sesiones**: calentamientos por día, estiramientos, fortalecimiento de rodilla y mente (respiración 4-4-8, relajación progresiva, visualización), en modo guiado.
   Cada ejercicio muestra cómo se hace con una figura animada (`src/figuras.js`, sin internet) y un botón para ver videos en YouTube;
   la respiración guía el ritmo 4-4-8 con un círculo y la relajación resalta la parte del cuerpo que se tensa.
+  Mente incluye "Me hablo bien" (diálogo interno positivo).
 - **Finanzas**: registrar gastos, ingresos y ahorro (con método de pago: efectivo, débito, crédito, Nequi, Daviplata, transferencia),
   resumen del mes (tasa de ahorro, regla 50/30/20, por categoría y método, proyección), presupuesto por categoría, pagos fijos,
   metas de ahorro con fondo de emergencia (6 meses de gastos) y deudas (meses para pagar, estrategia avalancha).
 - **Recordatorios**: mantenimiento de la moto por km o por meses (lo que pase primero) con odómetro y fecha estimada,
   plantillas (aceite, SOAT, tecnomecánica, cadena, llantas…) y los pagos fijos y cuotas de Finanzas, que aparecen solos.
 - **Editar**: rutina (días, ejercicios, series × reps, descansos), hábitos de la mañana y sesiones: agregar, cambiar, reordenar y borrar.
+  En las sesiones, cada ejercicio puede llevar figura animada, foto propia (se reduce a 480 px) y enlace de video.
 - **Ajustes**: nube, Google Sheets, metas, espera de la pastilla, sonido, exportar/importar JSON y CSV.
 
 Menú lateral a la derecha: en el celular se abre con ☰; en el computador (≥ 900 px) queda fijo, con un resumen del día y el estado de la nube.

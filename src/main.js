@@ -88,12 +88,13 @@ function claveCampo(el) {
 function recordarCampos() {
   const activo = document.activeElement, valores = {};
   document.querySelectorAll('#vista [data-serie]').forEach((el) => { if (el.value) valores[claveCampo(el)] = el.value; });
-  const clave = activo && $('vista').contains(activo) ? claveCampo(activo) : null;
+  // Un campo de archivo no se puede volver a llenar por código
+  const clave = activo && $('vista').contains(activo) && activo.type !== 'file' ? claveCampo(activo) : null;
   if (clave) valores[clave] = activo.value;
   return { clave, valores, cursor: clave && activo.selectionStart != null ? [activo.selectionStart, activo.selectionEnd] : null };
 }
 function restaurarCampos({ clave, valores, cursor }) {
-  document.querySelectorAll('#vista input, #vista textarea').forEach((el) => {
+  document.querySelectorAll('#vista input:not([type=file]), #vista textarea').forEach((el) => {
     const k = claveCampo(el);
     if (k && k in valores) el.value = valores[k];
     if (k && k === clave) {

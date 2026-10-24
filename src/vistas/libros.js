@@ -4,7 +4,7 @@ import { e, guardar, repintar } from '../estado.js';
 import { iso, sumarDias, fechaCorta } from '../fechas.js';
 import { esc, barra, registrar, toast } from '../ui.js';
 import { LIBROS, libro } from '../libros/index.js';
-import { progresoInicial, delDia, lecturaQueToca, leidas, racha, afirmacionDelDia, buscar } from '../biblioteca.js';
+import { progresoInicial, delDia, lecturaQueToca, leidas, racha, afirmacionDelDia, buscar, resultadoEvaluacion } from '../biblioteca.js';
 
 let actual = null, pestana = 'hoy', abierto = null, consulta = '', consejo = null;
 // Herramientas y fichas desplegadas: siguen abiertas después de repintar (al guardar un campo)
@@ -149,9 +149,31 @@ function fichas(tipo) {
       '<button type="button" class="boton peligro ancho" data-accion="libro-borrar" data-t="' + tipo + '" data-id="' + x.id + '">Borrar</button></details>').join('');
 }
 
+// Evaluación: frases mezcladas (para no ver de qué categoría es cada una), resultado por categoría y la evolución
+function evaluacion(id) {
+  const ev = L().evaluaciones[id], est = (P().evaluaciones || {})[id] || {}, marcados = est.marcados || {}, r = resultadoEvaluacion(ev, marcados);
+  const n = ev.items.length, orden = ev.items.map((_, i) => i);
+  if (n % 7) orden.sort((a, b) => ((a * 7) % n) - ((b * 7) % n));
+  const historial = (est.historial || []).slice(-6).reverse(), cat = ev.categorias;
+  return (ev.lectura ? '<p class="nota-corta">De ' + esc(L().unidad.toLowerCase()) + ' ' + ev.lectura + '. <a href="#libros" data-accion="libro-abrir" data-n="' + ev.lectura + '">Releer</a></p>' : '') +
+    '<p>' + esc(ev.intro) + '</p><div class="practica-libro">' + orden.map((i) =>
+      '<button type="button" class="paso-libro' + (marcados[i] ? ' hecho' : '') + '" data-accion="libro-eval" data-ev="' + id + '" data-i="' + i + '" aria-pressed="' + !!marcados[i] + '">' +
+      '<span class="check-libro">' + (marcados[i] ? '✓' : '') + '</span><span>' + esc(ev.items[i][0]) + '</span></button>').join('') + '</div>' +
+    (r.principal
+      ? '<div class="resultado-eval"><h3 class="sub-libro">Tu resultado</h3>' + Object.entries(r.pct).map(([k, v]) =>
+        '<div class="fila-resumen"><span>' + esc(cat[k].nombre) + '</span><b>' + Math.round(v * 100) + ' %</b></div>' + barra(v, k === r.principal ? '' : 'tenue')).join('') +
+        '<div class="nota-libro"><b>Estás sobre todo en: ' + esc(cat[r.principal].nombre) + '</b><div>' + esc(cat[r.principal].consejo) + '</div></div>' +
+        '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="libro-eval-guardar" data-ev="' + id + '">💾 Guardar resultado de hoy</button>' +
+        '<button type="button" class="boton secundario" data-accion="libro-eval-limpiar" data-ev="' + id + '">Empezar de nuevo</button></div></div>'
+      : '<p class="nota-corta">Marca las frases para ver tu resultado.</p>') +
+    (historial.length ? '<h3 class="sub-libro">Tu evolución</h3><ul class="puntos-libro">' + historial.map((h) =>
+      '<li>' + fechaCorta(h.fecha) + ': ' + esc((cat[h.principal] || {}).nombre || h.principal) + '</li>').join('') + '</ul>' : '');
+}
+
 function pestanaHerramientas() {
   const l = L(), bloque = (id, titulo, contenido) => desplegable(id, 'tarjeta herramienta-libro', '<h2>' + titulo + '</h2>') + contenido + '</details>';
-  return (l.diario ? bloque('diario', esc(l.diario.titulo), diario()) : '') +
+  return Object.entries(l.evaluaciones || {}).map(([k, ev]) => bloque(k, ev.icono + ' ' + esc(ev.titulo), evaluacion(k))).join('') +
+    (l.diario ? bloque('diario', esc(l.diario.titulo), diario()) : '') +
     Object.entries(l.fichas || {}).map(([k, def]) => {
       const n = (P().fichas[k] || []).length;
       return bloque(k, def.icono + ' ' + esc(def.titulo) + (n ? ' (' + n + ')' : ''), fichas(k));
@@ -172,8 +194,9 @@ function biblioteca() {
 }
 
 export function tarjetasLibrosHoy() {
-  const empezados = LIBROS.filter((l) => leidas(l, progreso(l.id)) || Object.keys(progreso(l.id).practica).length);
-  return (empezados.length ? empezados : LIBROS.slice(0, 1)).map((l) => {
+  // Los libros con lecturas pendientes; si ya se terminaron todos, el primero (para empezar otra vuelta)
+  const pendientes = LIBROS.filter((l) => lecturaQueToca(l, progreso(l.id)));
+  return (pendientes.length ? pendientes : LIBROS.slice(0, 1)).map((l) => {
     const n = lecturaQueToca(l, progreso(l.id)), a = afirmacionDelDia(l);
     return '<a class="tarjeta libro-hoy" href="#libros/' + l.id + '"><b>' + l.icono + ' ' + esc(l.titulo) + ' · ' +
       (n ? esc(l.unidad) + ' ' + n + ': ' + esc(l.lecturas[n - 1].titulo) : '¡' + total(l) + ' de ' + total(l) + ' lecturas!') + '</b>' +
@@ -235,6 +258,21 @@ registrar({
     desplegados.add(t).add(id);
     guardar();
   },
+  'libro-eval'({ ev, i }) {
+    const x = ((P().evaluaciones ??= {})[ev] ??= {}), m = (x.marcados ??= {});
+    if (m[i]) delete m[i]; else m[i] = true;
+    guardar();
+  },
+  'libro-eval-guardar'({ ev }) {
+    const x = P().evaluaciones[ev], r = resultadoEvaluacion(L().evaluaciones[ev], x.marcados);
+    if (!r.principal) return;
+    // Un resultado por día: si ya había uno hoy, se reemplaza
+    x.historial = (x.historial || []).filter((h) => h.fecha !== iso());
+    x.historial.push({ fecha: iso(), principal: r.principal, pct: r.pct });
+    guardar();
+    toast('💾 Resultado guardado: ' + L().evaluaciones[ev].categorias[r.principal].nombre);
+  },
+  'libro-eval-limpiar'({ ev }) { P().evaluaciones[ev].marcados = {}; guardar(); },
   'libro-ficha'({ t, id, k }, el) { const x = (P().fichas[t] || []).find((y) => y.id === id); if (x) { x[k] = el.value; guardar(); } },
   'libro-borrar'({ t, id }) {
     if (!confirm('¿Borrar esta ficha?')) return;

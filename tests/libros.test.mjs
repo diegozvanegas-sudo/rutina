@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { e } from '../src/estado.js';
 import { LIBROS, libro } from '../src/libros/index.js';
 import { SESIONES } from '../src/datos_iniciales.js';
-import { progresoInicial, lecturaQueToca, leidas, racha, buscar, afirmacionDelDia } from '../src/biblioteca.js';
+import { progresoInicial, lecturaQueToca, leidas, racha, buscar, afirmacionDelDia, resultadoEvaluacion } from '../src/biblioteca.js';
 
 // Formato de src/libros (lo que /agregar-libro debe producir): cada libro nuevo tiene que pasar esta prueba
 for (const l of LIBROS) {
@@ -26,7 +26,7 @@ for (const l of LIBROS) {
       assert.ok(!ids.has(c.id), 'consejo repetido ' + c.id); ids.add(c.id);
       assert.ok(c.icono && c.texto && c.claves.length && c.ahora.length === 3, 'consejo ' + c.id + ' incompleto');
       c.dias.forEach((n) => enRango(n, 'consejo ' + c.id));
-      if (c.herramienta) assert.ok(c.herramienta === 'diario' || c.herramienta === 'perfil' || (l.fichas && l.fichas[c.herramienta]), 'consejo ' + c.id + ': herramienta ' + c.herramienta);
+      if (c.herramienta) assert.ok(c.herramienta === 'diario' || c.herramienta === 'perfil' || (l.fichas && l.fichas[c.herramienta]) || (l.evaluaciones && l.evaluaciones[c.herramienta]), 'consejo ' + c.id + ': herramienta ' + c.herramienta);
       if (c.sesion) assert.ok((l.sesiones || []).some((s) => s.id === c.sesion) || SESIONES.some((s) => s.id === c.sesion), 'consejo ' + c.id + ': sesión ' + c.sesion);
     }
     assert.ok(l.consejos.length >= 10, 'al menos 10 situaciones en Preguntar');
@@ -39,6 +39,15 @@ for (const l of LIBROS) {
     assert.ok(l.rutina.length && l.rutina.every(([t, ps]) => t && ps.length));
     for (const f of Object.values(l.fichas || {})) { assert.ok(f.titulo && f.nueva && f.campos.length); if (f.lectura) enRango(f.lectura, f.titulo); }
     if (l.diario) assert.ok(l.diario.campos.length);
+    for (const [k, ev] of Object.entries(l.evaluaciones || {})) {
+      assert.ok(ev.titulo && ev.intro && ev.items.length >= 4, 'evaluación ' + k);
+      for (const [texto, cat] of ev.items) assert.ok(texto && ev.categorias[cat], 'evaluación ' + k + ': categoría ' + cat);
+      for (const c of Object.values(ev.categorias)) assert.ok(c.nombre && c.consejo);
+      if (ev.lectura) enRango(ev.lectura, ev.titulo);
+    }
+    // Las herramientas se abren por su clave: no pueden repetirse
+    const claves = [...Object.keys(l.fichas || {}), ...Object.keys(l.evaluaciones || {}), 'diario', 'perfil', 'sesiones'];
+    assert.equal(new Set(claves).size, claves.length, 'herramientas con la misma clave');
     for (const s of l.sesiones || []) assert.ok(s.id && s.nombre && s.tipo && s.pasos.every((p) => p.nombre && p.seg > 0), 'sesión ' + s.id);
   });
 }
@@ -90,4 +99,31 @@ test('el estado trae los libros, sus sesiones y una afirmación por día', () =>
   assert.deepEqual(e().libros, {});
   assert.ok(e().sesiones.some((s) => s.id === 'respiracion-448'));
   assert.notEqual(afirmacionDelDia(fenix, '2026-10-24'), afirmacionDelDia(fenix, '2026-10-25'));
+});
+
+const crecimiento = libro('crecimiento');
+
+test('Crecimiento: 10 lecturas con las 5 infografías completas', () => {
+  assert.equal(crecimiento.lecturas.length, 10);
+  const texto = JSON.stringify(crecimiento.lecturas);
+  for (const x of ['Regalías de libros', 'Terrenos para antenas', 'Cultivar bonsáis', 'Cálculo mental', 'Culpa (con tacto)', 'Frustración', 'Meta a 5 años', 'Ahora mismo', 'Progreso antes que comodidad', 'Alcanzar tu potencial'])
+    assert.ok(texto.includes(x), 'falta ' + x);
+});
+
+test('Crecimiento: el buscador lleva a la lectura y al consejo correctos', () => {
+  assert.equal(buscar(crecimiento, 'publico y nadie me compra').consejos[0].id, 'nadie-compra');
+  assert.ok(buscar(crecimiento, 'quiero ganar con una app').consejos.some((c) => c.id === 'app-curso'));
+  assert.equal(buscar(crecimiento, 'zona de confort').consejos[0].id, 'comodo');
+  assert.equal(buscar(crecimiento, 'ajedrez sudoku').lecturas[0].n, 10);
+  assert.equal(buscar(crecimiento, 'embudo meta a 5 años').lecturas[0].n, 4);
+});
+
+test('evaluación de zonas: la zona principal es la de mayor porcentaje', () => {
+  const ev = crecimiento.evaluaciones.zonas, marcar = (cat, n) => Object.fromEntries(ev.items.map((it, i) => [i, it]).filter(([, it]) => it[1] === cat).slice(0, n).map(([i]) => [i, true]));
+  assert.equal(resultadoEvaluacion(ev, {}).principal, null);
+  assert.equal(resultadoEvaluacion(ev, marcar('comodidad', 3)).principal, 'comodidad');
+  const r = resultadoEvaluacion(ev, { ...marcar('comodidad', 1), ...marcar('aprendizaje', 4) });
+  assert.equal(r.principal, 'aprendizaje');
+  assert.equal(r.pct.comodidad, 0.25);
+  assert.ok(Math.abs(r.pct.aprendizaje - 4 / 6) < 1e-9);
 });

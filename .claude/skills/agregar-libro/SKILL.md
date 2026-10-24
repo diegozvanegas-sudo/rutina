@@ -40,6 +40,7 @@ export default {
   diario: { titulo, campos: [[clave, etiqueta]…], ayer: [clave, etiqueta] }, // opcional: lo que se escribe cada día
   fichas: { tipo: { icono, titulo, lectura: n, nueva: '+ Nueva …', campos: [[clave, etiqueta, 'date'?]…] } }, // opcional
   perfil: { titulo, campos: [[clave, etiqueta]…] },  // opcional: respuestas que se escriben una vez y se releen
+  evaluaciones: { id: { icono, titulo, lectura, intro, categorias: { cat: { nombre, consejo } }, items: [[frase en primera persona, cat]…] } }, // opcional
   sesiones: [{ id, nombre, tipo: 'mente', pasos: [{ nombre, musculo, seg, lados: false, desc }] }], // opcional
 };
 ```
@@ -80,6 +81,8 @@ Entre 20 y 40, en 4 a 6 grupos, que cubran cuerpo, mente, emociones, espíritu, 
 - `conceptos`: todas las leyes, principios o reglas con nombre que aparezcan, con todas las lecturas donde aparecen.
 - `rutina`: el libro entero convertido en un día (mañana, durante el día, noche).
 - `fichas`: convierte en formulario cada método paso a paso del libro (un plan, un análisis, un ejercicio de escritura largo).
+- `evaluaciones`: cuando el libro clasifica a la persona (zonas, niveles, tipos): frases que se marcan y dan la categoría principal
+  con su consejo; se guarda la evolución. Ejemplo: "¿En qué zona estás?" en `src/libros/crecimiento.js`.
 - `diario`: lo que el libro pide escribir cada día (gratitud, tareas, registro…). `ayer` muestra hoy lo escrito ayer.
 - `sesiones`: ejercicios guiados con tiempo (respiración, relajación, visualización, meditación). Los `id` no pueden repetir
   ninguno de `src/datos_iniciales.js` ni de otro libro. Cada paso necesita su figura en `POSES` de `src/figuras.js`

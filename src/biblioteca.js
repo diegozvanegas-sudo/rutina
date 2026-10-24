@@ -8,6 +8,7 @@ export const progresoInicial = () => ({
   notas: {},     // número de lectura: respuesta a la pregunta del diario
   perfil: {},    // campos del perfil del libro
   fichas: {},    // tipo de ficha: [{ id, fecha, ...campos }]
+  evaluaciones: {}, // id: { marcados: { índice: true }, historial: [{ fecha, principal, pct }] }
   vuelta: 1,
 });
 
@@ -44,6 +45,18 @@ export function afirmacionDelDia(libro, fecha = iso()) {
   const lista = [...new Set(libro.lecturas.map((x) => x.afirmacion).filter(Boolean))];
   if (!lista.length) return null;
   return lista[((diasEntre('2026-01-01', fecha) % lista.length) + lista.length) % lista.length];
+}
+
+// ---------- Evaluaciones ----------
+// Porcentaje marcado de cada categoría; la principal es la de mayor porcentaje (si empatan, la que va primero)
+export function resultadoEvaluacion(ev, marcados = {}) {
+  const pct = {};
+  for (const cat of Object.keys(ev.categorias)) {
+    const idx = ev.items.map((it, i) => (it[1] === cat ? i : -1)).filter((i) => i >= 0);
+    pct[cat] = idx.length ? idx.filter((i) => marcados[i]).length / idx.length : 0;
+  }
+  const principal = Object.keys(pct).reduce((a, b) => (pct[b] > pct[a] ? b : a), Object.keys(pct)[0]);
+  return { pct, principal: pct[principal] > 0 ? principal : null };
 }
 
 // ---------- Buscador ----------

@@ -169,6 +169,13 @@ export const POSES = {
   'como a tu mejor amigo': { poses: [SENTADO], quieta: true },
   'me agrada mi persona': { poses: [SENTADO], quieta: true },
   'compromiso del dia': { poses: [DE_PIE], quieta: true },
+  'respira y enfocate': { respira: true },
+  'suena en grande': { poses: [con(DE_PIE, { m1: [126, 10], m2: [74, 10], s: { m1: 1, m2: -1 } })], quieta: true },
+  'tus 5 anos': { poses: [SENTADO], quieta: true },
+  'tu ano': { poses: [SENTADO], quieta: true },
+  'tu mes y tu semana': { poses: [SENTADO], quieta: true },
+  'tu dia': { poses: [SENTADO], quieta: true },
+  'ahora mismo': { poses: [DE_PIE], quieta: true },
 };
 
 export const claveFigura = (nombre) => String(nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();

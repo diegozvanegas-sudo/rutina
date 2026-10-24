@@ -21,7 +21,9 @@ npm run build     # versión para publicar en dist/
   contenido completo, fórmulas, notas que matizan datos dudosos, afirmación, práctica del día, diario y racha.
   "Preguntar": buscador sobre todo el libro y consejos por situación (cuerpo, mente, espíritu, metas, relaciones).
   Conceptos clave (leyes, principios), rutina diaria, herramientas (diario, fichas paso a paso, perfil) y sesiones guiadas.
-  Funciona sin internet. El primero es el **Seminario Fénix** (Brian Tracy, 27 lecturas).
+  Funciona sin internet. Libros: **Seminario Fénix** (Brian Tracy, 27 lecturas) y **Crecimiento personal** (10 lecturas:
+  4 zonas del crecimiento, del sueño a la acción diaria, 20 activos, 9 disparadores para vender y 16 pasatiempos), con la
+  evaluación "¿En qué zona estás?" (guarda la evolución), fichas de embudo de metas, retos, activos, publicaciones y pasatiempos.
 
 ### Agregar un libro desde un PDF
 Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro/SKILL.md`): lo lee completo, escribe

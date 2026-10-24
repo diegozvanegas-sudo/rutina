@@ -5,7 +5,7 @@ import { esc, registrar, pitido } from '../ui.js';
 import { figuraPaso, videoPaso } from '../figuras.js';
 
 const PREPARAR = 5, CAMBIO_LADO = 5;
-const TIPOS = { calentamiento: '🔥 Calentamiento', estiramiento: '🧘 Estiramiento', fortalecimiento: '🦵 Fortalecimiento', mente: '🧠 Mente (Fénix)' };
+const TIPOS = { calentamiento: '🔥 Calentamiento', estiramiento: '🧘 Estiramiento', fortalecimiento: '🦵 Fortalecimiento', mente: '🧠 Mente' };
 
 // La sesión se convierte en una lista de fases: preparar, tiempo, reps (espera "Hecho"), cambio de lado y descanso
 export function fases(sesion) {

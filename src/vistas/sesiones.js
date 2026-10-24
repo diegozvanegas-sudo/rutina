@@ -2,9 +2,10 @@
 import { e } from '../estado.js';
 import { reloj } from '../fechas.js';
 import { esc, registrar, pitido } from '../ui.js';
+import { figura, esFisico, urlVideo } from '../figuras.js';
 
 const PREPARAR = 5, CAMBIO_LADO = 5;
-const TIPOS = { calentamiento: '🔥 Calentamiento', estiramiento: '🧘 Estiramiento', fortalecimiento: '🦵 Fortalecimiento' };
+const TIPOS = { calentamiento: '🔥 Calentamiento', estiramiento: '🧘 Estiramiento', fortalecimiento: '🦵 Fortalecimiento', mente: '🧠 Mente (Fénix)' };
 
 // La sesión se convierte en una lista de fases: preparar, tiempo, reps (espera "Hecho"), cambio de lado y descanso
 export function fases(sesion) {
@@ -47,10 +48,12 @@ function pintar() {
     '<div class="rep-barra"><span style="width:' + Math.round((rep.k / rep.lista.length) * 100) + '%"></span></div>' +
     '<div class="rep-centro fase-' + f.fase + '">' +
     '<div class="rep-fase">' + esc([titulo, f.series > 1 && (f.fase === 'tiempo' || f.fase === 'reps') ? 'serie ' + f.serie + ' de ' + f.series : ''].filter(Boolean).join(' · ')) + '&nbsp;</div>' +
+    figura(f.p.nombre) +
     '<h2>' + esc(f.p.nombre) + '</h2><div class="rep-musculo">' + esc(f.p.musculo || '') + '</div>' +
     (f.fase === 'reps' ? '<div class="rep-grande">' + esc(f.p.reps) + '<small>reps</small></div>'
       : '<div class="rep-grande" id="rep-reloj">' + reloj(segRestantes()) + '</div>') +
     '<p class="rep-desc">' + esc(f.p.desc || '') + '</p>' +
+    (esFisico(f.p.nombre) ? '<a class="rep-video" href="' + urlVideo(f.p.nombre) + '" target="_blank" rel="noopener">🎥 Ver video de cómo se hace</a>' : '') +
     (sig && f.fase !== 'prep' ? '<p class="rep-sig">Siguiente: ' + esc(sig.nombre) + '</p>' : '') + '</div>' +
     '<div class="rep-controles">' +
     '<button type="button" class="boton secundario" data-accion="rep-mover" data-n="-1" aria-label="Anterior">⏮</button>' +
@@ -106,9 +109,10 @@ export function vistaSesiones() {
     '<h2 class="titulo-grupo">' + (TIPOS[tipo] || esc(tipo)) + '</h2>' + lista.map((s) =>
       '<section class="tarjeta sesion"><div class="fila-resumen"><b>' + esc(s.nombre) + '</b><span>~' + Math.round(duracion(s) / 60) + ' min · ' + s.pasos.length + ' ejercicios</span></div>' +
       '<details><summary>Ver ejercicios</summary><ol class="pasos">' + s.pasos.map((p) =>
-        '<li><b>' + esc(p.nombre) + '</b> <span class="nota-corta">' + esc(p.musculo || '') + ' · ' +
+        '<li class="paso-con-figura">' + figura(p.nombre, { animar: false }) + '<div><b>' + esc(p.nombre) + '</b> <span class="nota-corta">' + esc(p.musculo || '') + ' · ' +
         (p.reps ? (p.series || 1) + '×' + esc(p.reps) : (p.series > 1 ? p.series + '×' : '') + p.seg + ' s') + (p.lados ? ' por lado' : '') + '</span>' +
-        '<div class="nota-corta">' + esc(p.desc || '') + '</div></li>').join('') + '</ol></details>' +
+        '<div class="nota-corta">' + esc(p.desc || '') + '</div>' +
+        (esFisico(p.nombre) ? '<a class="nota-corta" href="' + urlVideo(p.nombre) + '" target="_blank" rel="noopener">🎥 Ver video</a>' : '') + '</div></li>').join('') + '</ol></details>' +
       '<button type="button" class="boton primario grande ancho" data-accion="sesion" data-sesion="' + s.id + '">▶ Iniciar</button></section>').join('')).join('');
 }
 

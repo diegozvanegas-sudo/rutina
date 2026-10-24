@@ -16,6 +16,7 @@ import { vistaDieta } from './vistas/dieta.js';
 import { vistaFinanzas } from './vistas/finanzas.js';
 import { vistaRecordatorios, alertas } from './vistas/recordatorios.js';
 import { vistaProgreso } from './vistas/progreso.js';
+import { vistaLibros } from './vistas/libros.js';
 import { iniciarNube, nube, textoNube } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 
@@ -29,6 +30,7 @@ const VISTAS = {
   progreso: ['📈', 'Progreso', vistaProgreso],
   manana: ['☀️', 'Mañana', vistaManana],
   metas: ['🎯', 'Metas', vistaMetas],
+  libros: ['📚', 'Libros', vistaLibros],
   dieta: ['🥗', 'Dieta', vistaDieta],
   finanzas: ['💰', 'Finanzas', vistaFinanzas],
   recordatorios: ['🔔', 'Recordatorios', vistaRecordatorios],

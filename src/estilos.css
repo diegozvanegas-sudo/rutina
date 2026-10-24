@@ -399,3 +399,68 @@ a.kpi small span { color: var(--brand); }
 .formula td input { min-height: 40px; padding: 6px 8px; }
 .kcal-kg { text-align: left; }
 .kcal-kg small { display: block; color: var(--muted); font-size: 11px; }
+
+/* Libros (src/libros): lecturas, práctica, consejos y herramientas */
+.libro-hoy { display: grid; gap: 4px; text-decoration: none; color: var(--ink); border-color: #b9802f; background: #2a1d10; }
+.libro-hoy span { color: var(--muted); font-size: 14px; font-style: italic; }
+.dia-libro { color: #e0a84a; font-weight: 800; font-size: 13px; letter-spacing: .06em; }
+.titulo-libro { font-size: 23px; margin: 4px 0 10px; }
+.idea-libro { font-size: 17px; font-weight: 600; border-left: 3px solid var(--brand); padding-left: 10px; margin: 0 0 10px; }
+.lectura-libro p { line-height: 1.55; }
+.sub-libro { color: var(--brand); margin: 18px 0 6px; font-size: 16px; }
+.puntos-libro { margin: 0; padding-left: 20px; display: grid; gap: 6px; line-height: 1.5; }
+.formula-libro, .nota-libro { border-radius: 10px; padding: 10px 12px; margin: 14px 0 0; display: grid; gap: 4px; }
+.formula-libro { background: var(--brand-soft); }
+.nota-libro { background: #1d2733; border: 1px solid #2f4257; font-size: 15px; }
+.nota-libro .pre { white-space: pre-line; }
+.afirmacion-libro { font-size: 18px; font-style: italic; text-align: center; color: #f3d9a4; margin: 14px 0 6px; }
+.practica-libro { display: grid; gap: 8px; }
+.paso-libro { display: flex; align-items: center; gap: 12px; text-align: left; min-height: 52px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; }
+.check-libro { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-weight: 800; }
+.paso-libro.hecho { border-color: var(--brand); }
+.paso-libro.hecho .check-libro { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.lectura-libro .campo { margin-top: 4px; }
+.lista-libro { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.lista-libro button { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; }
+.lista-libro small { display: block; margin-top: 2px; }
+.num-libro { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--line); font-weight: 800; }
+.lista-libro .leida .num-libro { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.lista-libro .toca button { border-color: #e0a84a; }
+.consejos-libro { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.consejos-libro .chip { border-radius: 12px; text-align: left; white-space: normal; }
+.chips.envolver { flex-wrap: wrap; overflow: visible; padding-bottom: 0; }
+.chip.mini { min-height: 36px; padding: 4px 10px; font-size: 13px; }
+.concepto-libro { padding: 10px 0; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.concepto-libro:last-child { border-bottom: 0; }
+.herramienta-libro > summary { list-style: none; color: var(--ink); }
+.herramienta-libro > summary h2 { display: inline; margin: 0; }
+.herramienta-libro[open] > summary { margin-bottom: 10px; }
+.herramienta-libro .campo, .ficha-libro .campo { margin-top: 10px; }
+.ficha-libro { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; margin-top: 10px; }
+.ficha-libro > summary { color: var(--ink); }
+
+.libro-tarjeta { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; color: var(--ink); font: inherit; cursor: pointer; }
+.libro-tarjeta > span:last-child { flex: 1; display: grid; gap: 4px; }
+.libro-icono { font-size: 32px; line-height: 1; }
+
+/* Figuras animadas de los ejercicios (src/figuras.js) */
+.figura { width: min(260px, 70vw); height: auto; display: block; margin: 0 auto 4px; }
+.figura .fg-piso { stroke: var(--line); stroke-width: 2; }
+.figura .fg-obj { stroke: #4a5866; stroke-width: 4; fill: var(--surface-2); stroke-linecap: round; }
+.figura .fg-cuerpo, .figura .fg-cerca, .figura .fg-lejos { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+.figura .fg-cuerpo, .figura .fg-cerca { stroke: var(--ink); }
+.figura .fg-lejos { stroke: #6f7d89; }
+.figura .fg-cabeza { fill: var(--ink); }
+.figura .fg-banda { fill: none; stroke: var(--amarillo); stroke-width: 3; stroke-linecap: round; }
+.figura .fg-pesa { fill: var(--azul); }
+.figura .fg-aire { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 3; }
+.figura .fg-texto { fill: var(--ink); font: 700 17px system-ui, sans-serif; }
+.figura .fg-resalta { stroke: var(--amarillo); fill: none; animation: fg-pulso 2.5s ease-in-out infinite; }
+.figura circle.fg-resalta { fill: var(--amarillo); }
+@keyframes fg-pulso { 50% { opacity: .45; } }
+.rep-centro .figura { width: min(340px, 82vw, 34vh); margin-bottom: 6px; }
+.rep-video { font-weight: 700; padding: 10px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); text-decoration: none; }
+.paso-con-figura { display: flex; gap: 10px; align-items: flex-start; }
+.paso-con-figura .figura { width: 84px; flex: none; margin: 0; background: var(--bg); border-radius: 10px; }
+@media (prefers-reduced-motion: reduce) { .figura .fg-resalta { animation: none; } }
+.pasos .paso-con-figura { margin-left: -20px; }

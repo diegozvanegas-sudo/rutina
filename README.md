@@ -17,11 +17,23 @@ npm run build     # versión para publicar en dist/
   mañana, metas, gym si toca y dieta) y una **revisión semanal** automática con lo que mejoró y lo que falta.
 - **Mañana**: checklist en orden con hora, espera pastilla → desayuno, colgarse 60 s, estiramiento guiado, gratitud, caminar 1 h y racha.
 - **Metas**: agua, pasos, calorías y lectura, con historial de 7 y 30 días.
+- **Libros**: libros y cursos convertidos desde PDF, una lectura por día (si se salta una, al otro día sigue donde quedó):
+  contenido completo, fórmulas, notas que matizan datos dudosos, afirmación, práctica del día, diario y racha.
+  "Preguntar": buscador sobre todo el libro y consejos por situación (cuerpo, mente, espíritu, metas, relaciones).
+  Conceptos clave (leyes, principios), rutina diaria, herramientas (diario, fichas paso a paso, perfil) y sesiones guiadas.
+  Funciona sin internet. El primero es el **Seminario Fénix** (Brian Tracy, 27 lecturas).
+
+### Agregar un libro desde un PDF
+Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro/SKILL.md`): lo lee completo, escribe
+`src/libros/<id>.js` con el formato de `src/libros/fenix.js`, lo registra en `src/libros/index.js` y comprueba con
+`npm test` (`tests/libros.test.mjs` valida el formato de todos los libros). Después la app lo consulta sola, sin Claude.
 - **Dieta**: plan del día según el gym (entreno inferior, superior o descanso), comidas que se marcan y suman a las calorías,
   planes y alimentos editables, peso corporal con promedio de 7 días y recálculo de los planes por peso (proteína y carbos).
 - **Gym**: semana actual primero (semana 1 = lunes 12 oct 2026), semanas pasadas en el selector. Contador de series, colores
   (amarillo faltan · verde completo · azul SUBE PESO), último registro, peso sugerido, descanso automático, notas y resumen por músculo.
-- **Sesiones**: calentamientos por día, estiramientos y fortalecimiento de rodilla, en modo guiado.
+- **Sesiones**: calentamientos por día, estiramientos, fortalecimiento de rodilla y mente (respiración 4-4-8, relajación progresiva, visualización), en modo guiado.
+  Cada ejercicio muestra cómo se hace con una figura animada (`src/figuras.js`, sin internet) y un botón para ver videos en YouTube;
+  la respiración guía el ritmo 4-4-8 con un círculo y la relajación resalta la parte del cuerpo que se tensa.
 - **Finanzas**: registrar gastos, ingresos y ahorro (con método de pago: efectivo, débito, crédito, Nequi, Daviplata, transferencia),
   resumen del mes (tasa de ahorro, regla 50/30/20, por categoría y método, proyección), presupuesto por categoría, pagos fijos,
   metas de ahorro con fondo de emergencia (6 meses de gastos) y deudas (meses para pagar, estrategia avalancha).

@@ -4,6 +4,8 @@ import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
 import { tipoDeDia, totalPlan, macrosPorKg } from './dieta.js';
+import { LIBROS } from './libros/index.js';
+import { progresoInicial } from './biblioteca.js';
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 
 const CLAVE = 'rutina_v1';
@@ -21,11 +23,12 @@ function inicial() {
     config: { metas: { ...METAS }, espera: { ...ESPERA }, sonido: true, objetivos: copia(OBJETIVOS) },
     habitos: copia(HABITOS),
     rutina: copia(RUTINA),
-    sesiones: copia(SESIONES),
+    sesiones: copia([...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])]),
     dieta: dietaInicial(),
     finanzas: FINANZAS(),
     recordatorios: RECORDATORIOS(),
-    dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...} }
+    libros: {},   // id del libro (src/libros): { leidos, practica, notas, perfil, fichas, vuelta }
+    dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...}, libros: { id: {...} } }
     semanas: {},  // número de semana: { idFila: { peso, unidad, reps } }
     activo: null, // temporizador en curso: { tipo, fin, ... }
     cambio: 0,    // milisegundos del último cambio hecho aquí (para sincronizar con la nube)
@@ -40,7 +43,7 @@ export function cargar() {
   try { guardado = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) {}
   estado = guardado && guardado.version === 1 ? { ...inicial(), ...guardado } : inicial();
   // Sesiones nuevas que trae una versión de la app y aún no están en el celular
-  for (const s of SESIONES) if (!estado.sesiones.some((x) => x.id === s.id)) estado.sesiones.push(copia(s));
+  for (const s of [...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])]) if (!estado.sesiones.some((x) => x.id === s.id)) estado.sesiones.push(copia(s));
   // Una sola vez: últimos registros, descansos y semana 1 traídos de la hoja de Google
   if (!estado.hojaAplicada) { aplicarHoja(estado); estado.hojaAplicada = true; }
   if (!estado.diasV2) { moverDias(estado); estado.diasV2 = true; }
@@ -50,6 +53,8 @@ export function cargar() {
   estado.config.objetivos ??= copia(OBJETIVOS);
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
+  estado.libros ??= {};
+  if (estado.fenix) moverFenix(estado);
   return estado;
 }
 export const e = () => estado || cargar();
@@ -59,6 +64,14 @@ const DIAS_ANTES = { d1: 1, d2: 2, d3: 3, d5: 5, d6: 6 }, DIAS_AHORA = { d1: 5, 
 function moverDias(est) {
   if (!est.rutina.every((d) => !(d.id in DIAS_ANTES) || d.diaSemana === DIAS_ANTES[d.id])) return;
   for (const d of est.rutina) if (d.id in DIAS_AHORA) d.diaSemana = DIAS_AHORA[d.id];
+}
+
+// Fénix se guardaba aparte (e().fenix y dias[fecha].fenix) antes de ser un libro más
+function moverFenix(est) {
+  const { preocupaciones = [], problemas = [], metas = [], ...resto } = est.fenix;
+  est.libros.fenix = { ...progresoInicial(), ...resto, fichas: { preocupaciones, problemas, metas } };
+  for (const d of Object.values(est.dias)) if (d.fenix) { (d.libros ??= {}).fenix = d.fenix; delete d.fenix; }
+  delete est.fenix;
 }
 
 let pendiente = null, alGuardar = [];

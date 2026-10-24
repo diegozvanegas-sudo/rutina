@@ -9,6 +9,7 @@ import { estadoFila } from '../gym.js';
 import { tarjetaComidasHoy } from './dieta.js';
 import { alertas } from './recordatorios.js';
 import { puntajeDia } from '../progreso.js';
+import { tarjetasLibrosHoy } from './libros.js';
 
 function saludo() {
   const h = new Date().getHours();
@@ -39,6 +40,7 @@ export function vistaHoy() {
     '<a class="puntaje-hoy" href="#progreso" title="Puntaje del día: mañana, metas, gym y dieta"><b>' + (p ? p.total : 0) + '</b><small>/100 hoy</small></a></div>' +
     (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
       avisos.slice(0, 3).map((a) => esc(a.icono + ' ' + a.nombre) + (a.estado === 'vencido' ? ' (vencido)' : '')).join(' · ') + '</span></a>' : '') +
+    tarjetasLibrosHoy() +
     '<div class="tablero">' +
     '<section class="tarjeta col-manana"><h2>☀️ Primera hora</h2>' + cabeceraManana() + listaManana() + '</section>' +
     '<section class="tarjeta col-metas"><div class="fila-resumen"><h2>🎯 Metas</h2><span class="grande-num">' + pct(metas.total) + '</span></div>' + barra(metas.total) +

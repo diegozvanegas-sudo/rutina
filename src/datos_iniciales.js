@@ -53,35 +53,21 @@ function dia(id, nombre, diaSemana, calentamiento, cardio, ejercicios, previo) {
   };
 }
 
-// Pierna estilo Cbum (pocas series, todo el rango) adaptada al fútbol: la 1 pesada (1-2 reps en reserva) lejos de los partidos,
-// la 2 moderada (2-3 en reserva, sin fallo) el día después del partido del viernes, con nórdico y Copenhague para prevenir lesiones.
-export const PIERNA_1 = [
-  ['Sentadilla / hack', 'Cuádriceps', 'Top 1×5-8 · Back-off 2×8-10'],
-  ['Peso muerto rumano', 'Isquios', 'Top 1×6-8 · Back-off 1×8-10'],
-  ['Búlgara', 'Cuádriceps', '2×8-10'],
-  ['Curl femoral sentado', 'Isquios', '2×8-12'],
-  ['Extensión de cuádriceps', 'Cuádriceps', '2×10-15'],
-  ['Aductores máquina', 'Aductores', '2×10-15'],
-  ['Pantorrilla de pie', 'Pantorrilla', '3×8-12'],
+// Pierna estilo Cbum, la misma los dos días: pocas series (2-3 por ejercicio) con todo el rango. El hip thrust es opcional.
+export const PIERNA = [
+  ['Extensión de cuádriceps', 'Cuádriceps', '3×10-15'],
+  ['Patrón de sentadilla', 'Cuádriceps', 'Top 1×6-8 · Back-off 2×8-12'],
+  ['Curl femoral sentado', 'Isquios', '3×8-12'],
+  ['Peso muerto rodilla extendida', 'Isquios', 'Top 1×6-8 · Back-off 1×8-10'],
+  ['Aductores', 'Aductores', '3×10-15'],
+  ['Hip thrust (opcional)', 'Glúteo', '2×8-12'],
+  ['Elevaciones de pantorrilla', 'Pantorrilla', '3×10-15'],
 ];
-export const PIERNA_2 = [
-  ['Extensión de cuádriceps', 'Cuádriceps', '3×12-15'],
-  ['Prensa', 'Cuádriceps', '2×10-12'],
-  ['Curl femoral sentado', 'Isquios', '2×10-12'],
-  ['Curl nórdico', 'Isquios', '3×4-6'],
-  ['Copenhague', 'Aductores', '2×20-30 s'],
-  ['Hip thrust', 'Glúteo', '2×8-12'],
-  ['Pantorrilla sentado (sóleo)', 'Pantorrilla', '3×12-15'],
-];
-export const PREVIO_P1 = 'Lazo 6-8 min y 3×3-5 saltos al cajón antes de la sentadilla (sesión "Prevención fútbol")';
-export const PREVIO_P2 = 'Ayer hubo partido: 2-3 reps en reserva, nada al fallo. Si las piernas siguen muy cargadas, pásala al domingo';
-export const CARDIO_D5 = 'Cardio suave 15-20 min (mañana hay fútbol)';
 
-// diaSemana: 1 = lunes … 7 = domingo. Fútbol mié y vie de noche: ninguna pierna pesada en las 48 h antes de un partido.
-// Lun pierna 1 (fuerza), mar empuje, mié torso A + fútbol, jue tirón, vie fútbol, sáb pierna 2 (volumen y prevención), dom descanso.
-// Core: al final de cualquier día, se registra una vez por semana.
+// diaSemana: 1 = lunes … 7 = domingo. Lun empuje, mar tirón, mié pierna A, jue descanso, vie torso A, sáb pierna B, dom descanso.
+// Fútbol mié y vie de noche (FUTBOL). Core: al final de cualquier día, se registra una vez por semana.
 export const RUTINA = [
-  dia('d1', 'Torso A', 3, 'torso', '', [
+  dia('d1', 'Torso A', 5, 'torso', 'Cardio cinta 25-35 min', [
     ['Press inclinado mancuernas', 'Pecho', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Remo T / hammer abierto', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Apertura pecho máquina', 'Pecho', 'Top 1×8-12 · Back-off 2×10-15'],
@@ -90,9 +76,9 @@ export const RUTINA = [
     ['Tríceps extensión', 'Tríceps', 'Top 1×8-12 · Back-off 2×8-12'],
     ['Bíceps polea baja / predicador', 'Bíceps', '3×8-12'],
     ['Tríceps invertido', 'Tríceps', '3×10-12'],
-  ], 'Hoy hay fútbol en la noche: sin cardio'),
-  dia('p1', 'Pierna 1 · Fuerza', 1, 'pierna', 'Cardio suave 15-20 min', PIERNA_1, PREVIO_P1),
-  dia('d3', 'Empuje + Bíceps', 2, 'empuje', 'Cardio cinta 30 min', [
+  ]),
+  dia('pa', 'Pierna A', 3, 'pierna', 'Cardio cinta 30-35 min', PIERNA, 'Movilidad previa 5-10 min'),
+  dia('d3', 'Empuje + Bíceps', 1, 'empuje', 'Cardio cinta 30 min', [
     ['Press plano (barra/máquina)', 'Pecho', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Press inclinado mancuerna', 'Pecho', '3×10-15'],
     ['Máquina laterales', 'Hombro', '4×10-15'],
@@ -102,7 +88,7 @@ export const RUTINA = [
     ['Curl bayesiano', 'Bíceps', 'Top 1×8-10 · Back-off 2×10-15'],
     ['Martillo mancuerna', 'Bíceps', 'Top 1×8-10 · Back-off 2×8-10'],
   ]),
-  dia('d5', 'Tirón + Tríceps', 4, 'tiron', CARDIO_D5, [
+  dia('d5', 'Tirón + Tríceps', 2, 'tiron', 'Cardio escaladora 25 min', [
     ['Jalón polea alta', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Remo hammer abierto', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Posterior máquina', 'Deltoide posterior', 'Top 1×10-12 · Back-off 3×15-20'],
@@ -112,7 +98,7 @@ export const RUTINA = [
     ['Jalón tríceps', 'Tríceps', 'Top 1×10-15 · Back-off 2×10-15'],
     ['Jalón invertido tríceps', 'Tríceps', 'Top 1×4-7 · Back-off 2×10-12'],
   ]),
-  dia('p2', 'Pierna 2 · Volumen y prevención', 6, 'pierna', 'Cardio suave 15 min (opcional)', PIERNA_2, PREVIO_P2),
+  dia('pb', 'Pierna B', 6, 'pierna', 'Cardio cinta 30 min', PIERNA, 'Movilidad previa 5-10 min'),
   dia('core', 'Core', null, null, null, [
     ['Crunch', 'Core', '2×15'],
     ['Rueda abdominal', 'Core', '2×5-9'],

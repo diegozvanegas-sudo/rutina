@@ -4,7 +4,6 @@ import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
 import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular } from './dieta.js';
-import { ultimoRegistro } from './gym.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
@@ -53,6 +52,7 @@ export function cargar() {
   if (!estado.dieta.config.carbKg) Object.assign(estado.dieta.config, macrosPorKg(estado.dieta.planes, estado.dieta.alimentos, estado.dieta.config.pesoBase));
   estado.config.objetivos ??= copia(OBJETIVOS);
   if (!estado.futbolV1) { rutinaFutbol(estado); estado.futbolV1 = true; }
+  if (!estado.piernasV2) { piernasCbum(estado); estado.piernasV2 = true; }
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
   estado.libros ??= {};
@@ -68,33 +68,8 @@ function moverDias(est) {
   for (const d of est.rutina) if (d.id in DIAS_AHORA) d.diaSemana = DIAS_AHORA[d.id];
 }
 
-// 24 oct 2026: fútbol mié y vie de noche. Pierna A (mié) y B (sáb) pasan a Pierna 1 (lun, fuerza) y Pierna 2 (sáb, volumen
-// y prevención); empuje al martes, torso A al miércoles (sin cardio: hay partido) y tirón al jueves. Los días movidos a mano no se
-// tocan. Los registros viejos de pierna quedan en sus semanas y los ejercicios que siguen pasan su último peso a los nuevos.
-const DIAS_FUTBOL = { d3: 2, d1: 3, d5: 4 }, CARDIO_ANTES = { d1: 'Cardio cinta 25-35 min', d5: 'Cardio escaladora 25 min' };
-const PIERNAS = { d2: 'p1', d6: 'p2' };
-const MISMO_EJERCICIO = { 'p1-1': 'd2-3', 'p1-2': 'd6-3', 'p1-4': 'd2-5', 'p1-5': 'd2-6', 'p2-1': 'd6-8', 'p2-2': 'd6-5', 'p2-3': 'd6-7', 'p2-6': 'd6-6' };
+// 24 oct 2026: fútbol mié y vie de noche: días de partido, objetivos de aductores, glúteo y pantorrilla y plan de comida "fútbol"
 function rutinaFutbol(est) {
-  const viejos = {};
-  for (const d of est.rutina) if (d.id in PIERNAS) for (const ej of d.ejercicios) viejos[ej.id] = ej;
-  est.rutina = est.rutina.map((d) => (d.id in PIERNAS ? copia(RUTINA.find((x) => x.id === PIERNAS[d.id])) : d));
-  for (const d of est.rutina) for (const ej of d.ejercicios) {
-    const viejo = viejos[MISMO_EJERCICIO[ej.id]];
-    if (!viejo) continue;
-    ej.filas.forEach((f, i) => {
-      const ult = ultimoRegistro(est.semanas, viejo.filas[Math.min(i, viejo.filas.length - 1)], Infinity);
-      if (ult) f.ultimo = { peso: ult.peso || '', unidad: ult.unidad || 'kg', reps: ult.reps || '' };
-    });
-  }
-  if (est.rutina.every((d) => !(d.id in DIAS_FUTBOL) || d.diaSemana === DIAS_AHORA[d.id])) {
-    for (const d of est.rutina) {
-      if (!(d.id in DIAS_FUTBOL)) continue;
-      const base = RUTINA.find((x) => x.id === d.id);
-      d.diaSemana = base.diaSemana;
-      if (d.cardio === CARDIO_ANTES[d.id]) d.cardio = base.cardio;
-      if (!d.previo && base.previo) d.previo = base.previo;
-    }
-  }
   est.config.futbol ??= [...FUTBOL];
   for (const [m, rango] of Object.entries(OBJETIVOS)) est.config.objetivos[m] ??= [...rango];
   const dt = est.dieta;
@@ -106,6 +81,48 @@ function rutinaFutbol(est) {
     if (c.carbKg && c.grasaKg) { c.carbKg.futbol ??= x.carbKg.futbol; c.grasaKg.futbol ??= x.grasaKg.futbol; }
     // Los otros planes ya se recalcularon con otro peso: este se pone al mismo
     if (c.pesoBase !== CONFIG_DIETA.pesoBase) dt.planes.futbol = recalcular(dt.planes.futbol, dt.alimentos, objetivo(c, 'futbol', c.pesoBase)).plan;
+  }
+}
+
+// 24 oct 2026: la semana sigue como antes (lun empuje, mar tirón, mié pierna A, vie torso A, sáb pierna B) y las dos piernas son la
+// de Cbum. Puede venir de la semana vieja (d2/d6) o de la de fútbol que alcanzó a llegar (p1/p2 con los días movidos). Los registros
+// de cada ejercicio que sigue (el mismo o su equivalente) pasan al nuevo en todas las semanas; los demás quedan guardados.
+const PIERNAS = { d2: 'pa', p1: 'pa', d6: 'pb', p2: 'pb' };
+// Por día nuevo, en el orden de PIERNA: ejercicios viejos equivalentes
+const EQUIVALENTES = {
+  pa: [['d2-6', 'p1-5'], ['d2-3', 'p1-1'], ['d2-5', 'p1-4'], ['p1-2'], ['p1-6'], [], ['d2-1', 'p1-7']],
+  pb: [['d6-8', 'p2-1'], [], ['d6-7', 'p2-3'], ['d6-3'], [], ['d6-6', 'p2-6'], ['d6-1', 'p2-7']],
+};
+const DIAS_FUTBOL = { d3: 2, d1: 3, d5: 4 }, CARDIO_FUTBOL = { d1: '', d5: 'Cardio suave 15-20 min (mañana hay fútbol)' };
+function piernasCbum(est) {
+  const viejos = {}, dias = {};
+  for (const d of est.rutina) if (d.id in PIERNAS) { dias[d.id] = d; for (const ej of d.ejercicios) viejos[ej.id] = ej; }
+  est.rutina = est.rutina.map((d) => (d.id in PIERNAS ? copia(RUTINA.find((x) => x.id === PIERNAS[d.id])) : d));
+  const pasar = (de, a) => { for (const regs of Object.values(est.semanas)) if (regs[de] && !regs[a]) regs[a] = { ...regs[de] }; };
+  for (const [viejo, nuevo] of Object.entries(PIERNAS)) if (dias[viejo]) pasar('cardio@' + viejo, 'cardio@' + nuevo);
+  for (const d of est.rutina) {
+    if (!EQUIVALENTES[d.id]) continue;
+    d.ejercicios.forEach((ej, i) => {
+      for (const id of EQUIVALENTES[d.id][i]) {
+        const viejo = viejos[id];
+        if (!viejo) continue;
+        ej.filas.forEach((f, j) => {
+          // Una fila vieja va solo a la nueva de su misma posición (no se duplican series); el último peso sí sirve para todas
+          const vf = viejo.filas[Math.min(j, viejo.filas.length - 1)];
+          if (vf.ultimo && !f.ultimo) f.ultimo = { ...vf.ultimo };
+          if (j < viejo.filas.length) pasar(vf.id, f.id);
+        });
+      }
+    });
+  }
+  if (est.rutina.every((d) => !(d.id in DIAS_FUTBOL) || d.diaSemana === DIAS_FUTBOL[d.id])) {
+    for (const d of est.rutina) {
+      if (!(d.id in DIAS_FUTBOL)) continue;
+      const base = RUTINA.find((x) => x.id === d.id);
+      d.diaSemana = base.diaSemana;
+      if (d.cardio === CARDIO_FUTBOL[d.id]) d.cardio = base.cardio;
+      if (/fútbol en la noche/.test(d.previo || '')) delete d.previo;
+    }
   }
 }
 
@@ -249,4 +266,4 @@ export function importar(texto) {
   estado = { ...inicial(), ...datos, nube: estado.nube };
   guardar();
 }
-export function reiniciar() { estado = { ...inicial(), nube: estado.nube }; aplicarHoja(estado); estado.hojaAplicada = estado.diasV2 = estado.futbolV1 = true; guardar(); }
+export function reiniciar() { estado = { ...inicial(), nube: estado.nube }; aplicarHoja(estado); estado.hojaAplicada = estado.diasV2 = estado.futbolV1 = estado.piernasV2 = true; guardar(); }

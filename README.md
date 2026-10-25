@@ -34,8 +34,9 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   planes y alimentos editables, peso corporal con promedio de 7 días y recálculo de los planes por peso (proteína y carbos).
 - **Gym**: semana actual primero (semana 1 = lunes 12 oct 2026), semanas pasadas en el selector. Contador de series, colores
   (amarillo faltan · verde completo · azul SUBE PESO), último registro, peso sugerido, descanso automático, notas y resumen por músculo.
-- **Semana**: lun pierna 1 (fuerza), mar empuje, mié torso A + fútbol, jue tirón, vie fútbol, sáb pierna 2 (volumen y prevención:
-  nórdico y Copenhague), dom descanso. Ninguna pierna el día del partido ni el día antes.
+  El resumen del día se copia como texto o se comparte como imagen (PNG, para WhatsApp).
+- **Semana**: lun empuje, mar tirón, mié pierna A, vie torso A, sáb pierna B. Las dos piernas son la de Cbum: extensión, patrón de
+  sentadilla, curl femoral sentado, peso muerto rodilla extendida, aductores, hip thrust (opcional) y pantorrilla, 2-3 series cada uno.
 - **Sesiones**: calentamientos por día (y de fútbol), saltar lazo, prevención fútbol, estiramientos, fortalecimiento de rodilla y mente (respiración 4-4-8, relajación progresiva, visualización), en modo guiado.
   Cada ejercicio muestra cómo se hace con una figura animada (`src/figuras.js`, sin internet) y un botón para ver videos en YouTube;
   la respiración guía el ritmo 4-4-8 con un círculo y la relajación resalta la parte del cuerpo que se tensa.

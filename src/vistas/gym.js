@@ -6,6 +6,7 @@ import { CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, estadoFila, repsDe,
 import { CARDIO } from '../datos_iniciales.js';
 import { esc, barra, registrar, toast, copiarTexto } from '../ui.js';
 import { iniciar } from '../temporizador.js';
+import { compartirImagen } from '../imagen.js';
 
 let semanaVista = null, diaVista = null, editandoObjetivos = false;
 
@@ -141,6 +142,7 @@ function vistaDia(d, sem) {
   return tarjetaCalentamiento(d, sem) +
     '<div class="fila-resumen sticky-resumen"><b>' + esc(d.nombre) + '</b><span>' + r.hechas + ' / ' + r.plan + ' series</span></div>' + barra(r.plan ? r.hechas / r.plan : 0) +
     '<div class="copiar-dia"><button type="button" class="boton secundario" data-accion="gym-copiar" data-dia="' + d.id + '">📋 Copiar resumen del día</button>' +
+    '<button type="button" class="boton secundario" data-accion="gym-imagen" data-dia="' + d.id + '">🖼️ Imagen del resumen</button>' +
     '<details><summary>Ver texto</summary><pre class="texto-copia">' + esc(textoDia(d, sem)) + '</pre></details></div>' +
     d.ejercicios.map((ej) => ejercicio(ej, sem)).join('') +
     tarjetaCore(d, sem) +
@@ -256,6 +258,14 @@ registrar({
     registros(semanaVista)[claveCardio(d)] = { ...datos };
     guardar();
     toast('🏃 Cardio igual que la semana ' + semana);
+  },
+  async 'gym-imagen'({ dia }) {
+    const d = e().rutina.find((x) => x.id === dia);
+    if (!d) return;
+    try {
+      const r = await compartirImagen(d, semanaVista ?? semanaActual(), e());
+      if (r === 'descargada') toast('🖼️ Imagen descargada');
+    } catch (err) { toast('No se pudo crear la imagen'); }
   },
   'gym-copiar'({ dia }) {
     const d = e().rutina.find((x) => x.id === dia);

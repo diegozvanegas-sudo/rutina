@@ -10,7 +10,7 @@ test('la app manda los días en orden de la semana, el core junto y las reps con
   const estado = { rutina: RUTINA, semanas: { 2: { 'd1-2-1': { peso: '92,5', unidad: 'kg', reps: '7' }, 'd1-2-2': { peso: '3.5', unidad: 'discos', reps: '10 9' },
     'core-1-1@d1': { reps: '15' }, 'core-1-1@d3': { reps: '15' } } } };
   const g = datosGym(estado, 2);
-  assert.deepEqual(g.bloques.map((b) => b.nombre), ['Torso A', 'Pierna 1 · Fuerza', 'Empuje + Bíceps', 'Tirón + Tríceps', 'Pierna 2 · Volumen y prevención']);
+  assert.deepEqual(g.bloques.map((b) => b.nombre), ['Torso A', 'Pierna A', 'Empuje + Bíceps', 'Tirón + Tríceps', 'Pierna B']);
   assert.equal(g.bloques[0].filas.length, 12);
   assert.deepEqual(g.bloques[0].filas[2], { ejercicio: 'Remo T / hammer abierto', tipo: 'Top', peso: '92,5', reps: '7' });
   assert.equal(g.bloques[0].filas[3].peso, '3.5 discos');

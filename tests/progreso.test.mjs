@@ -15,7 +15,7 @@ test('puntaje del día: promedio de mañana, metas, gym (si toca) y dieta', () =
   assert.equal(p.partes.manana, 0.5);
   assert.equal(p.partes.dieta, 0.5);
   assert.ok(p.total > 30 && p.total < 50, 'total ' + p.total);
-  // Lunes 19 oct (pierna 1): el gym cuenta
+  // Lunes 19 oct (empuje): el gym cuenta
   est.dias['2026-10-19'] = { habitos: {}, metas: {}, crono: {} };
   assert.equal(puntajeDia('2026-10-19').partes.gym, 0);
 });

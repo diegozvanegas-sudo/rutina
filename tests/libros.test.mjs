@@ -127,3 +127,23 @@ test('evaluación de zonas: la zona principal es la de mayor porcentaje', () => 
   assert.equal(r.pct.comodidad, 0.25);
   assert.ok(Math.abs(r.pct.aprendizaje - 4 / 6) < 1e-9);
 });
+
+const acuerdos = libro('cuatro-acuerdos');
+
+test('Los Cuatro Acuerdos: 14 lecturas con los cuatro acuerdos y las oraciones', () => {
+  assert.equal(acuerdos.lecturas.length, 14);
+  const texto = JSON.stringify(acuerdos.lecturas);
+  for (const x of ['Espejo Humeante', 'Libro de la Ley', 'virus', 'Forrest Gump', 'puja', 'cien cabezas', 'segunda atención', 'ángel de la muerte', 'Tierra Prometida', 'Oración para la libertad'])
+    assert.ok(texto.includes(x), 'falta ' + x);
+});
+
+test('Los Cuatro Acuerdos: el buscador lleva a la lectura y al consejo correctos', () => {
+  assert.equal(buscar(acuerdos, 'me criticaron en el trabajo').consejos[0].id, 'critica');
+  assert.equal(buscar(acuerdos, 'mi pareja espera que adivine lo que quiere').lecturas[0].n, 7);
+  assert.equal(buscar(acuerdos, 'no puedo perdonar, tengo rencor').consejos[0].id, 'perdonar');
+  assert.equal(buscar(acuerdos, 'estoy agotado, me exijo demasiado').consejos[0].id, 'agotado');
+  assert.equal(buscar(acuerdos, 'chismes').lecturas[0].n, 5);
+  assert.equal(buscar(acuerdos, 'me tomo todo personal').consejos[0].id, 'critica');
+  assert.equal(buscar(acuerdos, 'no se decir que no').consejos[0].id, 'complacer');
+  assert.ok(buscar(acuerdos, 'parasito').conceptos.some((c) => c.nombre === 'El parásito'));
+});

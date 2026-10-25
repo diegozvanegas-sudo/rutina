@@ -4,6 +4,7 @@ import { iso, hora, reloj } from '../fechas.js';
 import { esc, barra, registrar, toast } from '../ui.js';
 import { iniciar } from '../temporizador.js';
 import { abrirSesion } from './sesiones.js';
+import { IDEAS_HABITOS } from '../datos_iniciales.js';
 
 // Texto de la espera entre la pastilla y el desayuno (lo actualiza el reloj de main.js)
 export function textoEspera(desde) {
@@ -54,7 +55,8 @@ export function listaManana(fecha = iso()) {
 
 // Agregar un hábito al final de la lista sin salir de la tarjeta; detalle, tiempos y orden se cambian en Editar
 function agregarManana() {
-  return '<div class="agregar-habito"><input type="text" data-cambio="manana-nuevo" placeholder="＋ Nuevo hábito (Enter para agregar)" aria-label="Nuevo hábito de la mañana">' +
+  return '<div class="agregar-habito"><input type="text" data-cambio="manana-nuevo" list="ideas-habitos" placeholder="＋ Nuevo hábito (Enter para agregar)" aria-label="Nuevo hábito de la mañana">' +
+    '<datalist id="ideas-habitos">' + IDEAS_HABITOS.filter((x) => !e().habitos.some((h) => h.nombre === x.nombre)).map((x) => '<option value="' + esc(x.nombre) + '">').join('') + '</datalist>' +
     '<select data-cambio="manana-tipo" aria-label="Tipo del nuevo hábito">' + Object.entries(TIPOS_RAPIDOS).map(([v, t]) => '<option value="' + v + '"' + (v === tipoNuevo ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>' +
     '<a class="boton secundario" href="#editar/habitos">✏️ Editar</a></div>';
 }
@@ -102,14 +104,16 @@ registrar({
   'manana-nuevo'(ds, el) {
     const nombre = el.value.trim();
     if (!nombre) return;
-    const h = { id: 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), nombre, tipo: tipoNuevo };
-    if (tipoNuevo === 'cuenta') h.segundos = 60;
-    if (tipoNuevo === 'cronometro') h.segundos = 1800;
-    if (tipoNuevo === 'texto') h.detalle = 'Escribe aquí (opcional)';
+    // Si es una de las ideas, trae su tipo, detalle y tiempo
+    const idea = IDEAS_HABITOS.find((x) => x.nombre.toLowerCase() === nombre.toLowerCase());
+    const h = { id: 'h' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), ...(idea ? JSON.parse(JSON.stringify(idea)) : { nombre, tipo: tipoNuevo }) };
+    if (h.tipo === 'cuenta') h.segundos ??= 60;
+    if (h.tipo === 'cronometro') h.segundos ??= 1800;
+    if (h.tipo === 'texto') h.detalle ??= 'Escribe aquí (opcional)';
     e().habitos.push(h);
     el.value = '';
     guardar();
-    toast('Agregado: ' + nombre + (tipoNuevo === 'cuenta' || tipoNuevo === 'cronometro' ? '. El tiempo se cambia en Editar.' : ''));
+    toast('Agregado: ' + h.nombre + (!idea && (h.tipo === 'cuenta' || h.tipo === 'cronometro') ? '. El tiempo se cambia en Editar.' : ''));
   },
   sesion({ sesion, habito }) { abrirSesion(sesion, habito ? () => { dia().habitos[habito] ??= { ts: Date.now() }; guardar(); } : null); },
 });

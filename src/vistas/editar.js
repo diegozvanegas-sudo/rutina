@@ -1,7 +1,7 @@
 // Editar hábitos, rutina y sesiones: agregar, cambiar, reordenar y borrar.
 // Cada campo lleva data-ruta ("rutina.0.ejercicios.3.nombre") y se guarda al salir de él.
 import { e, guardar, repintar } from '../estado.js';
-import { filasDeEsquema, DESCANSOS, HABITOS } from '../datos_iniciales.js';
+import { filasDeEsquema, DESCANSOS, HABITOS, IDEAS_HABITOS } from '../datos_iniciales.js';
 import { reloj } from '../fechas.js';
 import { esc, registrar, toast } from '../ui.js';
 import { figuraPaso, OPCIONES_FIGURA, videoValido } from '../figuras.js';
@@ -77,8 +77,16 @@ function editorHabitos() {
       (h.tipo === 'cuenta' ? numero('Duración (segundos)', r + '.segundos', h.segundos) : '') +
       (h.tipo === 'cronometro' ? numero('Meta (minutos)', r + '.segundos', Math.round((h.segundos || 0) / 60), ' data-factor="60"') : '') +
       (h.tipo === 'sesion' ? lista('Sesión', r + '.sesion', h.sesion, sesiones) : '') + '</div>' +
+      (h.nombre === 'Nuevo hábito' ? ideasHabito(i) : '') +
       (h.tipo === 'espera' && !hs.some((x) => x.tipo === 'pastilla') ? '<p class="aviso">⚠ La espera arranca al marcar un hábito de tipo "Pastilla": agrega uno.</p>' : '') + '</section>';
   }).join('') + '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="habitos">＋ Hábito</button>';
+}
+
+// Ideas para el hábito recién agregado (las que aún no están en la lista)
+function ideasHabito(i) {
+  const ideas = IDEAS_HABITOS.map((x, k) => [x, k]).filter(([x]) => !e().habitos.some((h) => h.nombre === x.nombre));
+  return '<p class="nota-corta">💡 Ideas: toca una para usarla (luego la puedes cambiar)</p><div class="ideas">' +
+    ideas.map(([x, k]) => '<button type="button" class="chip" data-accion="ed-idea" data-i="' + i + '" data-k="' + k + '">' + esc(x.nombre) + '</button>').join('') + '</div>';
 }
 
 // ---------- Rutina ----------
@@ -179,6 +187,13 @@ registrar({
   'ed-pestana'({ p }) { pestana = p; repintar(); },
   // "#editar/habitos" (desde la tarjeta de la mañana)
   'abrir-editar'({ p }) { pestana = p; },
+  'ed-idea'({ i, k }) {
+    const h = e().habitos[Number(i)], idea = IDEAS_HABITOS[Number(k)];
+    if (!h || !idea) return;
+    delete h.segundos; delete h.sesion; delete h.detalle;
+    Object.assign(h, JSON.parse(JSON.stringify(idea)));
+    guardar();
+  },
   'ed-habitos-cero'() {
     if (!confirm('¿Borrar todos los hábitos de la mañana y empezar de cero?\nLo marcado en días pasados queda guardado.')) return;
     e().habitos = [];

@@ -9,6 +9,24 @@ export const HABITOS = [
   { id: 'caminar', nombre: 'Caminar 1 hora', tipo: 'cronometro', segundos: 3600 },
 ];
 
+// Ideas para un hábito nuevo de la mañana: al tocar una se llena nombre, tipo, detalle y tiempo
+export const IDEAS_HABITOS = [
+  { nombre: 'Tomar un vaso de agua', detalle: 'Apenas te levantes', tipo: 'check' },
+  { nombre: 'Tender la cama', detalle: 'La primera tarea cumplida del día', tipo: 'check' },
+  { nombre: 'Ducha fría', detalle: 'Termina con 30 s de agua fría', tipo: 'cuenta', segundos: 30 },
+  { nombre: 'Tomar el sol 10 minutos', detalle: 'Luz de la mañana para el sueño de la noche', tipo: 'cronometro', segundos: 600 },
+  { nombre: 'Respirar 5 minutos', detalle: 'Respiración lenta antes del celular', tipo: 'cuenta', segundos: 300 },
+  { nombre: 'Meditar 10 minutos', tipo: 'cronometro', segundos: 600 },
+  { nombre: 'Leer 10 páginas', detalle: 'Anota qué leíste', tipo: 'texto' },
+  { nombre: 'Las 3 tareas del día', detalle: 'Escribe lo más importante de hoy', tipo: 'texto' },
+  { nombre: 'Afirmación del día', detalle: 'Escríbela en presente', tipo: 'texto' },
+  { nombre: 'Flexiones', detalle: 'Una serie antes de bañarte', tipo: 'cuenta', segundos: 60 },
+  { nombre: 'Creatina', detalle: '3-5 g con agua', tipo: 'check' },
+  { nombre: 'Revisar la agenda', detalle: 'Mira el calendario y los recordatorios', tipo: 'check' },
+  { nombre: 'Sin celular la primera hora', tipo: 'check' },
+  { nombre: 'Pesarme', detalle: 'En ayunas, después del baño', tipo: 'check' },
+];
+
 export const METAS = { agua: 4000, pasos: 10000, calorias: 2400, lectura: 30 };
 
 // Tiempo entre la pastilla y el desayuno. Ajústalo a lo que indique tu médico.

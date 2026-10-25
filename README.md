@@ -11,7 +11,8 @@ npm run build     # versión para publicar en dist/
 ```
 
 ## Pantallas
-- **Hoy**: tablero con la mañana, las metas, el entrenamiento que toca (con calentamiento) y la semana.
+- **Hoy**: tablero con la mañana, las metas, el entrenamiento que toca (con calentamiento) y la semana. Los días de fútbol
+  (mié y vie de noche, se cambian en Editar) muestran el partido: qué comer y cuándo, calentamiento fútbol y estirar después.
 - **Progreso**: tablero con gráficos (7, 30 o 90 días): indicadores, constancia de 12 semanas, puntaje por día, peso con la meta,
   series del gym por semana, metas cumplidas, ingresos y gastos por mes y gasto por categoría. Incluye el **puntaje del día** (0–100:
   mañana, metas, gym si toca y dieta) y una **revisión semanal** automática con lo que mejoró y lo que falta.
@@ -29,11 +30,13 @@ npm run build     # versión para publicar en dist/
 Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro/SKILL.md`): lo lee completo, escribe
 `src/libros/<id>.js` con el formato de `src/libros/fenix.js`, lo registra en `src/libros/index.js` y comprueba con
 `npm test` (`tests/libros.test.mjs` valida el formato de todos los libros). Después la app lo consulta sola, sin Claude.
-- **Dieta**: plan del día según el gym (entreno inferior, superior o descanso), comidas que se marcan y suman a las calorías,
+- **Dieta**: plan del día según el gym y el fútbol (entreno inferior, superior, fútbol o descanso), comidas que se marcan y suman a las calorías,
   planes y alimentos editables, peso corporal con promedio de 7 días y recálculo de los planes por peso (proteína y carbos).
 - **Gym**: semana actual primero (semana 1 = lunes 12 oct 2026), semanas pasadas en el selector. Contador de series, colores
   (amarillo faltan · verde completo · azul SUBE PESO), último registro, peso sugerido, descanso automático, notas y resumen por músculo.
-- **Sesiones**: calentamientos por día, estiramientos, fortalecimiento de rodilla y mente (respiración 4-4-8, relajación progresiva, visualización), en modo guiado.
+- **Semana**: lun pierna 1 (fuerza), mar empuje, mié torso A + fútbol, jue tirón, vie fútbol, sáb pierna 2 (volumen y prevención:
+  nórdico y Copenhague), dom descanso. Ninguna pierna el día del partido ni el día antes.
+- **Sesiones**: calentamientos por día (y de fútbol), saltar lazo, prevención fútbol, estiramientos, fortalecimiento de rodilla y mente (respiración 4-4-8, relajación progresiva, visualización), en modo guiado.
   Cada ejercicio muestra cómo se hace con una figura animada (`src/figuras.js`, sin internet) y un botón para ver videos en YouTube;
   la respiración guía el ritmo 4-4-8 con un círculo y la relajación resalta la parte del cuerpo que se tensa.
   Mente incluye "Me hablo bien" (diálogo interno positivo).

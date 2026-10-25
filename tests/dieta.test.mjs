@@ -19,6 +19,16 @@ test('plan según el día del gym', () => {
   assert.equal(tipoDeDia({ calentamiento: 'pierna' }), 'inferior');
   assert.equal(tipoDeDia({ calentamiento: 'empuje' }), 'superior');
   assert.equal(tipoDeDia(null), 'descanso');
+  assert.equal(tipoDeDia(null, true), 'futbol');                       // viernes: solo partido
+  assert.equal(tipoDeDia({ calentamiento: 'torso' }, true), 'futbol');  // miércoles: torso y partido en la noche
+});
+
+test('el día de fútbol tiene más carbos que el de pierna y la misma proteína', () => {
+  const t = (tipo) => totalPlan(PLANES[tipo], ALIMENTOS);
+  assert.ok(t('futbol').c > t('inferior').c);
+  assert.ok(Math.abs(t('futbol').p - t('inferior').p) <= 5);
+  assert.ok(Math.abs(t('futbol').kcal / 87 - CONFIG_DIETA.kcalKg.futbol) < 0.1);
+  assert.ok(Math.abs(t('futbol').p / 87 - CONFIG_DIETA.protKg.futbol) < 0.02);
 });
 
 test('el objetivo con 87 kg es el del plan de partida', () => {
@@ -47,7 +57,7 @@ test('peso: lista ordenada y promedio de los últimos 7', () => {
 test('macros por kg: con el mismo peso el plan no cambia; con menos peso se acerca a P, C y G', async () => {
   const { macrosPorKg, kcalDeMacros } = await import('../src/dieta.js');
   const config = { ...CONFIG_DIETA, ...macrosPorKg(PLANES, ALIMENTOS, 87) };
-  assert.deepEqual(macrosPorKg(PLANES, ALIMENTOS, 87).carbKg, { inferior: 2.74, superior: 2.06, descanso: 1.16 });
+  assert.deepEqual(macrosPorKg(PLANES, ALIMENTOS, 87).carbKg, { inferior: 2.74, superior: 2.06, futbol: 3.02, descanso: 1.16 });
   const obj87 = objetivo(config, 'inferior', 87);
   assert.equal(obj87.kcal, Math.round(kcalDeMacros(obj87.p, obj87.c, obj87.g)));
   const igual = recalcular(PLANES.inferior, ALIMENTOS, obj87).plan;

@@ -1,11 +1,11 @@
 // Dieta: plan del día (según el gym), comidas marcadas, planes editables, peso corporal y recálculo por peso
-import { e, guardar, repintar, dia, tipoDieta, comidasDelDia } from '../estado.js';
-import { iso, hora, fechaCorta, diaSemana } from '../fechas.js';
-import { totalPlan, totalComida, valoresItem, tipoDeDia, objetivo, recalcular, pesos, tendencia, kcalDeMacros } from '../dieta.js';
+import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, comidasDelDia } from '../estado.js';
+import { iso, hora, fechaCorta } from '../fechas.js';
+import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, kcalDeMacros } from '../dieta.js';
 import { esc, barra, registrar, toast, miles } from '../ui.js';
 
 let pestana = 'hoy', planVista = null;
-const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', descanso: '😌 Descanso' };
+const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', descanso: '😌 Descanso' };
 const GRUPOS = { proteina: 'Proteína', carbo: 'Carbohidrato', grasa: 'Grasa', verdura: 'Verdura', otro: 'Otro' };
 const POR = { g: 'por 100 g', u: 'por unidad', libre: 'porción fija' };
 const r0 = (n) => Math.round(n || 0);
@@ -21,11 +21,6 @@ export function pesoActual() {
 }
 
 // ---------- Hoy ----------
-function tipoAuto(fecha = iso()) {
-  const n = diaSemana(fecha);
-  return tipoDeDia(e().rutina.find((x) => x.diaSemana === n));
-}
-
 export function tarjetaComidasHoy(compacta = false) {
   const tipo = tipoDieta(), plan = d().planes[tipo], hechas = (e().dias[iso()] || {}).comidas || {};
   const total = totalPlan(plan, d().alimentos), comido = comidasDelDia();
@@ -47,11 +42,11 @@ export function tarjetaComidasHoy(compacta = false) {
 }
 
 function vistaHoyDieta() {
-  const tipo = tipoDieta(), auto = tipoAuto(), manual = (e().dias[iso()] || {}).dieta;
+  const tipo = tipoDieta(), auto = tipoDietaAuto(), manual = (e().dias[iso()] || {}).dieta;
   return '<nav class="chips">' + Object.entries(TIPOS).map(([k, t]) => '<button type="button" class="chip' + (k === tipo ? ' activo' : '') + '" data-accion="dieta-tipo-hoy" data-tipo="' + k + '">' + t +
     (k === auto ? ' · hoy' : '') + '</button>').join('') + '</nav>' +
-    (manual ? '<p class="nota-corta">Elegiste el plan a mano. <a href="#dieta" data-accion="dieta-tipo-hoy" data-tipo="' + auto + '">Volver al que toca por el gym</a></p>'
-      : '<p class="nota-corta">El plan sale del gym de hoy. Toca otro si hoy comes distinto.</p>') +
+    (manual ? '<p class="nota-corta">Elegiste el plan a mano. <a href="#dieta" data-accion="dieta-tipo-hoy" data-tipo="' + auto + '">Volver al que toca hoy</a></p>'
+      : '<p class="nota-corta">El plan sale del gym y del fútbol de hoy. Toca otro si hoy comes distinto.</p>') +
     '<section class="tarjeta">' + tarjetaComidasHoy() + '</section>';
 }
 
@@ -66,7 +61,7 @@ function vistaPlanes() {
     '<p class="nota-corta">Con <b>' + String(peso).replace('.', ',') + ' kg</b> el objetivo es <b>≈ ' + miles(obj.kcal) + ' kcal</b>: proteína <b>' + obj.p + ' g</b>' +
     (obj.c != null ? ', carbos <b>' + obj.c + ' g</b>, grasa <b>' + obj.g + ' g</b>' : '') + '. <a href="#dieta/peso">Cambiar la fórmula</a></p>' +
     '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="dieta-recalcular" data-tipo="' + planVista + '">⚖️ Recalcular este plan</button>' +
-    '<button type="button" class="boton secundario" data-accion="dieta-recalcular" data-tipo="todos">Recalcular los 3</button>' +
+    '<button type="button" class="boton secundario" data-accion="dieta-recalcular" data-tipo="todos">Recalcular todos</button>' +
     (d().anterior ? '<button type="button" class="boton secundario" data-accion="dieta-deshacer">↶ Deshacer recálculo</button>' : '') + '</div></section>' +
     plan.comidas.map((c, i) => {
       const rc = ruta + '.comidas.' + i;
@@ -166,7 +161,7 @@ registrar({
   'dieta-tipo-hoy'({ tipo }, el, ev) {
     if (ev) ev.preventDefault();
     const hoy = dia();
-    if (tipo === tipoAuto()) delete hoy.dieta; else hoy.dieta = tipo;
+    if (tipo === tipoDietaAuto()) delete hoy.dieta; else hoy.dieta = tipo;
     guardar();
   },
   'dieta-comer'({ i }) {
@@ -196,7 +191,7 @@ registrar({
       '\n\nSe ajustan las cantidades de proteína, grasa y carbohidratos. Puedes deshacerlo.')) return;
     d().anterior = JSON.parse(JSON.stringify(d().planes));
     for (const [t, r] of resultados) d().planes[t] = r.plan;
-    if (tipos.length === 3) d().config.pesoBase = peso;
+    if (tipos.length > 1) d().config.pesoBase = peso;
     guardar();
     toast('Planes recalculados con ' + String(peso).replace('.', ',') + ' kg');
   },

@@ -47,6 +47,12 @@ const BOCA_ARRIBA = { h: [100, 144], n: [58, 144], m1: [34, 148], m2: [30, 148],
 const SENTADO = { h: [100, 142], n: [100, 100], m1: [108, 120], m2: [92, 120], p1: [124, 148], p2: [76, 148], s: { m2: 1, p2: -1 } };
 const ACOSTADO = { h: [100, 144], n: [58, 144], m1: [104, 148], m2: [100, 148], p1: [158, 146], p2: [156, 146], t1: 180, t2: 180 };
 const con = (base, cambios) => ({ ...base, ...cambios, s: { ...base.s, ...cambios.s } });
+// Saltar lazo, de frente: en el aire el lazo pasa por debajo de los pies, al caer pasa por encima de la cabeza
+const AIRE = con(FRENTE, { h: [100, 82], n: [100, 40], m1: [120, 88], m2: [80, 88], p1: [108, PISO - 8], p2: [92, PISO - 8] });
+const SUELO = con(FRENTE, { m1: [120, 96], m2: [80, 96], p1: [108, PISO], p2: [92, PISO] });
+const lazo = (aire, suelo, dur = 0.4) => ({ poses: [con(AIRE, aire), con(SUELO, suelo)], lazo: true, dur });
+const CORRE_A = con(DE_PIE, { n: [104, 48], p1: [122, PISO], p2: [80, PISO], m1: [86, 88], m2: [118, 82] });
+const CORRE_B = con(DE_PIE, { n: [104, 48], p1: [80, PISO], p2: [122, PISO], m1: [118, 82], m2: [86, 88] });
 
 // Objetos del dibujo
 const OBJETOS = {
@@ -143,6 +149,40 @@ export const POSES = {
     con(DE_PIE, { h: [100, 84], n: [100, 42], m1: [104, 88], m2: [96, 88], p1: [100, 143], p2: [97, 143], t1: 35, t2: 35 }),
     { h: [96, 118], n: [106, 78], m1: [146, 80], m2: [144, 82], p1: [100, 143], p2: [97, 143], t1: 35, t2: 35 }], dur: 2.4 },
 
+  // Fútbol: prevención, lazo y calentamiento del partido
+  'saltos al cajon': { poses: [
+    { h: [84, 118], n: [100, 80], m1: [66, 112], m2: [62, 114], p1: [92, PISO], p2: [88, PISO] },
+    { h: [112, 66], n: [118, 24], m1: [140, 14], m2: [136, 16], p1: [120, 96], p2: [116, 98] },
+    { h: [124, 96], n: [138, 58], m1: [158, 76], m2: [154, 78], p1: [134, 118], p2: [130, 118] }], escalon: [112, 118, 50], dur: 1.2 },
+  'salto y aterrizaje a una pierna': { poses: [
+    { h: [70, 116], n: [84, 76], m1: [52, 108], m2: [48, 110], p1: [78, PISO], p2: [74, PISO] },
+    { h: [104, 70], n: [112, 30], m1: [134, 22], m2: [130, 24], p1: [114, 100], p2: [104, 104] },
+    { h: [126, 112], n: [140, 72], m1: [104, 96], m2: [160, 92], p1: [134, PISO], p2: [104, 120], t2: -60 }], dur: 1.3 },
+  'equilibrio a una pierna': { poses: [
+    con(DE_PIE, { p2: [106, 122], m1: [130, 80], m2: [70, 80] }),
+    con(DE_PIE, { h: [101, 90], n: [98, 48], p2: [108, 122], m1: [128, 76], m2: [72, 84] })], dur: 1.6 },
+  'curl nordico': { poses: [
+    { h: [70, 118], n: [72, 76], m1: [88, 96], m2: [86, 98], p1: [40, PISO], p2: [37, PISO] },
+    { h: [93, 129], n: [125, 102], m1: [140, 128], m2: [138, 130], p1: [40, PISO], p2: [37, PISO] }], barra: [26, 54, 140], dur: 3 },
+  'copenhague': { poses: [
+    { h: [72, 132], n: [112, 112], m1: [116, PISO], m2: [113, PISO], p1: [32, 122], p2: [44, PISO], s: { m1: 1, m2: 1 } },
+    { h: [72, 124], n: [112, 108], m1: [116, PISO], m2: [113, PISO], p1: [32, 122], p2: [40, 140], s: { m1: 1, m2: 1 } }], escalon: [14, 122, 30], dur: 2.4 },
+  'lazo dos pies': lazo({}, {}),
+  'lazo alternando': lazo({ p2: [92, 130] }, { p1: [108, 130] }, 0.35),
+  'lazo lado a lado': lazo({ h: [92, 82], n: [92, 40], m1: [112, 88], m2: [72, 88], p1: [100, PISO - 8], p2: [84, PISO - 8] },
+    { h: [108, 90], n: [108, 48], m1: [128, 96], m2: [88, 96], p1: [116, PISO], p2: [100, PISO] }),
+  'lazo a un pie': lazo({ p2: [90, 124] }, { p2: [90, 132] }),
+  'lazo rapido': lazo({}, {}, 0.25),
+  'trote suave': { poses: [CORRE_A, CORRE_B], dur: 0.6 },
+  'rodillas arriba': { poses: [con(CORRE_A, { p1: [124, 120], p2: [100, PISO] }), con(CORRE_B, { p2: [124, 120], p1: [100, PISO] })], dur: 0.5 },
+  'talones al gluteo': { poses: [con(CORRE_A, { p1: [86, 100], p2: [102, PISO], t1: -60 }), con(CORRE_B, { p2: [86, 100], p1: [102, PISO], t2: -60 })], dur: 0.5 },
+  'zancada lateral': { poses: [
+    con(FRENTE, { h: [124, 108], n: [122, 66], m1: [138, 92], m2: [110, 92], p1: [150, PISO], p2: [86, PISO] }),
+    con(FRENTE, { h: [76, 108], n: [78, 66], m1: [90, 92], m2: [62, 92], p1: [114, PISO], p2: [50, PISO] })], dur: 1.6 },
+  'sprints progresivos': { poses: [
+    con(DE_PIE, { h: [100, 92], n: [112, 52], p1: [132, PISO - 4], p2: [72, 130], m1: [80, 86], m2: [126, 70] }),
+    con(DE_PIE, { h: [100, 92], n: [112, 52], p2: [132, PISO - 4], p1: [72, 130], m2: [80, 86], m1: [126, 70] })], dur: 0.35 },
+
   // Mente: sentado, respiración y relajación acostado (resalta la parte que se tensa)
   'postura': { poses: [SENTADO], quieta: true },
   'afirmacion': { poses: [SENTADO], quieta: true },
@@ -218,6 +258,13 @@ export function figura(nombre, { animar: mover = true } = {}) {
   let encima = '';
   if (f.banda) encima += '<polyline class="fg-banda" points="' + linea([extremo(a, 'm1'), extremo(a, 'm2')]) + '">' + animar('points', val((p) => linea([extremo(p, 'm1'), extremo(p, 'm2')])), dur) + '</polyline>';
   if (f.anclaje) encima += '<polyline class="fg-banda" points="' + linea([extremo(a, 'm1'), f.anclaje]) + '">' + animar('points', val((p) => linea([extremo(p, 'm1'), f.anclaje])), dur) + '</polyline>';
+  // Lazo: en la primera posición (en el aire) pasa por debajo de los pies, en la segunda por encima de la cabeza
+  if (f.lazo) {
+    // El punto de control queda al doble de distancia para que la curva pase por el piso o por encima de la cabeza
+    const cuerda = (p, k) => { const [m1, m2] = [extremo(p, 'm1'), extremo(p, 'm2')], y = (m1[1] + m2[1]) / 2;
+      return 'M' + m1.map(r1) + 'Q' + r1((m1[0] + m2[0]) / 2) + ',' + r1(2 * (k ? -6 : PISO + 2) - y) + ' ' + m2.map(r1); };
+    encima += '<path class="fg-banda" d="' + cuerda(a, 0) + '">' + animar('d', ps.map(cuerda), dur) + '</path>';
+  }
   if (f.pesa) {
     const m = val((p) => extremo(p, 'm1'));
     encima += '<circle class="fg-pesa" r="7" cx="' + r1(m[0][0]) + '" cy="' + r1(m[0][1]) + '">' + animar('cx', m.map((q) => r1(q[0])), dur) + animar('cy', m.map((q) => r1(q[1])), dur) + '</circle>';

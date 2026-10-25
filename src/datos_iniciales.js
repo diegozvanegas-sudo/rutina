@@ -17,8 +17,11 @@ export const ESPERA = { minimo: 30, ideal: 60 };
 // Descanso por defecto (segundos) según el tipo de serie
 export const DESCANSOS = { Top: 210, 'Back-off': 150, Series: 105, Core: 60 };
 
-// Series por músculo a la semana
-export const OBJETIVOS = { _: [10, 20], Core: [6, 10] };
+// Series por músculo a la semana (aductores, glúteo y pantorrilla también trabajan en el fútbol y en los básicos)
+export const OBJETIVOS = { _: [10, 20], Core: [6, 10], Aductores: [4, 8], 'Glúteo': [2, 8], Pantorrilla: [6, 12] };
+
+// Días de fútbol (1 = lunes … 7 = domingo), de noche: ese día el plan de comida es "fútbol" y "Hoy" muestra el partido
+export const FUTBOL = [3, 5];
 
 // "Top 1×4-7 · Back-off 2×8-12" -> filas registrables. "4×10 + fallo", "2×5-9", "1×1 min" también valen.
 export function filasDeEsquema(esquema, descansoSeries = DESCANSOS.Series) {
@@ -50,9 +53,35 @@ function dia(id, nombre, diaSemana, calentamiento, cardio, ejercicios, previo) {
   };
 }
 
-// diaSemana: 1 = lunes … 7 = domingo. Lun empuje, mar tirón, mié pierna A, jue descanso, vie torso A, sáb pierna B, dom descanso. Core: al final de cualquier día, se registra una vez por semana.
+// Pierna estilo Cbum (pocas series, todo el rango) adaptada al fútbol: la 1 pesada (1-2 reps en reserva) lejos de los partidos,
+// la 2 moderada (2-3 en reserva, sin fallo) el día después del partido del viernes, con nórdico y Copenhague para prevenir lesiones.
+export const PIERNA_1 = [
+  ['Sentadilla / hack', 'Cuádriceps', 'Top 1×5-8 · Back-off 2×8-10'],
+  ['Peso muerto rumano', 'Isquios', 'Top 1×6-8 · Back-off 1×8-10'],
+  ['Búlgara', 'Cuádriceps', '2×8-10'],
+  ['Curl femoral sentado', 'Isquios', '2×8-12'],
+  ['Extensión de cuádriceps', 'Cuádriceps', '2×10-15'],
+  ['Aductores máquina', 'Aductores', '2×10-15'],
+  ['Pantorrilla de pie', 'Pantorrilla', '3×8-12'],
+];
+export const PIERNA_2 = [
+  ['Extensión de cuádriceps', 'Cuádriceps', '3×12-15'],
+  ['Prensa', 'Cuádriceps', '2×10-12'],
+  ['Curl femoral sentado', 'Isquios', '2×10-12'],
+  ['Curl nórdico', 'Isquios', '3×4-6'],
+  ['Copenhague', 'Aductores', '2×20-30 s'],
+  ['Hip thrust', 'Glúteo', '2×8-12'],
+  ['Pantorrilla sentado (sóleo)', 'Pantorrilla', '3×12-15'],
+];
+export const PREVIO_P1 = 'Lazo 6-8 min y 3×3-5 saltos al cajón antes de la sentadilla (sesión "Prevención fútbol")';
+export const PREVIO_P2 = 'Ayer hubo partido: 2-3 reps en reserva, nada al fallo. Si las piernas siguen muy cargadas, pásala al domingo';
+export const CARDIO_D5 = 'Cardio suave 15-20 min (mañana hay fútbol)';
+
+// diaSemana: 1 = lunes … 7 = domingo. Fútbol mié y vie de noche: ninguna pierna pesada en las 48 h antes de un partido.
+// Lun pierna 1 (fuerza), mar empuje, mié torso A + fútbol, jue tirón, vie fútbol, sáb pierna 2 (volumen y prevención), dom descanso.
+// Core: al final de cualquier día, se registra una vez por semana.
 export const RUTINA = [
-  dia('d1', 'Torso A', 5, 'torso', 'Cardio cinta 25-35 min', [
+  dia('d1', 'Torso A', 3, 'torso', '', [
     ['Press inclinado mancuernas', 'Pecho', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Remo T / hammer abierto', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Apertura pecho máquina', 'Pecho', 'Top 1×8-12 · Back-off 2×10-15'],
@@ -61,17 +90,9 @@ export const RUTINA = [
     ['Tríceps extensión', 'Tríceps', 'Top 1×8-12 · Back-off 2×8-12'],
     ['Bíceps polea baja / predicador', 'Bíceps', '3×8-12'],
     ['Tríceps invertido', 'Tríceps', '3×10-12'],
-  ]),
-  dia('d2', 'Pierna A', 3, 'pierna', 'Cardio cinta 30-35 min', [
-    ['Pantorrilla unilateral', 'Pantorrilla', '4×5-8 al fallo'],
-    ['Abductores', 'Abductores', 'Top 1×4-7 · Back-off 2×8-12'],
-    ['Sentadilla', 'Cuádriceps', 'Top 1×8-10 · Back-off 1×8-10'],
-    ['Prensa piernas', 'Cuádriceps', 'Top 1×8-10 · Back-off 2×8-12'],
-    ['Isquios sentado', 'Isquios', 'Top 1×8-10 · Back-off 2×8-12'],
-    ['Extensión piernas', 'Cuádriceps', '4×12-15'],
-    ['Isquios acostado', 'Isquios', 'Top 1×4-7 · Back-off 3×8-12'],
-  ], 'Movilidad previa 5-10 min'),
-  dia('d3', 'Empuje + Bíceps', 1, 'empuje', 'Cardio cinta 30 min', [
+  ], 'Hoy hay fútbol en la noche: sin cardio'),
+  dia('p1', 'Pierna 1 · Fuerza', 1, 'pierna', 'Cardio suave 15-20 min', PIERNA_1, PREVIO_P1),
+  dia('d3', 'Empuje + Bíceps', 2, 'empuje', 'Cardio cinta 30 min', [
     ['Press plano (barra/máquina)', 'Pecho', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Press inclinado mancuerna', 'Pecho', '3×10-15'],
     ['Máquina laterales', 'Hombro', '4×10-15'],
@@ -81,7 +102,7 @@ export const RUTINA = [
     ['Curl bayesiano', 'Bíceps', 'Top 1×8-10 · Back-off 2×10-15'],
     ['Martillo mancuerna', 'Bíceps', 'Top 1×8-10 · Back-off 2×8-10'],
   ]),
-  dia('d5', 'Tirón + Tríceps', 2, 'tiron', 'Cardio escaladora 25 min', [
+  dia('d5', 'Tirón + Tríceps', 4, 'tiron', CARDIO_D5, [
     ['Jalón polea alta', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Remo hammer abierto', 'Espalda', 'Top 1×4-7 · Back-off 2×8-12'],
     ['Posterior máquina', 'Deltoide posterior', 'Top 1×10-12 · Back-off 3×15-20'],
@@ -91,16 +112,7 @@ export const RUTINA = [
     ['Jalón tríceps', 'Tríceps', 'Top 1×10-15 · Back-off 2×10-15'],
     ['Jalón invertido tríceps', 'Tríceps', 'Top 1×4-7 · Back-off 2×10-12'],
   ]),
-  dia('d6', 'Pierna B', 6, 'pierna', 'Cardio cinta 30 min', [
-    ['Pantorrilla bilateral / sissy', 'Pantorrilla', '4×12-15 al fallo'],
-    ['Abductor', 'Abductores', 'Top 1×4-7 · Back-off 2×8-12'],
-    ['Peso muerto rumano', 'Isquios', 'Top 1×6-9 · Back-off 2×10-12'],
-    ['Isquios acostado', 'Isquios', 'Top 1×4-7 · Back-off 2×8-10'],
-    ['Prensa', 'Cuádriceps', '3×12-15'],
-    ['Hip thrust máquina', 'Glúteo', 'Top 1×8-10 · Back-off 2×8-10'],
-    ['Isquios sentado', 'Isquios', 'Top 1×5-7 · Back-off 2×8-12'],
-    ['Extensión piernas', 'Cuádriceps', '3×12-15'],
-  ]),
+  dia('p2', 'Pierna 2 · Volumen y prevención', 6, 'pierna', 'Cardio suave 15 min (opcional)', PIERNA_2, PREVIO_P2),
   dia('core', 'Core', null, null, null, [
     ['Crunch', 'Core', '2×15'],
     ['Rueda abdominal', 'Core', '2×5-9'],
@@ -184,6 +196,37 @@ export const SESIONES = [
       r('Pantorrilla', 'Pantorrilla', 3, '15', 'En un escalón, baja el talón completo y sube hasta la punta. Pausa arriba.'),
       r('Step up', 'Cuádriceps', 3, '10', 'Sube al cajón empujando con el pie de arriba; la rodilla sigue la línea del pie. Baja lento.', true),
       r('Sentadilla en punta de pies', 'Cuádriceps', 3, '10-12', 'Talones arriba todo el tiempo, baja controlado hasta donde no haya dolor.'),
+    ],
+  },
+  {
+    // Lo que más protege al futbolista: nórdico (desgarro de isquios), Copenhague (ingle) y aterrizajes y equilibrio (tobillo y rodilla)
+    id: 'prevencion-futbol', nombre: 'Prevención fútbol', tipo: 'fortalecimiento', pasos: [
+      r('Saltos al cajón', 'Potencia', 3, '3-5', 'Salta con toda la intención y cae suave, en cuclillas, con las rodillas alineadas con los pies. Baja caminando. Descansa bien: es para potencia, no para cansarte.', false, 60),
+      r('Salto y aterrizaje a una pierna', 'Rodilla', 2, '5', 'Salta adelante y cae en una pierna aguantando 2 segundos quieto. La rodilla no se va hacia adentro.', true),
+      { ...t('Equilibrio a una pierna', 'Tobillo', 30, 'Rodilla un poco doblada, cadera nivelada. Si es fácil, cierra los ojos o haz pases imaginarios con la otra pierna.', true), series: 2, descanso: 20 },
+      r('Curl nórdico', 'Isquios', 3, '4-6', 'De rodillas con los talones sujetos (compañero o barra), baja el cuerpo recto lo más lento que puedas, frena con las manos y vuelve. Si no te alcanza, baja solo una parte.', false, 90),
+      { ...t('Copenhague', 'Aductores', 25, 'Plancha lateral con la pierna de arriba sobre un banco (rodilla apoyada para empezar, pie para más difícil). Cadera alta, la de abajo cuelga.', true), series: 2, descanso: 45 },
+    ],
+  },
+  {
+    // Tobillo reactivo, ritmo de pies y resistencia, de bajo impacto. 3 veces por semana: lun, mar y jue
+    id: 'lazo', nombre: 'Saltar lazo', tipo: 'calentamiento', pasos: [
+      { ...t('Lazo dos pies', 'Pantorrilla', 30, 'Saltos bajitos en la punta del pie, muñecas giran el lazo y los codos quedan pegados.'), series: 2, descanso: 30 },
+      { ...t('Lazo alternando', 'Coordinación', 30, 'Como trotando en el sitio: un pie y luego el otro.'), series: 2, descanso: 30 },
+      { ...t('Lazo lado a lado', 'Coordinación', 30, 'Dos pies juntos, saltas un poco a la izquierda y a la derecha.'), series: 2, descanso: 30 },
+      { ...t('Lazo a un pie', 'Tobillo', 20, 'Solo un pie, saltos cortos. Si te enredas, sigue con dos pies.', true), series: 2, descanso: 30 },
+      { ...t('Lazo rápido', 'Resistencia', 20, 'Lo más rápido que puedas con dos pies o alternando.'), series: 2, descanso: 40 },
+    ],
+  },
+  {
+    // Antes del partido (estilo FIFA 11+): de suave a rápido, sin estiramientos largos quietos
+    id: 'calentamiento-futbol', nombre: 'Calentamiento fútbol', tipo: 'calentamiento', pasos: [
+      t('Trote suave', 'General', 240, 'Trote suave por la cancha, cambia de dirección de vez en cuando.'),
+      t('Rodillas arriba', 'Cadera', 30, 'Trotando, sube las rodillas a la altura de la cadera.'),
+      t('Talones al glúteo', 'Cuádriceps', 30, 'Trotando, lleva los talones hacia el glúteo.'),
+      t('Balanceo de pierna', 'Cadera', 20, 'Adelante y atrás, sostenido de algo o de un compañero.', true),
+      t('Zancada lateral', 'Aductores', 30, 'Paso largo al lado bajando la cadera, la otra pierna estirada. Alterna.'),
+      r('Sprints progresivos', 'Velocidad', 3, '20-30 m', 'Arranca suave y termina al 80-90 %. Vuelve caminando.', false, 30),
     ],
   },
 ];

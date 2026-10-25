@@ -1,5 +1,5 @@
 // "Hoy": tablero con la mañana, las metas, el entrenamiento que toca y la semana
-import { e, avanceMetas } from '../estado.js';
+import { e, avanceMetas, hayFutbol } from '../estado.js';
 import { iso, fechaLarga } from '../fechas.js';
 import { esc, barra, pct } from '../ui.js';
 import { cabeceraManana, listaManana } from './manana.js';
@@ -16,8 +16,18 @@ function saludo() {
   return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
 }
 
+// Partido de noche: qué comer y cuándo, calentar antes y estirar después
+function partido() {
+  return '<section class="tarjeta futbol"><h2>⚽ Fútbol esta noche</h2><ul class="consejos">' +
+    ['Comida pre-partido 2-3 h antes: arroz y pollo, poca grasa y poca fibra.', 'Plátano 1 h antes y agua todo el día; si hace calor o juegas más de 60 min, electrolitos.',
+      'Calienta 10-12 min antes de jugar, de suave a rápido.', 'Después: cena con proteína y carbos, y estira suave.'].map((t) => '<li>' + t + '</li>').join('') + '</ul>' +
+    '<div class="botones-rapidos"><button type="button" class="boton primario grande" data-accion="sesion" data-sesion="calentamiento-futbol">▶ Calentamiento fútbol</button>' +
+    '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="estiramiento-post">🧘 Estirar después</button></div></section>';
+}
+
 function entrenamiento() {
-  const d = diaDeHoy();
+  const d = diaDeHoy(), futbol = hayFutbol() ? partido() : '';
+  if (!d && futbol) return futbol;
   if (!d) {
     return '<section class="tarjeta"><h2>🏋️ Hoy</h2><p class="grande-texto">Día de descanso 😌</p>' +
       '<div class="botones-rapidos"><button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="rodilla">🦵 Rodilla</button>' +
@@ -31,7 +41,7 @@ function entrenamiento() {
       const hechas = colores.reduce((s, c) => s + Math.min(c.hechas, c.plan), 0), plan = colores.reduce((s, c) => s + c.plan, 0);
       const color = colores.some((c) => c.color === 'sube') ? 'sube' : hechas >= plan ? 'completo' : hechas ? 'falta' : 'vacio';
       return '<li class="c-' + color + '"><span class="punto-color"></span>' + esc(ej.nombre) + '<b>' + hechas + '/' + plan + '</b></li>';
-    }).join('') + '</ul></section>' + tarjetaCalentamiento(d);
+    }).join('') + '</ul></section>' + futbol + tarjetaCalentamiento(d);
 }
 
 export function vistaHoy() {

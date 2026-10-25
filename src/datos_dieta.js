@@ -1,4 +1,4 @@
-// Dieta de partida: los tres planes de la hoja (entreno inferior, entreno superior, descanso) con 87 kg.
+// Dieta de partida: los tres planes de la hoja (entreno inferior, entreno superior, descanso) con 87 kg, más el día de fútbol.
 // Cada alimento guarda sus valores por 100 g (o por unidad) para poder recalcular cualquier cantidad.
 
 // grupo: proteina | carbo | grasa | verdura | otro  →  al recalcular, la proteína sigue al peso y los carbos ajustan las calorías
@@ -35,6 +35,16 @@ export const PLANES = {
       { nombre: 'Cena', items: [it('pollo', 200), it('arroz', 150), it('verdura', 200), it('almendras', 10)] },
     ],
   },
+  // Partido de noche: carbos altos repartidos en el día, comida baja en grasa y fibra 2-3 h antes y cena de recuperación
+  futbol: {
+    nombre: 'Fútbol', detalle: 'Partido en la noche · carbos altos', comidas: [
+      { nombre: 'Desayuno', items: [it('huevo', 6), it('avena', 70), it('cafe', 1)] },
+      { nombre: 'Almuerzo', items: [it('arroz', 250), it('carne', 180), it('ensalada', 1)] },
+      { nombre: 'Pre-partido (2-3 h antes)', items: [it('arroz', 150), it('pollo', 120), it('platano', 1)] },
+      { nombre: 'Antes de jugar (1 h)', items: [it('platano', 1)] },
+      { nombre: 'Cena post-partido', items: [it('pollo', 180), it('arroz', 200), it('verdura', 150)] },
+    ],
+  },
   descanso: {
     nombre: 'Descanso', detalle: 'Carbos bajos, más grasa', comidas: [
       { nombre: 'Desayuno', items: [it('huevo', 6), it('almendras', 15), it('cafe', 1)] },
@@ -50,6 +60,6 @@ export const PLANES = {
 // pero sus filas suman 1.785): al cambiar el peso, cada plan se recalcula con estos factores.
 export const CONFIG_DIETA = {
   pesoInicio: 87, pesoBase: 87, meta: 76, estatura: 168,
-  kcalKg: { inferior: 27.9, superior: 24.4, descanso: 20.5 },
-  protKg: { inferior: 2.17, superior: 2.1, descanso: 2.06 },
+  kcalKg: { inferior: 27.9, superior: 24.4, descanso: 20.5, futbol: 28.2 },
+  protKg: { inferior: 2.17, superior: 2.1, descanso: 2.06, futbol: 2.14 },
 };

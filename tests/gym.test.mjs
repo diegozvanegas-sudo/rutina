@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { repsDe, estadoFila, sugerencia, ultimoRegistro, aproximacion, resumenSemana } from '../src/gym.js';
-import { filasDeEsquema, RUTINA } from '../src/datos_iniciales.js';
+import { filasDeEsquema, RUTINA, FUTBOL } from '../src/datos_iniciales.js';
 import { semanaDe, lunesDe, diaSemana } from '../src/fechas.js';
 import { fases } from '../src/vistas/sesiones.js';
 
@@ -44,10 +44,11 @@ test('esquemas de la hoja', () => {
   assert.deepEqual([p.max, p.unidad], [60, 's']);
 });
 
-test('la rutina suma 25 series el día 1 y 131 en la semana', () => {
+test('la rutina suma 25 series en torso A, 16 y 17 en las piernas y 116 en la semana', () => {
   const r = resumenSemana(RUTINA, {});
   assert.equal(r.dias.find((d) => d.id === 'd1').plan, 25);
-  assert.equal(r.plan, 131);
+  assert.deepEqual(['p1', 'p2'].map((id) => r.dias.find((d) => d.id === id).plan), [16, 17]);
+  assert.equal(r.plan, 116);
 });
 
 test('semanas desde el lunes 12 oct 2026', () => {
@@ -109,9 +110,15 @@ test('nueva semana antes de tiempo: se vuelve la actual y se puede quitar si est
   assert.equal(est.semanaActual(), cal);
 });
 
-test('orden nuevo de días: lun empuje, mar tirón, mié pierna A, vie torso A, sáb pierna B', () => {
+test('semana con fútbol mié y vie: lun pierna 1, mar empuje, mié torso A, jue tirón, sáb pierna 2', () => {
   const dia = (id) => RUTINA.find((d) => d.id === id).diaSemana;
-  assert.deepEqual(['d3', 'd5', 'd2', 'd1', 'd6'].map(dia), [1, 2, 3, 5, 6]);
+  assert.deepEqual(['p1', 'd3', 'd1', 'd5', 'p2'].map(dia), [1, 2, 3, 4, 6]);
+  // Ninguna pierna el día del partido ni el día antes
+  for (const f of FUTBOL) assert.ok(!RUTINA.some((d) => d.calentamiento === 'pierna' && (d.diaSemana === f || d.diaSemana === f - 1)), 'pierna cerca del partido del día ' + f);
+  // Pierna 2 trae nórdico y Copenhague (en segundos)
+  const p2 = RUTINA.find((d) => d.id === 'p2').ejercicios;
+  assert.ok(p2.some((ej) => ej.nombre === 'Curl nórdico'));
+  assert.deepEqual(p2.find((ej) => ej.nombre === 'Copenhague').filas[0].unidad, 's');
 });
 
 test('resumen del día en texto: peso × reps, marcas de estado, core del día y cardio', async () => {
@@ -124,7 +131,7 @@ test('resumen del día en texto: peso × reps, marcas de estado, core del día y
     'core-1-1@d3': { reps: '15 15' },
   } } };
   const t = textoDia(d3, 2, estado);
-  assert.match(t, /^🏋️ Lun · Empuje \+ Bíceps — Semana 2 \(19 oct – 25 oct\)\nSeries: 4\/25/);
+  assert.match(t, /^🏋️ Mar · Empuje \+ Bíceps — Semana 2 \(19 oct – 25 oct\)\nSeries: 4\/25/);
   assert.match(t, /Press plano \(barra\/máquina\) · Pecho\n  Top 1×4-7: 100 kg × 12 ⬆ sube peso\n  Back-off 2×8-12: 100 kg × 10 · 10 ✅/);
   assert.match(t, /  3×10-15: 50 kg × 12 ⏳ 1\/3/);
   assert.match(t, /Máquina laterales · Hombro\n  4×10-15: —/);
@@ -138,10 +145,10 @@ test('cardio: texto con lo anotado, en el resumen del día y en el envío a la h
   const { datosGym } = await import('../src/hoja.js');
   assert.equal(textoCardio({ min: 32, vel: 3.5, incl: 15, fc: 128, fcMax: 141, km: 2.1 }), '32 min · vel 3,5 · incl 15 · FC 128 (máx 141) · 2,1 km');
   assert.equal(textoCardio({}), '');
-  const rutina = JSON.parse(JSON.stringify(RUTINA)), d2 = rutina.find((d) => d.id === 'd2');
-  const estado = { rutina, semanas: { 2: { 'cardio@d2': { min: 35, vel: 3.5, incl: 15, nota: 'cinta 4' } } } };
-  assert.match(textoDia(d2, 2, estado), /🏃 Cardio cinta 30-35 min: 35 min · vel 3,5 · incl 15 \(cinta 4\)$/);
-  assert.equal(datosGym(estado, 2).bloques.find((b) => b.nombre === 'Pierna A').cardio, '35 min · vel 3,5 · incl 15');
+  const rutina = JSON.parse(JSON.stringify(RUTINA)), p1 = rutina.find((d) => d.id === 'p1');
+  const estado = { rutina, semanas: { 2: { 'cardio@p1': { min: 18, vel: 3.5, incl: 15, nota: 'cinta 4' } } } };
+  assert.match(textoDia(p1, 2, estado), /🏃 Cardio suave 15-20 min: 18 min · vel 3,5 · incl 15 \(cinta 4\)$/);
+  assert.equal(datosGym(estado, 2).bloques.find((b) => b.nombre === 'Pierna 1 · Fuerza').cardio, '18 min · vel 3,5 · incl 15');
 });
 
 test('objetivos por músculo editables: cambian el estado Bajo / En rango / Alto', () => {

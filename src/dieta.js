@@ -19,8 +19,10 @@ export function totalPlan(plan, alimentos) {
   return plan.comidas.reduce((t, c) => sumar(t, totalComida(c, alimentos)), cero());
 }
 
-// Qué plan toca según el día de la rutina: pierna → inferior; torso, empuje o tirón → superior; sin entreno → descanso
-export function tipoDeDia(diaRutina) {
+// Qué plan toca según el día: partido → fútbol (aunque también haya gym); pierna → inferior; torso, empuje o tirón → superior;
+// sin entreno → descanso
+export function tipoDeDia(diaRutina, futbol = false) {
+  if (futbol) return 'futbol';
   if (!diaRutina) return 'descanso';
   return diaRutina.calentamiento === 'pierna' ? 'inferior' : 'superior';
 }

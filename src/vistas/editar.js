@@ -87,6 +87,8 @@ function editorRutina() {
   const repetidos = rutina.filter((x) => x.diaSemana && rutina.filter((y) => y.diaSemana === x.diaSemana).length > 1);
   return '<nav class="chips">' + rutina.map((x) => '<button type="button" class="chip' + (x.id === diaEd ? ' activo' : '') + '" data-accion="ed-dia" data-id="' + x.id + '">' + esc(x.nombre) + '</button>').join('') +
     '<button type="button" class="chip" data-accion="ed-agregar" data-lista="rutina">＋ Día</button></nav>' +
+    '<section class="tarjeta"><b>⚽ Días de fútbol</b><p class="nota-corta">Ese día el plan de comida es "Fútbol" y en Hoy aparece el partido.</p><nav class="chips">' +
+    DIAS.slice(1).map((t, n) => '<button type="button" class="chip' + ((e().config.futbol || []).includes(n + 1) ? ' activo' : '') + '" data-accion="futbol-dia" data-n="' + (n + 1) + '">' + t + '</button>').join('') + '</nav></section>' +
     (repetidos.length ? '<p class="aviso">⚠ Hay dos días asignados al mismo día de la semana: se usa el primero.</p>' : '') +
     (!d ? '' : '<section class="tarjeta"><div class="ed-cab"><b>Día</b>' + (d.id === 'core' ? '' : controles('rutina', i, rutina.length, d.nombre)) + '</div>' +
       '<div class="dos">' + campo('Nombre', 'rutina.' + i + '.nombre', d.nombre) +
@@ -171,6 +173,12 @@ function nuevo(listaRuta) {
 registrar({
   'ed-pestana'({ p }) { pestana = p; repintar(); },
   'ed-dia'({ id }) { diaEd = id; repintar(); },
+  'futbol-dia'({ n }) {
+    const dias = (e().config.futbol ??= []), i = dias.indexOf(+n);
+    if (i < 0) dias.push(+n); else dias.splice(i, 1);
+    dias.sort((x, y) => x - y);
+    guardar();
+  },
   'ed-sesion'({ id }) { sesionEd = id; repintar(); },
   ed({ ruta, tipo, factor }, el) {
     let v = tipo === 'bool' ? el.checked : el.value;

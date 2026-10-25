@@ -74,7 +74,9 @@ export function tarjetaCalentamiento(d, sem = semanaActual()) {
   const plan = pesoPlaneado(d, sem), aprox = plan ? aproximacion(plan.peso, plan.unidad) : [];
   return '<section class="tarjeta calentamiento"><h2>🔥 Calentamiento</h2>' +
     '<div class="botones-rapidos"><button type="button" class="boton primario grande" data-accion="sesion" data-sesion="calentamiento-' + d.calentamiento + '">▶ Calentamiento guiado</button>' +
-    (d.calentamiento === 'pierna' ? '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="rodilla">🦵 Rodilla</button>' : '') + '</div>' +
+    (d.calentamiento === 'pierna' ? '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="prevencion-futbol">⚽ Prevención</button>' +
+      '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="rodilla">🦵 Rodilla</button>' : '') +
+    '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="lazo">🪢 Lazo</button></div>' +
     (d.previo ? '<p class="nota-corta">' + esc(d.previo) + '</p>' : '') +
     // Mismo alto con o sin peso: al escribirlo la pantalla no salta
     '<p class="nota-corta">' + (plan ? 'Aproximación para <b>' + esc(plan.nombre) + '</b> (top set ' + formatoPeso(plan.peso) + ' ' + plan.unidad + '):'

@@ -1,7 +1,8 @@
 // Exportar a CSV (separado por ";" para que Excel en español lo abra en columnas; Google Sheets también lo detecta).
 // Las reps van con "·" como en la hoja: así nunca se convierten en fecha.
 import { estadoFila, repsDe, textoCardio } from './gym.js';
-import { lunesDe, hora } from './fechas.js';
+import { lunesDe } from './fechas.js';
+import { celdaHabito } from './estado.js';
 
 const celda = (v) => {
   const s = String(v ?? '');
@@ -43,7 +44,7 @@ export function csvDias(estado, avance) {
   const filas = [['Fecha', ...habitos.map((h) => h.nombre), 'Gratitud', 'Agua (ml)', 'Pasos', 'Calorías', 'Lectura (min)', 'Metas cumplidas', 'Peso (kg)']];
   for (const fecha of Object.keys(estado.dias).sort()) {
     const d = estado.dias[fecha], a = avance(fecha);
-    filas.push([fecha, ...habitos.map((h) => (d.habitos && d.habitos[h.id] ? hora(d.habitos[h.id].ts) : '')), d.gratitud || '',
+    filas.push([fecha, ...habitos.map((h) => celdaHabito(d, h)), d.gratitud || '',
       a.valores.agua, a.valores.pasos, a.valores.calorias, a.valores.lectura, Math.round(a.total * 100) + ' %', d.peso || '']);
   }
   return tabla(filas);

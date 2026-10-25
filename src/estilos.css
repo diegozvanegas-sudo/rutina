@@ -90,6 +90,9 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 
 /* ---------- Mañana ---------- */
 .habitos { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.agregar-habito { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.agregar-habito input { grid-column: 1 / -1; }
+.agregar-habito a.boton { text-decoration: none; }
 .habito { display: flex; gap: 12px; align-items: flex-start; padding: 10px; border-radius: 12px; background: var(--bg); }
 .habito .check { flex: none; width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface-2); color: var(--muted);
   font: inherit; font-size: 20px; font-weight: 800; cursor: pointer; }

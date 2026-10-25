@@ -6,7 +6,7 @@ import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
 import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular } from './dieta.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
-import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
+import { iso, sumarDias, semanaDe, diaSemana, hora } from './fechas.js';
 
 const CLAVE = 'rutina_v1';
 const copia = (o) => JSON.parse(JSON.stringify(o));
@@ -199,14 +199,34 @@ export function quitarSemana() {
 }
 
 // ---------- Mañana ----------
+// Sin hábitos no hay mañana completa (si no, la racha no termina nunca)
 export function mananaCompleta(fecha) {
   const d = e().dias[fecha];
-  return !!d && e().habitos.every((h) => d.habitos && d.habitos[h.id]);
+  return !!d && e().habitos.length > 0 && e().habitos.every((h) => d.habitos && d.habitos[h.id]);
 }
 export function hechosManana(fecha = iso()) {
   const d = e().dias[fecha];
   return e().habitos.filter((h) => d && d.habitos && d.habitos[h.id]).length;
 }
+// Parte hecha (0–1); sin hábitos es 0
+export const fraccionManana = (fecha = iso()) => (e().habitos.length ? hechosManana(fecha) / e().habitos.length : 0);
+// Lo escrito en un hábito "Con texto": el de agradecer sigue en d.gratitud (columna Gratitud); los demás en d.textos
+export const textoHabito = (d, h) => (h.id === 'agradecer' ? d.gratitud : d.textos && d.textos[h.id]) || '';
+export function ponerTextoHabito(d, h, texto) {
+  if (h.id === 'agradecer') d.gratitud = texto;
+  else (d.textos ??= {})[h.id] = texto;
+}
+// Celda de un hábito en la hoja y el CSV: la hora y, si tiene texto propio, el texto
+export const celdaHabito = (d, h) => {
+  const t = h.id === 'agradecer' ? '' : textoHabito(d, h), hecho = d.habitos && d.habitos[h.id];
+  return [hecho ? hora(hecho.ts) : '', t].filter(Boolean).join(' · ');
+};
+// La primera pastilla marcada inicia la espera del desayuno
+export function pastillaDe(d) {
+  const p = e().habitos.find((h) => h.tipo === 'pastilla');
+  return p && d.habitos && d.habitos[p.id];
+}
+
 // Días seguidos con la mañana completa. Si hoy aún no está completa, cuenta hasta ayer.
 export function racha(hoy = iso()) {
   let n = 0, f = mananaCompleta(hoy) ? hoy : sumarDias(hoy, -1);

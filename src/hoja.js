@@ -1,8 +1,8 @@
 // Envío a la hoja de Google "Rutina Gym" por medio del Apps Script (apps_script/Codigo.gs).
 // Gym: escribe peso y reps en la columna "Sem N" de la pestaña "Rutina 2.0", igual que a mano.
 // Días: hábitos y metas en la pestaña "Diario App" (una fila por fecha).
-import { e, alGuardarse, avanceMetas, semanaActual } from './estado.js';
-import { lunesDe, sumarDias, hora } from './fechas.js';
+import { e, alGuardarse, avanceMetas, semanaActual, celdaHabito } from './estado.js';
+import { lunesDe, sumarDias } from './fechas.js';
 import { registrosDeFila, repsDe, textoCardio, claveCardio } from './gym.js';
 
 export const hoja = { estado: 'inactiva', ultima: null, mensaje: '' };
@@ -38,7 +38,7 @@ export function datosDias(estado, desde, hasta) {
     const a = avanceMetas(f);
     filas.push({
       fecha: f,
-      habitos: estado.habitos.map((h) => [h.nombre, d.habitos && d.habitos[h.id] ? hora(d.habitos[h.id].ts) : '']),
+      habitos: estado.habitos.map((h) => [h.nombre, celdaHabito(d, h)]),
       gratitud: d.gratitud || '', agua: a.valores.agua, pasos: a.valores.pasos, calorias: a.valores.calorias, lectura: a.valores.lectura,
       metas: Math.round(a.total * 100),
       peso: d.peso || '',

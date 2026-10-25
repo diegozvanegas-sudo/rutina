@@ -1,6 +1,6 @@
 // Puntaje del día (0–100) y revisión semanal: junta mañana, metas, gym y dieta en un solo número
 // y saca frases con lo que mejoró, lo que falta y qué hacer. Cada frase lleva "ir": la sección donde se arregla.
-import { e, avanceMetas, hechosManana, planDieta, comidasDelDia } from './estado.js';
+import { e, avanceMetas, hechosManana, fraccionManana, planDieta, comidasDelDia } from './estado.js';
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 import { resumenSemana } from './gym.js';
 import { pesos as pesosCorporales, tendencia } from './dieta.js';
@@ -10,7 +10,9 @@ import { resumenMes, mesDe, pesos } from './finanzas.js';
 export function puntajeDia(fecha = iso()) {
   const d = e().dias[fecha];
   if (!d) return null;
-  const partes = { manana: hechosManana(fecha) / e().habitos.length, metas: avanceMetas(fecha).total };
+  const partes = { metas: avanceMetas(fecha).total };
+  // Sin hábitos de mañana, esa parte no cuenta
+  if (e().habitos.length) partes.manana = fraccionManana(fecha);
   const diaGym = e().rutina.find((x) => x.diaSemana === diaSemana(fecha));
   if (diaGym) {
     const r = resumenSemana([diaGym], e().semanas[semanaDe(fecha)] || {});
@@ -39,7 +41,7 @@ export function revisionSemanal(hoy = iso()) {
       (pAntes != null ? (pEsta >= pAntes ? ' (▲ ' + Math.round(pEsta - pAntes) + ' vs. la anterior)' : ' (▼ ' + Math.round(pAntes - pEsta) + ' vs. la anterior)') : '') + '.' });
   }
   // Mañana completa
-  const completas = esta.filter((f) => e().dias[f] && hechosManana(f) === e().habitos.length).length;
+  const completas = esta.filter((f) => e().dias[f] && e().habitos.length && hechosManana(f) === e().habitos.length).length;
   frases.push({ icono: '☀️', ir: '#manana', texto: 'Mañana completa ' + completas + ' de 7 días.' + (completas < 5 ? ' Prepara la noche anterior lo que más se te salta.' : '') });
   // La meta más floja
   const conDatos = esta.filter((f) => e().dias[f]);

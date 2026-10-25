@@ -1,6 +1,6 @@
 import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
-import { e, cargar, alCambiar, hechosManana, avanceMetas, segundosCrono } from './estado.js';
+import { e, cargar, alCambiar, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct, barra, esc, claveDeDatos } from './ui.js';
 import { revisar, restante, sumar, detener } from './temporizador.js';
@@ -62,7 +62,7 @@ function lateral() {
   return '<div class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b></div>' +
     '<nav class="nav-lateral" aria-label="Secciones">' + enlaces() + '</nav>' +
     '<div class="resumen-lateral">' +
-    '<div><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(hechosManana() / total) + '</div>' +
+    '<div><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(fraccionManana()) + '</div>' +
     '<div><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</div>' +
     '<div><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</div>' +
     '</div>' +

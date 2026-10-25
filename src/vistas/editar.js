@@ -1,7 +1,7 @@
 // Editar hábitos, rutina y sesiones: agregar, cambiar, reordenar y borrar.
 // Cada campo lleva data-ruta ("rutina.0.ejercicios.3.nombre") y se guarda al salir de él.
 import { e, guardar, repintar } from '../estado.js';
-import { filasDeEsquema, DESCANSOS } from '../datos_iniciales.js';
+import { filasDeEsquema, DESCANSOS, HABITOS } from '../datos_iniciales.js';
 import { reloj } from '../fechas.js';
 import { esc, registrar, toast } from '../ui.js';
 import { figuraPaso, OPCIONES_FIGURA, videoValido } from '../figuras.js';
@@ -65,14 +65,19 @@ const controles = (ruta, i, total, nombre) =>
 // ---------- Hábitos ----------
 function editorHabitos() {
   const hs = e().habitos, sesiones = Object.fromEntries(e().sesiones.map((s) => [s.id, s.nombre]));
-  return '<p class="nota-corta">El orden es el de la checklist de la mañana.</p>' + hs.map((h, i) => {
+  const faltan = HABITOS.filter((x) => !hs.some((h) => h.id === x.id)).length;
+  return '<p class="nota-corta">El orden es el de la checklist de la mañana (Hoy, Mañana, Progreso, la hoja y el CSV).</p>' +
+    '<div class="botones-rapidos">' + (hs.length ? '<button type="button" class="boton secundario" data-accion="ed-habitos-cero">🧹 Empezar de cero</button>' : '') +
+    (faltan ? '<button type="button" class="boton secundario" data-accion="ed-habitos-ejemplo">↩ Traer los de ejemplo (' + faltan + ')</button>' : '') + '</div>' +
+    (hs.length ? '' : '<p class="nota-corta">Lista vacía: agrega tus hábitos con "＋ Hábito".</p>') + hs.map((h, i) => {
     const r = 'habitos.' + i;
     return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (i + 1) + '. ' + esc(h.nombre) + '</b>' + controles('habitos', i, hs.length, h.nombre) + '</div>' +
       '<div class="dos">' + campo('Nombre', r + '.nombre', h.nombre) + campo('Detalle', r + '.detalle', h.detalle) + '</div>' +
       '<div class="dos">' + lista('Tipo', r + '.tipo', h.tipo, TIPOS_HABITO) +
       (h.tipo === 'cuenta' ? numero('Duración (segundos)', r + '.segundos', h.segundos) : '') +
       (h.tipo === 'cronometro' ? numero('Meta (minutos)', r + '.segundos', Math.round((h.segundos || 0) / 60), ' data-factor="60"') : '') +
-      (h.tipo === 'sesion' ? lista('Sesión', r + '.sesion', h.sesion, sesiones) : '') + '</div></section>';
+      (h.tipo === 'sesion' ? lista('Sesión', r + '.sesion', h.sesion, sesiones) : '') + '</div>' +
+      (h.tipo === 'espera' && !hs.some((x) => x.tipo === 'pastilla') ? '<p class="aviso">⚠ La espera arranca al marcar un hábito de tipo "Pastilla": agrega uno.</p>' : '') + '</section>';
   }).join('') + '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="habitos">＋ Hábito</button>';
 }
 
@@ -172,6 +177,18 @@ function nuevo(listaRuta) {
 
 registrar({
   'ed-pestana'({ p }) { pestana = p; repintar(); },
+  // "#editar/habitos" (desde la tarjeta de la mañana)
+  'abrir-editar'({ p }) { pestana = p; },
+  'ed-habitos-cero'() {
+    if (!confirm('¿Borrar todos los hábitos de la mañana y empezar de cero?\nLo marcado en días pasados queda guardado.')) return;
+    e().habitos = [];
+    guardar();
+  },
+  'ed-habitos-ejemplo'() {
+    const hs = e().habitos;
+    for (const x of HABITOS) if (!hs.some((h) => h.id === x.id)) hs.push(JSON.parse(JSON.stringify(x)));
+    guardar();
+  },
   'ed-dia'({ id }) { diaEd = id; repintar(); },
   'futbol-dia'({ n }) {
     const dias = (e().config.futbol ??= []), i = dias.indexOf(+n);

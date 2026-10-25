@@ -53,7 +53,7 @@ function constancia() {
 
 function puntajes() {
   const fs = rango(dias), ps = fs.map((f) => ({ f, p: puntajeDia(f) }));
-  const datos = ps.map(({ f, p }) => ({ etiqueta: corta(f), v: p ? p.total : null, tip: LETRA[diaSemana(f)] + ' ' + fechaCorta(f) + ': ' + (p ? p.total + '/100 · mañana ' + Math.round(p.partes.manana * 100) + ' %, metas ' + Math.round(p.partes.metas * 100) + ' %' +
+  const datos = ps.map(({ f, p }) => ({ etiqueta: corta(f), v: p ? p.total : null, tip: LETRA[diaSemana(f)] + ' ' + fechaCorta(f) + ': ' + (p ? p.total + '/100 · ' + (p.partes.manana != null ? 'mañana ' + Math.round(p.partes.manana * 100) + ' %, ' : '') + 'metas ' + Math.round(p.partes.metas * 100) + ' %' +
     (p.partes.gym != null ? ', gym ' + Math.round(p.partes.gym * 100) + ' %' : '') + (p.partes.dieta != null ? ', dieta ' + Math.round(p.partes.dieta * 100) + ' %' : '') : 'sin datos') }));
   return tarjeta('⭐ Puntaje por día', barras(datos, { max: 100, ref: { v: 80, texto: 'buen día: 80' } }) +
     tablaDatos(['Día', 'Puntaje'], ps.filter((x) => x.p).map(({ f, p }) => [fechaCorta(f), p.total])), '', '#hoy');

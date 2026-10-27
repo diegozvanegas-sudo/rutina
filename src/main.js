@@ -10,14 +10,14 @@ import { vistaManana, textoEspera, revisarCronos } from './vistas/manana.js';
 import { vistaMetas } from './vistas/metas.js';
 import { vistaGym, semanaActual } from './vistas/gym.js';
 import { vistaSesiones } from './vistas/sesiones.js';
-import { vistaAjustes } from './vistas/ajustes.js';
+import { vistaAjustes, pantallaEntrar } from './vistas/ajustes.js';
 import { vistaEditar } from './vistas/editar.js';
 import { vistaDieta } from './vistas/dieta.js';
 import { vistaFinanzas } from './vistas/finanzas.js';
 import { vistaRecordatorios, alertas } from './vistas/recordatorios.js';
 import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
-import { iniciarNube, nube, textoNube } from './nube.js';
+import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 
 registerSW({ immediate: true });
@@ -106,6 +106,24 @@ function restaurarCampos({ clave, valores, cursor }) {
 
 let ultimaVista = null;
 function pintar() {
+  // Sin sesión iniciada solo se ve la pantalla para entrar (lo escrito en correo/contraseña se conserva)
+  const sinSesion = configurada && !nube.usuario;
+  document.body.classList.toggle('sin-sesion', sinSesion);
+  if (sinSesion) {
+    const correo = $('nube-correo'), clave = $('nube-clave');
+    const antes = correo && { correo: correo.value, clave: clave.value, foco: document.activeElement && document.activeElement.id };
+    menu(false);
+    $('vista').innerHTML = pantallaEntrar();
+    $('lateral').innerHTML = '';
+    flotante();
+    document.title = 'Entrar · Rutina';
+    if (antes && $('nube-correo')) {
+      $('nube-correo').value = antes.correo; $('nube-clave').value = antes.clave;
+      if (antes.foco && $(antes.foco)) $(antes.foco).focus();
+    }
+    ultimaVista = null;
+    return;
+  }
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null;
   $('vista').innerHTML = VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
@@ -149,6 +167,7 @@ document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Enter' || ev.target.tagName !== 'INPUT') return;
   const serie = ev.target.dataset.serie;
   if (serie) { ev.preventDefault(); const b = ev.target.parentNode.querySelector('[data-accion="serie"]'); if (b) b.click(); return; }
+  if (ev.target.id === 'nube-clave') { ev.preventDefault(); ejecutar('nube-entrar', ev.target, ev); return; }
   ev.target.blur();
 });
 

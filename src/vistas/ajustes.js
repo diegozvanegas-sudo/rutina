@@ -27,14 +27,18 @@ export function vistaAjustes() {
     '<section class="tarjeta peligro"><h2>Empezar de cero</h2><button type="button" class="boton peligro" data-accion="reiniciar">Borrar todos los datos</button></section>';
 }
 
+// Sin sesión no se muestra la app: solo esta pantalla (main.js)
+export function pantallaEntrar() {
+  if (!nube.lista) return '<section class="entrar"><p class="nota-corta">Cargando…</p></section>';
+  return '<section class="tarjeta entrar"><h1>🏋️ Rutina</h1><p class="nota-corta">Entra con tu usuario de microrrutas para usar la app. Tus datos se guardan en la nube y pasan a otro celular o al computador.</p>' +
+    '<label class="campo">Correo<input type="email" id="nube-correo" autocomplete="username" inputmode="email"></label>' +
+    '<label class="campo">Contraseña<input type="password" id="nube-clave" autocomplete="current-password"></label>' +
+    (nube.estado === 'sin-sesion' && !navigator.onLine ? '<p class="aviso">Sin conexión: conéctate para iniciar sesión.</p>' : '') +
+    '<button type="button" class="boton primario grande ancho" data-accion="nube-entrar">Entrar</button></section>';
+}
+
 function seccionNube() {
-  if (!configurada) return '';
-  if (!nube.usuario) {
-    return '<section class="tarjeta"><h2>☁️ Guardar en la nube</h2><p class="nota-corta">Entra con tu usuario de microrrutas: tus datos se guardan en Supabase y pasan a otro celular o al computador.</p>' +
-      '<div class="dos"><label class="campo">Correo<input type="email" id="nube-correo" autocomplete="username" inputmode="email"></label>' +
-      '<label class="campo">Contraseña<input type="password" id="nube-clave" autocomplete="current-password"></label></div>' +
-      '<button type="button" class="boton primario grande ancho" data-accion="nube-entrar">Entrar</button></section>';
-  }
+  if (!configurada || !nube.usuario) return '';
   return '<section class="tarjeta"><h2>☁️ Nube</h2><p>' + esc(nube.usuario.correo) + '</p>' +
     '<p class="estado-nube n-' + nube.estado + '">' + textoNube() + (nube.ultima ? ' · ' + hora(nube.ultima) : '') + '</p>' +
     (nube.error ? '<p class="aviso">' + esc(nube.error) + '</p>' : '') +
@@ -78,7 +82,7 @@ registrar({
     try { await entrar(correo, clave); toast('Sesión iniciada'); } catch (err) { toast(err.message); }
   },
   'nube-sync'() { sincronizar(); },
-  async 'nube-salir'() { if (confirm('¿Cerrar la sesión? Los datos siguen en este celular.')) await salir(); },
+  async 'nube-salir'() { if (confirm('¿Cerrar la sesión? Los datos siguen en este celular, pero para volver a usar la app tendrás que entrar de nuevo.')) await salir(); },
   'conf-hoja'({ k }, el) { (e().config.hoja ??= {})[k] = el.value.trim(); guardar(); },
   'conf-hoja-auto'(ds, el) { (e().config.hoja ??= {}).auto = el.checked; guardar(); },
   'hoja-enviar'() { enviar([semanaActual()]); },

@@ -8,7 +8,8 @@ export const configurada = !!(url && llave);
 const supabase = configurada ? createClient(url, llave, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'rutina-sesion' } }) : null;
 
 // estado: sin-sesion · sincronizando · al-dia · pendiente · sin-conexion · error
-export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '' };
+// lista: ya se sabe si hay sesión guardada (al abrir, Supabase la lee un instante después)
+export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '', lista: !configurada };
 function poner(estado, error = '') { nube.estado = estado; nube.error = error; repintar(); }
 
 let corriendo = null, otraVez = false, espera = null;
@@ -88,7 +89,9 @@ export function iniciarNube() {
   supabase.auth.onAuthStateChange((evento, sesion) => {
     const antes = nube.usuario && nube.usuario.id;
     nube.usuario = sesion ? { id: sesion.user.id, correo: sesion.user.email } : null;
+    nube.lista = true;
     if (!nube.usuario) { poner('sin-sesion'); return; }
+    repintar();
     if (antes !== nube.usuario.id) setTimeout(sincronizar, 0);
   });
   alGuardarse(programar);

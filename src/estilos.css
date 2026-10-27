@@ -44,6 +44,10 @@ small { color: var(--muted); }
 .nav-lateral a:hover { background: var(--surface-2); }
 .nav-lateral a[aria-current] { background: var(--brand-soft); color: var(--brand); }
 .nav-lateral .ic { font-size: 22px; width: 28px; text-align: center; }
+/* Sin sesión: solo la tarjeta para entrar, sin menú */
+.sin-sesion #lateral, .sin-sesion .top-movil .menu { display: none; }
+.entrar { max-width: 420px; margin: 12vh auto 0; display: grid; gap: 12px; }
+@media (min-width: 900px) { .sin-sesion .app { display: block; } }
 .resumen-lateral { display: grid; gap: 14px; padding: 14px; background: var(--bg); border-radius: var(--radio); font-size: 14px; }
 
 @media (min-width: 900px) {

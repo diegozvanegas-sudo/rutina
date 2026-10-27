@@ -5,6 +5,7 @@ import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 import { resumenSemana } from './gym.js';
 import { pesos as pesosCorporales, tendencia } from './dieta.js';
 import { resumenMes, mesDe, pesos } from './finanzas.js';
+import { promedioSueno, partidos } from './registro.js';
 
 // Cada parte vale lo mismo; el gym solo cuenta los días que toca entrenar
 export function puntajeDia(fecha = iso()) {
@@ -67,6 +68,18 @@ export function revisionSemanal(hoy = iso()) {
       if (ritmo >= 0 && ahora > meta) txt += ' Revisa las porciones o recalcula los planes con tu peso.';
       frases.push({ icono: '⚖️', ir: '#dieta/peso', texto: txt });
     } else if (!lista.length) frases.push({ icono: '⚖️', ir: '#dieta/peso', texto: 'Anota tu peso en Dieta para ver cómo vas hacia la meta.' });
+  }
+  // Sueño
+  const sueno = promedioSueno(e().dias, esta);
+  if (sueno) frases.push({ icono: '🌙', ir: '#hoy', texto: 'Dormiste ' + String(sueno.horas).replace('.', ',') + ' h en promedio (' + sueno.noches + (sueno.noches === 1 ? ' noche anotada' : ' noches anotadas') + ').' +
+    (sueno.horas < 7 ? ' Por debajo de 7 h la fuerza y la recuperación bajan: adelanta la hora de acostarte 30 minutos.' : '') });
+  // Fútbol
+  const jugados = partidos(e()).filter((p) => esta.includes(p.fecha));
+  if (jugados.length) {
+    const molestias = [...new Set(jugados.flatMap((p) => p.molestias || []))], energia = jugados.filter((p) => p.energia).map((p) => p.energia);
+    frases.push({ icono: '⚽', ir: '#progreso', texto: jugados.length + (jugados.length === 1 ? ' partido' : ' partidos') + ', ' + jugados.reduce((t, p) => t + (Number(p.minutos) || 0), 0) + ' minutos' +
+      (energia.length ? ', energía ' + String(Math.round(promedio(energia) * 10) / 10).replace('.', ',') + '/5' : '') + '.' +
+      (molestias.length ? ' Molestias: ' + molestias.join(', ') + '. Si siguen, baja la pierna pesada y consulta a un fisioterapeuta.' : '') });
   }
   // Gasto de la semana
   if (e().finanzas) {

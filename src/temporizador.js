@@ -2,6 +2,7 @@
 import { e, guardar, guardarAqui, dia } from './estado.js';
 import { pitido } from './ui.js';
 import { iso } from './fechas.js';
+import { avisar, avisosActivos } from './avisos.js';
 
 export function iniciar(tipo, segundos, nombre, datos = {}) {
   e().activo = { tipo, nombre, total: segundos, fin: Date.now() + segundos * 1000, ...datos };
@@ -30,5 +31,7 @@ export function revisar() {
     h[a.habito] ??= { ts: Date.now() };
   }
   pitido(3);
+  // Con la pantalla apagada o en otra app, el pitido no se oye: aviso del celular
+  if (typeof document !== 'undefined' && document.hidden && avisosActivos()) avisar(a.tipo === 'descanso' ? '⏱ Descanso terminado' : '⏱ Tiempo', a.nombre || 'Sigue con la siguiente serie', 'temporizador');
   guardar();
 }

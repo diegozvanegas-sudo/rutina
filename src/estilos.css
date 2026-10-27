@@ -481,3 +481,12 @@ a.kpi small span { color: var(--brand); }
 @media (max-width: 420px) { .ed-medios { grid-template-columns: 1fr; } .ed-medios-vista .figura { margin: 0 auto; } }
 .barra.tenue span { opacity: .45; }
 .resultado-eval { margin-top: 12px; display: grid; gap: 4px; }
+
+/* ---------- Registro rápido: sueño, partido, foco y cierre de la semana ---------- */
+.escala { display: grid; grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); gap: 6px; margin-bottom: 10px; }
+.escala .chip { min-height: 44px; padding: 0; text-align: center; }
+.partido.hecho { border-color: var(--brand); }
+.foco-hoy { display: grid; gap: 4px; text-decoration: none; color: var(--ink); border-color: var(--brand); background: var(--brand-soft); }
+.foco-hoy small { color: var(--brand); font-weight: 700; }
+.foco-hoy b { font-size: 18px; }
+.cierre textarea, .cierre select { width: 100%; }

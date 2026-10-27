@@ -10,6 +10,7 @@ import { tarjetaComidasHoy } from './dieta.js';
 import { alertas } from './recordatorios.js';
 import { puntajeDia } from '../progreso.js';
 import { tarjetasLibrosHoy } from './libros.js';
+import { tarjetaSuenoPeso, tarjetaPartido, fechaPartidoPendiente, tarjetaFoco } from './registro.js';
 
 function saludo() {
   const h = new Date().getHours();
@@ -26,7 +27,8 @@ function partido() {
 }
 
 function entrenamiento() {
-  const d = diaDeHoy(), futbol = hayFutbol() ? partido() : '';
+  // El partido de hoy (o el de ayer si no se anotó) se registra junto al entreno
+  const pendiente = fechaPartidoPendiente(), d = diaDeHoy(), futbol = (hayFutbol() ? partido() : '') + (pendiente ? tarjetaPartido(pendiente) : '');
   if (!d && futbol) return futbol;
   if (!d) {
     return '<section class="tarjeta"><h2>🏋️ Hoy</h2><p class="grande-texto">Día de descanso 😌</p>' +
@@ -50,13 +52,14 @@ export function vistaHoy() {
     '<a class="puntaje-hoy" href="#progreso" title="Puntaje del día: mañana, metas, gym y dieta"><b>' + (p ? p.total : 0) + '</b><small>/100 hoy</small></a></div>' +
     (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
       avisos.slice(0, 3).map((a) => esc(a.icono + ' ' + a.nombre) + (a.estado === 'vencido' ? ' (vencido)' : '')).join(' · ') + '</span></a>' : '') +
-    tarjetasLibrosHoy() +
+    tarjetaFoco() + tarjetasLibrosHoy() +
     '<div class="tablero">' +
     '<section class="tarjeta col-manana"><h2>☀️ Primera hora</h2>' + cabeceraManana() + listaManana() + '</section>' +
     '<section class="tarjeta col-metas"><div class="fila-resumen"><h2>🎯 Metas</h2><span class="grande-num">' + pct(metas.total) + '</span></div>' + barra(metas.total) +
     ['agua', 'pasos', 'calorias', 'lectura'].map((k) => tarjetaMeta(k, iso(), true)).join('') +
     '<a class="boton secundario ancho" href="#metas">Registrar pasos, calorías y lectura →</a></section>' +
     '<div class="col-gym">' + entrenamiento() + '</div>' +
+    tarjetaSuenoPeso() +
     '<section class="tarjeta col-dieta"><div class="fila-resumen"><h2>🥗 Comidas</h2><a href="#dieta" class="nota-corta">Ver plan →</a></div>' + tarjetaComidasHoy(true) + '</section>' +
     '<section class="tarjeta col-semana"><h2>📅 Semana</h2>' + tarjetaSemana() + '</section>' +
     '</div>';

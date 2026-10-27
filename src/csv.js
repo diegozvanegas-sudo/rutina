@@ -3,6 +3,7 @@
 import { estadoFila, repsDe, textoCardio } from './gym.js';
 import { lunesDe } from './fechas.js';
 import { celdaHabito } from './estado.js';
+import { horasSueno, hayPartido } from './registro.js';
 
 const celda = (v) => {
   const s = String(v ?? '');
@@ -41,11 +42,12 @@ export function csvGym(estado) {
 
 export function csvDias(estado, avance) {
   const habitos = estado.habitos;
-  const filas = [['Fecha', ...habitos.map((h) => h.nombre), 'Gratitud', 'Agua (ml)', 'Pasos', 'Calorías', 'Lectura (min)', 'Metas cumplidas', 'Peso (kg)']];
+  const filas = [['Fecha', ...habitos.map((h) => h.nombre), 'Gratitud', 'Agua (ml)', 'Pasos', 'Calorías', 'Lectura (min)', 'Metas cumplidas', 'Peso (kg)', 'Sueño (h)', 'Calidad del sueño', 'Partido (min)', 'Esfuerzo', 'Energía', 'Molestias']];
   for (const fecha of Object.keys(estado.dias).sort()) {
     const d = estado.dias[fecha], a = avance(fecha);
     filas.push([fecha, ...habitos.map((h) => celdaHabito(d, h)), d.gratitud || '',
-      a.valores.agua, a.valores.pasos, a.valores.calorias, a.valores.lectura, Math.round(a.total * 100) + ' %', d.peso || '']);
+      a.valores.agua, a.valores.pasos, a.valores.calorias, a.valores.lectura, Math.round(a.total * 100) + ' %', d.peso || '',
+      horasSueno(d.sueno) ?? '', (d.sueno && d.sueno.calidad) || '', ...(hayPartido(d.partido) ? [d.partido.minutos || '', d.partido.rpe || '', d.partido.energia || '', (d.partido.molestias || []).join(', ')] : ['', '', '', ''])]);
   }
   return tabla(filas);
 }

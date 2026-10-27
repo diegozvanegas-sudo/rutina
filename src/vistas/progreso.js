@@ -7,6 +7,8 @@ import { resumenMes, mesDe, sumarMeses, pesos } from '../finanzas.js';
 import { puntajeDia, rango, revisionSemanal } from '../progreso.js';
 import { barras, barrasAgrupadas, linea, calendario, barrasH, tablaDatos } from '../graficos.js';
 import { esc, registrar } from '../ui.js';
+import { horasSueno, partidos, energiaSegunPierna } from '../registro.js';
+import { cierreSemana } from './registro.js';
 
 let dias = 30;
 const LETRA = ['', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
@@ -126,15 +128,41 @@ function graficoPlata() {
     (filas.length ? tarjeta('🧾 En qué se va la plata este mes', barrasH(filas, { formato: pesos }), '', '#finanzas/presupuesto') : '');
 }
 
+function graficoSueno() {
+  const fs = rango(dias), datos = fs.map((f) => {
+    const s = e().dias[f] && e().dias[f].sueno, h = horasSueno(s);
+    return { etiqueta: corta(f), v: h, tip: fechaCorta(f) + ': ' + (h != null ? String(h).replace('.', ',') + ' h' + (s.calidad ? ' · calidad ' + s.calidad + '/5' : '') : 'sin registro') };
+  });
+  if (!datos.some((d) => d.v != null)) return tarjeta('🌙 Sueño', '<p class="nota-corta">' + ir('#hoy', 'Anota a qué hora te acostaste y te levantaste en 🏠 Hoy') + ' para ver tus noches.</p>', '', '#hoy');
+  return tarjeta('🌙 Horas de sueño', barras(datos, { formato: (n) => String(Math.round(n * 10) / 10).replace('.', ','), ref: { v: 7, texto: 'mínimo 7 h' } }) +
+    tablaDatos(['Noche', 'Horas', 'Calidad'], fs.filter((f) => e().dias[f] && horasSueno(e().dias[f].sueno) != null).reverse()
+      .map((f) => [fechaCorta(f), String(horasSueno(e().dias[f].sueno)).replace('.', ','), e().dias[f].sueno.calidad ? e().dias[f].sueno.calidad + '/5' : '—'])),
+  'Para ganar músculo y rendir en el fútbol, 7 a 9 horas.', '#hoy');
+}
+
+function graficoFutbol() {
+  const lista = partidos(e()).slice(-12);
+  if (!lista.length) return tarjeta('⚽ Partidos', '<p class="nota-corta">Después de cada partido, anota en 🏠 Hoy los minutos, el esfuerzo, la energía y las molestias.</p>', '', '#hoy');
+  const datos = lista.map((p) => ({ etiqueta: corta(p.fecha), v: p.carga || null, tip: fechaCorta(p.fecha) + ': ' + (p.minutos || '?') + ' min × esfuerzo ' + (p.rpe || '?') +
+    (p.energia ? ' · energía ' + p.energia + '/5' : '') + (p.pierna ? ' · con pierna el día antes' : '') }));
+  const comp = energiaSegunPierna(lista);
+  return tarjeta('⚽ Carga de los partidos', barras(datos) +
+    (comp ? '<p class="' + (comp.con < comp.sin - 0.4 ? 'aviso' : 'nota-corta') + '">Energía con pierna el día antes: <b>' + String(comp.con).replace('.', ',') + '/5</b> · sin pierna: <b>' + String(comp.sin).replace('.', ',') + '/5</b>' +
+      (comp.con < comp.sin - 0.4 ? '. La pierna te está quitando piernas para jugar: muévela más lejos del partido o baja una serie.' : '.') + '</p>' : '') +
+    tablaDatos(['Fecha', 'Min', 'Esfuerzo', 'Energía', 'Pierna antes', 'Molestias'], lista.slice().reverse().map((p) =>
+      [fechaCorta(p.fecha), p.minutos || '—', p.rpe || '—', p.energia ? p.energia + '/5' : '—', p.pierna ? 'Sí' : 'No', (p.molestias || []).join(', ') || '—'])),
+  'Carga = minutos × esfuerzo (1-10). Sirve para no juntar semanas muy pesadas.', '#hoy');
+}
+
 function revision() {
   return '<section class="tarjeta revision"><h2>📝 Revisión de la semana</h2><ul>' + revisionSemanal().map((f) =>
-    '<li>' + (f.ir ? '<a href="' + f.ir + '">' : '') + '<span>' + f.icono + '</span><span class="txt">' + esc(f.texto) + '</span>' + (f.ir ? '<span class="flecha" aria-hidden="true">›</span></a>' : '') + '</li>').join('') + '</ul></section>';
+    '<li>' + (f.ir ? '<a href="' + f.ir + '">' : '') + '<span>' + f.icono + '</span><span class="txt">' + esc(f.texto) + '</span>' + (f.ir ? '<span class="flecha" aria-hidden="true">›</span></a>' : '') + '</li>').join('') + '</ul></section>' + cierreSemana();
 }
 
 export function vistaProgreso() {
   return '<div class="cab-vista"><h1>Progreso</h1><div class="chips filtro" role="group" aria-label="Rango">' + [7, 30, 90].map((n) =>
     '<button type="button" class="chip' + (n === dias ? ' activo' : '') + '" data-accion="prog-dias" data-n="' + n + '">' + n + ' días</button>').join('') + '</div></div>' +
-    indicadores() + revision() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoGym() + graficoCardio() + graficoMetas() + graficoPlata() + '</div>';
+    indicadores() + revision() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoSueno() + graficoFutbol() + graficoGym() + graficoCardio() + graficoMetas() + graficoPlata() + '</div>';
 }
 
 registrar({ 'prog-dias'({ n }) { dias = Number(n); repintar(); } });

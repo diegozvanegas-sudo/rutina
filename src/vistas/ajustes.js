@@ -4,6 +4,8 @@ import { csvGym, csvDias } from '../csv.js';
 import { iso, hora } from '../fechas.js';
 import { nube, configurada, entrar, salir, sincronizar, textoNube } from '../nube.js';
 import { hoja, hojaLista, enviarSemana } from '../hoja.js';
+import { AVISOS, HORAS_AVISOS, avisosDelDia, calendarioIcs } from '../registro.js';
+import { soportados, avisosActivos, activarAvisos, desactivarAvisos } from '../avisos.js';
 import { bloqueo, huellaActiva, activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
 import { esc, registrar, toast } from '../ui.js';
 
@@ -12,7 +14,7 @@ const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)' 
 
 export function vistaAjustes() {
   const c = e().config;
-  return '<h1>Ajustes</h1>' + seccionNube() + seccionHoja() +
+  return '<h1>Ajustes</h1>' + seccionNube() + seccionAvisos() + seccionHoja() +
     '<section class="tarjeta"><h2>Metas diarias</h2><div class="dos">' + Object.entries(ETIQUETAS).map(([k, t]) =>
       '<label class="campo">' + t + '<input type="number" inputmode="numeric" min="0" data-cambio="conf-meta" data-k="' + k + '" value="' + esc(c.metas[k]) + '"></label>').join('') + '</div></section>' +
     '<section class="tarjeta"><h2>Pastilla → desayuno</h2><p class="nota-corta">Ajústalo a lo que indique tu médico.</p><div class="dos">' +
@@ -66,6 +68,22 @@ function seccionNube() {
     '<button type="button" class="boton secundario" data-accion="nube-salir">Salir</button></div>' + seccionHuella() + '</section>';
 }
 
+const ETIQUETAS_HORA = { pastilla: '💊 Pastilla', partido: '⚽ Hora del partido', dormir: '🌙 Prepararte para dormir', revision: '📝 Cierre del domingo' };
+function seccionAvisos() {
+  const c = e().config.avisos || {}, horas = { ...HORAS_AVISOS, ...(c.horas || {}) }, apagados = c.apagados || {};
+  const hoy = avisosDelDia(e().config);
+  return '<section class="tarjeta"><h2>🔔 Avisos del día</h2>' +
+    '<p class="nota-corta">Para que te avise siempre, aunque la app esté cerrada, agrega los avisos al calendario del celular. Los avisos de la app solo llegan con la app abierta o recién cerrada (también el fin del descanso del gym).</p>' +
+    '<div class="dos">' + Object.entries(ETIQUETAS_HORA).map(([k, t]) =>
+      '<label class="campo">' + t + '<input type="time" data-cambio="aviso-hora" data-k="' + k + '" value="' + esc(horas[k]) + '"></label>').join('') + '</div>' +
+    Object.entries(AVISOS).map(([id, a]) => '<label class="interruptor"><input type="checkbox" data-cambio="aviso-activo" data-id="' + id + '"' + (apagados[id] ? '' : ' checked') + '> ' + a.icono + ' ' + esc(a.nombre) + '</label>').join('') +
+    '<p class="nota-corta">Hoy: ' + (hoy.length ? hoy.map((a) => a.hora + ' ' + a.icono).join(' · ') : 'ningún aviso') + '</p>' +
+    '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="aviso-calendario">📅 Agregar al calendario</button>' +
+    (soportados() ? (avisosActivos() ? '<button type="button" class="boton secundario" data-accion="aviso-desactivar">🔕 Quitar avisos de la app</button>'
+      : '<button type="button" class="boton secundario" data-accion="aviso-activar">🔔 Activar avisos de la app</button>') : '') + '</div>' +
+    '<p class="nota-corta">Si cambias una hora, vuelve a agregar el calendario (el nuevo reemplaza al anterior en la mayoría de calendarios; si queda repetido, borra el viejo).</p></section>';
+}
+
 function seccionHoja() {
   const h = e().config.hoja || {};
   return '<section class="tarjeta"><h2>📗 Google Sheets</h2><p class="nota-corta">Escribe el gym en la pestaña "Rutina 2.0" (columna de cada semana) y los días en "Diario App". ' +
@@ -110,6 +128,11 @@ registrar({
   },
   'huella-quitar'() { if (confirm('¿Quitar el bloqueo con huella en este equipo?')) { quitarHuella(); repintar(); } },
   'nube-sync'() { sincronizar(); },
+  'aviso-hora'({ k }, el) { if (el.value) { ((e().config.avisos ??= {}).horas ??= {})[k] = el.value; guardar(); } },
+  'aviso-activo'({ id }, el) { const a = ((e().config.avisos ??= {}).apagados ??= {}); if (el.checked) delete a[id]; else a[id] = true; guardar(); },
+  'aviso-calendario'() { descargar(calendarioIcs(e().config), 'text/calendar;charset=utf-8', 'rutina-avisos.ics'); toast('📅 Abre el archivo para agregarlo a tu calendario'); },
+  async 'aviso-activar'() { try { await activarAvisos(); toast('🔔 Avisos activados en este equipo'); } catch (err) { toast(err.message); } repintar(); },
+  'aviso-desactivar'() { desactivarAvisos(); repintar(); },
   async 'nube-salir'() { if (confirm('¿Cerrar la sesión? Los datos siguen en este celular, pero para volver a usar la app tendrás que entrar de nuevo.')) await salir(); },
   'conf-hoja'({ k }, el) { (e().config.hoja ??= {})[k] = el.value.trim(); guardar(); },
   'conf-hoja-auto'(ds, el) { (e().config.hoja ??= {}).auto = el.checked; guardar(); },

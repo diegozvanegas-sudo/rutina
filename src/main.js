@@ -20,11 +20,13 @@ import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
+import { iniciarAvisos } from './avisos.js';
 
 registerSW({ immediate: true });
 cargar();
 iniciarNube();
 iniciarHoja();
+iniciarAvisos();
 
 const VISTAS = {
   hoy: ['🏠', 'Hoy', vistaHoy],

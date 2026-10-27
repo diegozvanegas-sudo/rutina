@@ -152,6 +152,18 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .ultimo { font-size: 14px; color: var(--muted); }
 .ultimo b { color: var(--ink); }
 .sugerido-sube { color: var(--azul) !important; }
+.progresion { font-size: 14px; color: var(--muted); margin-top: 2px; }
+.progresion b { color: var(--ink); }
+.progresion.estancado { color: var(--amarillo); }
+.progresion small { display: block; color: var(--muted); }
+.record { font-size: 14px; font-weight: 700; color: var(--amarillo); margin-top: 2px; }
+.fuerza h3 { margin: 14px 0 6px; font-size: 15px; }
+.fuerza-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.fuerza-lista li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.fuerza-lista li > span { display: grid; min-width: 0; }
+.fuerza-lista b { white-space: nowrap; }
+.fuerza-lista b.sube { color: var(--verde); }
+.fuerza-lista b.baja { color: var(--amarillo); }
 .entradas { display: grid; grid-template-columns: 90px 96px 1fr; gap: 8px; }
 .serie-rapida { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
 .nota textarea { margin-top: 4px; }

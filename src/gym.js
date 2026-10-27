@@ -94,3 +94,84 @@ export function resumenSemana(rutina, registros = {}, objetivos = OBJETIVOS) {
   }
   return { dias, hechas, plan, musculos };
 }
+
+// ---------- Fuerza: 1RM estimado (Epley), historial, récords, última subida y estancamiento ----------
+export const PIERNAS = ['Cuádriceps', 'Isquios', 'Glúteo', 'Aductores', 'Pantorrilla'];
+
+export function unoRM(peso, reps) {
+  if (!(peso > 0) || !(reps > 0)) return null;
+  return reps === 1 ? peso : peso * (1 + reps / 30);
+}
+// Mejor serie de un registro: el peso es el mismo en todas, cuenta la de más reps
+export function mejorSerie(reg) {
+  const peso = numero(reg && reg.peso), reps = repsDe(reg && reg.reps);
+  if (peso == null || !reps.length) return null;
+  const max = Math.max(...reps);
+  return { peso, reps: max, unidad: reg.unidad || 'kg', rm: unoRM(peso, max) };
+}
+const mayorRM = (xs) => xs.filter(Boolean).sort((a, b) => b.rm - a.rm)[0];
+
+// Semana a semana, la mejor serie de la fila i del ejercicio. Junta el mismo ejercicio de todos los días (pierna A y B).
+// La semana 0 es el "último" que venía de la hoja. Solo la unidad más reciente: kg y discos no se comparan.
+export function historial(semanas, rutina, ej, i = 0, hasta = Infinity) {
+  const filas = rutina.flatMap((d) => d.ejercicios.filter((x) => x.nombre === ej.nombre).map((x) => x.filas[i])).filter(Boolean);
+  if (!filas.length || filas[0].unidad === 's') return [];
+  const puntos = [], base = mayorRM(filas.map((f) => f.ultimo && mejorSerie(f.ultimo)));
+  if (base) puntos.push({ semana: 0, ...base });
+  for (const n of Object.keys(semanas || {}).map(Number).filter((n) => n <= hasta).sort((a, b) => a - b)) {
+    const mejor = mayorRM(filas.flatMap((f) => registrosDeFila(semanas[n], f)).map(mejorSerie));
+    if (mejor) puntos.push({ semana: n, ...mejor });
+  }
+  const u = puntos.length && puntos[puntos.length - 1].unidad;
+  return puntos.filter((p) => p.unidad === u);
+}
+
+// Récords: semanas cuyo 1RM estimado supera todo lo anterior (la primera nunca cuenta: no hay con qué comparar)
+export function records(hist) {
+  const out = [];
+  let mejor = null;
+  for (const p of hist) {
+    if (mejor != null && p.rm > mejor + 0.05) out.push({ ...p, antes: mejor });
+    if (mejor == null || p.rm > mejor) mejor = p.rm;
+  }
+  return out;
+}
+
+// Última vez que el peso subió respecto a la sesión anterior
+export function ultimaSubida(hist) {
+  for (let k = hist.length - 1; k > 0; k--) {
+    if (hist[k].peso > hist[k - 1].peso) return { de: hist[k - 1].peso, a: hist[k].peso, semana: hist[k].semana, unidad: hist[k].unidad };
+  }
+  return null;
+}
+
+// Semanas registradas desde el mejor 1RM sin superarlo (3 o más = estancado)
+export function estancamiento(hist) {
+  if (hist.length < 2) return null;
+  let k = 0;
+  hist.forEach((p, j) => { if (p.rm > hist[k].rm + 0.05) k = j; });
+  const semanas = hist.length - 1 - k;
+  return { semanas, mejor: hist[k], estancado: semanas >= 3 };
+}
+
+// Qué hacer cuando no sube. Con 2 partidos por semana, mantener la fuerza de pierna ya es ganar.
+export function consejoEstancado(semanas, { pierna = false, partidosSemana = 0 } = {}) {
+  if (pierna && partidosSemana >= 2) return 'Con ' + String(partidosSemana).replace('.', ',') + ' partidos por semana, mantener la pierna ya es ganar: sube solo los días que llegues fresco y no la hagas el día antes de jugar.';
+  if (semanas >= 5) return 'Haz una semana de descarga: baja 10 % el peso y vuelve a subir desde ahí.';
+  return 'Cambia el rango de reps (ej. 6-8 en vez de 8-12) o quita una serie para recuperar mejor; revisa sueño y proteína.';
+}
+
+// Últimas 4 semanas por ejercicio (fila principal): el registro más reciente contra el de hace unas 4 semanas
+export function progresoMes(semanas, rutina, hasta, ventana = 4) {
+  const vistos = new Set(), out = [];
+  for (const d of rutina) for (const ej of d.ejercicios) {
+    if (vistos.has(ej.nombre)) continue;
+    vistos.add(ej.nombre);
+    const hist = historial(semanas, rutina, ej, 0, hasta), corte = hasta - ventana;
+    const dentro = hist.filter((p) => p.semana > corte && p.semana > 0), antes = hist.filter((p) => p.semana <= corte || p.semana === 0);
+    const fin = dentro[dentro.length - 1], inicio = antes.length ? antes[antes.length - 1] : dentro[0];
+    if (!fin || !inicio || inicio === fin) continue;
+    out.push({ nombre: ej.nombre, musculo: ej.musculo, de: inicio, a: fin, cambio: (fin.rm - inicio.rm) / inicio.rm, est: estancamiento(hist) });
+  }
+  return out.sort((a, b) => b.cambio - a.cambio);
+}

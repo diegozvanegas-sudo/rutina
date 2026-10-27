@@ -2,7 +2,7 @@
 // y saca frases con lo que mejoró, lo que falta y qué hacer. Cada frase lleva "ir": la sección donde se arregla.
 import { e, avanceMetas, hechosManana, fraccionManana, planDieta, comidasDelDia } from './estado.js';
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
-import { resumenSemana } from './gym.js';
+import { resumenSemana, progresoMes } from './gym.js';
 import { pesos as pesosCorporales, tendencia } from './dieta.js';
 import { resumenMes, mesDe, pesos } from './finanzas.js';
 import { promedioSueno, partidos } from './registro.js';
@@ -56,6 +56,13 @@ export function revisionSemanal(hoy = iso()) {
   const bajos = Object.entries(r.musculos).filter(([, m]) => m.estado === 'Bajo').map(([n]) => n);
   frases.push({ icono: '🏋️', ir: '#gym/resumen', texto: 'Semana ' + semanaDe(hoy) + ' del gym: ' + r.hechas + ' de ' + r.plan + ' series (' + Math.round((r.hechas / r.plan) * 100) + ' %).' +
     (bajos.length && diaSemana(hoy) >= 6 ? ' Quedan bajos: ' + bajos.slice(0, 3).join(', ') + '.' : '') });
+  // Fuerza: en qué subiste en 4 semanas y qué lleva 3+ semanas quieto
+  const fuerza = progresoMes(e().semanas, e().rutina, semanaDe(hoy)), suben = fuerza.filter((x) => x.cambio > 0.005), quietos = fuerza.filter((x) => x.est && x.est.estancado);
+  if (fuerza.length) {
+    const pct = (c) => '+' + (Math.round(c * 1000) / 10).toLocaleString('es-CO') + ' %';
+    frases.push({ icono: '💪', ir: '#gym/resumen', texto: (suben.length ? 'En 4 semanas mejoraste en ' + suben.slice(0, 3).map((x) => x.nombre + ' (' + pct(x.cambio) + ')').join(', ') + '.' : 'En 4 semanas ningún ejercicio subió su 1RM estimado.') +
+      (quietos.length ? ' Estancados: ' + quietos.slice(0, 3).map((x) => x.nombre).join(', ') + '.' : '') });
+  }
   // Peso: ritmo y cuánto falta
   if (e().dieta) {
     const lista = pesosCorporales(e().dias), ahora = tendencia(lista);

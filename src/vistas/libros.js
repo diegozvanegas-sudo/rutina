@@ -123,8 +123,12 @@ function resultados(r) {
 // ---------- Conceptos (leyes, principios, reglas…) ----------
 const concepto = (c) => '<div class="concepto-libro"><b>' + esc(c.nombre) + '</b><div>' + esc(c.texto) + '</div>' +
   '<div class="chips envolver">' + c.dias.map((n) => '<button type="button" class="chip mini" data-accion="libro-abrir" data-n="' + n + '">' + esc(L().unidad) + ' ' + n + '</button>').join('') + '</div></div>';
+function botonAmpliar() {
+  const otro = libro(L().conceptos.ampliar);
+  return otro ? '<button type="button" class="boton primario grande ancho" data-accion="libro-elegir" data-id="' + otro.id + '">' + otro.icono + ' Cada una explicada con ejemplos: ' + esc(otro.titulo) + ' →</button>' : '';
+}
 const pestanaConceptos = () => '<p class="nota-corta">' + L().conceptos.lista.length + ' ' + esc(L().conceptos.titulo.toLowerCase()) + ' del libro, con dónde aparece cada una.</p>' +
-  '<section class="tarjeta">' + L().conceptos.lista.map(concepto).join('') + '</section>';
+  botonAmpliar() + '<section class="tarjeta">' + L().conceptos.lista.map(concepto).join('') + '</section>';
 
 // ---------- Rutina ----------
 const pestanaRutina = () => '<p class="nota-corta">Todo el libro convertido en un día. Síguela mientras lo lees (y después).</p>' +

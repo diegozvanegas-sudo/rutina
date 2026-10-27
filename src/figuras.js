@@ -245,6 +245,12 @@ export const POSES = {
   'comparte tu amor': { poses: [SENTADO], quieta: true },
   'uno con todo': { poses: [SENTADO], quieta: true },
   'gracias': { poses: [SENTADO], quieta: true },
+  // Las Leyes del Éxito
+  'la causa de hoy': { poses: [SENTADO], quieta: true },
+  'espera lo mejor': { poses: [SENTADO], quieta: true },
+  'preve el obstaculo': { poses: [SENTADO], quieta: true },
+  'lo mas importante': { poses: [SENTADO], quieta: true },
+  'el primer paso': { poses: [DE_PIE], quieta: true },
 };
 
 export const claveFigura = (nombre) => String(nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();

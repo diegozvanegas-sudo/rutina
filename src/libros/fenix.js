@@ -1230,7 +1230,8 @@ export default {
   descripcion: '27 lecturas, una por día, para reprogramar tu mente y tu vida',
   unidad: 'Día',
   lecturas: LECTURAS,
-  conceptos: { titulo: 'Leyes', icono: '⚖️', lista: LEYES },
+  // "ampliar": libro que explica cada concepto en detalle (botón en la pestaña Leyes)
+  conceptos: { titulo: 'Leyes', icono: '⚖️', lista: LEYES, ampliar: 'leyes' },
   consejos: CONSEJOS,
   grupos: GRUPOS,
   rutina: RUTINA,

@@ -61,7 +61,7 @@ export function resultadoEvaluacion(ev, marcados = {}) {
 
 // ---------- Buscador ----------
 export const normalizar = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9%/ ]+/g, ' ');
-const VACIAS = new Set('que como para por con los las del una uno unos unas mas muy pero sin sobre esto esta este estoy tengo tener hacer hago quiero puedo mis mi me te se lo la el en de y o a al es son no si ya hay su sus tu tus cuando donde porque cual'.split(' '));
+const VACIAS = new Set('que como para por con los las del una uno unos unas mas muy pero sin sobre esto esta este estoy tengo tener hacer hago quiero puedo mis mi me te se lo la el en de y o a al es son no si ya hay su sus tu tus cuando donde porque cual ley leyes regla reglas'.split(' '));
 // Raíz corta para que "preocupado" encuentre "preocupación" y "estresado" encuentre "estrés"
 const raiz = (p) => (p.length > 6 ? p.slice(0, 6) : p.length > 4 ? p.slice(0, p.length - 1) : p);
 export function palabras(texto) {
@@ -82,6 +82,8 @@ export function buscar(libro, texto) {
     const s = cuenta(cab, raices) * 3 + puntos.reduce((t, x) => t + x.s, 0);
     return { n: l.n, titulo: l.titulo, s, puntos: puntos.sort((a, b) => b.s - a.s).slice(0, 3).map((x) => x.p) };
   }).filter((x) => x.s).sort((a, b) => b.s - a.s || a.n - b.n).slice(0, 6);
-  const conceptos = (libro.conceptos ? libro.conceptos.lista : []).filter((c) => cuenta(normalizar(c.nombre + ' ' + c.texto), raices)).slice(0, 6);
+  // El nombre pesa más que la descripción: "parkinson" trae primero la Ley de Parkinson
+  const conceptos = (libro.conceptos ? libro.conceptos.lista : []).map((c) => ({ c, s: cuenta(normalizar(c.nombre), raices) * 3 + cuenta(normalizar(c.texto), raices) }))
+    .filter((x) => x.s).sort((a, b) => b.s - a.s).slice(0, 6).map((x) => x.c);
   return { consejos, lecturas, conceptos };
 }

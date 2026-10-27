@@ -147,3 +147,23 @@ test('Los Cuatro Acuerdos: el buscador lleva a la lectura y al consejo correctos
   assert.equal(buscar(acuerdos, 'no se decir que no').consejos[0].id, 'complacer');
   assert.ok(buscar(acuerdos, 'parasito').conceptos.some((c) => c.nombre === 'El parásito'));
 });
+
+const leyes = libro('leyes');
+
+test('Leyes del Éxito: 21 lecturas y las 41 leyes del seminario explicadas', () => {
+  assert.equal(leyes.lecturas.length, 21);
+  const nombres = leyes.conceptos.lista.map((c) => c.nombre);
+  for (const c of fenix.conceptos.lista) assert.ok(nombres.includes(c.nombre), 'falta ' + c.nombre);
+  assert.equal(fenix.conceptos.ampliar, 'leyes');
+});
+
+test('Leyes del Éxito: el buscador lleva a la ley, la lectura y el consejo correctos', () => {
+  const r = buscar(leyes, 'ley de parkinson');
+  assert.equal(r.lecturas[0].n, 11);
+  assert.equal(r.conceptos[0].nombre, 'Ley de Parkinson');
+  assert.equal(buscar(leyes, 'pareto').lecturas[0].n, 10);
+  assert.equal(buscar(leyes, 'estoy procrastinando').consejos[0].id, 'procrastino');
+  assert.equal(buscar(leyes, 'nervios antes del partido').consejos[0].id, 'nervios');
+  assert.equal(buscar(leyes, '21 dias habito').lecturas[0].n, 8);
+  assert.equal(buscar(leyes, 'no me respetan').consejos[0].id, 'respeto');
+});

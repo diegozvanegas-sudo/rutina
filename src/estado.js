@@ -51,6 +51,7 @@ export function cargar() {
   // Carbos y grasa por kg: se toman de los planes que ya tiene el celular, así recalcular con el mismo peso no cambia nada
   if (!estado.dieta.config.carbKg) Object.assign(estado.dieta.config, macrosPorKg(estado.dieta.planes, estado.dieta.alimentos, estado.dieta.config.pesoBase));
   estado.config.objetivos ??= copia(OBJETIVOS);
+  estado.config.metas.pantalla ??= METAS.pantalla;
   if (!estado.futbolV1) { rutinaFutbol(estado); estado.futbolV1 = true; }
   if (!estado.piernasV2) { piernasCbum(estado); estado.piernasV2 = true; }
   if (!estado.finanzas) estado.finanzas = FINANZAS();
@@ -251,8 +252,10 @@ export function avanceMetas(fecha = iso()) {
   // Calorías: lo anotado a mano más las comidas marcadas en Dieta; la meta es la del plan que toca ese día
   const comidas = comidasDelDia(fecha);
   if (e().dieta) meta.calorias = Math.round(totalPlan(planDieta(fecha), e().dieta.alimentos).kcal);
-  const valores = { agua: m.agua || 0, pasos: m.pasos || 0, calorias: (m.calorias || 0) + comidas.kcal, lectura };
-  const partes = Object.fromEntries(Object.keys(meta).map((k) => [k, Math.min(1, meta[k] ? valores[k] / meta[k] : 0)]));
+  const valores = { agua: m.agua || 0, pasos: m.pasos || 0, calorias: (m.calorias || 0) + comidas.kcal, lectura, pantalla: m.pantalla ?? null };
+  // Pantalla es un máximo: cumplida si se anotó y no pasa del máximo; si se pasa, baja en proporción. Sin anotar, 0
+  const parte = (k) => (k === 'pantalla' ? (valores.pantalla == null ? 0 : valores.pantalla <= meta.pantalla ? 1 : meta.pantalla / valores.pantalla) : Math.min(1, meta[k] ? valores[k] / meta[k] : 0));
+  const partes = Object.fromEntries(Object.keys(meta).map((k) => [k, parte(k)]));
   const total = Object.values(partes).reduce((a, b) => a + b, 0) / Object.keys(partes).length;
   return { valores, partes, total, meta };
 }

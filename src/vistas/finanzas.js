@@ -4,6 +4,7 @@ import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta, fechaLarga, sumarDias } from '../fechas.js';
 import { mesDe, sumarMeses, pesos, leerMonto, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, mesesParaPagar } from '../finanzas.js';
 import { esc, barra, registrar, toast } from '../ui.js';
+import { vistaEsperas } from './vida.js';
 
 let pestana = 'registrar', mesVista = null;
 const form = { tipo: 'gasto', categoria: null, metodo: null, monto: '', nota: '', fecha: null };
@@ -167,10 +168,10 @@ function vistaDeudas() {
 }
 
 export function vistaFinanzas() {
-  const tabs = { registrar: '➕ Registrar', mes: '📊 Mes', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas' };
+  const tabs = { registrar: '➕ Registrar', mes: '📊 Mes', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', esperas: '⏳ 72 h' };
   return '<h1>Finanzas</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="fin-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    ({ mes: vistaMes, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas }[pestana] || vistaRegistrar)();
+    ({ mes: vistaMes, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas, esperas: vistaEsperas }[pestana] || vistaRegistrar)();
 }
 
 // Pagos que también se usan desde Recordatorios

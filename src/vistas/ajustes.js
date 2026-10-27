@@ -10,7 +10,7 @@ import { bloqueo, huellaActiva, activarHuella, quitarHuella, desbloquear, abrir 
 import { esc, registrar, toast } from '../ui.js';
 
 // La meta de calorías la pone el plan de Dieta de cada día
-const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)' };
+const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)', pantalla: 'Pantalla máxima (min)' };
 
 export function vistaAjustes() {
   const c = e().config;

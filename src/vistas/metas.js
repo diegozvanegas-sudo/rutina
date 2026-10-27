@@ -3,9 +3,9 @@ import { e, guardar, dia, avanceMetas, alternarCrono, segundosCrono } from '../e
 import { iso, sumarDias, fechaCorta, reloj, diaSemana } from '../fechas.js';
 import { barra, pct, miles, registrar } from '../ui.js';
 
-const NOMBRES = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura' };
-const UNIDAD = { agua: 'ml', pasos: '', calorias: 'kcal', lectura: 'min' };
-const formato = (k, v) => (k === 'agua' ? (v / 1000).toLocaleString('es-CO', { maximumFractionDigits: 2 }) + ' L' : miles(v) + (UNIDAD[k] ? ' ' + UNIDAD[k] : ''));
+const NOMBRES = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura', pantalla: '📵 Pantalla' };
+const UNIDAD = { agua: 'ml', pasos: '', calorias: 'kcal', lectura: 'min', pantalla: 'min' };
+const formato = (k, v) => (k === 'pantalla' && v == null ? '—' : k === 'agua' ? (v / 1000).toLocaleString('es-CO', { maximumFractionDigits: 2 }) + ' L' : miles(v) + (UNIDAD[k] ? ' ' + UNIDAD[k] : ''));
 
 function controles(k, fecha) {
   if (k === 'agua') {
@@ -23,6 +23,10 @@ function controles(k, fecha) {
       '<label class="campo">Sumar comida<input type="number" inputmode="numeric" min="0" data-cambio="comida" placeholder="kcal"></label></div>' +
       '<a class="nota-corta" href="#dieta">Las comidas del plan se marcan en 🥗 Dieta y se suman solas.</a>';
   }
+  if (k === 'pantalla') {
+    return '<label class="campo">Minutos de redes y entretenimiento hoy<input type="number" inputmode="numeric" min="0" data-cambio="meta-pantalla" value="' + (dia(fecha).metas.pantalla ?? '') + '" placeholder="Ej.: 90"></label>' +
+      '<p class="nota-corta">Míralo en Ajustes del celular → Bienestar digital (o Tiempo en pantalla). Anótalo en la noche: aquí menos es mejor.</p>';
+  }
   const c = dia(fecha).crono.lectura, corre = c && c.inicio;
   return '<div class="crono"><span class="reloj" data-crono="' + fecha + '|lectura">' + reloj(segundosCrono(c)) + '</span>' +
     '<button type="button" class="boton grande" data-accion="crono-lectura">' + (corre ? '⏸ Pausa' : '▶ Leer') + '</button>' +
@@ -32,7 +36,7 @@ function controles(k, fecha) {
 export function tarjetaMeta(k, fecha = iso(), compacta = false) {
   const a = avanceMetas(fecha), meta = a.meta[k];
   return '<div class="meta meta-' + k + (a.partes[k] >= 1 ? ' cumplida' : '') + '">' +
-    '<div class="fila-resumen"><b>' + NOMBRES[k] + '</b><span>' + formato(k, a.valores[k]) + ' / ' + formato(k, meta) + '</span></div>' +
+    '<div class="fila-resumen"><b>' + NOMBRES[k] + '</b><span>' + formato(k, a.valores[k]) + (k === 'pantalla' ? ' / máx. ' : ' / ') + formato(k, meta) + '</span></div>' +
     barra(a.partes[k], 'meta') + (compacta && k !== 'agua' ? '' : controles(k, fecha)) + '</div>';
 }
 
@@ -74,5 +78,6 @@ registrar({
     guardar();
   },
   'crono-lectura'() { alternarCrono(iso(), 'lectura'); guardar(); },
+  'meta-pantalla'(ds, el) { const m = dia().metas; if (el.value === '') delete m.pantalla; else m.pantalla = Math.max(0, Math.round(Number(el.value) || 0)); guardar(); },
   'lectura-mas'() { const m = dia().metas; m.lectura = (m.lectura || 0) + 5; guardar(); },
 });

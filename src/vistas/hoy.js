@@ -10,6 +10,7 @@ import { tarjetaComidasHoy } from './dieta.js';
 import { alertas } from './recordatorios.js';
 import { puntajeDia } from '../progreso.js';
 import { tarjetasLibrosHoy } from './libros.js';
+import { tarjetaEstandares } from './vida.js';
 import { tarjetaSuenoPeso, tarjetaPartido, fechaPartidoPendiente, tarjetaFoco } from './registro.js';
 
 function saludo() {
@@ -56,10 +57,10 @@ export function vistaHoy() {
     '<div class="tablero">' +
     '<section class="tarjeta col-manana"><h2>☀️ Primera hora</h2>' + cabeceraManana() + listaManana() + '</section>' +
     '<section class="tarjeta col-metas"><div class="fila-resumen"><h2>🎯 Metas</h2><span class="grande-num">' + pct(metas.total) + '</span></div>' + barra(metas.total) +
-    ['agua', 'pasos', 'calorias', 'lectura'].map((k) => tarjetaMeta(k, iso(), true)).join('') +
+    ['agua', 'pasos', 'calorias', 'lectura', 'pantalla'].map((k) => tarjetaMeta(k, iso(), true)).join('') +
     '<a class="boton secundario ancho" href="#metas">Registrar pasos, calorías y lectura →</a></section>' +
     '<div class="col-gym">' + entrenamiento() + '</div>' +
-    tarjetaSuenoPeso() +
+    tarjetaSuenoPeso() + tarjetaEstandares() +
     '<section class="tarjeta col-dieta"><div class="fila-resumen"><h2>🥗 Comidas</h2><a href="#dieta" class="nota-corta">Ver plan →</a></div>' + tarjetaComidasHoy(true) + '</section>' +
     '<section class="tarjeta col-semana"><h2>📅 Semana</h2>' + tarjetaSemana() + '</section>' +
     '</div>';

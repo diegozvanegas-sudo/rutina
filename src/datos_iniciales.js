@@ -27,7 +27,8 @@ export const IDEAS_HABITOS = [
   { nombre: 'Pesarme', detalle: 'En ayunas, después del baño', tipo: 'check' },
 ];
 
-export const METAS = { agua: 4000, pasos: 10000, calorias: 2400, lectura: 30 };
+// pantalla: minutos MÁXIMOS de redes y entretenimiento en el celular (menos es mejor)
+export const METAS = { agua: 4000, pasos: 10000, calorias: 2400, lectura: 30, pantalla: 120 };
 
 // Tiempo entre la pastilla y el desayuno. Ajústalo a lo que indique tu médico.
 export const ESPERA = { minimo: 30, ideal: 60 };

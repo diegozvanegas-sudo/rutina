@@ -6,6 +6,8 @@ import { estadoRecordatorio, recordatoriosAutomaticos, ritmoKm, kmActual, pesos,
 import { PLANTILLAS_RECORDATORIO } from '../datos_finanzas.js';
 import { esc, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
+import { seccionCirculo } from './vida.js';
+import { pendientesCirculo } from '../vida.js';
 
 const r = () => e().recordatorios;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -19,7 +21,8 @@ export function alertas(hoy = iso()) {
     .map(({ x, s }) => ({ nombre: x.nombre, icono: x.icono, estado: s.estado }));
   const auto = recordatoriosAutomaticos(e().finanzas, hoy).filter((a) => a.estado === 'vencido' || a.estado === 'pronto')
     .map((a) => ({ nombre: a.nombre, icono: '💸', estado: a.estado, monto: a.monto }));
-  return [...propios, ...auto];
+  const personas = pendientesCirculo(e().circulo, hoy).map(({ p, s }) => ({ nombre: 'Hablar con ' + p.nombre, icono: '👥', estado: s.estado }));
+  return [...propios, ...auto, ...personas];
 }
 
 function regla(x) {
@@ -82,6 +85,7 @@ export function vistaRecordatorios() {
       '<section class="tarjeta"><div class="ed-cab"><b>' + esc(a.nombre) + '</b><span class="estado e-' + a.estado + '">' + ESTADOS[a.estado] + '</span></div>' +
       '<div class="fila-resumen nota-corta"><span>' + fechaCorta(a.fecha) + (a.faltan > 0 ? ' · en ' + a.faltan + ' días' : a.faltan === 0 ? ' · hoy' : '') + '</span><b>' + pesos(a.monto) + '</b></div>' +
       '<button type="button" class="boton secundario ancho" data-accion="' + (a.tipo === 'fijo' ? 'fin-pagar-fijo' : 'fin-pagar-deuda') + '" data-id="' + a.id + '">Registrar pago</button></section>').join('') : '') +
+    seccionCirculo() +
     '<section class="tarjeta"><h2>＋ Agregar recordatorio</h2><div class="rejilla-cats">' + PLANTILLAS_RECORDATORIO.map((p, k) =>
       '<button type="button" class="cat" data-accion="rec-agregar" data-k="' + k + '"><span>' + p.icono + '</span>' + esc(p.nombre) + '</button>').join('') + '</div>' +
     '<p class="nota-corta">Los pagos fijos y las cuotas de Finanzas aparecen aquí solos cuando se acerca el día.</p></section>';

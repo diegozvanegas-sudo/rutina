@@ -47,7 +47,7 @@ export function revisionSemanal(hoy = iso()) {
   // La meta más floja
   const conDatos = esta.filter((f) => e().dias[f]);
   if (conDatos.length) {
-    const nombres = { agua: 'el agua', pasos: 'los pasos', calorias: 'las calorías', lectura: 'la lectura' };
+    const nombres = { agua: 'el agua', pasos: 'los pasos', calorias: 'las calorías', lectura: 'la lectura', pantalla: 'el tiempo de pantalla' };
     const prom = Object.keys(nombres).map((k) => [k, promedio(conDatos.map((f) => avanceMetas(f).partes[k]))]).sort((a, b) => a[1] - b[1]);
     if (prom[0][1] < 0.8) frases.push({ icono: '🎯', ir: '#metas', texto: 'Tu meta más floja es ' + nombres[prom[0][0]] + ': vas al ' + Math.round(prom[0][1] * 100) + ' % en promedio.' });
   }

@@ -99,7 +99,7 @@ function graficoCardio() {
 }
 
 function graficoMetas() {
-  const fs = rango(dias), nombres = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura' };
+  const fs = rango(dias), nombres = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura', pantalla: '📵 Pantalla' };
   // Cuatro gráficos pequeños con la misma escala (0–100 % de la meta), uno por meta
   return tarjeta('🎯 Metas cumplidas', '<p class="nota-corta">Últimos ' + dias + ' días, de izquierda (antes) a derecha (hoy). Toca una barra para ver el día.</p><div class="multiples">' + Object.entries(nombres).map(([k, t]) => {
     const datos = fs.map((f) => {

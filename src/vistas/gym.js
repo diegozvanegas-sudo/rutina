@@ -84,6 +84,7 @@ export function tarjetaCalentamiento(d, sem = semanaActual()) {
       : 'Aproximación: escribe el peso del primer top set para calcularla.') + '</p><div class="aprox">' +
     (aprox.length ? aprox : [[50, 8], [70, 5], [85, 2]].map(([p, reps]) => ({ pct: p, reps }))).map((a) =>
       '<span><small>' + a.pct + ' %</small><b>' + (a.peso ? formatoPeso(a.peso) : '—') + '</b> × ' + a.reps + '</span>').join('') + '</div>' +
+    '<details class="nota"' + (d.notaCalentamiento ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota-calentamiento" data-dia="' + d.id + '" placeholder="Molestias, movilidad extra, cómo me sentí…">' + esc(d.notaCalentamiento || '') + '</textarea></details>' +
     '</section>';
 }
 
@@ -301,6 +302,11 @@ registrar({
   },
   nota({ ej: id }, el) {
     for (const d of e().rutina) for (const ej of d.ejercicios) if (ej.id === id) ej.nota = el.value.trim();
+    guardar(false);
+  },
+  'nota-calentamiento'({ dia }, el) {
+    const d = e().rutina.find((x) => x.id === dia);
+    if (d) d.notaCalentamiento = el.value.trim();
     guardar(false);
   },
 });

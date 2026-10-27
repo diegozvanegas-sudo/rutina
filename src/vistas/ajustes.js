@@ -4,6 +4,7 @@ import { csvGym, csvDias } from '../csv.js';
 import { iso, hora } from '../fechas.js';
 import { nube, configurada, entrar, salir, sincronizar, textoNube } from '../nube.js';
 import { hoja, hojaLista, enviarSemana } from '../hoja.js';
+import { bloqueo, huellaActiva, activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
 import { esc, registrar, toast } from '../ui.js';
 
 // La meta de calorías la pone el plan de Dieta de cada día
@@ -37,13 +38,32 @@ export function pantallaEntrar() {
     '<button type="button" class="boton primario grande ancho" data-accion="nube-entrar">Entrar</button></section>';
 }
 
+// Con la huella activa: candado al abrir la app (main.js)
+export function pantallaBloqueo() {
+  return '<section class="tarjeta entrar"><h1>🔒 Rutina</h1><p class="nota-corta">' + esc(nube.usuario.correo) + '</p>' +
+    '<p class="nota-corta">Desbloquea con tu huella, tu cara o el PIN del celular.</p>' +
+    (bloqueo.error ? '<p class="aviso">' + esc(bloqueo.error) + '</p>' : '') +
+    '<button type="button" class="boton primario grande ancho" data-accion="huella-abrir"' + (bloqueo.intentando ? ' disabled' : '') + '>🔓 Desbloquear</button>' +
+    '<button type="button" class="boton secundario ancho" data-accion="huella-contrasena">Entrar con contraseña</button></section>';
+}
+
+function seccionHuella() {
+  if (huellaActiva()) {
+    return '<h2>🔒 Bloqueo con huella</h2><p class="nota-corta">Activo en este equipo: al abrir la app, o al volver después de 5 minutos, se pide tu huella, tu cara o el PIN del celular.</p>' +
+      '<button type="button" class="boton secundario" data-accion="huella-quitar">Quitar bloqueo</button>';
+  }
+  if (!bloqueo.disponible) return '';
+  return '<h2>🔒 Bloqueo con huella</h2><p class="nota-corta">La sesión sigue recordada, pero para abrir la app se pide tu huella, tu cara o el PIN del celular. Se activa en cada equipo.</p>' +
+    '<button type="button" class="boton primario" data-accion="huella-activar">Activar en este equipo</button>';
+}
+
 function seccionNube() {
   if (!configurada || !nube.usuario) return '';
   return '<section class="tarjeta"><h2>☁️ Nube</h2><p>' + esc(nube.usuario.correo) + '</p>' +
     '<p class="estado-nube n-' + nube.estado + '">' + textoNube() + (nube.ultima ? ' · ' + hora(nube.ultima) : '') + '</p>' +
     (nube.error ? '<p class="aviso">' + esc(nube.error) + '</p>' : '') +
     '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="nube-sync">↻ Sincronizar ahora</button>' +
-    '<button type="button" class="boton secundario" data-accion="nube-salir">Salir</button></div></section>';
+    '<button type="button" class="boton secundario" data-accion="nube-salir">Salir</button></div>' + seccionHuella() + '</section>';
 }
 
 function seccionHoja() {
@@ -79,8 +99,16 @@ registrar({
   async 'nube-entrar'() {
     const correo = document.getElementById('nube-correo').value, clave = document.getElementById('nube-clave').value;
     if (!correo || !clave) { toast('Escribe correo y contraseña'); return; }
+    abrir(); // con la contraseña no hace falta además la huella
     try { await entrar(correo, clave); toast('Sesión iniciada'); } catch (err) { toast(err.message); }
   },
+  'huella-abrir'() { desbloquear(); },
+  async 'huella-contrasena'() { await salir(); },
+  async 'huella-activar'() {
+    try { await activarHuella(); toast('🔒 Bloqueo con huella activado'); } catch (err) { toast(err.name === 'NotAllowedError' ? 'Se canceló' : 'No se pudo activar: ' + err.message); }
+    repintar();
+  },
+  'huella-quitar'() { if (confirm('¿Quitar el bloqueo con huella en este equipo?')) { quitarHuella(); repintar(); } },
   'nube-sync'() { sincronizar(); },
   async 'nube-salir'() { if (confirm('¿Cerrar la sesión? Los datos siguen en este celular, pero para volver a usar la app tendrás que entrar de nuevo.')) await salir(); },
   'conf-hoja'({ k }, el) { (e().config.hoja ??= {})[k] = el.value.trim(); guardar(); },

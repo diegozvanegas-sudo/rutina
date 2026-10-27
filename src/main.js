@@ -10,7 +10,8 @@ import { vistaManana, textoEspera, revisarCronos } from './vistas/manana.js';
 import { vistaMetas } from './vistas/metas.js';
 import { vistaGym, semanaActual } from './vistas/gym.js';
 import { vistaSesiones } from './vistas/sesiones.js';
-import { vistaAjustes, pantallaEntrar } from './vistas/ajustes.js';
+import { vistaAjustes, pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.js';
+import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import { vistaEditar } from './vistas/editar.js';
 import { vistaDieta } from './vistas/dieta.js';
 import { vistaFinanzas } from './vistas/finanzas.js';
@@ -107,8 +108,17 @@ function restaurarCampos({ clave, valores, cursor }) {
 let ultimaVista = null;
 function pintar() {
   // Sin sesión iniciada solo se ve la pantalla para entrar (lo escrito en correo/contraseña se conserva)
-  const sinSesion = configurada && !nube.usuario;
-  document.body.classList.toggle('sin-sesion', sinSesion);
+  const sinSesion = configurada && !nube.usuario, cerrada = !sinSesion && bloqueada();
+  document.body.classList.toggle('sin-sesion', sinSesion || cerrada);
+  if (cerrada) {
+    menu(false);
+    $('vista').innerHTML = pantallaBloqueo();
+    $('lateral').innerHTML = '';
+    document.title = 'Bloqueada · Rutina';
+    ultimaVista = null;
+    if (bloqueo.auto) { bloqueo.auto = false; desbloquear(); }
+    return;
+  }
   if (sinSesion) {
     const correo = $('nube-correo'), clave = $('nube-clave');
     const antes = correo && { correo: correo.value, clave: clave.value, foco: document.activeElement && document.activeElement.id };

@@ -253,6 +253,13 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .ed-controles { display: flex; gap: 4px; flex: none; }
 .ed-controles .icono { background: var(--surface-2); border: 1px solid var(--line); font-size: 18px; }
 .ed-controles .icono:disabled { opacity: .3; }
+.lista-orden { list-style: none; padding: 0; margin: 6px 0 0; }
+.lista-orden li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.lista-orden li.apagado .interruptor { color: var(--muted); }
+.ed-sesiones { margin-top: 8px; }
+.ed-sesiones summary { overflow-wrap: anywhere; }
+.bienvenida { border-color: var(--brand); background: var(--brand-soft); }
+.centro { text-align: center; }
 .ed-controles .borrar { color: var(--rojo); }
 .ed-descansos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .pestanas .chip { font-size: 15px; }

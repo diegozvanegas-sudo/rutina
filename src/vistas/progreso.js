@@ -1,5 +1,6 @@
 // Progreso: tablero con gráficos de todo (constancia, puntaje, peso, gym, metas y plata) y la revisión semanal
 import { e, avanceMetas, racha, repintar, semanaActual } from '../estado.js';
+import { visibles, METAS } from '../orden.js';
 import { iso, sumarDias, fechaCorta, diaSemana, lunesDe } from '../fechas.js';
 import { resumenSemana } from '../gym.js';
 import { pesos as pesosCorporales, tendencia } from '../dieta.js';
@@ -56,7 +57,7 @@ function constancia() {
 
 function puntajes() {
   const fs = rango(dias), ps = fs.map((f) => ({ f, p: puntajeDia(f) }));
-  const datos = ps.map(({ f, p }) => ({ etiqueta: corta(f), v: p ? p.total : null, tip: LETRA[diaSemana(f)] + ' ' + fechaCorta(f) + ': ' + (p ? p.total + '/100 · ' + (p.partes.manana != null ? 'mañana ' + Math.round(p.partes.manana * 100) + ' %, ' : '') + 'metas ' + Math.round(p.partes.metas * 100) + ' %' +
+  const datos = ps.map(({ f, p }) => ({ etiqueta: corta(f), v: p ? p.total : null, tip: LETRA[diaSemana(f)] + ' ' + fechaCorta(f) + ': ' + (p ? p.total + '/100 · ' + (p.partes.manana != null ? 'mañana ' + Math.round(p.partes.manana * 100) + ' %, ' : '') + (p.partes.metas != null ? 'metas ' + Math.round(p.partes.metas * 100) + ' %' : '') +
     (p.partes.gym != null ? ', gym ' + Math.round(p.partes.gym * 100) + ' %' : '') + (p.partes.dieta != null ? ', dieta ' + Math.round(p.partes.dieta * 100) + ' %' : '') : 'sin datos') }));
   return tarjeta('⭐ Puntaje por día', barras(datos, { max: 100, ref: { v: 80, texto: 'buen día: 80' } }) +
     tablaDatos(['Día', 'Puntaje'], ps.filter((x) => x.p).map(({ f, p }) => [fechaCorta(f), p.total])), '', '#hoy');
@@ -100,7 +101,8 @@ function graficoCardio() {
 }
 
 function graficoMetas() {
-  const fs = rango(dias), nombres = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura', pantalla: '📵 Pantalla' };
+  const fs = rango(dias), nombres = Object.fromEntries(visibles(e().config, 'metas').map((k) => [k, METAS[k]]));
+  if (!Object.keys(nombres).length) return '';
   // Cuatro gráficos pequeños con la misma escala (0–100 % de la meta), uno por meta
   return tarjeta('🎯 Metas cumplidas', '<p class="nota-corta">Últimos ' + dias + ' días, de izquierda (antes) a derecha (hoy). Toca una barra para ver el día.</p><div class="multiples">' + Object.entries(nombres).map(([k, t]) => {
     const datos = fs.map((f) => {

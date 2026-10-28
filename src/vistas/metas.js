@@ -2,8 +2,7 @@
 import { e, guardar, dia, avanceMetas, alternarCrono, segundosCrono } from '../estado.js';
 import { iso, sumarDias, fechaCorta, reloj, diaSemana } from '../fechas.js';
 import { barra, pct, miles, registrar } from '../ui.js';
-
-const NOMBRES = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura', pantalla: '📵 Pantalla' };
+import { METAS as NOMBRES, visibles } from '../orden.js';
 const UNIDAD = { agua: 'ml', pasos: '', calorias: 'kcal', lectura: 'min', pantalla: 'min' };
 const formato = (k, v) => (k === 'pantalla' && v == null ? '—' : k === 'agua' ? (v / 1000).toLocaleString('es-CO', { maximumFractionDigits: 2 }) + ' L' : miles(v) + (UNIDAD[k] ? ' ' + UNIDAD[k] : ''));
 
@@ -53,17 +52,18 @@ export function vistaMetas() {
   const hoy = avanceMetas(), semana = historial(7), mes = historial(30);
   const promedio = (k) => mes.reduce((s, x) => s + (x.a ? x.a.partes[k] : 0), 0) / mes.length;
   const cumplidos = (k) => mes.filter((x) => x.a && x.a.partes[k] >= 1).length;
-  const letra = (f) => 'LMMJVSD'[diaSemana(f) - 1];
+  const letra = (f) => 'LMMJVSD'[diaSemana(f) - 1], ks = visibles(e().config, 'metas');
+  if (!ks.length) return '<h1>Metas del día</h1><section class="tarjeta"><p>No tienes metas a la vista.</p><a class="boton primario" href="#editar/pantallas">Elegir metas →</a></section>';
   return '<h1>Metas del día</h1>' +
     '<section class="tarjeta"><div class="fila-resumen"><b>Hoy</b><span class="grande-num">' + pct(hoy.total) + '</span></div>' + barra(hoy.total) + '</section>' +
-    '<section class="tarjeta lista-metas">' + Object.keys(NOMBRES).map((k) => tarjetaMeta(k)).join('') + '</section>' +
+    '<section class="tarjeta lista-metas">' + ks.map((k) => tarjetaMeta(k)).join('') + '</section>' +
     '<section class="tarjeta"><h2>Últimos 7 días</h2><div class="tabla-scroll"><table class="historial"><thead><tr><th></th>' +
     semana.map((x) => '<th title="' + fechaCorta(x.f) + '">' + letra(x.f) + '<small>' + fechaCorta(x.f).split(' ')[0] + '</small></th>').join('') + '</tr></thead><tbody>' +
-    Object.keys(NOMBRES).map((k) => '<tr><th>' + NOMBRES[k] + '</th>' + semana.map((x) => {
+    ks.map((k) => '<tr><th>' + NOMBRES[k] + '</th>' + semana.map((x) => {
       const p = x.a ? x.a.partes[k] : 0;
       return '<td><span class="punto" style="--p:' + p + '" title="' + pct(p) + '">' + (p >= 1 ? '✓' : '') + '</span></td>';
     }).join('') + '</tr>').join('') + '</tbody></table></div></section>' +
-    '<section class="tarjeta"><h2>Últimos 30 días</h2>' + Object.keys(NOMBRES).map((k) =>
+    '<section class="tarjeta"><h2>Últimos 30 días</h2>' + ks.map((k) =>
       '<div class="fila-resumen"><span>' + NOMBRES[k] + '</span><span>' + cumplidos(k) + ' días cumplida · promedio ' + pct(promedio(k)) + '</span></div>' + barra(promedio(k))).join('') + '</section>';
 }
 

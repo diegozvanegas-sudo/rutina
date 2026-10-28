@@ -1,6 +1,6 @@
 import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
-import { e, cargar, alCambiar, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
+import { e, cargar, esperarUsuario, alCambiar, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct, barra, esc, claveDeDatos } from './ui.js';
 import { revisar, restante, sumar, detener } from './temporizador.js';
@@ -21,27 +21,21 @@ import { vistaLibros } from './vistas/libros.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
+import { SECCIONES, visibles } from './orden.js';
 
 registerSW({ immediate: true });
-cargar();
+// Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
+if (configurada) esperarUsuario(); else cargar();
 iniciarNube();
 iniciarHoja();
 iniciarAvisos();
 
-const VISTAS = {
-  hoy: ['🏠', 'Hoy', vistaHoy],
-  progreso: ['📈', 'Progreso', vistaProgreso],
-  manana: ['☀️', 'Mañana', vistaManana],
-  metas: ['🎯', 'Metas', vistaMetas],
-  libros: ['📚', 'Libros', vistaLibros],
-  dieta: ['🥗', 'Dieta', vistaDieta],
-  finanzas: ['💰', 'Finanzas', vistaFinanzas],
-  recordatorios: ['🔔', 'Recordatorios', vistaRecordatorios],
-  gym: ['🏋️', 'Gym', vistaGym],
-  sesiones: ['🧘', 'Sesiones', vistaSesiones],
-  editar: ['✏️', 'Editar', vistaEditar],
-  ajustes: ['⚙️', 'Ajustes', vistaAjustes],
+const PANTALLAS = {
+  hoy: vistaHoy, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, libros: vistaLibros, dieta: vistaDieta, finanzas: vistaFinanzas,
+  recordatorios: vistaRecordatorios, gym: vistaGym, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
+// Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
+const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
 const $ = (id) => document.getElementById(id);
 // "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta"
 const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] ? v : 'hoy'; };
@@ -54,7 +48,7 @@ function abrirPestana() {
 
 function enlaces() {
   const avisos = alertas().length;
-  return Object.entries(VISTAS).map(([k, [icono, nombre]]) =>
+  return visibles(e().config, 'menu').map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
     '<a href="#' + k + '"' + (k === actual() ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span>' +
     (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');
 }

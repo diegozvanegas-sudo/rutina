@@ -1,6 +1,9 @@
 // Fechas locales en texto "AAAA-MM-DD" (así se guardan los días) y semanas que empiezan el lunes.
 
-export const SEMANA_1 = '2026-10-12'; // lunes
+// Lunes de la semana 1 del gym: cada usuario lo cambia en Ajustes (estado.js lo pone al cargar)
+export const SEMANA_1_INICIAL = '2026-10-12';
+export let SEMANA_1 = SEMANA_1_INICIAL;
+export function ponerSemana1(f) { SEMANA_1 = /^\d{4}-\d{2}-\d{2}$/.test(f || '') ? lunesDeFecha(f) : SEMANA_1_INICIAL; }
 
 const dosDig = (n) => String(n).padStart(2, '0');
 
@@ -26,6 +29,8 @@ export function semanaDe(s = iso()) {
 export function lunesDe(semana) {
   return sumarDias(SEMANA_1, (semana - 1) * 7);
 }
+// Lunes de la semana de una fecha
+export const lunesDeFecha = (s) => sumarDias(s, 1 - diaSemana(s));
 // 1 = lunes … 7 = domingo
 export function diaSemana(s = iso()) {
   return desdeIso(s).getDay() || 7;

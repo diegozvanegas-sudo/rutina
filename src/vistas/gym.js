@@ -7,7 +7,7 @@ import { CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, estadoFila, repsDe,
 import { partidos } from '../registro.js';
 import { linea, tablaDatos } from '../graficos.js';
 import { CARDIO } from '../datos_iniciales.js';
-import { esc, barra, registrar, toast, copiarTexto } from '../ui.js';
+import { esc, barra, registrar, toast, copiarTexto, botonSesion } from '../ui.js';
 import { iniciar } from '../temporizador.js';
 import { compartirImagen } from '../imagen.js';
 
@@ -134,14 +134,16 @@ function pesoPlaneado(d, sem) {
   return peso ? { peso, unidad: (reg && reg.unidad) || (sug && sug.unidad) || 'kg', nombre: d.ejercicios[0].nombre } : null;
 }
 
+// "pierna" abre "calentamiento-pierna"; también vale el id de cualquier sesión
+export const sesionCalentamiento = (d) => (e().sesiones.some((s) => s.id === 'calentamiento-' + d.calentamiento) ? 'calentamiento-' + d.calentamiento : d.calentamiento);
+// Sesiones extra junto al calentamiento: las elegidas en Editar, o las de siempre si el día nunca se editó
+export const extrasCalentamiento = (d) => d.extras || (d.calentamiento === 'pierna' ? ['prevencion-futbol', 'rodilla', 'lazo'] : ['lazo']);
+
 export function tarjetaCalentamiento(d, sem = semanaActual()) {
   if (!d.calentamiento) return '';
   const plan = pesoPlaneado(d, sem), aprox = plan ? aproximacion(plan.peso, plan.unidad) : [];
   return '<section class="tarjeta calentamiento"><h2>🔥 Calentamiento</h2>' +
-    '<div class="botones-rapidos"><button type="button" class="boton primario grande" data-accion="sesion" data-sesion="calentamiento-' + d.calentamiento + '">▶ Calentamiento guiado</button>' +
-    (d.calentamiento === 'pierna' ? '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="prevencion-futbol">⚽ Prevención</button>' +
-      '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="rodilla">🦵 Rodilla</button>' : '') +
-    '<button type="button" class="boton secundario grande" data-accion="sesion" data-sesion="lazo">🪢 Lazo</button></div>' +
+    '<div class="botones-rapidos">' + botonSesion(sesionCalentamiento(d), 'primario', 'Calentamiento guiado') + extrasCalentamiento(d).map((id) => botonSesion(id)).join('') + '</div>' +
     (d.previo ? '<p class="nota-corta">' + esc(d.previo) + '</p>' : '') +
     // Mismo alto con o sin peso: al escribirlo la pantalla no salta
     '<p class="nota-corta">' + (plan ? 'Aproximación para <b>' + esc(plan.nombre) + '</b> (top set ' + formatoPeso(plan.peso) + ' ' + plan.unidad + '):'

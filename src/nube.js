@@ -1,7 +1,7 @@
 // Copia en la nube (Supabase, esquema "rutina" del proyecto de microrrutas). El celular sigue siendo lo principal:
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
-import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar } from './estado.js';
+import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario } from './estado.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const configurada = !!(url && llave);
@@ -90,7 +90,9 @@ export function iniciarNube() {
     const antes = nube.usuario && nube.usuario.id;
     nube.usuario = sesion ? { id: sesion.user.id, correo: sesion.user.email } : null;
     nube.lista = true;
-    if (!nube.usuario) { poner('sin-sesion'); return; }
+    if (!nube.usuario) { nube.ultima = null; esperarUsuario(); poner('sin-sesion'); return; }
+    // Cada usuario con sus propios datos en este equipo
+    if (antes !== nube.usuario.id) { nube.ultima = null; usarUsuario(nube.usuario.id); }
     repintar();
     if (antes !== nube.usuario.id) setTimeout(sincronizar, 0);
   });

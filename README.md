@@ -46,14 +46,21 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   metas de ahorro con fondo de emergencia (6 meses de gastos) y deudas (meses para pagar, estrategia avalancha).
 - **Recordatorios**: mantenimiento de la moto por km o por meses (lo que pase primero) con odómetro y fecha estimada,
   plantillas (aceite, SOAT, tecnomecánica, cadena, llantas…) y los pagos fijos y cuotas de Finanzas, que aparecen solos.
-- **Editar**: rutina (días, ejercicios, series × reps, descansos), hábitos de la mañana y sesiones: agregar, cambiar, reordenar y borrar.
+- **Editar**: rutina (días, ejercicios, series × reps, descansos, nota), hábitos de la mañana y sesiones: agregar, cambiar, duplicar (⧉),
+  reordenar (↑ ↓) y borrar. Un ejercicio se puede mover a otro día y sus registros se van con él. Cada día elige su calentamiento
+  (cualquier sesión de tipo calentamiento), las sesiones que van junto a él y el plan de comida; también se eligen las sesiones del
+  partido y de los días de descanso. Pestaña **Pantallas**: orden y qué se ve del menú, de las tarjetas de Hoy y de las metas
+  (las metas escondidas no cuentan en el puntaje). Categorías, pagos fijos, metas y deudas de Finanzas y los alimentos también se reordenan.
   En las sesiones, cada ejercicio puede llevar figura animada, foto propia (se reduce a 480 px) y enlace de video.
-- **Ajustes**: nube, Google Sheets, metas, espera de la pastilla, sonido, exportar/importar JSON y CSV.
+- **Ajustes**: perfil (nombre del saludo y lunes de la semana 1 del gym), nube, Google Sheets, metas, espera de la pastilla, sonido, exportar/importar JSON y CSV.
 
 Menú lateral a la derecha: en el celular se abre con ☰; en el computador (≥ 900 px) queda fijo, con un resumen del día y el estado de la nube.
 
 ## Datos (src/estado.js)
-Un solo objeto guardado en `localStorage` (`rutina_v1`): `config`, `habitos`, `rutina` (días → ejercicios → filas Top/Back-off/Series),
+Un objeto por usuario guardado en `localStorage` (`rutina_v1:<id del usuario>`; sin nube configurada, `rutina_v1`). Mientras no se sabe
+quién entra no se escribe nada. Los datos de antes (`rutina_v1`) pasan solos al usuario que los sincronizaba. Un usuario nuevo ve una
+bienvenida en Hoy: empezar con el ejemplo o vacío (sin hábitos, rutina ni fútbol). Orden y visibilidad en `config.orden` / `config.ocultos`
+(`src/orden.js`). Contiene: `config`, `habitos`, `rutina` (días → ejercicios → filas Top/Back-off/Series),
 `sesiones`, `dias` (por fecha: hábitos con hora, metas, cronómetros) y `semanas` (por número: peso, unidad y reps **como texto** de cada fila).
 
 ## Nube (Supabase)

@@ -1,4 +1,5 @@
-// Todo se guarda en el celular (localStorage) en un solo objeto. Funciona sin internet; se puede exportar/importar en Ajustes.
+// Todo se guarda en el celular (localStorage) en un objeto por usuario ("rutina_v1:<id>"). Funciona sin internet; se puede
+// exportar/importar en Ajustes. Sin nube configurada se usa "rutina_v1".
 import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS, FUTBOL } from './datos_iniciales.js';
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
@@ -6,9 +7,11 @@ import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
 import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular } from './dieta.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
-import { iso, sumarDias, semanaDe, diaSemana, hora } from './fechas.js';
+import { visibles } from './orden.js';
+import { iso, sumarDias, semanaDe, diaSemana, hora, ponerSemana1, SEMANA_1_INICIAL } from './fechas.js';
 
-const CLAVE = 'rutina_v1';
+const BASE = 'rutina_v1';
+let CLAVE = BASE, escribible = true;
 const copia = (o) => JSON.parse(JSON.stringify(o));
 
 const dietaInicial = () => {
@@ -20,7 +23,7 @@ const dietaInicial = () => {
 function inicial() {
   return {
     version: 1,
-    config: { metas: { ...METAS }, espera: { ...ESPERA }, sonido: true, objetivos: copia(OBJETIVOS), futbol: [...FUTBOL] },
+    config: { metas: { ...METAS }, espera: { ...ESPERA }, sonido: true, objetivos: copia(OBJETIVOS), futbol: [...FUTBOL], ...CONFIG_NUEVA() },
     habitos: copia(HABITOS),
     rutina: copia(RUTINA),
     sesiones: copia([...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])]),
@@ -36,12 +39,23 @@ function inicial() {
   };
 }
 
+// Lo que cada usuario puede cambiar y antes estaba fijo en el código
+const CONFIG_NUEVA = () => ({
+  nombre: '', semana1: SEMANA_1_INICIAL,
+  orden: {}, ocultos: {},  // menú, tarjetas de Hoy y metas (orden.js)
+  sesionesDescanso: ['rodilla', 'estiramiento-post'], sesionesPartido: ['calentamiento-futbol', 'estiramiento-post'],
+});
+// Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2'];
+const nuevo = () => ({ ...inicial(), ...Object.fromEntries(MIGRACIONES.map((k) => [k, true])), bienvenida: true });
+
 let estado = null, oyentes = [];
 
+const leerClave = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (err) { return null; } };
+
 export function cargar() {
-  let guardado = null;
-  try { guardado = JSON.parse(localStorage.getItem(CLAVE)); } catch (e) {}
-  estado = guardado && guardado.version === 1 ? { ...inicial(), ...guardado } : inicial();
+  const guardado = leerClave(CLAVE);
+  estado = guardado && guardado.version === 1 ? { ...inicial(), ...guardado } : nuevo();
   // Sesiones nuevas que trae una versión de la app y aún no están en el celular
   for (const s of [...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])]) if (!estado.sesiones.some((x) => x.id === s.id)) estado.sesiones.push(copia(s));
   // Una sola vez: últimos registros, descansos y semana 1 traídos de la hoja de Google
@@ -58,7 +72,43 @@ export function cargar() {
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
   estado.libros ??= {};
   if (estado.fenix) moverFenix(estado);
+  const c = estado.config, n = CONFIG_NUEVA();
+  for (const k of Object.keys(n)) c[k] ??= n[k];
+  ponerSemana1(c.semana1);
   return estado;
+}
+
+// ---------- Usuarios ----------
+// Con nube, cada usuario tiene su propio objeto en el celular. Mientras no se sabe quién entra, no se escribe nada.
+export function esperarUsuario() {
+  CLAVE = BASE; escribible = false;
+  estado = nuevo();
+  ponerSemana1(estado.config.semana1);
+  repintar();
+}
+export function usarUsuario(id) {
+  const clave = BASE + ':' + id;
+  if (CLAVE === clave && escribible && estado) return;
+  // Los datos de antes (una sola clave) pasan al usuario que ya los sincronizaba, o al primero que entre si nunca se subieron
+  const viejo = leerClave(BASE);
+  if (leerClave(clave) == null && viejo && viejo.version === 1 && (!viejo.nube || viejo.nube.usuario === id)) {
+    try { localStorage.setItem(clave, JSON.stringify(viejo)); localStorage.removeItem(BASE); } catch (err) {}
+  }
+  CLAVE = clave; escribible = true;
+  cargar();
+  repintar();
+}
+export const claveActual = () => CLAVE;
+
+// Bienvenida de un usuario nuevo: seguir con el ejemplo o empezar sin hábitos, rutina ni días de fútbol
+export function elegirPlantilla(vacia) {
+  if (vacia) {
+    estado.habitos = [];
+    estado.rutina = [];
+    estado.config.futbol = [];
+  }
+  delete estado.bienvenida;
+  guardar();
 }
 export const e = () => estado || cargar();
 
@@ -137,6 +187,7 @@ function moverFenix(est) {
 
 let pendiente = null, alGuardar = [];
 function escribir() {
+  if (!escribible) return;
   try { localStorage.setItem(CLAVE, JSON.stringify(estado)); } catch (err) {
     clearTimeout(pendiente);
     // Sin ventana (pruebas) no hay a quién avisar
@@ -160,12 +211,14 @@ export function alGuardarse(f) { alGuardar.push(f); }
 // ---------- Nube ----------
 // Lo que se sube: todo menos el temporizador en curso y los datos de la propia sincronización
 export function datosParaNube() {
-  const { activo, nube, ...resto } = estado;
+  const { activo, nube, bienvenida, ...resto } = estado;
   return resto;
 }
 export function reemplazar(datos) {
   const propio = { activo: estado.activo, nube: estado.nube };
   estado = { ...inicial(), ...datos, ...propio };
+  for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
+  ponerSemana1(estado.config.semana1);
   escribir();
   repintar();
 }
@@ -256,8 +309,10 @@ export function avanceMetas(fecha = iso()) {
   // Pantalla es un máximo: cumplida si se anotó y no pasa del máximo; si se pasa, baja en proporción. Sin anotar, 0
   const parte = (k) => (k === 'pantalla' ? (valores.pantalla == null ? 0 : valores.pantalla <= meta.pantalla ? 1 : meta.pantalla / valores.pantalla) : Math.min(1, meta[k] ? valores[k] / meta[k] : 0));
   const partes = Object.fromEntries(Object.keys(meta).map((k) => [k, parte(k)]));
-  const total = Object.values(partes).reduce((a, b) => a + b, 0) / Object.keys(partes).length;
-  return { valores, partes, total, meta };
+  // El total es de las metas que el usuario tiene a la vista (Editar > Pantallas); sin ninguna, no cuenta (null)
+  const activas = visibles(e().config, 'metas').filter((k) => k in partes);
+  const total = activas.length ? activas.reduce((a, k) => a + partes[k], 0) / activas.length : null;
+  return { valores, partes, total, meta, activas };
 }
 
 // ---------- Fútbol ----------
@@ -287,6 +342,8 @@ export function importar(texto) {
   const datos = JSON.parse(texto);
   if (!datos || datos.version !== 1 || !datos.rutina) throw new Error('El archivo no es una copia de esta app.');
   estado = { ...inicial(), ...datos, nube: estado.nube };
+  for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
+  ponerSemana1(estado.config.semana1);
   guardar();
 }
-export function reiniciar() { estado = { ...inicial(), nube: estado.nube }; aplicarHoja(estado); estado.hojaAplicada = estado.diasV2 = estado.futbolV1 = estado.piernasV2 = true; guardar(); }
+export function reiniciar() { estado = { ...nuevo(), nube: estado.nube }; ponerSemana1(estado.config.semana1); guardar(); }

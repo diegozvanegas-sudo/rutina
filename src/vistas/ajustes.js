@@ -1,7 +1,7 @@
 // Ajustes: nube, Google Sheets, metas, espera de la pastilla, sonido y copia de seguridad
 import { e, guardar, repintar, exportar, importar, reiniciar, avanceMetas, semanaActual } from '../estado.js';
 import { csvGym, csvDias } from '../csv.js';
-import { iso, hora } from '../fechas.js';
+import { iso, hora, fechaLarga, lunesDeFecha, ponerSemana1 } from '../fechas.js';
 import { nube, configurada, entrar, salir, sincronizar, textoNube } from '../nube.js';
 import { hoja, hojaLista, enviarSemana } from '../hoja.js';
 import { AVISOS, HORAS_AVISOS, avisosDelDia, calendarioIcs } from '../registro.js';
@@ -14,7 +14,7 @@ const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)',
 
 export function vistaAjustes() {
   const c = e().config;
-  return '<h1>Ajustes</h1>' + seccionNube() + seccionAvisos() + seccionHoja() +
+  return '<h1>Ajustes</h1>' + seccionPerfil() + seccionNube() + seccionAvisos() + seccionHoja() +
     '<section class="tarjeta"><h2>Metas diarias</h2><div class="dos">' + Object.entries(ETIQUETAS).map(([k, t]) =>
       '<label class="campo">' + t + '<input type="number" inputmode="numeric" min="0" data-cambio="conf-meta" data-k="' + k + '" value="' + esc(c.metas[k]) + '"></label>').join('') + '</div></section>' +
     '<section class="tarjeta"><h2>Pastilla → desayuno</h2><p class="nota-corta">Ajústalo a lo que indique tu médico.</p><div class="dos">' +
@@ -66,6 +66,17 @@ function seccionNube() {
     (nube.error ? '<p class="aviso">' + esc(nube.error) + '</p>' : '') +
     '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="nube-sync">↻ Sincronizar ahora</button>' +
     '<button type="button" class="boton secundario" data-accion="nube-salir">Salir</button></div>' + seccionHuella() + '</section>';
+}
+
+// Lo propio de cada usuario: cómo saludarlo y desde cuándo cuentan las semanas del gym
+function seccionPerfil() {
+  const c = e().config;
+  return '<section class="tarjeta"><h2>👤 Perfil</h2><div class="dos">' +
+    '<label class="campo">Tu nombre (para el saludo)<input type="text" data-cambio="conf-nombre" value="' + esc(c.nombre || '') + '" autocomplete="given-name"></label>' +
+    '<label class="campo">Semana 1 del gym empieza<input type="date" data-cambio="conf-semana1" value="' + esc(c.semana1) + '"></label></div>' +
+    '<p class="nota-corta">Las semanas van de lunes a domingo: la semana 1 es la del ' + fechaLarga(c.semana1) + ' y hoy vas en la semana ' + semanaActual() + '. ' +
+    'Si la cambias, los registros siguen con su número de semana.</p>' +
+    '<p class="nota-corta">El orden del menú, las tarjetas de Hoy y las metas se cambian en <a href="#editar/pantallas">✏️ Editar → Pantallas</a>.</p></section>';
 }
 
 const ETIQUETAS_HORA = { pastilla: '💊 Pastilla', partido: '⚽ Hora del partido', dormir: '🌙 Prepararte para dormir', revision: '📝 Cierre del domingo' };
@@ -140,6 +151,15 @@ registrar({
   'hoja-todas'() {
     const semanas = Object.keys(e().semanas).map(Number).filter((n) => n >= 1 && n <= semanaActual()).sort((a, b) => a - b);
     if (semanas.length && confirm('¿Enviar ' + semanas.length + ' semana(s) a la hoja? Escribe encima de lo que haya en esas columnas.')) enviar(semanas);
+  },
+  'conf-nombre'(ds, el) { e().config.nombre = el.value.trim(); guardar(); },
+  'conf-semana1'(ds, el) {
+    if (!el.value) { repintar(); return; }
+    const lunes = lunesDeFecha(el.value);
+    if (Object.keys(e().semanas).length && !confirm('Las semanas se vuelven a contar desde el ' + fechaLarga(lunes) + '. Lo anotado sigue en su número de semana. ¿Seguir?')) { repintar(); return; }
+    e().config.semana1 = lunes;
+    ponerSemana1(lunes);
+    guardar();
   },
   'conf-meta'({ k }, el) { e().config.metas[k] = Math.max(0, Number(el.value) || 0); guardar(); },
   'conf-espera'({ k }, el) { e().config.espera[k] = Math.max(0, Number(el.value) || 0); guardar(); },

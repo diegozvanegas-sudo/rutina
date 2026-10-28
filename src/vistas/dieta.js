@@ -2,7 +2,7 @@
 import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, comidasDelDia } from '../estado.js';
 import { iso, hora, fechaCorta } from '../fechas.js';
 import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, kcalDeMacros } from '../dieta.js';
-import { esc, barra, registrar, toast, miles } from '../ui.js';
+import { esc, barra, registrar, toast, miles, subirBajar } from '../ui.js';
 
 let pestana = 'hoy', planVista = null;
 const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', descanso: '😌 Descanso' };
@@ -134,7 +134,7 @@ function vistaAlimentos() {
       const r = 'dieta.alimentos.' + i;
       const sel = (campo, opciones) => '<select data-cambio="ed" data-ruta="' + r + '.' + campo + '">' + Object.entries(opciones).map(([v, t]) => '<option value="' + v + '"' + (a[campo] === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
       return '<section class="tarjeta ed-item"><div class="ed-cab"><input class="titulo-comida" type="text" data-cambio="ed" data-ruta="' + r + '.nombre" value="' + esc(a.nombre) + '" aria-label="Nombre">' +
-        '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="dieta.alimentos" data-i="' + i + '" data-nombre="' + esc(a.nombre) + '" aria-label="Borrar">🗑</button></div>' +
+        '<span class="ed-controles">' + subirBajar('dieta.alimentos', i) + '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="dieta.alimentos" data-i="' + i + '" data-nombre="' + esc(a.nombre) + '" aria-label="Borrar">🗑</button></span></div>' +
         '<div class="dos"><label class="campo">Medida' + sel('por', POR) + '</label><label class="campo">Grupo' + sel('grupo', GRUPOS) + '</label></div>' +
         '<div class="macros-ed">' + numero('kcal', r + '.kcal', a.kcal) + numero('Proteína', r + '.p', a.p, '0.1') + numero('Grasa', r + '.g', a.g, '0.1') + numero('Carbos', r + '.c', a.c, '0.1') + '</div></section>';
     }).join('') +

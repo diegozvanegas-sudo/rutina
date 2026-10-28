@@ -3,7 +3,7 @@
 import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta, fechaLarga, sumarDias } from '../fechas.js';
 import { mesDe, sumarMeses, pesos, leerMonto, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, mesesParaPagar } from '../finanzas.js';
-import { esc, barra, registrar, toast } from '../ui.js';
+import { esc, barra, registrar, toast, subirBajar } from '../ui.js';
 import { vistaEsperas } from './vida.js';
 
 let pestana = 'registrar', mesVista = null;
@@ -25,7 +25,7 @@ const campoNumero = (titulo, ruta, valor, paso = '1') =>
   '<label class="campo">' + titulo + '<input type="number" inputmode="decimal" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
 const selector = (titulo, ruta, valor, opciones) =>
   '<label class="campo">' + titulo + '<select data-cambio="ed" data-ruta="' + ruta + '">' + opciones.map((o) => '<option value="' + esc(o.id) + '"' + (o.id === valor ? ' selected' : '') + '>' + esc((o.icono ? o.icono + ' ' : '') + o.nombre) + '</option>').join('') + '</select></label>';
-const borrar = (lista, i, nombre) => '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="' + lista + '" data-i="' + i + '" data-nombre="' + esc(nombre) + '" aria-label="Borrar">🗑</button>';
+const borrar = (lista, i, nombre) => '<span class="ed-controles">' + subirBajar(lista, i) + '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="' + lista + '" data-i="' + i + '" data-nombre="' + esc(nombre) + '" aria-label="Borrar">🗑</button></span>';
 
 export function nuevoMovimiento(m) {
   f().movimientos.push({ id: 'm' + uid(), fecha: iso(), metodo: 'efectivo', nota: '', ...m, monto: Math.round(m.monto) });

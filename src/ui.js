@@ -77,3 +77,18 @@ export function toast(msg) {
   clearTimeout(toast.t);
   toast.t = setTimeout(() => { t.hidden = true; }, 2600);
 }
+
+// Botón que abre una sesión guiada por su id (las que el usuario eligió para el descanso, el partido o el calentamiento)
+const ICONO_SESION = { calentamiento: '🔥', estiramiento: '🧘', fortalecimiento: '🦵', mente: '🧠' };
+export function botonSesion(id, clase = 'secundario', texto = '') {
+  const s = e().sesiones.find((x) => x.id === id);
+  if (!s) return '';
+  return '<button type="button" class="boton ' + clase + ' grande" data-accion="sesion" data-sesion="' + esc(s.id) + '">' + (ICONO_SESION[s.tipo] || '▶') + ' ' + esc(texto || s.nombre) + '</button>';
+}
+
+// ↑ ↓ para cualquier lista guardada en el estado ("finanzas.fijos"): usa la acción ed-mover de Editar
+export function subirBajar(ruta, i) {
+  const total = (ruta.split('.').reduce((o, k) => (o == null ? o : o[k]), e()) || []).length;
+  return '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + ruta + '" data-i="' + i + '" data-n="-1" aria-label="Subir"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+    '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + ruta + '" data-i="' + i + '" data-n="1" aria-label="Bajar"' + (i >= total - 1 ? ' disabled' : '') + '>↓</button>';
+}

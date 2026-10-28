@@ -24,6 +24,8 @@ export function totalPlan(plan, alimentos) {
 export function tipoDeDia(diaRutina, futbol = false) {
   if (futbol) return 'futbol';
   if (!diaRutina) return 'descanso';
+  // El plan elegido para ese día en Editar manda
+  if (diaRutina.dieta) return diaRutina.dieta;
   return diaRutina.calentamiento === 'pierna' ? 'inferior' : 'superior';
 }
 

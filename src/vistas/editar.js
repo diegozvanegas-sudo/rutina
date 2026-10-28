@@ -1,16 +1,21 @@
-// Editar hábitos, rutina y sesiones: agregar, cambiar, reordenar y borrar.
+// Editar hábitos, rutina, sesiones y pantallas: agregar, cambiar, duplicar, reordenar, mover y borrar.
 // Cada campo lleva data-ruta ("rutina.0.ejercicios.3.nombre") y se guarda al salir de él.
 import { e, guardar, repintar } from '../estado.js';
 import { filasDeEsquema, DESCANSOS, HABITOS, IDEAS_HABITOS } from '../datos_iniciales.js';
 import { reloj } from '../fechas.js';
 import { esc, registrar, toast } from '../ui.js';
 import { figuraPaso, OPCIONES_FIGURA, videoValido } from '../figuras.js';
+import { CATALOGO, FIJAS, enOrden, oculto, mover as moverOrden, alternar, restablecer } from '../orden.js';
+import { extrasCalentamiento } from './gym.js';
 
 let pestana = 'rutina', diaEd = null, sesionEd = null;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
 const TIPOS_HABITO = { check: 'Marcar', cuenta: 'Cuenta regresiva', cronometro: 'Cronómetro', texto: 'Con texto', sesion: 'Sesión guiada', pastilla: 'Pastilla (inicia la espera)', espera: 'Espera después de la pastilla' };
-const CALENTAMIENTOS = { '': 'Sin calentamiento', torso: 'Torso', empuje: 'Empuje', tiron: 'Tirón', pierna: 'Pierna' };
+// Calentamiento del día: cualquier sesión de tipo calentamiento ("calentamiento-pierna" se guarda como "pierna", como antes)
+const calentamientos = () => ({ '': 'Sin calentamiento', ...Object.fromEntries(e().sesiones.filter((s) => s.tipo === 'calentamiento' && s.id !== 'calentamiento-futbol')
+  .map((s) => [s.id.replace(/^calentamiento-/, ''), s.nombre])) });
+const PLANES_DIETA = { '': 'Automático (pierna → inferior, resto → superior)', inferior: 'Inferior', superior: 'Superior', descanso: 'Descanso' };
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const TIPOS_SESION = { calentamiento: 'Calentamiento', estiramiento: 'Estiramiento', fortalecimiento: 'Fortalecimiento', mente: 'Mente', otro: 'Otro' };
 const FIGURAS = { '': 'Automática (según el nombre)', '-': 'Sin figura', ...Object.fromEntries(OPCIONES_FIGURA.map((k) => [k, k[0].toUpperCase() + k.slice(1)])) };
@@ -60,7 +65,15 @@ const controles = (ruta, i, total, nombre) =>
   '<div class="ed-controles">' +
   '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + ruta + '" data-i="' + i + '" data-n="-1" aria-label="Subir"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
   '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + ruta + '" data-i="' + i + '" data-n="1" aria-label="Bajar"' + (i === total - 1 ? ' disabled' : '') + '>↓</button>' +
+  '<button type="button" class="icono" data-accion="ed-duplicar" data-lista="' + ruta + '" data-i="' + i + '" aria-label="Duplicar" title="Duplicar">⧉</button>' +
   '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="' + ruta + '" data-i="' + i + '" data-nombre="' + esc(nombre) + '" aria-label="Borrar">🗑</button></div>';
+
+// Elegir varias sesiones guiadas (en el orden en que se tocan): extras del calentamiento, descanso y partido
+function elegirSesiones(titulo, ruta, ids) {
+  const sel = ids || [], nombres = sel.map((id) => (e().sesiones.find((x) => x.id === id) || {}).nombre).filter(Boolean);
+  return '<details class="ed-sesiones"><summary>' + titulo + ': ' + (nombres.length ? esc(nombres.join(', ')) : 'ninguna') + '</summary><nav class="chips">' +
+    e().sesiones.map((x) => '<button type="button" class="chip' + (sel.includes(x.id) ? ' activo' : '') + '" data-accion="ed-sesiones-lista" data-ruta="' + ruta + '" data-id="' + esc(x.id) + '">' + esc(x.nombre) + '</button>').join('') + '</nav></details>';
+}
 
 // ---------- Hábitos ----------
 function editorHabitos() {
@@ -101,13 +114,18 @@ function editorRutina() {
   return '<nav class="chips">' + rutina.map((x) => '<button type="button" class="chip' + (x.id === diaEd ? ' activo' : '') + '" data-accion="ed-dia" data-id="' + x.id + '">' + esc(x.nombre) + '</button>').join('') +
     '<button type="button" class="chip" data-accion="ed-agregar" data-lista="rutina">＋ Día</button></nav>' +
     '<section class="tarjeta"><b>⚽ Días de fútbol</b><p class="nota-corta">Ese día el plan de comida es "Fútbol" y en Hoy aparece el partido.</p><nav class="chips">' +
-    DIAS.slice(1).map((t, n) => '<button type="button" class="chip' + ((e().config.futbol || []).includes(n + 1) ? ' activo' : '') + '" data-accion="futbol-dia" data-n="' + (n + 1) + '">' + t + '</button>').join('') + '</nav></section>' +
+    DIAS.slice(1).map((t, n) => '<button type="button" class="chip' + ((e().config.futbol || []).includes(n + 1) ? ' activo' : '') + '" data-accion="futbol-dia" data-n="' + (n + 1) + '">' + t + '</button>').join('') + '</nav>' +
+    elegirSesiones('Sesiones del partido', 'config.sesionesPartido', e().config.sesionesPartido) +
+    elegirSesiones('Sesiones de los días de descanso', 'config.sesionesDescanso', e().config.sesionesDescanso) + '</section>' +
     (repetidos.length ? '<p class="aviso">⚠ Hay dos días asignados al mismo día de la semana: se usa el primero.</p>' : '') +
     (!d ? '' : '<section class="tarjeta"><div class="ed-cab"><b>Día</b>' + (d.id === 'core' ? '' : controles('rutina', i, rutina.length, d.nombre)) + '</div>' +
       '<div class="dos">' + campo('Nombre', 'rutina.' + i + '.nombre', d.nombre) +
       (d.id === 'core' ? '<p class="nota-corta">El core se anota al final de cualquier día.</p>' : lista('Día de la semana', 'rutina.' + i + '.diaSemana', d.diaSemana, Object.fromEntries(DIAS.map((t, n) => [n ? String(n) : '', t || 'Sin asignar'])), 'num')) + '</div>' +
-      (d.id === 'core' ? '' : '<div class="dos">' + lista('Calentamiento', 'rutina.' + i + '.calentamiento', d.calentamiento || '', CALENTAMIENTOS) +
-        campo('Cardio', 'rutina.' + i + '.cardio', d.cardio) + '</div>' + campo('Antes de empezar', 'rutina.' + i + '.previo', d.previo, ' placeholder="Ej.: movilidad previa 5-10 min"')) +
+      (d.id === 'core' ? '' : '<div class="dos">' + lista('Calentamiento', 'rutina.' + i + '.calentamiento', d.calentamiento || '', calentamientos()) +
+        campo('Cardio', 'rutina.' + i + '.cardio', d.cardio) + '</div>' +
+        (d.calentamiento ? elegirSesiones('Junto al calentamiento', 'rutina.' + i + '.extras', extrasCalentamiento(d)) : '') +
+        '<div class="dos">' + campo('Antes de empezar', 'rutina.' + i + '.previo', d.previo, ' placeholder="Ej.: movilidad previa 5-10 min"') +
+        lista('Plan de comida', 'rutina.' + i + '.dieta', d.dieta || '', PLANES_DIETA) + '</div>') +
       '</section>' +
       '<datalist id="musculos">' + musculos.map((m) => '<option value="' + esc(m) + '">').join('') + '</datalist>' +
       d.ejercicios.map((ej, j) => {
@@ -115,11 +133,14 @@ function editorRutina() {
         return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (j + 1) + '. ' + esc(ej.nombre) + '</b>' + controles('rutina.' + i + '.ejercicios', j, d.ejercicios.length, ej.nombre) + '</div>' +
           '<div class="dos">' + campo('Ejercicio', r + '.nombre', ej.nombre) + campo('Músculo', r + '.musculo', ej.musculo, ' list="musculos"') + '</div>' +
           '<label class="campo">Series × reps<input type="text" data-cambio="ed-esquema" data-ruta="' + r + '" value="' + esc(esquemaDe(ej)) + '" placeholder="Top 1×4-7 · Back-off 2×8-12"></label>' +
+          '<div class="dos">' + campo('Nota', r + '.nota', ej.nota, ' placeholder="Técnica, máquina, agarre…"') +
+          (rutina.length > 1 ? '<label class="campo">Mover a otro día<select data-cambio="ed-mover-dia" data-dia="' + i + '" data-j="' + j + '"><option value="">—</option>' +
+            rutina.map((x, k) => (k === i ? '' : '<option value="' + k + '">' + esc(x.nombre) + '</option>')).join('') + '</select></label>' : '') + '</div>' +
           '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></section>';
       }).join('') +
       '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="rutina.' + i + '.ejercicios">＋ Ejercicio</button>' +
       '<p class="nota-corta">Series × reps: "3×8-12", "4×10 + fallo", "1×1 min" o con top set y back-off separados por "·". ' +
-      'Los registros quedan en la misma posición: si reordenas, los registros siguen a su ejercicio.</p>');
+      'Si reordenas o mueves un ejercicio a otro día, sus registros se van con él. ⧉ duplica (la copia empieza sin registros).</p>');
 }
 
 // ---------- Sesiones ----------
@@ -147,11 +168,52 @@ function editorSesiones() {
       '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="sesiones.' + i + '.pasos">＋ Ejercicio</button>');
 }
 
+// ---------- Pantallas: orden y qué se ve del menú, de Hoy y de las metas ----------
+const TITULOS_ORDEN = {
+  menu: ['☰ Menú', 'Hoy, Editar y Ajustes siempre se ven.'],
+  hoy: ['🏠 Tarjetas de Hoy', 'Foco y libros van arriba, a lo ancho; las demás en el tablero.'],
+  metas: ['🎯 Metas del día', 'Las escondidas no cuentan en el porcentaje de metas ni en el puntaje.'],
+};
+function editorPantallas() {
+  const c = e().config;
+  return Object.entries(TITULOS_ORDEN).map(([tipo, [titulo, nota]]) => {
+    const ids = enOrden(c, tipo), cat = CATALOGO[tipo];
+    return '<section class="tarjeta"><div class="fila-resumen"><h2>' + titulo + '</h2><button type="button" class="boton secundario" data-accion="orden-restablecer" data-tipo="' + tipo + '">↺ Como venía</button></div>' +
+      '<p class="nota-corta">' + nota + '</p><ul class="lista-orden">' + ids.map((id, i) => {
+        const nombre = Array.isArray(cat[id]) ? cat[id].join(' ') : cat[id], fija = FIJAS[tipo].includes(id), apagado = oculto(c, tipo, id);
+        return '<li' + (apagado ? ' class="apagado"' : '') + '><label class="interruptor"><input type="checkbox" data-cambio="orden-ver" data-tipo="' + tipo + '" data-id="' + id + '"' +
+          (apagado ? '' : ' checked') + (fija ? ' disabled' : '') + '> ' + esc(nombre) + '</label><span class="ed-controles">' +
+          '<button type="button" class="icono" data-accion="orden-mover" data-tipo="' + tipo + '" data-id="' + id + '" data-n="-1" aria-label="Subir ' + esc(nombre) + '"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+          '<button type="button" class="icono" data-accion="orden-mover" data-tipo="' + tipo + '" data-id="' + id + '" data-n="1" aria-label="Bajar ' + esc(nombre) + '"' + (i === ids.length - 1 ? ' disabled' : '') + '>↓</button></span></li>';
+      }).join('') + '</ul></section>';
+  }).join('');
+}
+
 export function vistaEditar() {
-  const tabs = { rutina: '🏋️ Rutina', habitos: '☀️ Hábitos', sesiones: '🧘 Sesiones' };
+  const tabs = { rutina: '🏋️ Rutina', habitos: '☀️ Hábitos', sesiones: '🧘 Sesiones', pantallas: '🧩 Pantallas' };
   return '<h1>Editar</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="ed-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    (pestana === 'habitos' ? editorHabitos() : pestana === 'sesiones' ? editorSesiones() : editorRutina());
+    (pestana === 'habitos' ? editorHabitos() : pestana === 'sesiones' ? editorSesiones() : pestana === 'pantallas' ? editorPantallas() : editorRutina());
+}
+
+// Copia con ids nuevos (los registros del gym van por id de fila: la copia empieza limpia)
+function ejercicioCopia(ej, diaId) {
+  const id = diaId + '-' + uid(), c = JSON.parse(JSON.stringify(ej));
+  return { ...c, id, filas: c.filas.map((f, k) => ({ ...f, id: id + '-' + (k + 1) })) };
+}
+function duplicado(ruta, item) {
+  if (!item) return null;
+  const c = JSON.parse(JSON.stringify(item));
+  if (c.nombre) c.nombre += ' (copia)';
+  if (ruta === 'habitos') c.id = 'h' + uid();
+  else if (ruta === 'rutina') {
+    c.id = 'd' + uid(); c.diaSemana = null; delete c.notaCalentamiento;
+    c.ejercicios = item.ejercicios.map((ej) => ejercicioCopia(ej, c.id));
+    diaEd = c.id;
+  } else if (/\.ejercicios$/.test(ruta)) return { ...ejercicioCopia(item, obtener(ruta.replace(/\.ejercicios$/, '')).id), nombre: c.nombre };
+  else if (ruta === 'sesiones') { c.id = 's' + uid(); sesionEd = c.id; }
+  else if (c.id) c.id = (String(c.id).match(/^[a-z]+/i) || ['x'])[0] + uid();
+  return c;
 }
 
 // Lo que se agrega en cada lista
@@ -185,6 +247,33 @@ function nuevo(listaRuta) {
 
 registrar({
   'ed-pestana'({ p }) { pestana = p; repintar(); },
+  'orden-mover'({ tipo, id, n }) { if (moverOrden(e().config, tipo, id, Number(n))) guardar(); },
+  'orden-ver'({ tipo, id }) { if (alternar(e().config, tipo, id)) guardar(); },
+  'orden-restablecer'({ tipo }) { restablecer(e().config, tipo); guardar(); },
+  'ed-sesiones-lista'({ ruta, id }) {
+    // Las extras de un día que nunca se editó arrancan con las de siempre
+    const dia = /^rutina\.\d+\.extras$/.test(ruta) && obtener(ruta.replace(/\.extras$/, ''));
+    if (dia && !dia.extras) dia.extras = [...extrasCalentamiento(dia)];
+    const partes = ruta.split('.'), k = partes.pop(), padre = obtener(partes.join('.')), arr = (padre[k] ??= []), i = arr.indexOf(id);
+    if (i < 0) arr.push(id); else arr.splice(i, 1);
+    guardar();
+  },
+  'ed-mover-dia'({ dia, j }, el) {
+    if (el.value === '') return;
+    const rutina = e().rutina, de = rutina[Number(dia)], a = rutina[Number(el.value)];
+    if (!de || !a) return;
+    const [ej] = de.ejercicios.splice(Number(j), 1);
+    a.ejercicios.push(ej);
+    diaEd = a.id;
+    toast('"' + ej.nombre + '" ahora está en ' + a.nombre);
+    guardar();
+  },
+  'ed-duplicar'({ lista: ruta, i }) {
+    const arr = obtener(ruta), copia = duplicado(ruta, arr[Number(i)]);
+    if (!copia) return;
+    arr.splice(Number(i) + 1, 0, copia);
+    guardar();
+  },
   // "#editar/habitos" (desde la tarjeta de la mañana)
   'abrir-editar'({ p }) { pestana = p; },
   'ed-idea'({ i, k }) {

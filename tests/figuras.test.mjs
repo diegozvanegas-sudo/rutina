@@ -4,7 +4,7 @@ import { SESIONES } from '../src/datos_iniciales.js';
 import { LIBROS } from '../src/libros/index.js';
 import { POSES, figura, tieneFigura, esFisico, urlVideo, figuraPaso, videoPaso } from '../src/figuras.js';
 
-const pasos = [...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])].flatMap((s) => s.pasos);
+const pasos = [...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])].filter((s) => s.tipo !== 'checklist').flatMap((s) => s.pasos);
 
 test('cada ejercicio de las sesiones tiene su figura', () => {
   const faltan = [...new Set(pasos.map((p) => p.nombre))].filter((n) => !tieneFigura(n));

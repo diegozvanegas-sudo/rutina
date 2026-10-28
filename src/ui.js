@@ -79,7 +79,7 @@ export function toast(msg) {
 }
 
 // Botón que abre una sesión guiada por su id (las que el usuario eligió para el descanso, el partido o el calentamiento)
-const ICONO_SESION = { calentamiento: '🔥', estiramiento: '🧘', fortalecimiento: '🦵', mente: '🧠' };
+const ICONO_SESION = { checklist: '✅', calentamiento: '🔥', estiramiento: '🧘', fortalecimiento: '🦵', mente: '🧠' };
 export function botonSesion(id, clase = 'secundario', texto = '') {
   const s = e().sesiones.find((x) => x.id === id);
   if (!s) return '';

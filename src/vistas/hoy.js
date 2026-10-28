@@ -14,6 +14,8 @@ import { puntajeDia } from '../progreso.js';
 import { tarjetasLibrosHoy } from './libros.js';
 import { tarjetaEstandares } from './vida.js';
 import { tarjetaSuenoPeso, tarjetaPartido, fechaPartidoPendiente, tarjetaFoco } from './registro.js';
+import { tarjetaPlataHoy } from './finanzas.js';
+import { tarjetaCierreHoy } from './sesiones.js';
 
 function saludo() {
   const h = new Date().getHours();
@@ -28,7 +30,7 @@ function partido() {
   return '<section class="tarjeta futbol"><h2>⚽ Fútbol esta noche</h2><ul class="consejos">' +
     ['Comida pre-partido 2-3 h antes: arroz y pollo, poca grasa y poca fibra.', 'Plátano 1 h antes y agua todo el día; si hace calor o juegas más de 60 min, electrolitos.',
       'Calienta 10-12 min antes de jugar, de suave a rápido.', 'Después: cena con proteína y carbos, y estira suave.'].map((t) => '<li>' + t + '</li>').join('') + '</ul>' +
-    sesionesDe(e().config.sesionesPartido, true) + '</section>';
+    sesionesDe(e().config.sesionesPartido, true) + '<div class="botones-rapidos">' + botonSesion('maletin-partido', 'secundario', 'Maletín del partido') + '</div></section>';
 }
 
 function entrenamiento() {
@@ -74,6 +76,8 @@ const TARJETAS = {
   suenoPeso: () => tarjetaSuenoPeso(),
   estandares: () => tarjetaEstandares(),
   dieta: () => '<section class="tarjeta col-dieta"><div class="fila-resumen"><h2>🥗 Comidas</h2><a href="#dieta" class="nota-corta">Ver plan →</a></div>' + tarjetaComidasHoy(true) + '</section>',
+  plata: () => tarjetaPlataHoy(),
+  cierre: () => tarjetaCierreHoy(),
   semana: () => '<section class="tarjeta col-semana"><h2>📅 Semana</h2>' + tarjetaSemana() + '</section>',
 };
 // Foco y libros van arriba, a lo ancho; las demás en el tablero de dos columnas

@@ -131,6 +131,8 @@ export const CARDIO = 'Velocidad 3.5 · inclinación 15 · FC 125-135 (máx 150)
 
 // Pasos de una sesión guiada: por tiempo { seg, lados } o por repeticiones { series, reps, descanso, lados }
 const t = (nombre, musculo, seg, desc, lados = false) => ({ nombre, musculo, seg, lados, desc });
+// Punto de una checklist: con id propio para que la marca del día no cambie al moverlo
+const k = (id, nombre, desc = '') => ({ id, nombre, desc });
 const r = (nombre, musculo, series, reps, desc, lados = false, descanso = 45) => ({ nombre, musculo, series, reps, lados, descanso, desc });
 
 export const SESIONES = [
@@ -232,6 +234,29 @@ export const SESIONES = [
       t('Balanceo de pierna', 'Cadera', 20, 'Adelante y atrás, sostenido de algo o de un compañero.', true),
       t('Zancada lateral', 'Aductores', 30, 'Paso largo al lado bajando la cadera, la otra pierna estirada. Alterna.'),
       r('Sprints progresivos', 'Velocidad', 3, '20-30 m', 'Arranca suave y termina al 80-90 %. Vuelve caminando.', false, 30),
+    ],
+  },
+  // Checklists: se marcan con ✓ y se reinician cada día
+  {
+    id: 'antes-de-salir', nombre: 'Antes de salir', tipo: 'checklist', pasos: [
+      k('llaves', 'Llaves'), k('billetera', 'Billetera y documentos', 'Cédula, licencia y tarjeta.'), k('celular', 'Celular con batería'),
+      k('casco', 'Casco y guantes'), k('agua', 'Botella de agua'), k('luces', 'Luces apagadas y cosas desconectadas'),
+      k('puerta', 'Ventanas cerradas y puerta con llave'),
+    ],
+  },
+  {
+    id: 'maletin-partido', nombre: 'Maletín del partido', tipo: 'checklist', pasos: [
+      k('guayos', 'Guayos'), k('medias', 'Medias y canilleras'), k('uniforme', 'Camiseta y pantaloneta'),
+      k('rodilla', 'Rodillera o vendaje', 'Para cuidar la rodilla.'), k('hidratacion', 'Agua o hidratante', 'Electrolitos si hace calor o juegas más de 60 min.'),
+      k('snack', 'Plátano o snack', 'Para 1 h antes de jugar.'), k('cambio', 'Ropa de cambio y toalla'), k('chanclas', 'Chanclas y desodorante'),
+      k('bolsa', 'Bolsa para la ropa sucia'),
+    ],
+  },
+  {
+    id: 'cierre-noche', nombre: 'Cierre de la noche', tipo: 'checklist', pasos: [
+      k('gastos', 'Anotar los gastos del día', 'En 💰 Finanzas → Registrar.'), k('estandares', 'Marcar mis estándares', 'En 🏠 Hoy.'),
+      k('agenda', 'Revisar lo de mañana'), k('ropa', 'Dejar lista la ropa o el maletín'), k('comida', 'Preparar comida y pastillas de mañana'),
+      k('alarma', 'Alarma puesta'), k('cargar', 'Celular a cargar lejos de la cama'), k('pantallas', 'Pantallas fuera 30 min antes de dormir'),
     ],
   },
 ];

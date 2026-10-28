@@ -17,7 +17,7 @@ const calentamientos = () => ({ '': 'Sin calentamiento', ...Object.fromEntries(e
   .map((s) => [s.id.replace(/^calentamiento-/, ''), s.nombre])) });
 const PLANES_DIETA = { '': 'Automático (pierna → inferior, resto → superior)', inferior: 'Inferior', superior: 'Superior', descanso: 'Descanso' };
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const TIPOS_SESION = { calentamiento: 'Calentamiento', estiramiento: 'Estiramiento', fortalecimiento: 'Fortalecimiento', mente: 'Mente', otro: 'Otro' };
+const TIPOS_SESION = { checklist: 'Checklist (marcar con ✓)', calentamiento: 'Calentamiento', estiramiento: 'Estiramiento', fortalecimiento: 'Fortalecimiento', mente: 'Mente', otro: 'Otro' };
 const FIGURAS = { '': 'Automática (según el nombre)', '-': 'Sin figura', ...Object.fromEntries(OPCIONES_FIGURA.map((k) => [k, k[0].toUpperCase() + k.slice(1)])) };
 
 // Imagen y video de un ejercicio de sesión: figura animada, foto propia o ninguna, y enlace de video
@@ -153,6 +153,11 @@ function editorSesiones() {
     (!s ? '' : '<section class="tarjeta"><div class="ed-cab"><b>Sesión</b>' + controles('sesiones', i, ss.length, s.nombre) + '</div>' +
       '<div class="dos">' + campo('Nombre', 'sesiones.' + i + '.nombre', s.nombre) + lista('Tipo', 'sesiones.' + i + '.tipo', s.tipo, TIPOS_SESION) + '</div>' +
       (/^calentamiento-/.test(s.id) ? '<p class="nota-corta">Se abre desde los días con calentamiento "' + esc(s.id.replace('calentamiento-', '')) + '".</p>' : '') + '</section>' +
+      (s.tipo === 'checklist' ? '<p class="nota-corta">Cada punto se marca con ✓ en 🧘 Sesiones y la lista se reinicia cada día.</p>' + s.pasos.map((p, j) => {
+        const r = 'sesiones.' + i + '.pasos.' + j;
+        return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (j + 1) + '. ' + esc(p.nombre) + '</b>' + controles('sesiones.' + i + '.pasos', j, s.pasos.length, p.nombre) + '</div>' +
+          '<div class="dos">' + campo('Punto', r + '.nombre', p.nombre) + campo('Nota (opcional)', r + '.desc', p.desc) + '</div></section>';
+      }).join('') + '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="sesiones.' + i + '.pasos">＋ Punto</button>' :
       s.pasos.map((p, j) => {
         const r = 'sesiones.' + i + '.pasos.' + j, porReps = !!p.reps;
         return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (j + 1) + '. ' + esc(p.nombre) + '</b>' + controles('sesiones.' + i + '.pasos', j, s.pasos.length, p.nombre) + '</div>' +
@@ -165,7 +170,7 @@ function editorSesiones() {
           '<label class="campo">Descripción<textarea rows="2" data-cambio="ed" data-ruta="' + r + '.desc">' + esc(p.desc || '') + '</textarea></label>' +
           mediosPaso(p, r) + '</section>';
       }).join('') +
-      '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="sesiones.' + i + '.pasos">＋ Ejercicio</button>');
+      '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="sesiones.' + i + '.pasos">＋ Ejercicio</button>'));
 }
 
 // ---------- Pantallas: orden y qué se ve del menú, de Hoy y de las metas ----------
@@ -233,7 +238,10 @@ function nuevo(listaRuta) {
     const dia = obtener(listaRuta.replace(/\.ejercicios$/, '')), id = dia.id + '-' + uid();
     return { id, nombre: 'Nuevo ejercicio', musculo: '', nota: '', filas: filasDeEsquema('3×8-12').map((f, k) => ({ ...f, id: id + '-' + (k + 1) })) };
   }
-  if (/\.pasos$/.test(listaRuta)) return { nombre: 'Nuevo ejercicio', musculo: '', seg: 30, lados: false, desc: '' };
+  if (/\.pasos$/.test(listaRuta)) {
+    if (obtener(listaRuta.replace(/\.pasos$/, '')).tipo === 'checklist') return { id: 'k' + uid(), nombre: 'Nuevo punto', desc: '' };
+    return { nombre: 'Nuevo ejercicio', musculo: '', seg: 30, lados: false, desc: '' };
+  }
   // Dieta
   if (/\.comidas$/.test(listaRuta)) return { nombre: 'Nueva comida', items: [] };
   if (listaRuta === 'dieta.alimentos') return { id: 'a' + uid(), nombre: 'Nuevo alimento', por: 'g', p: 0, g: 0, c: 0, kcal: 0, grupo: 'otro' };

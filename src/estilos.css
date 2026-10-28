@@ -134,6 +134,10 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .sticky-resumen { margin-top: 4px; }
 .ejercicio header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
 .musculo { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.ejercicio header h3 { flex: 1; }
+.mover-ej { display: flex; gap: 4px; align-self: center; }
+.mover-ej .icono { min-width: 36px; min-height: 36px; font-size: 16px; background: var(--surface-2); border: 1px solid var(--line); }
+.mover-ej .icono:disabled { opacity: .35; cursor: default; }
 .fila-ej { border-left: 5px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px; margin-bottom: 8px; display: grid; gap: 8px; }
 .fila-ej.c-falta { border-left-color: var(--amarillo); }
 .fila-ej.c-completo { border-left-color: var(--verde); }

@@ -117,8 +117,18 @@ function fila(f, sem, clave = f.id, ej = null, i = 0) {
     '</div>';
 }
 
+// ↑ ↓ en la tarjeta: cambia el orden del día en la rutina (misma acción que en Editar)
+function moverEj(ej) {
+  const d = e().rutina.find((x) => x.ejercicios.includes(ej)), i = d.ejercicios.indexOf(ej), n = d.ejercicios.length;
+  if (n < 2) return '';
+  const lista = 'rutina.' + e().rutina.indexOf(d) + '.ejercicios';
+  return '<span class="mover-ej">' +
+    '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + lista + '" data-i="' + i + '" data-n="-1" aria-label="Subir ' + esc(ej.nombre) + '"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
+    '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + lista + '" data-i="' + i + '" data-n="1" aria-label="Bajar ' + esc(ej.nombre) + '"' + (i === n - 1 ? ' disabled' : '') + '>↓</button></span>';
+}
+
 function ejercicio(ej, sem, sufijo = '') {
-  return '<article class="tarjeta ejercicio"><header><h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span></header>' +
+  return '<article class="tarjeta ejercicio"><header><h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + '</header>' +
     ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i)).join('') +
     historialEj(ej, sem) +
     '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details>' +

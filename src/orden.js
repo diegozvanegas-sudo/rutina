@@ -3,7 +3,7 @@
 // de la app y aún no esté en la lista del usuario aparece al final, visible.
 
 export const SECCIONES = {
-  hoy: ['🏠', 'Hoy'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], libros: ['📚', 'Libros'],
+  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], libros: ['📚', 'Libros'],
   dieta: ['🥗', 'Dieta'], finanzas: ['💰', 'Finanzas'], recordatorios: ['🔔', 'Recordatorios'], gym: ['🏋️', 'Gym'],
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };

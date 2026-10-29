@@ -526,3 +526,28 @@ a.kpi small span { color: var(--brand); }
 .foco-hoy small { color: var(--brand); font-weight: 700; }
 .foco-hoy b { font-size: 18px; }
 .cierre textarea, .cierre select { width: 100%; }
+
+/* ---------- Calendario ---------- */
+.cal-cab { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cal-cab h2 { margin: 0; text-align: center; flex: 1; }
+.cal-cab .icono { background: var(--surface-2); border: 1px solid var(--line); font-size: 24px; }
+.cal-hoy { display: block; margin: 8px auto 0; }
+.cal-rejilla { display: grid; gap: 4px; margin-top: 12px; }
+.cal-sem { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-sem > span { text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); }
+.cal-dia { min-height: 52px; padding: 4px 2px; display: grid; grid-template-rows: auto 1fr; justify-items: center; gap: 2px; border-radius: 10px;
+  border: 1px solid transparent; background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; min-width: 0; }
+.cal-num { font-weight: 700; font-size: 15px; }
+.cal-marcas { font-size: 11px; line-height: 1.1; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1px; }
+.cal-dia.fuera { opacity: .4; }
+.cal-dia.festivo .cal-num, .cal-leyenda .rojo { color: var(--rojo); }
+.cal-dia.hoy { border-color: var(--brand); }
+.cal-dia.hoy .cal-num { color: var(--brand); }
+.cal-dia.elegido { background: var(--brand-soft); border-color: var(--brand); }
+.cal-gym { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--azul); }
+.cal-leyenda { margin-top: 10px; }
+.cal-festivo { color: var(--rojo); }
+.cal-detalle p { margin: 8px 0; }
+.cal-explica ul { padding-left: 20px; }
+.cal-explica details { margin: 8px 0; }
+.cal-explica summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }

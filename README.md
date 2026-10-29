@@ -13,6 +13,10 @@ npm run build     # versión para publicar en dist/
 ## Pantallas
 - **Hoy**: tablero con la mañana, las metas, el entrenamiento que toca (con calentamiento) y la semana. Los días de fútbol
   (mié y vie de noche, se cambian en Editar) muestran el partido: qué comer y cuándo, calentamiento fútbol y estirar después.
+- **Calendario**: mes gregoriano de lunes a domingo con los festivos de Colombia (Ley Emiliani, Pascua calculada), las fases reales
+  de la luna con su hora, los equinoccios y solsticios, y el gym y el fútbol de cada día. Al tocar un día: luna (% iluminada), día del
+  año, semana ISO y día juliano. Explica qué calendario rige el mundo y por qué el de 13 lunas de 28 días no sigue a la luna.
+  Los cálculos (`src/calendario.js`, algoritmos de Meeus) van sin internet y `tests/calendario.test.mjs` los compara con los eclipses de 2026.
 - **Progreso**: tablero con gráficos (7, 30 o 90 días): indicadores, constancia de 12 semanas, puntaje por día, peso con la meta,
   series del gym por semana, metas cumplidas, ingresos y gastos por mes y gasto por categoría. Incluye el **puntaje del día** (0–100:
   mañana, metas, gym si toca y dieta) y una **revisión semanal** automática con lo que mejoró y lo que falta.

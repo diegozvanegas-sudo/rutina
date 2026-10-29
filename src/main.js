@@ -18,6 +18,7 @@ import { vistaFinanzas } from './vistas/finanzas.js';
 import { vistaRecordatorios, alertas } from './vistas/recordatorios.js';
 import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
+import { vistaCalendario } from './vistas/calendario.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
@@ -31,7 +32,7 @@ iniciarHoja();
 iniciarAvisos();
 
 const PANTALLAS = {
-  hoy: vistaHoy, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, libros: vistaLibros, dieta: vistaDieta, finanzas: vistaFinanzas,
+  hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, libros: vistaLibros, dieta: vistaDieta, finanzas: vistaFinanzas,
   recordatorios: vistaRecordatorios, gym: vistaGym, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)

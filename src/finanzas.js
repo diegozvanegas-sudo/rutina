@@ -36,6 +36,11 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 // Efecto en el saldo de las deudas: una compra con tarjeta lo sube (cargo); una cuota lo baja (abono). signo −1 deshace.
 // Sin tope en 0 para que deshacer deje todo igual: un saldo negativo es plata a favor en la tarjeta.
 function aplicar(fin, m, signo) {
+  if (m.prestamo) {
+    const p = (fin.prestamos || []).find((x) => x.id === m.prestamo);
+    if (p) p.monto = Math.round((p.monto || 0) - signo * (m.abono || 0));
+    return;
+  }
   const d = fin.deudas.find((x) => x.id === (m.cargo || m.deuda));
   if (!d) return;
   if (m.cargo) d.saldo = Math.round((d.saldo || 0) + signo * m.monto);
@@ -78,6 +83,19 @@ export function pagoDeuda(fin, d, monto = d.cuota, hoy = iso()) {
   return agregarMovimiento(fin, { tipo, monto, interes, abono, categoria: 'deudas', metodo: 'transferencia', nota: 'Cuota ' + d.nombre, fijo: 'deuda:' + d.id, deuda: d.id }, hoy);
 }
 
+// ---------- Plata prestada (me deben) ----------
+export const interesPrestamo = (p) => Math.round(Math.max(0, p.monto || 0) * ((p.tasa || 0) / 100));
+export const estadoCobro = (fin, p, hoy = iso()) => estadoFijo(fin, { id: 'prestamo:' + p.id, dia: p.dia }, hoy);
+export const interesesCobrados = (fin, id) => fin.movimientos.filter((m) => m.prestamo === id).reduce((s, m) => s + (m.interes || 0), 0);
+// Lo que te pagan: primero el interés del mes que falte (eso es ingreso); lo demás baja lo que te deben (vuelve a tus cuentas, no es ingreso).
+// soloCapital: cuando te devuelven lo prestado sin intereses.
+export function cobroPrestamo(fin, p, monto, hoy = iso(), soloCapital = false) {
+  const yaMes = fin.movimientos.filter((m) => m.prestamo === p.id && mesDe(m.fecha) === mesDe(hoy)).reduce((s, m) => s + (m.interes || 0), 0);
+  const falta = soloCapital ? 0 : Math.max(0, interesPrestamo(p) - yaMes);
+  const abono = Math.min(Math.max(0, p.monto || 0), Math.max(0, monto - falta)), interes = monto - abono;
+  return agregarMovimiento(fin, { tipo: 'cobro', monto, interes, abono, metodo: p.metodo || 'transferencia', nota: p.nombre, fijo: 'prestamo:' + p.id, prestamo: p.id }, hoy);
+}
+
 // ---------- Resumen del mes ----------
 export function resumenMes(fin, mes, hoy = iso()) {
   const movs = fin.movimientos.filter((m) => mesDe(m.fecha) === mes);
@@ -85,6 +103,7 @@ export function resumenMes(fin, mes, hoy = iso()) {
   const r = { ingresos: 0, gastos: 0, ahorro: 0, gastosFijos: 0, pagosTarjeta: 0, porCategoria: {}, porMetodo: {}, porGrupo: { necesidad: 0, deseo: 0 }, movs };
   for (const m of movs) {
     if (m.tipo === 'ingreso') { r.ingresos += m.monto; continue; }
+    if (m.tipo === 'cobro') { r.ingresos += m.interes || 0; continue; } // de lo que te pagan, solo el interés es ingreso
     if (m.tipo === 'ahorro') r.ahorro += m.monto;
     else if (m.tipo === 'retiro') { r.ahorro -= m.monto; continue; } // sacar plata de una meta de ahorro
     else {
@@ -198,13 +217,14 @@ export function saldoCuenta(fin, metodo) {
   if (!a) return null;
   const despues = (m) => m.fecha > a.fecha || (m.fecha === a.fecha && (m.creado || 0) > a.ts);
   return fin.movimientos.filter((m) => m.metodo === metodo.id && despues(m)).reduce((s, m) =>
-    s + (m.tipo === 'ingreso' || m.tipo === 'retiro' ? m.monto : -m.monto), a.monto);
+    s + (['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? m.monto : -m.monto), a.monto);
 }
 export function patrimonio(fin) {
   const ahorro = fin.metas.reduce((s, m) => s + aportado(fin, m.id), 0);
   const cuentas = fin.metodos.filter((m) => !esCredito(fin, m.id)).reduce((s, m) => s + (saldoCuenta(fin, m) || 0), 0);
   const deudas = fin.deudas.reduce((s, d) => s + Math.max(0, d.saldo || 0), 0);
-  return { ahorro, cuentas, deudas, neto: ahorro + cuentas - deudas };
+  const porCobrar = (fin.prestamos || []).filter((p) => !p.saldado).reduce((s, p) => s + Math.max(0, p.monto || 0), 0);
+  return { ahorro, cuentas, porCobrar, deudas, neto: ahorro + cuentas + porCobrar - deudas };
 }
 // Foto del patrimonio del mes (la última del mes queda como su cierre), para ver cómo cambia
 export function anotarPatrimonio(fin, hoy = iso()) {
@@ -263,7 +283,7 @@ export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
   return res;
 }
 
-// Recordatorios que salen solos de Finanzas: pagos fijos y cuotas de deudas sin pagar este mes
+// Recordatorios que salen solos de Finanzas: pagos fijos, cuotas de deudas e intereses por cobrar de este mes
 export function recordatoriosAutomaticos(fin, hoy = iso()) {
   const lista = [];
   for (const f of fin.fijos) {
@@ -275,6 +295,11 @@ export function recordatoriosAutomaticos(fin, hoy = iso()) {
     if (!(d.saldo > 0) || !d.dia) continue;
     const s = estadoDeuda(fin, d, hoy);
     if (s.estado !== 'pagado') lista.push({ tipo: 'deuda', id: d.id, nombre: 'Cuota ' + d.nombre, monto: d.cuota, ...s });
+  }
+  for (const p of fin.prestamos || []) {
+    if (p.saldado || !(p.monto > 0) || !p.tasa || !p.dia) continue;
+    const s = estadoCobro(fin, p, hoy);
+    if (s.estado !== 'pagado') lista.push({ tipo: 'cobro', id: p.id, nombre: 'Cobrar intereses: ' + p.nombre, monto: interesPrestamo(p), ...s });
   }
   return lista.sort((a, b) => a.fecha.localeCompare(b.fecha));
 }

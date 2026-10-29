@@ -69,6 +69,7 @@ export function cargar() {
   if (!estado.futbolV1) { rutinaFutbol(estado); estado.futbolV1 = true; }
   if (!estado.piernasV2) { piernasCbum(estado); estado.piernasV2 = true; }
   if (!estado.finanzas) estado.finanzas = FINANZAS();
+  estado.finanzas.prestamos ??= [];
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
   estado.libros ??= {};
   if (estado.fenix) moverFenix(estado);

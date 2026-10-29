@@ -4,7 +4,7 @@ import { FINANZAS, PLANTILLAS_RECORDATORIO } from '../src/datos_finanzas.js';
 import {
   leerMonto, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, mesesParaPagar, sumarMeses,
   estadoRecordatorio, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
-  planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar,
+  planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar, cobroPrestamo, interesPrestamo, estadoCobro,
 } from '../src/finanzas.js';
 
 const mov = (fecha, tipo, monto, extra = {}) => ({ id: fecha + tipo + monto, fecha, tipo, monto, metodo: 'efectivo', ...extra });
@@ -134,9 +134,9 @@ test('meta con fecha, simulador de deuda, cuentas, patrimonio, deseos y suscripc
     mov('2026-10-12', 'gasto', 40000, { metodo: 'nequi', categoria: 'comida' }), mov('2026-10-15', 'ingreso', 100000, { metodo: 'nequi', categoria: 'extra' }));
   assert.equal(saldoCuenta(fin, nequi), 360000);
   fin.deudas.push({ id: 'd', nombre: 'Préstamo', saldo: 200000 });
-  assert.deepEqual(patrimonio(fin), { ahorro: 600000, cuentas: 360000, deudas: 200000, neto: 760000 });
+  assert.deepEqual(patrimonio(fin), { ahorro: 600000, cuentas: 360000, porCobrar: 0, deudas: 200000, neto: 760000 });
   anotarPatrimonio(fin, '2026-10-28');
-  assert.deepEqual(fin.historial['2026-10'], { ahorro: 600000, cuentas: 360000, deudas: 200000 });
+  assert.deepEqual(fin.historial['2026-10'], { ahorro: 600000, cuentas: 360000, porCobrar: 0, deudas: 200000 });
 
   const d = deseosDelMes(fin, '2026-10-28');
   assert.deepEqual([d.tope, d.gastado, d.quedan, d.dias], [30000, 90000, -60000, 4]); // 30 % de 100.000 menos 90.000 en comida fuera
@@ -148,4 +148,30 @@ test('meta con fecha, simulador de deuda, cuentas, patrimonio, deseos y suscripc
   fin.fijos[0].revisado = '2026-10-01';
   assert.equal(fijosPorRevisar(fin, '2026-10-28').length, 0);
   assert.equal(fijosPorRevisar(fin, '2027-01-02').length, 1);
+});
+
+test('plata prestada: el interés es ingreso, el abono baja lo que te deben y vuelve a la cuenta', () => {
+  const fin = FINANZAS();
+  const p = { id: 'a', nombre: 'Andrés', monto: 3500000, tasa: 5, dia: 5, metodo: 'nequi' };
+  fin.prestamos.push(p);
+  assert.equal(interesPrestamo(p), 175000);
+  assert.equal(patrimonio(fin).porCobrar, 3500000);
+  assert.deepEqual(recordatoriosAutomaticos(fin, '2026-11-03').map((r) => [r.tipo, r.monto, r.estado]), [['cobro', 175000, 'pronto']]);
+
+  // Paga el interés y abona 500.000
+  const m = cobroPrestamo(fin, p, 675000, '2026-11-05');
+  assert.deepEqual([m.interes, m.abono, p.monto], [175000, 500000, 3000000]);
+  assert.equal(resumenMes(fin, '2026-11', '2026-11-05').ingresos, 175000);
+  assert.equal(estadoCobro(fin, p, '2026-11-06').estado, 'pagado');
+  assert.equal(recordatoriosAutomaticos(fin, '2026-11-06').length, 0);
+  // El mismo mes ya no se cobra interés otra vez: todo es abono
+  assert.equal(cobroPrestamo(fin, p, 100000, '2026-11-20').abono, 100000);
+  const nequi = fin.metodos.find((x) => x.id === 'nequi');
+  nequi.ajuste = { monto: 0, fecha: '2026-11-01', ts: 0 };
+  assert.equal(saldoCuenta(fin, nequi), 775000);
+  // Borrar el cobro devuelve lo que te debía
+  quitarMovimiento(fin, m.id);
+  assert.equal(p.monto, 3400000);
+  // Devolución sin intereses
+  assert.deepEqual([cobroPrestamo(fin, p, 3400000, '2026-12-01', true).interes, p.monto], [0, 0]);
 });

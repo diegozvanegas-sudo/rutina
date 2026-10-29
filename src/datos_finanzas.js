@@ -41,6 +41,7 @@ export const FINANZAS = () => ({
   fijos: [],         // { id, nombre, monto, categoria, metodo, dia }  pagos de cada mes
   metas: [{ id: 'emergencia', nombre: 'Fondo de emergencia', icono: '🛟', objetivo: 0, meses: 6 }],  // objetivo 0 = 6 meses de gastos
   deudas: [],        // { id, nombre, saldo, tasa (% mensual), cuota, dia }
+  prestamos: [],     // { id, nombre, monto (lo que te deben), tasa (% mensual), dia (de cobro), limite?, nota, saldado? }  plata que prestaste
 });
 
 // Plantillas para agregar recordatorios con un toque. cadaKm / cadaMeses: lo que pase primero.

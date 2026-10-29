@@ -331,7 +331,7 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .mov-txt small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mov-monto { font-weight: 800; font-variant-numeric: tabular-nums; }
 .t-gasto .mov-monto { color: var(--rojo); }
-.t-ingreso .mov-monto, .t-retiro .mov-monto { color: var(--verde); }
+.t-ingreso .mov-monto, .t-retiro .mov-monto, .t-cobro .mov-monto { color: var(--verde); }
 .t-ahorro .mov-monto { color: var(--azul); }
 .dia-mov { font-size: 13px; color: var(--muted); text-transform: capitalize; margin: 10px 0 2px; }
 .verde { color: var(--verde); } .rojo { color: var(--rojo); } .azul { color: var(--azul); } .amarillo { color: var(--amarillo); }

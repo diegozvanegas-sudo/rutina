@@ -1,11 +1,11 @@
 // Finanzas: registrar y corregir gastos e ingresos (con método de pago), resumen del mes, patrimonio y cuentas, presupuesto 50/30/20,
-// pagos e ingresos fijos, metas de ahorro (fondo de emergencia) y deudas (las tarjetas vinculadas suben con cada compra)
+// pagos e ingresos fijos, metas de ahorro (fondo de emergencia), deudas (las tarjetas vinculadas suben con cada compra) y plata prestada
 import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta, fechaLarga, sumarDias } from '../fechas.js';
 import {
   mesDe, sumarMeses, pesos, leerMonto, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, planPago, planMeta,
   agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, tarjetaDe, saldoCuenta, patrimonio, anotarPatrimonio,
-  deseosDelMes, fijosPorRevisar, DIAS_REVISION,
+  deseosDelMes, fijosPorRevisar, DIAS_REVISION, interesPrestamo, estadoCobro, interesesCobrados, cobroPrestamo,
 } from '../finanzas.js';
 import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
 import { esc, barra, registrar, toast, subirBajar, miles } from '../ui.js';
@@ -44,9 +44,10 @@ export function nuevoMovimiento(m) { agregarMovimiento(f(), m); }
 // Se pueden corregir gastos, ingresos y aportes; las cuotas de deudas y los retiros se borran y se registran de nuevo
 const editable = (m) => ['gasto', 'ingreso', 'ahorro'].includes(m.tipo) && !m.deuda;
 function filaMovimiento(m) {
-  const c = m.tipo === 'ahorro' || m.tipo === 'retiro' ? { icono: '🐷', nombre: (f().metas.find((x) => x.id === m.meta) || {}).nombre || 'Ahorro' } : cat(m.tipo, m.categoria);
-  const signo = m.tipo === 'ingreso' || m.tipo === 'retiro' ? '+' : '−';
-  const detalle = [m.nota, metodo(m.metodo).nombre, m.tipo === 'pago-tarjeta' && m.interes ? 'intereses ' + pesos(m.interes) : ''].filter(Boolean).join(' · ');
+  const c = m.tipo === 'ahorro' || m.tipo === 'retiro' ? { icono: '🐷', nombre: (f().metas.find((x) => x.id === m.meta) || {}).nombre || 'Ahorro' }
+    : m.tipo === 'cobro' ? { icono: '🤝', nombre: 'Me pagaron' } : cat(m.tipo, m.categoria);
+  const signo = ['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? '+' : '−';
+  const detalle = [m.nota, metodo(m.metodo).nombre, (m.tipo === 'pago-tarjeta' || m.tipo === 'cobro') && m.interes ? 'intereses ' + pesos(m.interes) : ''].filter(Boolean).join(' · ');
   return '<li class="mov t-' + m.tipo + (editable(m) ? ' editable" data-accion="fin-editar-mov" data-id="' + m.id + '" title="Tocar para corregir' : '') + '"><span class="mov-ic">' + c.icono + '</span><span class="mov-txt"><b>' + esc(c.nombre) + '</b><small>' +
     esc(detalle) + '</small></span><span class="mov-monto">' + signo + ' ' + pesos(m.monto) + '</span>' +
     '<button type="button" class="icono borrar" data-accion="fin-borrar-mov" data-id="' + m.id + '" aria-label="Borrar movimiento">✕</button></li>';
@@ -143,14 +144,15 @@ function vistaResumen() {
   // Neto de cada mes: la foto guardada (la del mes en curso, en vivo)
   const puntos = meses.map((m) => {
     const h = m === mesDe(hoy) ? p : historial[m];
-    const v = h ? h.ahorro + h.cuentas - h.deudas : null;
+    const v = h ? h.ahorro + h.cuentas + (h.porCobrar || 0) - h.deudas : null;
     return { etiqueta: corto(m), v, tip: corto(m) + ': ' + (v == null ? 'sin datos' : pesos(v)) };
   });
   const res = meses.map((m) => [m, resumenMes(f(), m)]);
   const hayMeses = res.some(([, r]) => r.ingresos || r.gastos);
   return '<section class="tarjeta"><div class="fila-resumen"><h2>Patrimonio neto</h2><b class="' + (p.neto >= 0 ? 'verde' : 'rojo') + '">' + pesos(p.neto) + '</b></div>' +
-    '<p class="nota-corta">Lo que tienes (ahorros y cuentas) menos lo que debes. Que suba mes a mes es la señal de que vas bien.</p>' +
+    '<p class="nota-corta">Lo que tienes (ahorros, cuentas y lo que te deben) menos lo que debes. Que suba mes a mes es la señal de que vas bien.</p>' +
     '<div class="datos-peso"><div><small>Ahorrado</small><b class="azul">' + pesos(p.ahorro) + '</b></div><div><small>En cuentas</small><b>' + pesos(p.cuentas) + '</b></div>' +
+    (p.porCobrar ? '<div><small>Te deben</small><b>' + pesos(p.porCobrar) + '</b></div>' : '') +
     '<div><small>Deudas</small><b class="rojo">' + pesos(p.deudas) + '</b></div></div>' +
     (puntos.filter((x) => x.v != null).length > 1 ? linea(puntos, { formato: millones, margenEje: Math.max(1, Math.abs(p.neto) * 0.05) }) : '<p class="nota-corta">El gráfico aparece desde el segundo mes.</p>') + '</section>' +
     '<section class="tarjeta"><h2>Cuentas</h2><p class="nota-corta">Anota cuánto hay hoy en cada una (míralo en el banco o la billetera). Desde ahí la app suma y resta lo que registres con ese método. Si no cuadra, vuelve a ajustar.</p>' +
@@ -280,11 +282,46 @@ function vistaDeudas() {
     }).join('') + '<button type="button" class="boton secundario grande ancho" data-accion="ed-agregar" data-lista="finanzas.deudas">＋ Deuda o tarjeta</button>';
 }
 
+// ---------- Me deben ----------
+const ESTADOS_COBRO = { pagado: '✓ Cobrado', pronto: 'Pronto', vencido: 'Sin pagar', pendiente: 'Pendiente' };
+function tarjetaPrestamo(p, i) {
+  const r = 'finanzas.prestamos.' + i, monto = p.monto || 0, int = interesPrestamo(p), cobrado = interesesCobrados(f(), p.id);
+  const s = monto > 0 && p.tasa && p.dia ? estadoCobro(f(), p) : null, nuevo = p.nombre === 'Nuevo préstamo' && !monto;
+  return '<section class="tarjeta ed-item"><div class="ed-cab"><b>🤝 ' + esc(p.nombre) + '</b>' + (s ? '<span class="estado e-' + s.estado + '">' + ESTADOS_COBRO[s.estado] + '</span>' : '') + '</div>' +
+    (monto > 0 ? '<div class="datos-peso"><div><small>Te debe</small><b>' + pesos(monto) + '</b></div>' +
+      (p.tasa ? '<div><small>Interés al mes (' + p.tasa + ' %)</small><b class="verde">' + pesos(int) + '</b>' + (p.dia ? '<small>el día ' + p.dia + '</small>' : '') + '</div>' : '') +
+      (cobrado ? '<div><small>Te ha pagado de intereses</small><b>' + pesos(cobrado) + '</b></div>' : '') + '</div>'
+      : '<p class="nota-corta">Pendiente' + (nuevo ? '' : ' sin monto') + '. Si sabes cuánto es, ponlo en Editar.</p>') +
+    (p.nota ? '<p class="nota-corta">' + esc(p.nota) + '</p>' : '') +
+    (p.limite ? '<p class="' + (p.limite < iso() ? 'aviso' : 'nota-corta') + '">Quedó de pagarte el ' + fechaCorta(p.limite) + (p.limite < iso() ? ' y ya pasó: recuérdale.' : '.') + '</p>' : '') +
+    (monto > 0 ? '<div class="aportar dos-col"><input type="text" inputmode="numeric" placeholder="' + (int ? miles(int) : '$ 0') + '" aria-label="Cuánto te pagó" data-cobro="' + p.id + '">' +
+      '<button type="button" class="boton primario" data-accion="fin-cobrar" data-id="' + p.id + '">Me pagó</button></div>' +
+      '<p class="nota-corta">' + (int ? 'Vacío = el interés del mes (' + pesos(int) + '). ' : '') + 'Primero cuenta como interés (eso es ingreso); lo demás baja lo que te debe.</p>' : '') +
+    '<button type="button" class="boton secundario ancho" data-accion="fin-saldar" data-id="' + p.id + '">✓ Ya me pagó todo</button>' +
+    '<details' + (nuevo ? ' open' : '') + '><summary>Editar</summary><div class="dos">' + campoTexto('Quién o qué', r + '.nombre', p.nombre) + campoPesos('Te debe', r + '.monto', p.monto) +
+    campoNumero('Interés % mensual', r + '.tasa', p.tasa, '0.1') + campoNumero('Día de cobro', r + '.dia', p.dia) +
+    '<label class="campo">Quedó de pagarte (opcional)<input type="date" data-cambio="ed" data-ruta="' + r + '.limite" value="' + esc(p.limite || '') + '"></label>' +
+    selector('Te paga a', r + '.metodo', p.metodo || 'transferencia', cuentas()) + '</div>' + campoTexto('Nota', r + '.nota', p.nota) +
+    borrar('finanzas.prestamos', i, p.nombre) + '</details></section>';
+}
+function vistaPrestamos() {
+  const todos = f().prestamos.map((p, i) => ({ p, i })), activos = todos.filter(({ p }) => !p.saldado), saldados = todos.filter(({ p }) => p.saldado);
+  const total = activos.reduce((s, { p }) => s + Math.max(0, p.monto || 0), 0), alMes = activos.reduce((s, { p }) => s + interesPrestamo(p), 0);
+  return '<section class="tarjeta"><div class="fila-resumen"><h2>Te deben</h2><b>' + pesos(total) + '</b></div>' +
+    (alMes ? '<p>Intereses al mes: <b class="verde">' + pesos(alMes) + '</b></p>' : '') +
+    '<p class="nota-corta">Plata que prestaste y cosas pendientes (la moto, la natillera…). El día de cobro sale en Recordatorios. Lo que te deben suma en tu patrimonio.</p></section>' +
+    activos.map(({ p, i }) => tarjetaPrestamo(p, i)).join('') +
+    '<button type="button" class="boton secundario grande ancho" data-accion="ed-agregar" data-lista="finanzas.prestamos">＋ Préstamo o pendiente</button>' +
+    (saldados.length ? '<details class="tarjeta"><summary>Ya saldados (' + saldados.length + ')</summary><ul class="lista-pesos">' + saldados.map(({ p, i }) =>
+      '<li><span>' + esc(p.nombre) + ' <small>· ' + fechaCorta(p.saldado) + '</small></span><span><button type="button" class="boton secundario" data-accion="fin-reabrir" data-id="' + p.id + '">Reabrir</button>' +
+      borrar('finanzas.prestamos', i, p.nombre) + '</span></li>').join('') + '</ul></details>' : '');
+}
+
 export function vistaFinanzas() {
-  const tabs = { registrar: '➕ Registrar', mes: '📊 Mes', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', esperas: '⏳ 72 h' };
+  const tabs = { registrar: '➕ Registrar', mes: '📊 Mes', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h' };
   return '<h1>Finanzas</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="fin-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    ({ mes: vistaMes, resumen: vistaResumen, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas, esperas: vistaEsperas }[pestana] || vistaRegistrar)();
+    ({ mes: vistaMes, resumen: vistaResumen, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas, prestamos: vistaPrestamos, esperas: vistaEsperas }[pestana] || vistaRegistrar)();
 }
 
 // ---------- Hoy: lo que queda para deseos ----------
@@ -315,6 +352,18 @@ export function pagarDeuda(id, monto) {
   const m = pagoDeuda(f(), d, monto);
   listo();
   toast(d.saldo > 0 ? 'Pago registrado · saldo ' + pesos(d.saldo) + (m.interes ? ' (' + pesos(m.interes) + ' fueron intereses)' : '') : '🎉 ¡' + d.nombre + ' pagada!');
+}
+
+export function cobrarPrestamo(id, monto) {
+  const p = f().prestamos.find((y) => y.id === id);
+  if (!p) return;
+  monto ||= interesPrestamo(p);
+  if (!monto) { toast('Escribe cuánto te pagó'); return; }
+  if (!confirm('¿' + p.nombre + ' te pagó ' + pesos(monto) + '?')) return;
+  const m = cobroPrestamo(f(), p, monto);
+  if (!(p.monto > 0) && m.abono) p.saldado = iso();
+  listo();
+  toast(p.saldado ? '🎉 ' + p.nombre + ': ¡saldado!' : '✓ Cobrado' + (m.interes ? ' · ' + pesos(m.interes) + ' de intereses' : '') + (m.abono ? ' · te debe ' + pesos(p.monto) : ''));
 }
 
 function moverAhorro(id, tipo) {
@@ -377,6 +426,22 @@ registrar({
   'fin-pagar-deuda'({ id }) {
     const campo = document.querySelector('[data-pago="' + id + '"]');
     pagarDeuda(id, campo ? leerMonto(campo.value) : 0);
+  },
+  'fin-cobrar'({ id }) {
+    const campo = document.querySelector('[data-cobro="' + id + '"]');
+    cobrarPrestamo(id, campo ? leerMonto(campo.value) : 0);
+  },
+  'fin-saldar'({ id }) {
+    const p = f().prestamos.find((y) => y.id === id), monto = Math.max(0, (p && p.monto) || 0);
+    if (!p || !confirm(monto ? '¿' + p.nombre + ' te devolvió los ' + pesos(monto) + ' que faltaban?' : '¿Ya quedó saldado ' + p.nombre + '?')) return;
+    if (monto) cobroPrestamo(f(), p, monto, iso(), true);
+    p.saldado = iso();
+    listo();
+    toast('🎉 ' + p.nombre + ': ¡saldado!');
+  },
+  'fin-reabrir'({ id }) {
+    const p = f().prestamos.find((y) => y.id === id);
+    if (p) { delete p.saldado; guardar(); }
   },
   'fin-simular'({ id }, el) { simula[id] = leerMonto(el.value); repintar(); },
   'fin-aportar'({ id }) { moverAhorro(id, 'ahorro'); },

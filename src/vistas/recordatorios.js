@@ -84,11 +84,11 @@ export function vistaRecordatorios() {
     (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2>' + auto.map((a) =>
       '<section class="tarjeta"><div class="ed-cab"><b>' + esc(a.nombre) + '</b><span class="estado e-' + a.estado + '">' + ESTADOS[a.estado] + '</span></div>' +
       '<div class="fila-resumen nota-corta"><span>' + fechaCorta(a.fecha) + (a.faltan > 0 ? ' · en ' + a.faltan + ' días' : a.faltan === 0 ? ' · hoy' : '') + '</span><b>' + pesos(a.monto) + '</b></div>' +
-      '<button type="button" class="boton secundario ancho" data-accion="' + (a.tipo === 'fijo' ? 'fin-pagar-fijo' : 'fin-pagar-deuda') + '" data-id="' + a.id + '">Registrar pago</button></section>').join('') : '') +
+      '<button type="button" class="boton secundario ancho" data-accion="' + ({ fijo: 'fin-pagar-fijo', cobro: 'fin-cobrar' }[a.tipo] || 'fin-pagar-deuda') + '" data-id="' + a.id + '">' + (a.tipo === 'cobro' ? 'Registrar cobro' : 'Registrar pago') + '</button></section>').join('') : '') +
     seccionCirculo() +
     '<section class="tarjeta"><h2>＋ Agregar recordatorio</h2><div class="rejilla-cats">' + PLANTILLAS_RECORDATORIO.map((p, k) =>
       '<button type="button" class="cat" data-accion="rec-agregar" data-k="' + k + '"><span>' + p.icono + '</span>' + esc(p.nombre) + '</button>').join('') + '</div>' +
-    '<p class="nota-corta">Los pagos fijos y las cuotas de Finanzas aparecen aquí solos cuando se acerca el día.</p></section>';
+    '<p class="nota-corta">Los pagos fijos, las cuotas y los intereses por cobrar de Finanzas aparecen aquí solos cuando se acerca el día.</p></section>';
 }
 
 registrar({

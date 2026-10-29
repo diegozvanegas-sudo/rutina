@@ -23,6 +23,8 @@ import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, visibles } from './orden.js';
+import { ve, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
+import { vistaAdministrar, bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
 
 registerSW({ immediate: true });
 // Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
@@ -37,19 +39,24 @@ const PANTALLAS = {
 };
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
+// Administrar no está en el catálogo (ni se ordena ni se esconde): solo la ve el admin
+VISTAS.administrar = ['🛡️', 'Administrar', vistaAdministrar];
 const $ = (id) => document.getElementById(id);
-// "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta"
-const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] ? v : 'hoy'; };
+// "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta".
+// Lo que el admin escondió no se abre ni por enlace: se va a Hoy
+const permitida = (v) => (v === 'administrar' ? esAdmin() && !viendoComo() : ve('seccion', v));
+const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] && permitida(v) ? v : 'hoy'; };
 function abrirPestana() {
   const [v, sub] = location.hash.slice(1).split('/');
-  if (!sub || !VISTAS[v]) return;
+  if (!sub || !VISTAS[v] || !permitida(v)) return;
   ejecutar('abrir-' + v, { dataset: { p: decodeURIComponent(sub) } });
   history.replaceState(null, '', '#' + v);
 }
 
 function enlaces() {
   const avisos = alertas().length;
-  return visibles(e().config, 'menu').map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
+  const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k)).concat(permitida('administrar') ? ['administrar'] : []);
+  return ids.map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
     '<a href="#' + k + '"' + (k === actual() ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span>' +
     (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');
 }
@@ -60,9 +67,9 @@ function lateral() {
   return '<div class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b></div>' +
     '<nav class="nav-lateral" aria-label="Secciones">' + enlaces() + '</nav>' +
     '<div class="resumen-lateral">' +
-    '<div><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(fraccionManana()) + '</div>' +
-    '<div><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</div>' +
-    '<div><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</div>' +
+    (ve('seccion', 'manana') ? '<div><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(fraccionManana()) + '</div>' : '') +
+    (ve('seccion', 'metas') ? '<div><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</div>' : '') +
+    (ve('seccion', 'gym') ? '<div><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</div>' : '') +
     '</div>' +
     '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || '') + '">☁️ ' + textoNube() + '</a>';
 }
@@ -132,7 +139,7 @@ function pintar() {
     return;
   }
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null;
-  $('vista').innerHTML = VISTAS[v][2]();
+  $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
   $('lateral').innerHTML = lateral();
   flotante();
@@ -243,6 +250,9 @@ let fechaPintada = new Date().toDateString();
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && new Date().toDateString() !== fechaPintada) { fechaPintada = new Date().toDateString(); pintar(); }
 });
+
+// Solo en desarrollo (npm run dev): probar permisos y Administrar sin Supabase. No llega a la versión publicada.
+if (import.meta.env.DEV) window.rutinaPrueba = { permisos: (p) => { ponerPermisos('prueba', p); pintar(); }, admin: (d) => { ponerDatosAdmin(d); pintar(); } };
 
 abrirPestana();
 pintar();

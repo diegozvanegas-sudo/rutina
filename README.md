@@ -70,6 +70,14 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   (las metas escondidas no cuentan en el puntaje). Categorías, pagos fijos, metas y deudas de Finanzas y los alimentos también se reordenan.
   En las sesiones, cada ejercicio puede llevar figura animada, foto propia (se reduce a 480 px) y enlace de video.
 - **Ajustes**: perfil (nombre del saludo y lunes de la semana 1 del gym), nube, Google Sheets, metas, espera de la pastilla, sonido, exportar/importar JSON y CSV.
+- **🛡️ Administrar** (solo el admin, con nube): usuarios de Rutina (correo, rol, última entrada y excepciones), permisos por rol
+  (qué secciones ve cada uno), roles (crear, renombrar, borrar; admin y estudiante no se borran) y "Ver como" un rol o un usuario.
+  Solo esconde partes de la app: el admin nunca ve los datos de los demás. Regla del usuario > regla del rol > visible; Hoy y
+  Ajustes siempre se ven; las tarjetas de Hoy de una sección escondida tampoco salen (`SECCION_TARJETA` en `src/orden.js`).
+  Lógica en `src/permisos.js` (catálogo genérico tipo + id, para sumar áreas y cursos); las reglas vienen de
+  `rutina_mis_permisos()` y se guardan en el celular (`rutina_permisos:<usuario>`) para entrar sin internet. Sin nube, o sin el
+  esquema nuevo aplicado, no hay restricciones. En `npm run dev`, `rutinaPrueba.permisos({...})` y `rutinaPrueba.admin({...})`
+  en la consola permiten probarlo sin Supabase.
 
 Menú lateral a la derecha: en el celular se abre con ☰; en el computador (≥ 900 px) queda fijo, con un resumen del día y el estado de la nube.
 

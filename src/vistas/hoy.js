@@ -2,7 +2,8 @@
 import { e, avanceMetas, hayFutbol, elegirPlantilla } from '../estado.js';
 import { iso, fechaLarga } from '../fechas.js';
 import { esc, barra, pct, botonSesion, registrar } from '../ui.js';
-import { visibles } from '../orden.js';
+import { visibles, SECCION_TARJETA } from '../orden.js';
+import { ve } from '../permisos.js';
 import { configurada, nube } from '../nube.js';
 import { cabeceraManana, listaManana } from './manana.js';
 import { tarjetaMeta } from './metas.js';
@@ -98,7 +99,9 @@ const TARJETAS = {
 const ANCHAS = ['entrenador', 'foco', 'libros'];
 
 export function vistaHoy() {
-  const avisos = alertas(), p = puntajeDia(), ids = visibles(e().config, 'hoy');
+  // Las tarjetas de una sección que el admin escondió tampoco se ven
+  const avisos = ve('seccion', 'recordatorios') ? alertas() : [], p = puntajeDia();
+  const ids = visibles(e().config, 'hoy').filter((k) => !SECCION_TARJETA[k] || ve('seccion', SECCION_TARJETA[k]));
   return '<div class="cab-hoy"><div><h1>' + saludo() + '</h1><p class="sub">' + fechaLarga(iso()) + ' · semana ' + semanaActual() + '</p></div>' +
     '<a class="puntaje-hoy" href="#progreso" title="Puntaje del día: mañana, metas, gym y dieta"><b>' + (p ? p.total : 0) + '</b><small>/100 hoy</small></a></div>' +
     bienvenida() +

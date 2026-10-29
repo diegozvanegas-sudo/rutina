@@ -2,6 +2,7 @@
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
 import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario } from './estado.js';
+import { ponerPermisos, permisosGuardados, quitarPermisos } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const configurada = !!(url && llave);
@@ -76,6 +77,23 @@ function programar() {
   espera = setTimeout(sincronizar, 3000);
 }
 
+// Permisos de quien entra (⚙️ Administrar). Si falla (sin internet, o el esquema aún no tiene las funciones) quedan
+// los últimos guardados en el celular
+export async function cargarPermisos() {
+  if (!supabase || !nube.usuario || !navigator.onLine) return;
+  const { data, error } = await supabase.rpc('rutina_mis_permisos');
+  if (error || !data) return;
+  ponerPermisos(nube.usuario.id, data);
+  repintar();
+}
+// Funciones de la pantalla Administrar: devuelve los datos o lanza el error con su mensaje
+export async function llamar(funcion, args = {}) {
+  if (!supabase || !nube.usuario) throw new Error('Inicia sesión en la nube');
+  const { data, error } = await supabase.rpc(funcion, args);
+  if (error) throw new Error(error.message);
+  return data;
+}
+
 export async function entrar(correo, clave) {
   const { error } = await supabase.auth.signInWithPassword({ email: correo.trim(), password: clave });
   if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : error.message);
@@ -90,17 +108,17 @@ export function iniciarNube() {
     const antes = nube.usuario && nube.usuario.id;
     nube.usuario = sesion ? { id: sesion.user.id, correo: sesion.user.email } : null;
     nube.lista = true;
-    if (!nube.usuario) { nube.ultima = null; esperarUsuario(); poner('sin-sesion'); return; }
-    // Cada usuario con sus propios datos en este equipo
-    if (antes !== nube.usuario.id) { nube.ultima = null; usarUsuario(nube.usuario.id); }
+    if (!nube.usuario) { nube.ultima = null; quitarPermisos(); esperarUsuario(); poner('sin-sesion'); return; }
+    // Cada usuario con sus propios datos (y sus permisos) en este equipo
+    if (antes !== nube.usuario.id) { nube.ultima = null; usarUsuario(nube.usuario.id); permisosGuardados(nube.usuario.id); }
     repintar();
-    if (antes !== nube.usuario.id) setTimeout(sincronizar, 0);
+    if (antes !== nube.usuario.id) setTimeout(() => { sincronizar(); cargarPermisos(); }, 0);
   });
   alGuardarse(programar);
-  window.addEventListener('online', sincronizar);
+  window.addEventListener('online', () => { sincronizar(); cargarPermisos(); });
   window.addEventListener('offline', () => nube.usuario && poner('sin-conexion'));
   // Al volver a la app (otro equipo pudo haber guardado)
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') sincronizar(); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { sincronizar(); cargarPermisos(); } });
 }
 
 export function textoNube() {

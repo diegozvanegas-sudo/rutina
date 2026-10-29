@@ -5,7 +5,8 @@ import { filasDeEsquema, DESCANSOS, HABITOS, IDEAS_HABITOS } from '../datos_inic
 import { reloj } from '../fechas.js';
 import { esc, registrar, toast } from '../ui.js';
 import { figuraPaso, OPCIONES_FIGURA, videoValido } from '../figuras.js';
-import { CATALOGO, FIJAS, enOrden, oculto, mover as moverOrden, alternar, restablecer } from '../orden.js';
+import { CATALOGO, FIJAS, SECCION_TARJETA, enOrden, oculto, mover as moverOrden, alternar, restablecer } from '../orden.js';
+import { ve } from '../permisos.js';
 import { extrasCalentamiento } from './gym.js';
 
 let pestana = 'rutina', diaEd = null, sesionEd = null;
@@ -183,7 +184,9 @@ const TITULOS_ORDEN = {
 function editorPantallas() {
   const c = e().config;
   return Object.entries(TITULOS_ORDEN).map(([tipo, [titulo, nota]]) => {
-    const ids = enOrden(c, tipo), cat = CATALOGO[tipo];
+    // Solo lo que el admin le deja ver a este usuario
+    const permitido = (id) => (tipo === 'menu' ? ve('seccion', id) : tipo === 'hoy' ? !SECCION_TARJETA[id] || ve('seccion', SECCION_TARJETA[id]) : true);
+    const ids = enOrden(c, tipo).filter(permitido), cat = CATALOGO[tipo];
     return '<section class="tarjeta"><div class="fila-resumen"><h2>' + titulo + '</h2><button type="button" class="boton secundario" data-accion="orden-restablecer" data-tipo="' + tipo + '">↺ Como venía</button></div>' +
       '<p class="nota-corta">' + nota + '</p><ul class="lista-orden">' + ids.map((id, i) => {
         const nombre = Array.isArray(cat[id]) ? cat[id].join(' ') : cat[id], fija = FIJAS[tipo].includes(id), apagado = oculto(c, tipo, id);

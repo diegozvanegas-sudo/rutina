@@ -43,6 +43,9 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
 - **Gym**: semana actual primero (semana 1 = lunes 12 oct 2026), semanas pasadas en el selector. Contador de series, colores
   (amarillo faltan · verde completo · azul SUBE PESO), último registro, peso sugerido, descanso automático, notas y resumen por músculo.
   El resumen del día se copia como texto o se comparte como imagen (PNG, para WhatsApp).
+  **Biseries** (`ej.biserie`: va con el ejercicio siguiente del día): una tarjeta con A1 y A2, cada uno con su peso, y "＋ Ronda"
+  que anota los dos (en la fila pendiente de cada uno: top, back-off…) y arranca un solo descanso. Un nombre "A / b" se separa
+  en dos con un botón (lo anotado queda en el primero); dos ejercicios cualquiera se juntan en Editar.
   Cada ejercicio muestra la **meta de la sesión** (doble progresión) y pregunta cuántas reps quedaban en reserva (RIR 0-4+).
   Las series que se salen del esquema (muy pocas o más del doble de reps, o un peso que salta más de 40 %) salen con ⚠️ y se
   pueden marcar como incompletas (`incompletas`, no cuentan en la fuerza) o como bien anotadas (`revisadas`).

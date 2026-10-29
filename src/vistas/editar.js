@@ -136,6 +136,7 @@ function editorRutina() {
           '<div class="dos">' + campo('Nota', r + '.nota', ej.nota, ' placeholder="Técnica, máquina, agarre…"') +
           (rutina.length > 1 ? '<label class="campo">Mover a otro día<select data-cambio="ed-mover-dia" data-dia="' + i + '" data-j="' + j + '"><option value="">—</option>' +
             rutina.map((x, k) => (k === i ? '' : '<option value="' + k + '">' + esc(x.nombre) + '</option>')).join('') + '</select></label>' : '') + '</div>' +
+          (d.id !== 'core' && d.ejercicios[j + 1] ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.biserie"' + (ej.biserie ? ' checked' : '') + '> 🔁 En biserie con el siguiente (' + esc(d.ejercicios[j + 1].nombre) + ')</label>' : '') +
           '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></section>';
       }).join('') +
       '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="rutina.' + i + '.ejercicios">＋ Ejercicio</button>' +

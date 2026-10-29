@@ -95,6 +95,30 @@ export function resumenSemana(rutina, registros = {}, objetivos = OBJETIVOS) {
   return { dias, hechas, plan, musculos };
 }
 
+// ---------- Biseries: ej.biserie = true va seguido, sin descanso, con el ejercicio siguiente del día ----------
+// Grupos del día en orden: [ej] solo, o [a, b] en biserie
+export function gruposDia(ejercicios) {
+  const out = [];
+  for (let k = 0; k < ejercicios.length; k++) {
+    const a = ejercicios[k], b = ejercicios[k + 1];
+    if (a.biserie && b) { out.push([a, b]); k++; } else out.push([a]);
+  }
+  return out;
+}
+// ¿El ejercicio es parte de una biserie de su día? (el primero lleva la marca; el segundo es el que le sigue)
+export function enBiserie(ejercicios, ej) {
+  return gruposDia(ejercicios).some((g) => g.length === 2 && g.includes(ej));
+}
+// "Laterales máquina / posterior" → ["Laterales máquina", "Posterior máquina"]: si la segunda parte es una sola palabra,
+// se le agrega lo que sigue a la primera palabra de la primera parte (el aparato o el agarre)
+export function nombresBiserie(nombre) {
+  const partes = String(nombre).split('/').map((s) => s.trim()).filter(Boolean);
+  if (partes.length !== 2) return null;
+  const [a, b] = partes, resto = a.split(/\s+/).slice(1).join(' ');
+  const segundo = b.charAt(0).toUpperCase() + b.slice(1);
+  return [a, !/\s/.test(b) && resto ? segundo + ' ' + resto : segundo];
+}
+
 // ---------- Fuerza: 1RM estimado (Epley), historial, récords, última subida y estancamiento ----------
 export const PIERNAS = ['Cuádriceps', 'Isquios', 'Glúteo', 'Aductores', 'Pantorrilla'];
 

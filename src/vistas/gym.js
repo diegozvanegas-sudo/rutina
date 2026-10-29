@@ -3,7 +3,8 @@ import { e, guardar, repintar, semanaActual, abrirSemana, semanaQuitable, quitar
 import { iso, semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana, reloj } from '../fechas.js';
 export { semanaActual };
 import { CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso,
-  PIERNAS, historial, records, ultimaSubida, estancamiento, consejoEstancado, progresoMes, seriesRaras, registrosRaros, metaSesion, consejoRir } from '../gym.js';
+  PIERNAS, historial, records, ultimaSubida, estancamiento, consejoEstancado, progresoMes, seriesRaras, registrosRaros, metaSesion, consejoRir, gruposDia, enBiserie, nombresBiserie } from '../gym.js';
+import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../entrenador.js';
 import { linea, tablaDatos } from '../graficos.js';
@@ -183,7 +184,8 @@ function graficoEjercicio(hasta) {
     historialEj(ej, hasta, true);
 }
 
-function fila(f, sem, clave = f.id, ej = null, i = 0) {
+// sinRapida: en una biserie las series se anotan por ronda (los dos ejercicios juntos), no una por una
+function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
   const reg = registros(sem)[clave] || {}, est = estadoFila(f, reg);
   const ult = ultimoRegistro(e().semanas, f, sem), sug = sugerencia(f, ult), meta = metaSesion(f, ult);
   const unidad = reg.unidad || (ult && ult.unidad) || 'kg';
@@ -203,7 +205,7 @@ function fila(f, sem, clave = f.id, ej = null, i = 0) {
     '<select data-cambio="unidad" data-fila="' + clave + '" aria-label="Unidad"><option' + (unidad === 'kg' ? ' selected' : '') + '>kg</option><option' + (unidad === 'discos' ? ' selected' : '') + '>discos</option></select>' +
     '<input class="reps" type="text" data-cambio="reps" data-fila="' + clave + '" value="' + esc(reg.reps || '') + '" placeholder="Reps: 10 9 8" aria-label="Repeticiones de cada serie, separadas por espacio" autocomplete="off">' +
     '</div>' +
-    (est.hechas < est.plan ? '<div class="serie-rapida"><input type="text" inputmode="numeric" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
+    (est.hechas < est.plan && !sinRapida ? '<div class="serie-rapida"><input type="text" inputmode="numeric" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
       '<button type="button" class="boton primario" data-accion="serie" data-fila="' + clave + '">＋ Serie ' + (est.hechas + 1) + ' y descanso</button></div>' : '') +
     (est.hechas && f.unidad !== 's' ? '<div class="rir"><span>¿Cuántas reps te quedaban en la última serie?</span><span class="raro-botones">' + [0, 1, 2, 3, 4].map(rir).join('') + '</span></div>' : '') +
     '</div>';
@@ -220,11 +222,39 @@ function moverEj(ej) {
 }
 
 function ejercicio(ej, sem, sufijo = '') {
+  // "A / b" en el nombre: botón para separarlo en una biserie (juntar dos ejercicios cualquiera se hace en Editar)
+  const d = e().rutina.find((x) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre);
   return '<article class="tarjeta ejercicio"><header><h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + '</header>' +
+    (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
     ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i)).join('') +
     historialEj(ej, sem) +
     '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details>' +
     '</article>';
+}
+
+// Biserie: los dos ejercicios en una tarjeta (A1 y A2), cada uno con su peso, y una ronda que anota los dos y arranca el descanso
+// Series hechas y planeadas de todo el ejercicio, y la fila donde va la próxima serie (top, back-off…)
+function avanceEj(ej, sem) {
+  const regs = registros(sem), est = ej.filas.map((f) => estadoFila(f, regs[f.id] || {}));
+  return { hechas: est.reduce((s, x) => s + Math.min(x.hechas, x.plan), 0), plan: est.reduce((s, x) => s + x.plan, 0),
+    fila: ej.filas[est.findIndex((x) => x.hechas < x.plan)] || null };
+}
+function biserie(a, b, sem) {
+  const ea = avanceEj(a, sem), eb = avanceEj(b, sem), fa = ea.fila, fb = eb.fila;
+  const plan = Math.max(ea.plan, eb.plan), ronda = Math.min(ea.hechas, eb.hechas) + 1;
+  const descanso = Math.max(...[fa, fb, a.filas[0], b.filas[0]].filter(Boolean).map((f) => f.descanso));
+  const parte = (ej, letra) => '<div class="bis-ej"><h4><span class="bis-letra">' + letra + '</span>' + esc(ej.nombre) + ' <small>' + esc(ej.musculo) + '</small></h4>' +
+    ej.filas.map((f, i) => fila(f, sem, f.id, ej, i, true)).join('') + historialEj(ej, sem) +
+    '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details></div>';
+  // Cada campo va a la fila pendiente de su ejercicio; si ese ya terminó, no aparece
+  const campo = (f, ej, letra) => (f ? '<label class="campo">' + letra + ' · ' + esc(ej.nombre) + (ej.filas.length > 1 ? ' (' + f.tipo + ' ' + esc(f.esquema) + ')' : '') +
+    '<input type="text" inputmode="numeric" placeholder="reps" data-serie="ronda@' + f.id + '"></label>' : '');
+  return '<article class="tarjeta ejercicio biserie"><header><h3>🔁 Biserie</h3><span class="musculo">sin descanso entre los dos · ⏱ ' + reloj(descanso) + ' después</span></header>' +
+    parte(a, 'A1') + parte(b, 'A2') +
+    (fa || fb ? '<div class="bis-ronda"><div class="dos">' + campo(fa, a, 'A1') + campo(fb, b, 'A2') + '</div>' +
+      '<button type="button" class="boton primario ancho" data-accion="gym-ronda" data-a="' + a.id + '" data-b="' + b.id + '">＋ Ronda ' + Math.min(ronda, plan) + ' de ' + plan + ' y descanso</button></div>'
+      : '<p class="nota-corta centro">✓ ' + plan + ' rondas hechas</p>') +
+    '<button type="button" class="enlace" data-accion="gym-biserie-quitar" data-ej="' + a.id + '">Ya no es biserie (separar las tarjetas)</button></article>';
 }
 
 // Peso planeado del primer top set del día: lo escrito hoy, si no lo sugerido
@@ -313,7 +343,7 @@ function vistaDia(d, sem) {
     '<div class="copiar-dia"><button type="button" class="boton secundario" data-accion="gym-copiar" data-dia="' + d.id + '">📋 Copiar resumen del día</button>' +
     '<button type="button" class="boton secundario" data-accion="gym-imagen" data-dia="' + d.id + '">🖼️ Imagen del resumen</button>' +
     '<details><summary>Ver texto</summary><pre class="texto-copia">' + esc(textoDia(d, sem)) + '</pre></details></div>' +
-    d.ejercicios.map((ej) => ejercicio(ej, sem)).join('') +
+    gruposDia(d.ejercicios).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem))).join('') +
     tarjetaCore(d, sem) +
     tarjetaCardio(d, sem);
 }
@@ -394,8 +424,8 @@ function cambiarReps(id, texto) {
   reg.reps = texto.replace(/\s+/g, ' ').trim(); // siempre texto
   const ahora = repsDe(reg.reps).length;
   if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista); reg.unidad = (u && u.unidad) || 'kg'; }
-  // Descanso automático al sumar una serie (si aún faltan)
-  if (ahora > antes && ahora < info.f.series) iniciar('descanso', info.f.descanso, info.ej.nombre);
+  // Descanso automático al sumar una serie (si aún faltan). En una biserie lo arranca la ronda, después de los dos
+  if (ahora > antes && ahora < info.f.series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
   if (ahora > antes && !eraRecord && esRecord()) toast('🏆 ¡Récord en ' + info.ej.nombre + '! Tu mejor 1RM estimado');
   else if (ahora >= info.f.series && ahora > antes) toast(estadoFila(info.f, reg).color === 'sube' ? '⬆ ¡Tope del rango! Sube peso la próxima semana' : '✓ ' + info.ej.nombre + ' completo');
   guardar();
@@ -476,6 +506,43 @@ registrar({
     guardar();
   },
   'fuerza-ej'(ds, el) { fuerzaEj = el.value; repintar(); },
+  // Ronda de la biserie: suma la serie de A1 y la de A2 (las que tengan reps) y arranca un solo descanso
+  'gym-ronda'({ a, b }, el) {
+    const ejs = [a, b].map((id) => e().rutina.flatMap((d) => d.ejercicios).find((x) => x.id === id));
+    const caja = el.closest('.bis-ronda'), filas = ejs.map((ej) => avanceEj(ej, semanaVista).fila);
+    const campos = filas.map((f) => f && caja.querySelector('[data-serie="ronda@' + f.id + '"]')), valores = campos.map((c) => (c ? c.value.trim() : ''));
+    const valido = (v) => /^\d+([.,]\d+)?$/.test(v);
+    if (!valores.some(valido)) { toast('Escribe las reps de A1 y A2'); (campos.find(Boolean) || el).focus(); return; }
+    campos.forEach((c) => { if (c) c.value = ''; });
+    const descanso = Math.max(...filas.filter(Boolean).map((f) => f.descanso));
+    filas.forEach((f, k) => {
+      if (!f || !valido(valores[k])) return;
+      const reg = (registros(semanaVista)[f.id] ??= {});
+      if (!reg.peso) {
+        const sug = sugerencia(f, ultimoRegistro(e().semanas, f, semanaVista));
+        if (sug) reg.peso = String(sug.peso);
+      }
+      cambiarReps(f.id, ((reg.reps || '') + ' ' + valores[k]).trim());
+    });
+    if (ejs.some((ej) => avanceEj(ej, semanaVista).fila)) iniciar('descanso', descanso, 'Biserie: ' + ejs.map((ej) => ej.nombre).join(' + '));
+  },
+  // "A / b" se separa en dos ejercicios en biserie (lo anotado hasta hoy queda en el primero)
+  'gym-biserie'({ ej: id }) {
+    const d = e().rutina.find((x) => x.ejercicios.some((y) => y.id === id)), j = d.ejercicios.findIndex((y) => y.id === id), ej = d.ejercicios[j];
+    const nombres = nombresBiserie(ej.nombre);
+    if (!nombres || !confirm('¿Separar "' + ej.nombre + '" en una biserie?\n\nA1: ' + nombres[0] + '\nA2: ' + nombres[1] + '\n\nLo anotado hasta hoy queda en ' + nombres[0] + '. Los nombres se cambian en Editar.')) return;
+    const nuevoId = d.id + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const filas = filasDeEsquema(ej.filas.map((f) => (f.tipo === 'Series' ? '' : f.tipo + ' ') + f.esquema).join(' · ')).map((f, k) => ({ ...f, id: nuevoId + '-' + (k + 1), descanso: ej.filas[k] ? ej.filas[k].descanso : f.descanso }));
+    d.ejercicios.splice(j + 1, 0, { id: nuevoId, nombre: nombres[1], musculo: ej.musculo, nota: '', filas });
+    ej.nombre = nombres[0];
+    ej.biserie = true;
+    guardar();
+    toast('🔁 Biserie lista: anota cada ronda con los dos ejercicios');
+  },
+  'gym-biserie-quitar'({ ej: id }) {
+    for (const d of e().rutina) for (const ej of d.ejercicios) if (ej.id === id) delete ej.biserie;
+    guardar();
+  },
   peso({ fila: id }, el) { (registros(semanaVista)[id] ??= {}).peso = el.value.trim(); guardar(); },
   unidad({ fila: id }, el) { (registros(semanaVista)[id] ??= {}).unidad = el.value; guardar(); },
   reps({ fila: id }, el) { cambiarReps(id, el.value); },

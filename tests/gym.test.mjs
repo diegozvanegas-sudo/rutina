@@ -186,3 +186,14 @@ test('imagen del resumen: mismos datos que el texto, con el color de cada fila',
   assert.deepEqual(r.core.map((ej) => ej.nombre), ['Crunch']);
   assert.equal(r.cardio, 'Cardio cinta 30 min: —');
 });
+
+test('biseries: el ejercicio marcado va con el siguiente, y el nombre "A / b" se separa en dos', async () => {
+  const { gruposDia, enBiserie, nombresBiserie } = await import('../src/gym.js');
+  const ejs = [{ id: 1, biserie: true }, { id: 2 }, { id: 3 }, { id: 4, biserie: true }];
+  assert.deepEqual(gruposDia(ejs).map((g) => g.map((x) => x.id)), [[1, 2], [3], [4]]);
+  assert.ok(enBiserie(ejs, ejs[1]));
+  assert.ok(!enBiserie(ejs, ejs[3])); // marcado pero sin siguiente: queda solo
+  assert.deepEqual(nombresBiserie('Laterales máquina / posterior'), ['Laterales máquina', 'Posterior máquina']);
+  assert.deepEqual(nombresBiserie('Curl bíceps / tríceps polea'), ['Curl bíceps', 'Tríceps polea']);
+  assert.equal(nombresBiserie('Press plano'), null);
+});

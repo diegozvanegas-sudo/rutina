@@ -13,6 +13,9 @@ npm run build     # versión para publicar en dist/
 ## Pantallas
 - **Hoy**: tablero con la mañana, las metas, el entrenamiento que toca (con calentamiento) y la semana. Los días de fútbol
   (mié y vie de noche, se cambian en Editar) muestran el partido: qué comer y cuándo, calentamiento fútbol y estirar después.
+  Arriba va **Tu entrenador hoy** (`src/entrenador.js`): semáforo 🟢 sube · 🟡 mantén · 🔴 suave según el sueño, el partido de ayer,
+  las molestias y la carga del fútbol (7 días contra el promedio de 28; sobre 1,3 avisa), lo único que mejorar hoy (lo más flojo de
+  ayer) y las metas del próximo entreno.
 - **Calendario**: mes gregoriano de lunes a domingo con los festivos de Colombia (Ley Emiliani, Pascua calculada), las fases reales
   de la luna con su hora, los equinoccios y solsticios, y el gym y el fútbol de cada día. Al tocar un día: luna (% iluminada), día del
   año, semana ISO y día juliano. Explica qué calendario rige el mundo y por qué el de 13 lunas de 28 días no sigue a la luna.
@@ -36,9 +39,16 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
 `npm test` (`tests/libros.test.mjs` valida el formato de todos los libros). Después la app lo consulta sola, sin Claude.
 - **Dieta**: plan del día según el gym y el fútbol (entreno inferior, superior, fútbol o descanso), comidas que se marcan y suman a las calorías,
   planes y alimentos editables, peso corporal con promedio de 7 días y recálculo de los planes por peso (proteína y carbos).
+  Proteína de la semana: días que llegaste al 90 % de la del plan y el promedio en gramos.
 - **Gym**: semana actual primero (semana 1 = lunes 12 oct 2026), semanas pasadas en el selector. Contador de series, colores
   (amarillo faltan · verde completo · azul SUBE PESO), último registro, peso sugerido, descanso automático, notas y resumen por músculo.
   El resumen del día se copia como texto o se comparte como imagen (PNG, para WhatsApp).
+  Cada ejercicio muestra la **meta de la sesión** (doble progresión) y pregunta cuántas reps quedaban en reserva (RIR 0-4+).
+  Las series que se salen del esquema (muy pocas o más del doble de reps, o un peso que salta más de 40 %) salen con ⚠️ y se
+  pueden marcar como incompletas (`incompletas`, no cuentan en la fuerza) o como bien anotadas (`revisadas`).
+  La tarjeta de Fuerza suma la fuerza relativa (1RM / peso corporal), "¿Qué te hace rendir?" (cada sesión contra su propia
+  tendencia, cruzada con sueño, calidad, partido del día antes y proteína) y el gráfico de un ejercicio. En el Calendario,
+  los días de gym hechos, faltados y por hacer, con la racha.
 - **Semana**: lun empuje, mar tirón, mié pierna A, vie torso A, sáb pierna B. Las dos piernas son la de Cbum: extensión, patrón de
   sentadilla, curl femoral sentado, peso muerto rodilla extendida, aductores, hip thrust (opcional) y pantorrilla, 2-3 series cada uno.
 - **Sesiones**: calentamientos por día (y de fútbol), saltar lazo, prevención fútbol, estiramientos, fortalecimiento de rodilla y mente (respiración 4-4-8, relajación progresiva, visualización), en modo guiado.

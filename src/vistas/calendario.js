@@ -3,6 +3,7 @@
 import { e, repintar, hayFutbol } from '../estado.js';
 import { iso, fechaLarga, fechaCorta, diaSemana, diasEntre } from '../fechas.js';
 import { esc, registrar } from '../ui.js';
+import { estadoGym, constanciaGym } from '../entrenador.js';
 import {
   cuadricula, otroMes, festivo, proximosFestivos, fasesEntre, lunaDelDia, estacionesDe, diaDelAno, diasDelAno, semanaIso, esBisiesto, diaJuliano,
 } from '../calendario.js';
@@ -16,8 +17,9 @@ const enDias = (f) => { const n = diasEntre(iso(), f); return n === 0 ? 'hoy' : 
 
 function celda(f, fases, estaciones) {
   const fuera = f.slice(0, 7) !== mes, fes = festivo(f), fase = fases.find((x) => x.fecha === f), est = estaciones.find((x) => x.fecha === f);
-  const marcas = (fase ? fase.icono : '') + (est ? est.icono : '') + (hayFutbol(f) ? '⚽' : '') + (gymDe(f) ? '<span class="cal-gym" aria-hidden="true"></span>' : '');
-  const titulo = [fechaLarga(f), fes, fase && fase.nombre, est && est.nombre, hayFutbol(f) && 'Fútbol', gymDe(f) && 'Gym: ' + gymDe(f).nombre].filter(Boolean).join(' · ');
+  const gym = estadoGym(f), GYM = { hecho: 'hecho', falto: 'no fuiste', pendiente: 'pendiente' };
+  const marcas = (fase ? fase.icono : '') + (est ? est.icono : '') + (hayFutbol(f) ? '⚽' : '') + (gym ? '<span class="cal-gym g-' + gym + '" aria-hidden="true"></span>' : '');
+  const titulo = [fechaLarga(f), fes, fase && fase.nombre, est && est.nombre, hayFutbol(f) && 'Fútbol', gym && 'Gym: ' + gymDe(f).nombre + ' (' + GYM[gym] + ')'].filter(Boolean).join(' · ');
   return '<button type="button" class="cal-dia' + (fuera ? ' fuera' : '') + (f === iso() ? ' hoy' : '') + (f === elegido ? ' elegido' : '') +
     (fes || diaSemana(f) === 7 ? ' festivo' : '') + '" data-accion="cal-dia" data-f="' + f + '" aria-label="' + esc(titulo) + '"' + (f === elegido ? ' aria-pressed="true"' : '') + '>' +
     '<span class="cal-num">' + Number(f.slice(8)) + '</span><span class="cal-marcas">' + marcas + '</span></button>';
@@ -26,7 +28,8 @@ function celda(f, fases, estaciones) {
 function detalle(f) {
   const a = Number(f.slice(0, 4)), luna = lunaDelDia(f), fes = festivo(f), gym = gymDe(f), si = semanaIso(f);
   const est = estacionesDe(a).find((x) => x.fecha === f);
-  const toca = [hayFutbol(f) && '⚽ Fútbol en la noche', gym && '🏋️ ' + esc(gym.nombre)].filter(Boolean);
+  const hecho = { hecho: ' ✅ hecho', falto: ' · no fuiste', pendiente: '' }[estadoGym(f)] || '';
+  const toca = [hayFutbol(f) && '⚽ Fútbol en la noche', gym && '🏋️ ' + esc(gym.nombre) + hecho].filter(Boolean);
   return '<section class="tarjeta cal-detalle"><div class="fila-resumen"><h2>' + fechaLarga(f) + ' de ' + a + '</h2><span class="nota-corta">' + enDias(f) + '</span></div>' +
     (fes ? '<p class="cal-festivo">🇨🇴 Festivo: <b>' + fes + '</b></p>' : '') +
     (est ? '<p>' + est.icono + ' <b>' + est.nombre + '</b> a las ' + horaDe(est.ms) + ' · ' + est.nota + '</p>' : '') +
@@ -69,6 +72,14 @@ const EXPLICACION = '<section class="tarjeta cal-explica"><h2>🌍 ¿Qué calend
   '<p class="nota-corta">En Colombia, cerca del ecuador, no hay cuatro estaciones: los días duran casi lo mismo todo el año y el clima va por lluvias y secas. ' +
   'Los equinoccios y solsticios igual ocurren y se marcan aquí.</p></section>';
 
+// Racha de entrenos seguidos y cuántos del mes visto se hicieron (hasta hoy)
+function constancia() {
+  const c = constanciaGym(mes);
+  if (!c.plan && !c.racha) return '';
+  return '<div class="cal-constancia"><span>🔥 Racha: <b>' + c.racha + (c.racha === 1 ? ' entreno' : ' entrenos') + '</b> seguidos</span>' +
+    (c.plan ? '<span>Este mes: <b>' + c.hechos + ' de ' + c.plan + '</b></span>' : '') + '</div>';
+}
+
 export function vistaCalendario() {
   const semanas = cuadricula(mes), desde = semanas[0][0], hasta = semanas.at(-1)[6], a = Number(mes.slice(0, 4));
   const fases = fasesEntre(desde, hasta), estaciones = [...estacionesDe(a), ...estacionesDe(a - 1), ...estacionesDe(a + 1)];
@@ -81,7 +92,8 @@ export function vistaCalendario() {
     (mes !== iso().slice(0, 7) || elegido !== iso() ? '<button type="button" class="chip mini cal-hoy" data-accion="cal-hoy">Volver a hoy</button>' : '') +
     '<div class="cal-rejilla" role="grid"><div class="cal-sem" role="row">' + ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((d) => '<span role="columnheader">' + d + '</span>').join('') + '</div>' +
     semanas.map((s) => '<div class="cal-sem" role="row">' + s.map((f) => celda(f, fases, estaciones)).join('') + '</div>').join('') + '</div>' +
-    '<p class="nota-corta cal-leyenda"><span class="rojo">Rojo</span>: domingo o festivo · <span class="cal-gym"></span> gym · ⚽ fútbol · 🌑🌓🌕🌗 luna · 🌱☀️🍂❄️ estación</p></section>' +
+    '<p class="nota-corta cal-leyenda"><span class="rojo">Rojo</span>: domingo o festivo · gym <span class="cal-gym g-hecho"></span> hecho <span class="cal-gym g-falto"></span> no fuiste <span class="cal-gym g-pendiente"></span> por hacer · ⚽ fútbol · 🌑🌓🌕🌗 luna · 🌱☀️🍂❄️ estación</p>' +
+    constancia() + '</section>' +
     detalle(elegido) +
     '<section class="tarjeta"><h2>🌙 La luna en ' + MESES[Number(mes.slice(5)) - 1].toLowerCase() + '</h2><ul class="lista-pesos">' +
     delMes.map((x) => '<li><span>' + x.icono + ' ' + x.nombre + '</span><b>' + fechaCorta(x.fecha) + ' · ' + horaDe(x.ms) + '</b></li>').join('') + '</ul></section>' +

@@ -551,3 +551,31 @@ a.kpi small span { color: var(--brand); }
 .cal-explica ul { padding-left: 20px; }
 .cal-explica details { margin: 8px 0; }
 .cal-explica summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; }
+
+/* ---------- Entrenador: registros raros, meta de la sesión, reserva y "Tu entrenador hoy" ---------- */
+.meta-sesion { font-size: 14px; margin-top: 4px; }
+.meta-sesion b { color: var(--brand); }
+.meta-sesion small { display: block; color: var(--muted); }
+.raro { display: grid; gap: 6px; margin-top: 6px; padding: 8px 10px; border-radius: 10px; background: #3a2d10; color: var(--amarillo); font-size: 14px; }
+.raro.hecho { display: block; background: var(--surface-2); color: var(--muted); }
+.raro-botones { display: flex; flex-wrap: wrap; gap: 6px; }
+.raro .chip.mini { background: var(--surface); }
+.enlace { background: none; border: 0; padding: 0; color: var(--azul); font: inherit; text-decoration: underline; cursor: pointer; min-height: 32px; }
+.rir { display: grid; gap: 4px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.raros { display: grid; gap: 10px; margin-bottom: 8px; }
+.raro-ej small { color: var(--muted); }
+.entrenador { border-color: var(--brand); }
+.entrenador.e-amarillo { border-color: var(--amarillo); }
+.entrenador.e-rojo { border-color: var(--rojo); }
+.semaforo { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.semaforo-luz { font-size: 40px; line-height: 1; }
+.semaforo b { font-size: 20px; }
+.semaforo p { margin: 4px 0; }
+.semaforo small { color: var(--muted); }
+.unico { display: grid; gap: 2px; margin: 12px 0 4px; padding: 10px 12px; border-radius: 10px; background: var(--brand-soft); color: var(--ink); text-decoration: none; }
+.unico small { color: var(--brand); font-weight: 700; }
+.entrenador h3 small, .fuerza h3 small { color: var(--muted); font-weight: 400; }
+.cal-gym.g-hecho { background: var(--verde); }
+.cal-gym.g-falto { background: var(--rojo); }
+.cal-gym.g-pendiente { background: var(--azul); }
+.cal-constancia { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }

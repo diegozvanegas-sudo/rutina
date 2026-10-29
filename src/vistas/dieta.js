@@ -1,6 +1,8 @@
 // Dieta: plan del día (según el gym), comidas marcadas, planes editables, peso corporal y recálculo por peso
 import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, comidasDelDia } from '../estado.js';
-import { iso, hora, fechaCorta } from '../fechas.js';
+import { iso, hora, fechaCorta, diaSemana } from '../fechas.js';
+import { proteinaSemana } from '../entrenador.js';
+import { barras } from '../graficos.js';
 import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, kcalDeMacros } from '../dieta.js';
 import { esc, barra, registrar, toast, miles, subirBajar } from '../ui.js';
 
@@ -47,7 +49,19 @@ function vistaHoyDieta() {
     (k === auto ? ' · hoy' : '') + '</button>').join('') + '</nav>' +
     (manual ? '<p class="nota-corta">Elegiste el plan a mano. <a href="#dieta" data-accion="dieta-tipo-hoy" data-tipo="' + auto + '">Volver al que toca hoy</a></p>'
       : '<p class="nota-corta">El plan sale del gym y del fútbol de hoy. Toca otro si hoy comes distinto.</p>') +
-    '<section class="tarjeta">' + tarjetaComidasHoy() + '</section>';
+    '<section class="tarjeta">' + tarjetaComidasHoy() + '</section>' + tarjetaProteina();
+}
+
+// Proteína de los últimos 7 días contra la del plan de cada día: lo que más pesa para que suba la fuerza
+function tarjetaProteina() {
+  const s = proteinaSemana();
+  if (!s) return '';
+  const letra = (f) => 'LMMJVSD'[diaSemana(f) - 1];
+  return '<section class="tarjeta"><div class="fila-resumen"><h2>🍗 Proteína de la semana</h2><span class="grande-num">' + s.cumplidos + '/7</span></div>' +
+    '<p class="nota-corta">Días que llegaste al 90 % de la proteína del plan. Promedio: <b>' + r0(s.gramos) + ' g</b> al día (' + Math.round(s.parte * 100) + ' % de la meta).</p>' +
+    barras(s.dias.map((x) => ({ etiqueta: letra(x.fecha), v: x.parte * 100, tip: fechaCorta(x.fecha) + ': ' + r0(x.comido) + ' de ' + r0(x.meta) + ' g' })),
+      { alto: 90, max: Math.max(100, ...s.dias.map((x) => x.parte * 100)), formato: (n) => Math.round(n) + ' %', ref: { v: 90, texto: '90 %' } }) +
+    (s.cumplidos < 5 ? '<p class="nota-corta">Para subir: proteína en cada comida (huevos, pollo, carne o el scoop) y no te saltes la última del día.</p>' : '<p class="nota-corta">¡Bien! Así la fuerza tiene con qué subir.</p>') + '</section>';
 }
 
 // ---------- Planes ----------

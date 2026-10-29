@@ -102,9 +102,15 @@ export function unoRM(peso, reps) {
   if (!(peso > 0) || !(reps > 0)) return null;
   return reps === 1 ? peso : peso * (1 + reps / 30);
 }
+// Reps que cuentan para la fuerza: sin las series marcadas como incompletas (y ninguna si el peso quedó mal anotado)
+export function repsValidas(reg) {
+  const fuera = ((reg && reg.incompletas) || []).map(String);
+  if (fuera.includes('p')) return [];
+  return repsDe(reg && reg.reps).filter((_, i) => !fuera.includes(String(i)));
+}
 // Mejor serie de un registro: el peso es el mismo en todas, cuenta la de más reps
 export function mejorSerie(reg) {
-  const peso = numero(reg && reg.peso), reps = repsDe(reg && reg.reps);
+  const peso = numero(reg && reg.peso), reps = repsValidas(reg);
   if (peso == null || !reps.length) return null;
   const max = Math.max(...reps);
   return { peso, reps: max, unidad: reg.unidad || 'kg', rm: unoRM(peso, max) };
@@ -159,6 +165,63 @@ export function consejoEstancado(semanas, { pierna = false, partidosSemana = 0 }
   if (pierna && partidosSemana >= 2) return 'Con ' + String(partidosSemana).replace('.', ',') + ' partidos por semana, mantener la pierna ya es ganar: sube solo los días que llegues fresco y no la hagas el día antes de jugar.';
   if (semanas >= 5) return 'Haz una semana de descarga: baja 10 % el peso y vuelve a subir desde ahí.';
   return 'Cambia el rango de reps (ej. 6-8 en vez de 8-12) o quita una serie para recuperar mejor; revisa sueño y proteína.';
+}
+
+// Reserva (RIR: reps que te quedaban en la última serie, 4 = 4 o más) cuando no sube o cuando se puede empujar más
+export function consejoRir(rir, estancado = false) {
+  if (rir == null || rir === '') return '';
+  if (Number(rir) <= 0 && estancado) return 'Llegas al fallo y aun así no sube: es fatiga, no falta de esfuerzo. Haz una semana de descarga.';
+  if (Number(rir) >= 3) return 'Te quedaban ' + rir + (Number(rir) >= 4 ? ' o más' : '') + ' reps: empuja hasta dejar solo 1-2 en reserva.';
+  return '';
+}
+
+// ---------- Registros raros: series que se salen del esquema o pesos que saltan ----------
+// reg.incompletas: series (índice, o "p" para el peso) que el usuario dijo que quedaron mal: no cuentan en la fuerza.
+// reg.revisadas: las que dijo que están bien: ya no se pregunta. Las series en segundos no se revisan.
+const rangoFila = (f) => (f.min === f.max ? String(f.max) : f.min + '-' + f.max);
+export function seriesRaras(fila, reg, anterior) {
+  if (!reg || fila.unidad === 's') return [];
+  const inc = (reg.incompletas || []).map(String), ok = (reg.revisadas || []).map(String), out = [];
+  const pocas = Math.max(2, Math.ceil(fila.min / 2));
+  repsDe(reg.reps).forEach((r, i) => {
+    if (r < pocas) out.push({ i, texto: r + (r === 1 ? ' rep' : ' reps') + ' en la serie ' + (i + 1) + ' y el plan es ' + rangoFila(fila) });
+    else if (r > fila.max * 2) out.push({ i, texto: r + ' reps en la serie ' + (i + 1) + ': más del doble del plan (' + rangoFila(fila) + ')' });
+  });
+  const p = numero(reg.peso), q = anterior && numero(anterior.peso), u = reg.unidad || 'kg';
+  if (p != null && q && (anterior.unidad || 'kg') === u && Math.abs(p - q) / q > 0.4) {
+    out.push({ i: 'p', texto: 'El peso pasó de ' + formatoPeso(q) + ' a ' + formatoPeso(p) + ' ' + u + ' (cambió más de 40 %)' });
+  }
+  return out.map((x) => ({ ...x, estado: inc.includes(String(x.i)) ? 'incompleta' : ok.includes(String(x.i)) ? 'ok' : 'pendiente' }));
+}
+// Los que faltan por responder entre dos semanas, del más nuevo al más viejo
+export function registrosRaros(semanas, rutina, desde, hasta) {
+  const out = [];
+  for (let n = hasta; n >= Math.max(1, desde); n--) {
+    const regs = semanas[n] || {};
+    for (const d of rutina) for (const ej of d.ejercicios) for (const f of ej.filas) {
+      for (const clave of Object.keys(regs).filter((k) => k === f.id || k.startsWith(f.id + '@'))) {
+        const raras = seriesRaras(f, regs[clave], ultimoRegistro(semanas, f, n)).filter((x) => x.estado === 'pendiente');
+        if (raras.length) out.push({ semana: n, clave, ej, fila: f, reg: regs[clave], raras });
+      }
+    }
+  }
+  return out;
+}
+
+// Meta de la próxima sesión (doble progresión): con el tope del rango en todas las series sube el peso y vuelve al mínimo
+// de reps; si no, el mismo peso con 1 rep más (2 si te quedaban 3 o más en reserva), sin pasar del tope
+export function metaSesion(fila, ultimo) {
+  if (fila.unidad === 's') return null;
+  const sug = sugerencia(fila, ultimo);
+  if (!sug) return null;
+  const u = sug.unidad, texto = (peso, reps) => formatoPeso(peso) + ' ' + u + ' × ' + reps;
+  if (sug.sube) return { peso: sug.peso, reps: fila.min, unidad: u, sube: true, texto: texto(sug.peso, fila.min), motivo: 'Llegaste al tope: sube el peso y vuelve a ' + fila.min + ' reps.' };
+  const reps = repsValidas(ultimo);
+  if (!reps.length) return null;
+  const mejor = Math.max(...reps), extra = Number(ultimo.rir) >= 3 ? 2 : 1, meta = Math.min(fila.max, Math.max(fila.min, mejor + extra));
+  const motivo = mejor >= fila.max ? 'Llega a ' + fila.max + ' en todas las series y la próxima subes peso.'
+    : 'Supera ' + texto(sug.peso, mejor) + (extra === 2 ? ': te sobraban reps, busca 2 más.' : ' con 1 rep más.');
+  return { peso: sug.peso, reps: meta, unidad: u, sube: false, texto: texto(sug.peso, meta), motivo };
 }
 
 // Últimas 4 semanas por ejercicio (fila principal): el registro más reciente contra el de hace unas 4 semanas

@@ -8,7 +8,7 @@ export const SECCIONES = {
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
 export const TARJETAS_HOY = {
-  foco: '🗓️ Foco y cierre de la semana', libros: '📚 Lectura del día', manana: '☀️ Primera hora', metas: '🎯 Metas',
+  entrenador: '🧑‍🏫 Tu entrenador hoy', foco: '🗓️ Foco y cierre de la semana', libros: '📚 Lectura del día', manana: '☀️ Primera hora', metas: '🎯 Metas',
   gym: '🏋️ Entrenamiento y fútbol', suenoPeso: '🌙 Sueño y peso', estandares: '🧭 Mis estándares', dieta: '🥗 Comidas', semana: '📅 Semana', plata: '💰 Plata del mes', cierre: '🌙 Cierre de la noche (desde las 7 p. m.)',
 };
 export const METAS = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura', pantalla: '📵 Pantalla' };

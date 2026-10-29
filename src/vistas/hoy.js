@@ -6,7 +6,8 @@ import { visibles } from '../orden.js';
 import { configurada, nube } from '../nube.js';
 import { cabeceraManana, listaManana } from './manana.js';
 import { tarjetaMeta } from './metas.js';
-import { diaDeHoy, tarjetaCalentamiento, tarjetaSemana, semanaActual } from './gym.js';
+import { diaDeHoy, tarjetaCalentamiento, tarjetaSemana, semanaActual, proximoEntreno } from './gym.js';
+import { disposicion, unicoMejorar, textoCarga } from '../entrenador.js';
 import { estadoFila } from '../gym.js';
 import { tarjetaComidasHoy } from './dieta.js';
 import { alertas } from './recordatorios.js';
@@ -53,6 +54,18 @@ function entrenamiento() {
     }).join('') + '</ul></section>' + futbol + tarjetaCalentamiento(d);
 }
 
+// Tu entrenador hoy: cómo llegas (🟢 sube · 🟡 mantén · 🔴 suave), las metas del entreno, lo único que mejorar y la carga del fútbol
+function entrenador() {
+  const d = disposicion(), u = unicoMejorar(), carga = d.carga && d.carga.ratio != null && d.carga.estado !== 'ok' ? textoCarga(d.carga) : '';
+  return '<section class="tarjeta entrenador e-' + d.nivel + '"><h2>🧑‍🏫 Tu entrenador hoy</h2>' +
+    '<div class="semaforo"><span class="semaforo-luz" aria-hidden="true">' + d.icono + '</span><div><b>' + d.titulo + '</b><p>' + esc(d.consejo) + '</p>' +
+    (d.razones.length ? '<small>' + d.razones.map(esc).join(' · ') + '</small>' : '<small>Sueño bien, sin partido ayer y sin molestias.</small>') + '</div></div>' +
+    (d.sinSueno ? '<p class="nota-corta">Anota cómo dormiste en 🌙 Sueño y peso para que esto sea más preciso.</p>' : '') +
+    (carga ? '<p class="aviso">⚽ ' + esc(carga) + '</p>' : '') +
+    '<a class="unico" href="' + u.ir + '"><small>Lo único que mejorar hoy</small><span>' + u.icono + ' ' + esc(u.texto) + '</span></a>' +
+    proximoEntreno(4) + '</section>';
+}
+
 // Usuario nuevo: con qué empezar (todo se puede cambiar después en Editar)
 function bienvenida() {
   if (!e().bienvenida || (configurada && !nube.ultima)) return '';
@@ -63,6 +76,7 @@ function bienvenida() {
 
 // Cada tarjeta del tablero; el orden y cuáles se ven los elige el usuario (Editar > Pantallas)
 const TARJETAS = {
+  entrenador: () => entrenador(),
   foco: () => tarjetaFoco(),
   libros: () => tarjetasLibrosHoy(),
   manana: () => '<section class="tarjeta col-manana"><h2>☀️ Primera hora</h2>' + cabeceraManana() + listaManana() + '</section>',
@@ -80,8 +94,8 @@ const TARJETAS = {
   cierre: () => tarjetaCierreHoy(),
   semana: () => '<section class="tarjeta col-semana"><h2>📅 Semana</h2>' + tarjetaSemana() + '</section>',
 };
-// Foco y libros van arriba, a lo ancho; las demás en el tablero de dos columnas
-const ANCHAS = ['foco', 'libros'];
+// Entrenador, foco y libros van arriba, a lo ancho; las demás en el tablero de dos columnas
+const ANCHAS = ['entrenador', 'foco', 'libros'];
 
 export function vistaHoy() {
   const avisos = alertas(), p = puntajeDia(), ids = visibles(e().config, 'hoy');

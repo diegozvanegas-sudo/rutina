@@ -33,8 +33,10 @@ npm run build     # versión para publicar en dist/
   vuelve a empezar). Racha, cronómetro de estudio (suma a la meta de 📖 Lectura), proyecto final y fuentes por módulo.
   Lógica sin pantalla en `src/estudio.js`; progreso en `estudio` = `{ actual, cursos, tarjetas, dias }`. En Hoy, la tarjeta
   **🎓 Estudio de hoy** reemplaza a las de los libros. Áreas y cursos entran a los permisos de Administrar (`area` / `curso`).
-  Curso disponible: **Aprender a aprender** (3 módulos, 9 lecciones: recuperación activa, repaso espaciado, intercalado,
-  elaboración, carga cognitiva, sueño y memoria). Formato en `src/cursos/aprender-a-aprender.js`, validado por `tests/cursos.test.mjs`.
+  Cursos disponibles: **Aprender a aprender** (9 lecciones: recuperación activa, repaso espaciado, intercalado, elaboración,
+  carga cognitiva, sueño y memoria) y **Metacognición** (9 lecciones: calibración, ilusiones de saber, planear, vigilar, evaluar,
+  errores, frenar el piloto automático y rutina semanal). Formato en `src/cursos/aprender-a-aprender.js`, validado por
+  `tests/cursos.test.mjs`. Para sumar el siguiente: `/agregar-curso` (`.claude/skills/agregar-curso/SKILL.md`), un curso por sesión.
 - **📚 Libros** (un área de Estudiar; `#libros` y `#libros/<id>` siguen funcionando): libros y cursos convertidos desde PDF, una lectura por día (si se salta una, al otro día sigue donde quedó):
   contenido completo, fórmulas, notas que matizan datos dudosos, afirmación, práctica del día, diario y racha.
   "Preguntar": buscador sobre todo el libro y consejos por situación (cuerpo, mente, espíritu, metas, relaciones).

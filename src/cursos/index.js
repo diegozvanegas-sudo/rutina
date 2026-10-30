@@ -3,8 +3,9 @@
 // El área 📚 Libros son los libros de src/libros, con sus pantallas de siempre (#libros/<id>).
 import { LIBROS } from '../libros/index.js';
 import aprenderAAprender from './aprender-a-aprender.js';
+import metacognicion from './metacognicion.js';
 
-export const CURSOS = [aprenderAAprender];
+export const CURSOS = [aprenderAAprender, metacognicion];
 export const curso = (id) => CURSOS.find((c) => c.id === id) || null;
 
 const c = (id, icono, nombre, descripcion) => ({ id, icono, nombre, descripcion });

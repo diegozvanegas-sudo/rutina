@@ -48,7 +48,7 @@ test('las 7 áreas: Libros primero con los libros de siempre, y ningún id repet
   assert.equal(ids.length, 23); // 4 libros y 19 cursos
   assert.equal(area('esoterico').cursos.length, 6);
   assert.equal(curso('aprender-a-aprender').modulos.length, 3);
-  assert.equal(curso('metacognicion'), null); // Próximamente
+  assert.equal(curso('sesgos-cognitivos'), null); // Próximamente
   assert.ok(catalogoAreas().libros.includes('Libros'));
   assert.ok(catalogoCursos()['aprender-a-aprender'].includes('Aprender y pensar'));
 });
@@ -59,6 +59,14 @@ test('Aprender a aprender: 9 lecciones con los temas del plan', () => {
   assert.equal(lecciones(aa).length, 9);
   const todo = JSON.stringify(aa);
   for (const x of ['Roediger', 'Karpicke', 'Ebbinghaus', 'Cepeda', 'Rohrer', 'Chi', 'Sweller', 'Cowan', 'Born', 'Pashler', 'Dunlosky'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Metacognición: 9 lecciones con los temas y autores clave', () => {
+  const m = curso('metacognicion');
+  assert.equal(lecciones(m).length, 9);
+  const todo = JSON.stringify(m);
+  for (const x of ['Flavell', 'Nelson', 'Dunlosky', 'Kruger', 'Rozenblit', 'Zimmerman', 'Buehler', 'Gollwitzer', 'Tannenbaum', 'Metcalfe', 'Kahneman', 'premortem', 'calibra'])
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 

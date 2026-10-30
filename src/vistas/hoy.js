@@ -13,7 +13,7 @@ import { estadoFila } from '../gym.js';
 import { tarjetaComidasHoy } from './dieta.js';
 import { alertas } from './recordatorios.js';
 import { puntajeDia } from '../progreso.js';
-import { tarjetasLibrosHoy } from './libros.js';
+import { tarjetaEstudioHoy } from './estudiar.js';
 import { tarjetaEstandares } from './vida.js';
 import { tarjetaSuenoPeso, tarjetaPartido, fechaPartidoPendiente, tarjetaFoco } from './registro.js';
 import { tarjetaPlataHoy } from './finanzas.js';
@@ -79,7 +79,7 @@ function bienvenida() {
 const TARJETAS = {
   entrenador: () => entrenador(),
   foco: () => tarjetaFoco(),
-  libros: () => tarjetasLibrosHoy(),
+  estudio: () => tarjetaEstudioHoy(),
   manana: () => '<section class="tarjeta col-manana"><h2>☀️ Primera hora</h2>' + cabeceraManana() + listaManana() + '</section>',
   metas: () => {
     const metas = avanceMetas(), ks = metas.activas;
@@ -95,8 +95,8 @@ const TARJETAS = {
   cierre: () => tarjetaCierreHoy(),
   semana: () => '<section class="tarjeta col-semana"><h2>📅 Semana</h2>' + tarjetaSemana() + '</section>',
 };
-// Entrenador, foco y libros van arriba, a lo ancho; las demás en el tablero de dos columnas
-const ANCHAS = ['entrenador', 'foco', 'libros'];
+// Entrenador, foco y estudio van arriba, a lo ancho; las demás en el tablero de dos columnas
+const ANCHAS = ['entrenador', 'foco', 'estudio'];
 
 export function vistaHoy() {
   // Las tarjetas de una sección que el admin escondió tampoco se ven

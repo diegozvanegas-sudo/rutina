@@ -16,7 +16,9 @@ export function vistaAjustes() {
   const c = e().config;
   return '<h1>Ajustes</h1>' + seccionPerfil() + seccionNube() + seccionAvisos() + seccionHoja() +
     '<section class="tarjeta"><h2>Metas diarias</h2><div class="dos">' + Object.entries(ETIQUETAS).map(([k, t]) =>
-      '<label class="campo">' + t + '<input type="number" inputmode="numeric" min="0" data-cambio="conf-meta" data-k="' + k + '" value="' + esc(c.metas[k]) + '"></label>').join('') + '</div></section>' +
+      '<label class="campo">' + t + '<input type="number" inputmode="numeric" min="0" data-cambio="conf-meta" data-k="' + k + '" value="' + esc(c.metas[k]) + '"></label>').join('') +
+    // Lo guarda la acción de 🎓 Estudiar (vistas/estudiar.js)
+    '<label class="campo">🎓 Estudio al día (min)<input type="number" inputmode="numeric" min="5" max="240" step="5" data-cambio="estudio-minutos" value="' + esc(c.estudio.minutos) + '"></label></div></section>' +
     '<section class="tarjeta"><h2>Pastilla → desayuno</h2><p class="nota-corta">Ajústalo a lo que indique tu médico.</p><div class="dos">' +
     '<label class="campo">Mínimo (min)<input type="number" inputmode="numeric" min="0" data-cambio="conf-espera" data-k="minimo" value="' + c.espera.minimo + '"></label>' +
     '<label class="campo">Ideal (min)<input type="number" inputmode="numeric" min="0" data-cambio="conf-espera" data-k="ideal" value="' + c.espera.ideal + '"></label></div></section>' +

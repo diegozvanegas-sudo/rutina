@@ -18,12 +18,13 @@ import { vistaFinanzas } from './vistas/finanzas.js';
 import { vistaRecordatorios, alertas } from './vistas/recordatorios.js';
 import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
+import { vistaEstudiar } from './vistas/estudiar.js';
 import { vistaCalendario } from './vistas/calendario.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, visibles } from './orden.js';
-import { ve, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
+import { ve, veRuta, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
 import { vistaAdministrar, bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
 
 registerSW({ immediate: true });
@@ -34,17 +35,20 @@ iniciarHoja();
 iniciarAvisos();
 
 const PANTALLAS = {
-  hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, libros: vistaLibros, dieta: vistaDieta, finanzas: vistaFinanzas,
+  hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, finanzas: vistaFinanzas,
   recordatorios: vistaRecordatorios, gym: vistaGym, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
 // Administrar no está en el catálogo (ni se ordena ni se esconde): solo la ve el admin
 VISTAS.administrar = ['🛡️', 'Administrar', vistaAdministrar];
+// 📚 Libros es un área de 🎓 Estudiar: no sale en el menú, pero sus enlaces (#libros/fenix) siguen funcionando
+VISTAS.libros = ['📚', 'Libros', vistaLibros];
+const DENTRO = { libros: 'estudiar' };
 const $ = (id) => document.getElementById(id);
 // "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta".
 // Lo que el admin escondió no se abre ni por enlace: se va a Hoy
-const permitida = (v) => (v === 'administrar' ? esAdmin() && !viendoComo() : ve('seccion', v));
+const permitida = (v) => (v === 'administrar' ? esAdmin() && !viendoComo() : v === 'libros' ? veRuta([['seccion', 'estudiar'], ['area', 'libros']]) : ve('seccion', v));
 const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] && permitida(v) ? v : 'hoy'; };
 function abrirPestana() {
   const [v, sub] = location.hash.slice(1).split('/');
@@ -57,7 +61,7 @@ function enlaces() {
   const avisos = alertas().length;
   const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k)).concat(permitida('administrar') ? ['administrar'] : []);
   return ids.map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
-    '<a href="#' + k + '"' + (k === actual() ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span>' +
+    '<a href="#' + k + '"' + (k === (DENTRO[actual()] || actual()) ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span>' +
     (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');
 }
 

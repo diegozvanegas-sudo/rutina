@@ -178,7 +178,7 @@ function editorSesiones() {
 // ---------- Pantallas: orden y qué se ve del menú, de Hoy y de las metas ----------
 const TITULOS_ORDEN = {
   menu: ['☰ Menú', 'Hoy, Editar y Ajustes siempre se ven.'],
-  hoy: ['🏠 Tarjetas de Hoy', 'Foco y libros van arriba, a lo ancho; las demás en el tablero.'],
+  hoy: ['🏠 Tarjetas de Hoy', 'Entrenador, foco y estudio van arriba, a lo ancho; las demás en el tablero.'],
   metas: ['🎯 Metas del día', 'Las escondidas no cuentan en el porcentaje de metas ni en el puntaje.'],
 };
 function editorPantallas() {

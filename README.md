@@ -25,7 +25,17 @@ npm run build     # versión para publicar en dist/
   mañana, metas, gym si toca y dieta) y una **revisión semanal** automática con lo que mejoró y lo que falta.
 - **Mañana**: checklist en orden con hora, espera pastilla → desayuno, colgarse 60 s, estiramiento guiado, gratitud, caminar 1 h y racha.
 - **Metas**: agua, pasos, calorías y lectura, con historial de 7 y 30 días.
-- **Libros**: libros y cursos convertidos desde PDF, una lectura por día (si se salta una, al otro día sigue donde quedó):
+- **🎓 Estudiar**: 7 áreas con sus cursos (`src/cursos/index.js`); los que aún no tienen contenido salen como "Próximamente".
+  "Hoy estudias…" arma el plan del día con tus minutos (`config.estudio.minutos`, 15 por defecto, se cambian aquí o en Ajustes):
+  primero los repasos que tocan (~30 s por tarjeta) y luego tantas lecciones como quepan; si sobra poco tiempo, solo repaso.
+  Cada lección (~10 min): idea, bloques, ejemplos, nota que matiza lo que se suele exagerar, **recordar sin mirar** (3-5 preguntas
+  con la respuesta tapada), práctica, diario. Al terminarla, sus tarjetas entran al mazo y vuelven a 1, 3, 7, 16 y 35 días (fallar
+  vuelve a empezar). Racha, cronómetro de estudio (suma a la meta de 📖 Lectura), proyecto final y fuentes por módulo.
+  Lógica sin pantalla en `src/estudio.js`; progreso en `estudio` = `{ actual, cursos, tarjetas, dias }`. En Hoy, la tarjeta
+  **🎓 Estudio de hoy** reemplaza a las de los libros. Áreas y cursos entran a los permisos de Administrar (`area` / `curso`).
+  Curso disponible: **Aprender a aprender** (3 módulos, 9 lecciones: recuperación activa, repaso espaciado, intercalado,
+  elaboración, carga cognitiva, sueño y memoria). Formato en `src/cursos/aprender-a-aprender.js`, validado por `tests/cursos.test.mjs`.
+- **📚 Libros** (un área de Estudiar; `#libros` y `#libros/<id>` siguen funcionando): libros y cursos convertidos desde PDF, una lectura por día (si se salta una, al otro día sigue donde quedó):
   contenido completo, fórmulas, notas que matizan datos dudosos, afirmación, práctica del día, diario y racha.
   "Preguntar": buscador sobre todo el libro y consejos por situación (cuerpo, mente, espíritu, metas, relaciones).
   Conceptos clave (leyes, principios), rutina diaria, herramientas (diario, fichas paso a paso, perfil) y sesiones guiadas.
@@ -71,7 +81,7 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   En las sesiones, cada ejercicio puede llevar figura animada, foto propia (se reduce a 480 px) y enlace de video.
 - **Ajustes**: perfil (nombre del saludo y lunes de la semana 1 del gym), nube, Google Sheets, metas, espera de la pastilla, sonido, exportar/importar JSON y CSV.
 - **🛡️ Administrar** (solo el admin, con nube): usuarios de Rutina (correo, rol, última entrada y excepciones), permisos por rol
-  (qué secciones ve cada uno), roles (crear, renombrar, borrar; admin y estudiante no se borran) y "Ver como" un rol o un usuario.
+  (qué secciones, áreas de Estudiar y cursos ve cada uno), roles (crear, renombrar, borrar; admin y estudiante no se borran) y "Ver como" un rol o un usuario.
   Solo esconde partes de la app: el admin nunca ve los datos de los demás. Regla del usuario > regla del rol > visible; Hoy y
   Ajustes siempre se ven; las tarjetas de Hoy de una sección escondida tampoco salen (`SECCION_TARJETA` en `src/orden.js`).
   Lógica en `src/permisos.js` (catálogo genérico tipo + id, para sumar áreas y cursos); las reglas vienen de

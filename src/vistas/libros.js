@@ -5,6 +5,8 @@ import { iso, sumarDias, fechaCorta } from '../fechas.js';
 import { esc, barra, registrar, toast } from '../ui.js';
 import { LIBROS, libro } from '../libros/index.js';
 import { progresoInicial, delDia, lecturaQueToca, leidas, racha, afirmacionDelDia, buscar, resultadoEvaluacion } from '../biblioteca.js';
+import { ve } from '../permisos.js';
+import { librosVisibles } from './estudiar.js';
 
 let actual = null, pestana = 'hoy', abierto = null, consulta = '', consejo = null;
 // Herramientas y fichas desplegadas: siguen abiertas después de repintar (al guardar un campo)
@@ -186,10 +188,10 @@ function pestanaHerramientas() {
     ((l.sesiones || []).length ? bloque('sesiones', '🧘 Sesiones guiadas', botonesSesiones()) : '');
 }
 
-// ---------- Biblioteca y tarjeta para "Hoy" ----------
+// ---------- Biblioteca (el área 📚 Libros de 🎓 Estudiar) ----------
 function biblioteca() {
-  return '<h1>Libros</h1><p class="sub">Cada libro, una lectura por día. Para sumar uno, pásale el PDF a Claude con /agregar-libro.</p>' +
-    LIBROS.map((l) => {
+  return '<a class="boton secundario" href="#estudiar">← 🎓 Estudiar</a><h1>📚 Libros</h1><p class="sub">Cada libro, una lectura por día. Para sumar uno, pásale el PDF a Claude con /agregar-libro.</p>' +
+    librosVisibles().map((l) => {
       const n = leidas(l, progreso(l.id)), toca = lecturaQueToca(l, progreso(l.id));
       return '<button type="button" class="tarjeta libro-tarjeta" data-accion="libro-elegir" data-id="' + l.id + '">' +
         '<span class="libro-icono">' + l.icono + '</span><span><b>' + esc(l.titulo) + '</b><small>' + esc(l.autor) + ' · ' + esc(l.descripcion) + '</small>' +
@@ -197,19 +199,9 @@ function biblioteca() {
     }).join('');
 }
 
-export function tarjetasLibrosHoy() {
-  // Los libros con lecturas pendientes; si ya se terminaron todos, el primero (para empezar otra vuelta)
-  const pendientes = LIBROS.filter((l) => lecturaQueToca(l, progreso(l.id)));
-  return (pendientes.length ? pendientes : LIBROS.slice(0, 1)).map((l) => {
-    const n = lecturaQueToca(l, progreso(l.id)), a = afirmacionDelDia(l);
-    return '<a class="tarjeta libro-hoy" href="#libros/' + l.id + '"><b>' + l.icono + ' ' + esc(l.titulo) + ' · ' +
-      (n ? esc(l.unidad) + ' ' + n + ': ' + esc(l.lecturas[n - 1].titulo) : '¡' + total(l) + ' de ' + total(l) + ' lecturas!') + '</b>' +
-      (a ? '<span>“' + esc(a) + '”</span>' : '') + '</a>';
-  }).join('');
-}
-
 export function vistaLibros() {
-  if (!L()) return biblioteca();
+  // Un libro que el admin escondió no se abre ni por enlace
+  if (!L() || !ve('curso', actual)) return biblioteca();
   const l = L(), tabs = { hoy: '📖 Hoy', lecturas: '📚 ' + total(l) + ' lecturas', preguntar: '💬 Preguntar', herramientas: '🛠 Herramientas', rutina: '🗓 Rutina' };
   if (l.conceptos) tabs.conceptos = l.conceptos.icono + ' ' + l.conceptos.titulo;
   const vistas = { hoy: pestanaHoy, lecturas: pestanaLecturas, preguntar: pestanaPreguntar, herramientas: pestanaHerramientas, rutina: pestanaRutina, conceptos: pestanaConceptos };

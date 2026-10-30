@@ -488,6 +488,22 @@ a.kpi small span { color: var(--brand); }
 .libro-tarjeta { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; color: var(--ink); font: inherit; cursor: pointer; }
 .libro-tarjeta > span:last-child { flex: 1; display: grid; gap: 4px; }
 .libro-icono { font-size: 32px; line-height: 1; }
+a.libro-tarjeta { text-decoration: none; }
+
+/* 🎓 Estudiar (src/vistas/estudiar.js): plan del día, recordar sin mirar y repaso de tarjetas */
+.plan-estudio { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 8px; }
+.plan-estudio .boton { margin: 0; text-align: left; justify-content: flex-start; }
+.areas-estudio { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0 14px; }
+.proximamente { opacity: .6; cursor: default; }
+.libro-hoy span { font-style: normal; }
+.recordar { margin: 0; padding-left: 20px; display: grid; gap: 12px; }
+.recordar li { display: grid; gap: 6px; justify-items: start; }
+.respuesta { background: var(--surface-2); border-left: 3px solid var(--brand); border-radius: 8px; padding: 8px 10px; line-height: 1.5; }
+.recordar .respuesta { justify-self: stretch; }
+.tarjeta-repaso { display: grid; gap: 12px; margin-top: 14px; }
+.tarjeta-repaso .frente { font-size: 20px; font-weight: 700; margin: 6px 0; line-height: 1.4; }
+.tarjeta-repaso .respuesta { font-size: 17px; }
+.fuentes li small { display: block; color: var(--muted); }
 
 /* Figuras animadas de los ejercicios (src/figuras.js) */
 .figura { width: min(260px, 70vw); height: auto; display: block; margin: 0 auto 4px; }

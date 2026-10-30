@@ -31,6 +31,7 @@ function inicial() {
     finanzas: FINANZAS(),
     recordatorios: RECORDATORIOS(),
     libros: {},   // id del libro (src/libros): { leidos, practica, notas, perfil, fichas, vuelta }
+    estudio: { cursos: {}, tarjetas: {}, dias: {} }, // 🎓 Estudiar (src/estudio.js)
     dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...}, libros: { id: {...} } }
     semanas: {},  // número de semana: { idFila: { peso, unidad, reps } }
     activo: null, // temporizador en curso: { tipo, fin, ... }
@@ -44,6 +45,7 @@ const CONFIG_NUEVA = () => ({
   nombre: '', semana1: SEMANA_1_INICIAL,
   orden: {}, ocultos: {},  // menú, tarjetas de Hoy y metas (orden.js)
   sesionesDescanso: ['rodilla', 'estiramiento-post'], sesionesPartido: ['calentamiento-futbol', 'estiramiento-post'],
+  estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
 const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2'];
@@ -72,6 +74,7 @@ export function cargar() {
   estado.finanzas.prestamos ??= [];
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
   estado.libros ??= {};
+  estado.estudio ??= { cursos: {}, tarjetas: {}, dias: {} };
   if (estado.fenix) moverFenix(estado);
   const c = estado.config, n = CONFIG_NUEVA();
   for (const k of Object.keys(n)) c[k] ??= n[k];
@@ -302,7 +305,8 @@ export function alternarCrono(fecha, id) {
 // ---------- Metas ----------
 export function avanceMetas(fecha = iso()) {
   const m = dia(fecha).metas, meta = { ...e().config.metas };
-  const lectura = Math.floor(segundosCrono(dia(fecha).crono.lectura) / 60) + (m.lectura || 0);
+  // El cronómetro de 🎓 Estudiar también suma a la lectura
+  const lectura = Math.floor((segundosCrono(dia(fecha).crono.lectura) + segundosCrono(dia(fecha).crono.estudio)) / 60) + (m.lectura || 0);
   // Calorías: lo anotado a mano más las comidas marcadas en Dieta; la meta es la del plan que toca ese día
   const comidas = comidasDelDia(fecha);
   if (e().dieta) meta.calorias = Math.round(totalPlan(planDieta(fecha), e().dieta.alimentos).kcal);

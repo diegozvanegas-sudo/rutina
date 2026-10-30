@@ -3,28 +3,33 @@
 // de la app y aún no esté en la lista del usuario aparece al final, visible.
 
 export const SECCIONES = {
-  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], libros: ['📚', 'Libros'],
+  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
   dieta: ['🥗', 'Dieta'], finanzas: ['💰', 'Finanzas'], recordatorios: ['🔔', 'Recordatorios'], gym: ['🏋️', 'Gym'],
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
 export const TARJETAS_HOY = {
-  entrenador: '🧑‍🏫 Tu entrenador hoy', foco: '🗓️ Foco y cierre de la semana', libros: '📚 Lectura del día', manana: '☀️ Primera hora', metas: '🎯 Metas',
+  entrenador: '🧑‍🏫 Tu entrenador hoy', foco: '🗓️ Foco y cierre de la semana', estudio: '🎓 Estudio de hoy', manana: '☀️ Primera hora', metas: '🎯 Metas',
   gym: '🏋️ Entrenamiento y fútbol', suenoPeso: '🌙 Sueño y peso', estandares: '🧭 Mis estándares', dieta: '🥗 Comidas', semana: '📅 Semana', plata: '💰 Plata del mes', cierre: '🌙 Cierre de la noche (desde las 7 p. m.)',
 };
 // Sección de la que depende cada tarjeta de Hoy: si el admin esconde la sección, la tarjeta tampoco se ve
-export const SECCION_TARJETA = { libros: 'libros', manana: 'manana', metas: 'metas', gym: 'gym', dieta: 'dieta', plata: 'finanzas', semana: 'gym', entrenador: 'gym' };
+export const SECCION_TARJETA = { estudio: 'estudiar', manana: 'manana', metas: 'metas', gym: 'gym', dieta: 'dieta', plata: 'finanzas', semana: 'gym', entrenador: 'gym' };
 export const METAS = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura', pantalla: '📵 Pantalla' };
 
 export const CATALOGO = { menu: SECCIONES, hoy: TARJETAS_HOY, metas: METAS };
 // No se pueden esconder: sin ellas no se puede volver a mostrar nada
 export const FIJAS = { menu: ['hoy', 'editar', 'ajustes'], hoy: [], metas: [] };
 
+// Ids que cambiaron de nombre: 📚 Libros pasó a ser un área de 🎓 Estudiar, y su tarjeta de Hoy es la del estudio.
+// Se traducen al leer, así quien la tenía movida o escondida la sigue viendo igual
+const ANTES = { menu: { libros: 'estudiar' }, hoy: { libros: 'estudio' }, metas: {} };
+const lista = (config, que, tipo) => ((config && config[que] && config[que][tipo]) || []).map((id) => ANTES[tipo][id] || id);
+
 // Todos los ids del tipo en el orden del usuario
 export function enOrden(config, tipo) {
-  const todos = Object.keys(CATALOGO[tipo]), propio = ((config && config.orden && config.orden[tipo]) || []).filter((id) => todos.includes(id));
+  const todos = Object.keys(CATALOGO[tipo]), propio = lista(config, 'orden', tipo).filter((id) => todos.includes(id));
   return [...new Set([...propio, ...todos])];
 }
-export const oculto = (config, tipo, id) => !FIJAS[tipo].includes(id) && !!(config && config.ocultos && (config.ocultos[tipo] || []).includes(id));
+export const oculto = (config, tipo, id) => !FIJAS[tipo].includes(id) && lista(config, 'ocultos', tipo).includes(id);
 export const visibles = (config, tipo) => enOrden(config, tipo).filter((id) => !oculto(config, tipo, id));
 
 // Mueve un id n posiciones (−1 sube, 1 baja) dentro del orden del usuario
@@ -37,8 +42,8 @@ export function mover(config, tipo, id, n) {
 }
 export function alternar(config, tipo, id) {
   if (FIJAS[tipo].includes(id)) return false;
-  const lista = ((config.ocultos ??= {})[tipo] ??= []), i = lista.indexOf(id);
-  if (i < 0) lista.push(id); else lista.splice(i, 1);
+  const ocultos = ((config.ocultos ??= {})[tipo] = lista(config, 'ocultos', tipo)), i = ocultos.indexOf(id);
+  if (i < 0) ocultos.push(id); else ocultos.splice(i, 1);
   return true;
 }
 export function restablecer(config, tipo) {

@@ -14,10 +14,10 @@ y su rigor. Lee también `src/cursos/index.js` (el catálogo de áreas y cursos)
 ## 1. Elegir el curso
 - Si el usuario no dice cuál, toma el siguiente del **orden recomendado** que aún no tenga archivo:
   1. Aprender y pensar: aprender-a-aprender ✓, metacognicion ✓, sesgos-cognitivos, toma-de-decisiones
-  2. Hábitos y productividad: habitos-productividad, procrastinacion
-  3. Comunicación y emociones: comunicacion-oratoria, inteligencia-emocional
-  4. Cerebro y biología: neuroplasticidad, neurociencia-desarrollo, epigenetica
-  5. Mundo y dinero: educacion-financiera, geopolitica
+  2. Cerebro y biología: neuroplasticidad, neurociencia-desarrollo, epigenetica
+  3. Hábitos y productividad: habitos-productividad, procrastinacion
+  4. Comunicación y emociones: comunicacion-oratoria, inteligencia-emocional
+  5. Mundo y dinero: geopolitica, educacion-financiera
   6. Tradiciones esotéricas: gnosticismo, hermetismo, numerologia, geometria-sagrada, masoneria, ciencias-ocultas
 - El `id`, el ícono y el área son los que ya tiene en `src/cursos/index.js`. No cambies ids: los usan el progreso y los permisos.
 - Si el usuario pasa un PDF o un libro como base, léelo completo primero (como en `/agregar-libro`) y úsalo, pero el curso sigue

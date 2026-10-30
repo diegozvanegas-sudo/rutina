@@ -128,3 +128,28 @@ Reglas: español de Colombia, rigor primero (separa lo que tiene evidencia de lo
 historia de las ideas y "qué dice la tradición" frente a "qué muestra la evidencia"). Todo funciona sin internet.
 Actualiza el README, corre npm test y npm run build, y pruébalo en el navegador antes de terminar.
 ```
+
+## Prompt de la fase 3 (un curso por sesión)
+
+Pégalo en una sesión nueva cada vez que quieras sumar un curso. Sin nombre, toma el siguiente de la tabla de áreas
+(Sesgos cognitivos → Toma de decisiones → Neuroplasticidad → … → Ciencias ocultas). Para uno en particular, cambia la
+primera línea por "Haz el curso de <nombre>".
+
+```
+/agregar-curso Haz el siguiente curso pendiente de 🎓 Estudiar, en el orden de la tabla de áreas de docs/plan-estudiar.md
+(salta los que ya tienen archivo en src/cursos/). Antes de escribir, lee src/cursos/aprender-a-aprender.js y
+src/cursos/metacognicion.js y copia su nivel de detalle, su tono y su rigor.
+
+1. Dime cuál vas a hacer y el índice: 3 módulos con 3 lecciones de unos 10 minutos cada uno, con el título de cada lección.
+   Si el tema es muy grande, propón 4 módulos. Luego sigue sin esperar mi respuesta, salvo que haya una duda real.
+2. Escribe el curso completo: idea, bloques, 2 ejemplos de la vida en Colombia, 3 prácticas, pregunta del diario, nota
+   (mitos, estudios que no se replicaron, cifras exageradas), 3-5 preguntas de "recordar sin mirar", 3 tarjetas por
+   lección, fuentes reales por módulo y un proyecto final práctico.
+3. Rigor: no inventes fuentes, años, revistas ni cifras; si dudas de un número, descríbelo sin número. En las tradiciones
+   esotéricas, cada lección separa "Qué dice la tradición" de "Qué muestra la evidencia". En salud, dinero o emociones,
+   di cuándo buscar a un profesional.
+4. Regístralo en src/cursos/index.js, agrega su prueba en tests/cursos.test.mjs, corre npm test y npm run build,
+   revísalo en el navegador y actualiza el README (lista de cursos disponibles).
+5. Al final dime: lecciones y tarjetas, fuentes principales, qué mitos corrigen las notas y cuál curso sigue.
+   No hagas commit hasta que te diga "subir".
+```

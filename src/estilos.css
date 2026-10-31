@@ -531,6 +531,12 @@ a.kpi small span { color: var(--brand); }
 .consejos-libro .chip { border-radius: 12px; text-align: left; white-space: normal; }
 .chips.envolver { flex-wrap: wrap; overflow: visible; padding-bottom: 0; }
 .tema-ideas { font-size: 13px; color: var(--muted); margin: 12px 0 6px; font-weight: 600; }
+.frases-escuchar { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.frases-escuchar li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border-radius: 10px; }
+.frases-escuchar li > span:first-child { display: grid; gap: 2px; min-width: 0; }
+.frases-escuchar small { color: var(--muted); }
+.botones-frase { display: flex; gap: 4px; flex: none; }
+.botones-frase .icono { font-size: 20px; min-width: 44px; min-height: 44px; }
 .chip.mini { min-height: 36px; padding: 4px 10px; font-size: 13px; }
 .concepto-libro { padding: 10px 0; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
 .concepto-libro:last-child { border-bottom: 0; }

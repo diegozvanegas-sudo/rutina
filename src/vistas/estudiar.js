@@ -124,6 +124,29 @@ function recordarSinMirar(l) {
     }).join('') + '</ol>';
 }
 
+// ---------- Escuchar (cursos de idiomas): la voz del dispositivo lee cada frase; "sombra" deja tiempo para repetirla ----------
+let sombra = null;
+function escuchar(l) {
+  if (!l.escuchar) return '';
+  return '<h3 class="sub-libro">🎧 Escucha y repite</h3><p class="nota-corta">Escucha, repite en voz alta imitando el ritmo y la entonación, y después tapa el español y di qué significa. 🐢 = más lento.</p>' +
+    '<button type="button" class="boton secundario ancho" data-accion="estudio-sombra" data-n="' + l.n + '">' + (sombra ? '⏹ Parar' : '🔁 Sombra: todas, con pausa para repetir') + '</button>' +
+    '<ul class="frases-escuchar">' + l.escuchar.map(([en, es], i) => '<li><span><b lang="' + (C().idioma || 'en') + '">' + esc(en) + '</b><small>' + esc(es) + '</small></span>' +
+      '<span class="botones-frase"><button type="button" class="icono" data-accion="estudio-hablar" data-n="' + l.n + '" data-i="' + i + '" aria-label="Escuchar">🔊</button>' +
+      '<button type="button" class="icono" data-accion="estudio-hablar" data-n="' + l.n + '" data-i="' + i + '" data-lento="1" aria-label="Escuchar lento">🐢</button></span></li>').join('') + '</ul>';
+}
+function hablar(texto, lento, alTerminar) {
+  if (!('speechSynthesis' in window)) { toast('Este navegador no puede leer en voz alta'); return false; }
+  const u = new SpeechSynthesisUtterance(texto), idioma = C().idioma || 'en-US';
+  u.lang = idioma;
+  u.rate = lento ? 0.7 : 0.95;
+  const voz = speechSynthesis.getVoices().find((v) => v.lang.replace('_', '-') === idioma) || speechSynthesis.getVoices().find((v) => v.lang.startsWith(idioma.slice(0, 2)));
+  if (voz) u.voice = voz;
+  if (alTerminar) u.onend = alTerminar;
+  speechSynthesis.speak(u);
+  return true;
+}
+function pararSombra() { if (sombra) { clearTimeout(sombra.t); sombra = null; } if ('speechSynthesis' in window) speechSynthesis.cancel(); }
+
 function vistaLeccion(n) {
   const c = C(), l = leccion(c, n), p = P(), hecha = p.hechas[n], pr = p.practica[n] || {}, total = lecciones(c).length, m = c.modulos[l.modulo - 1];
   return '<article class="tarjeta lectura-libro">' +
@@ -139,6 +162,7 @@ function vistaLeccion(n) {
     (l.feynman ? '<h3 class="sub-libro">🧒 Explícalo simple</h3><label class="campo">' + esc(l.feynman) + '<textarea rows="3" data-cambio="estudio-diario" data-c="' + c.id + '" data-n="f' + n + '">' + esc(p.diario['f' + n] || '') + '</textarea></label>' +
       '<p class="nota-corta">Sin mirar la lección. Donde te trabes o uses palabras vagas, ahí está lo que no entiendes: vuelve a leer esa parte.</p>' : '') +
     (l.reto ? '<div class="nota-libro"><b>🏋️ Reto</b><div>' + esc(l.reto) + '</div></div>' : '') +
+    escuchar(l) +
     '<h3 class="sub-libro">✅ Práctica</h3><div class="practica-libro">' + l.practica.map((x, i) =>
       '<button type="button" class="paso-libro' + (pr[i] ? ' hecho' : '') + '" data-accion="estudio-practica" data-n="' + n + '" data-i="' + i + '" aria-pressed="' + !!pr[i] + '">' +
       '<span class="check-libro">' + (pr[i] ? '✓' : '') + '</span><span>' + esc(x) + '</span></button>').join('') + '</div>' +
@@ -248,7 +272,7 @@ export function vistaEstudiar() {
   return inicio();
 }
 
-const irArriba = () => window.scrollTo(0, 0);
+const irArriba = () => { pararSombra(); window.scrollTo(0, 0); };
 function abrirCurso(id, n = null) { cursoAbierto = id; areaAbierta = curso(id).area; pestana = 'hoy'; abierta = n; }
 registrar({
   // "#estudiar/aprender" abre el área; "#estudiar/aprender-a-aprender" el curso; "#estudiar/libros" los libros
@@ -301,6 +325,25 @@ registrar({
     const texto = promptMentor(C(), P(), { minutos: minutos() });
     try { await navigator.clipboard.writeText(texto); toast('📋 Prompt copiado: pégalo en Claude'); }
     catch { const t = document.getElementById('prompt-mentor'); if (t) { t.closest('details').open = true; t.select(); } toast('Selecciona el texto y cópialo'); }
+  },
+  'estudio-hablar'({ n, i, lento }) {
+    pararSombra();
+    hablar(leccion(C(), Number(n)).escuchar[Number(i)][0], !!lento);
+  },
+  'estudio-sombra'({ n }) {
+    if (sombra) { pararSombra(); repintar(); return; }
+    if (!('speechSynthesis' in window)) { toast('Este navegador no puede leer en voz alta'); return; }
+    const frases = leccion(C(), Number(n)).escuchar.map(([en]) => en);
+    // Cada frase suena y luego hay una pausa del doble de lo que duró, para repetirla en voz alta
+    const siguiente = () => {
+      if (!sombra || sombra.i >= frases.length) { sombra = null; repintar(); return; }
+      const inicio = Date.now();
+      hablar(frases[sombra.i++], false, () => { if (sombra) sombra.t = setTimeout(siguiente, Math.max(1500, 2 * (Date.now() - inicio))); });
+    };
+    pararSombra();
+    sombra = { i: 0 };
+    siguiente();
+    repintar();
   },
   'estudio-fin-repaso'() { repaso = null; repintar(); irArriba(); },
 });

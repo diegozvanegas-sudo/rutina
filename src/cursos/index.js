@@ -21,8 +21,9 @@ import numerologia from './numerologia.js';
 import geometriaSagrada from './geometria-sagrada.js';
 import masoneria from './masoneria.js';
 import cienciasOcultas from './ciencias-ocultas.js';
+import inglesB2 from './ingles-b2.js';
 
-export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo, numerologia, geometriaSagrada, masoneria, cienciasOcultas];
+export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo, numerologia, geometriaSagrada, masoneria, cienciasOcultas, inglesB2];
 export const curso = (id) => CURSOS.find((c) => c.id === id) || null;
 
 const c = (id, icono, nombre, descripcion) => ({ id, icono, nombre, descripcion });
@@ -45,6 +46,7 @@ const AREAS_CURSOS = [
   { id: 'comunicacion', icono: '💬', nombre: 'Comunicación y emociones', descripcion: 'Hablar con claridad, en público y con inteligencia emocional.', cursos: [
     c('comunicacion-oratoria', '🎤', 'Comunicación y oratoria', 'Ordenar ideas, persuadir y hablar en público sin bloquearse.'),
     c('inteligencia-emocional', '❤️', 'Inteligencia emocional', 'Reconocer, entender y manejar las emociones propias y ajenas.'),
+    c('ingles-b2', '🇬🇧', 'Inglés: camino a B2', 'Un método de 12 semanas para conversar, entender series y reuniones y escribir con claridad.'),
   ] },
   { id: 'mundo', icono: '🌍', nombre: 'Mundo y dinero', descripcion: 'Entender cómo se mueve el mundo y cómo manejar tu plata.', cursos: [
     c('geopolitica', '🌍', 'Geopolítica', 'Poder, geografía y recursos: las claves para leer las noticias del mundo.'),

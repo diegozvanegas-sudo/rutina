@@ -41,6 +41,12 @@ for (const c of CURSOS) {
     if (c.diagnostico !== undefined) assert.ok(c.diagnostico.length === 3 && c.diagnostico.every(([q, r]) => texto(q) && texto(r)), 'diagnóstico: 3 preguntas con respuesta');
     for (const m of c.modulos) if (m.comprobacion !== undefined) assert.ok(texto(m.comprobacion), m.titulo + ': comprobación vacía');
     for (const l of lecciones(c)) for (const k of ['feynman', 'reto']) if (l[k] !== undefined) assert.ok(texto(l[k]), 'lección ' + l.n + ': ' + k + ' vacío');
+    // Cursos de idiomas: frases para escuchar [en el idioma, traducción] y el código del idioma para la voz
+    if (c.idioma !== undefined) assert.match(c.idioma, /^[a-z]{2}-[A-Z]{2}$/);
+    for (const l of lecciones(c)) if (l.escuchar !== undefined) {
+      assert.ok(c.idioma, 'un curso con frases para escuchar dice su idioma');
+      assert.ok(l.escuchar.length >= 3 && l.escuchar.every(([x, t]) => texto(x) && texto(t)), 'lección ' + l.n + ': frases para escuchar');
+    }
   });
 }
 
@@ -66,7 +72,7 @@ test('las 7 áreas: Libros primero con los libros de siempre, y ningún id repet
   assert.ok(as[0].cursos.every((x) => x.libro));
   const ids = as.flatMap((a) => a.cursos.map((x) => x.id));
   assert.equal(new Set(ids).size, ids.length);
-  assert.equal(ids.length, 23); // 4 libros y 19 cursos
+  assert.equal(ids.length, 24); // 4 libros y 20 cursos
   assert.equal(area('esoterico').cursos.length, 6);
   assert.equal(curso('aprender-a-aprender').modulos.length, 3);
   assert.equal(curso('no-existe'), null); // un id que no está en el catálogo

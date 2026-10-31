@@ -17,8 +17,9 @@ import epigenetica from './epigenetica.js';
 import geopolitica from './geopolitica.js';
 import gnosticismo from './gnosticismo.js';
 import hermetismo from './hermetismo.js';
+import numerologia from './numerologia.js';
 
-export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo];
+export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo, numerologia];
 export const curso = (id) => CURSOS.find((c) => c.id === id) || null;
 
 const c = (id, icono, nombre, descripcion) => ({ id, icono, nombre, descripcion });

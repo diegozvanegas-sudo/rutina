@@ -186,6 +186,15 @@ test('Hermetismo: 9 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Numerología: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('numerologia');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Qué dice la tradición', 'Qué muestra la evidencia', 'Pitágoras', 'Burkert', 'gematría', 'Nerón', 'Dudley', 'camino de vida', 'Forer', 'Diaconis', 'Moby Dick', 'dígito izquierdo', 'Calin-Jageman', 'primos'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

@@ -34,8 +34,29 @@ for (const c of CURSOS) {
       assert.ok(l.tarjetas.length >= 1 && l.tarjetas.every(([f, r]) => texto(f) && texto(r)), donde + ': tarjetas');
     }
     assert.ok(texto(c.proyecto.titulo) && texto(c.proyecto.intro) && c.proyecto.pasos.length >= 3 && c.proyecto.pasos.every(texto), 'proyecto final');
+    // Campos del mentor (opcionales; los cursos nuevos los llevan): si están, completos
+    if (c.ancla !== undefined) assert.ok(texto(c.ancla), 'ancla vacía');
+    if (c.principios !== undefined) assert.ok(c.principios.length >= 3 && c.principios.length <= 7 && c.principios.every(texto), '3 a 7 primeros principios');
+    if (c.ochenta !== undefined) assert.ok(texto(c.ochenta), '80/20 vacío');
+    if (c.diagnostico !== undefined) assert.ok(c.diagnostico.length === 3 && c.diagnostico.every(([q, r]) => texto(q) && texto(r)), 'diagnóstico: 3 preguntas con respuesta');
+    for (const m of c.modulos) if (m.comprobacion !== undefined) assert.ok(texto(m.comprobacion), m.titulo + ': comprobación vacía');
+    for (const l of lecciones(c)) for (const k of ['feynman', 'reto']) if (l[k] !== undefined) assert.ok(texto(l[k]), 'lección ' + l.n + ': ' + k + ' vacío');
   });
 }
+
+test('prompt del mentor: lleva el curso, los minutos, el mapa y lo que no supo', async () => {
+  const { promptMentor } = await import('../src/mentor.js');
+  const c = curso('aprender-a-aprender'), p = progresoCurso();
+  let t = promptMentor(c, p, { minutos: 20 });
+  assert.ok(t.includes(c.nombre) && t.includes('20 minutos') && t.includes('Aún no empiezo'));
+  assert.ok(lecciones(c).every((l) => t.includes(l.titulo)), 'el mapa trae todas las lecciones');
+  assert.ok(t.includes(INTERVALOS.join(', ')), 'los repasos coinciden con los de la app');
+  p.hechas[1] = '2026-10-01';
+  p.recordar[1] = { 0: false, 1: true };
+  t = promptMentor(c, p);
+  assert.ok(t.includes('1 de ' + lecciones(c).length) && t.includes(lecciones(c)[0].recordar[0][0]));
+  assert.ok(!t.includes(lecciones(c)[0].recordar[1][0]), 'solo las que no supo');
+});
 
 test('las 7 áreas: Libros primero con los libros de siempre, y ningún id repetido', () => {
   const as = areas();

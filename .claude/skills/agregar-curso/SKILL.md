@@ -9,7 +9,8 @@ Cada curso es un archivo en `src/cursos/` con todo su contenido: la app lo ense�
 **todo el conocimiento tiene que quedar escrito en el archivo**. Un curso por sesión.
 
 El ejemplo de referencia es `src/cursos/aprender-a-aprender.js`: léelo antes de empezar y copia su nivel de detalle, su tono
-y su rigor. Lee también `src/cursos/index.js` (el catálogo de áreas y cursos) y `docs/plan-estudiar.md`.
+y su rigor. Lee también `src/cursos/index.js` (el catálogo de áreas y cursos), `docs/plan-estudiar.md` y
+**`docs/prompt-mentor.md`**: el curso tiene que hacer por escrito lo que haría ese mentor (ver sección 2b).
 
 ## 1. Elegir el curso
 - Si el usuario no dice cuál, toma el siguiente del **orden recomendado** que aún no tenga archivo:
@@ -38,6 +39,22 @@ y su rigor. Lee también `src/cursos/index.js` (el catálogo de áreas y cursos)
 - **Salud, dinero y emociones**: cuando aplique, di cuándo buscar a un profesional. No reemplaza al médico, al psicólogo ni a un asesor.
 - Conecta con la app cuando sirva (Gym, Dieta, Metas, Finanzas, Libros, el diario), sin forzarlo.
 
+## 2b. El curso como mentor (de `docs/prompt-mentor.md`)
+Antes de escribir lecciones, piensa el curso como lo haría el mentor:
+- **Primeros principios (Aristóteles):** las 3 a 7 ideas fundamentales de las que se deriva todo. Los módulos y lecciones salen
+  de ahí, **ordenados por dependencias** (lo que se necesita antes va antes).
+- **80/20:** qué 20% del contenido da el 80% del resultado para un adulto que lo quiere aplicar. Ese 20% va primero y es lo que
+  más se repite en las tarjetas.
+- **Analogía ancla (Einstein/Da Vinci):** una imagen de la vida diaria que sostenga todo el tema; vuelve a ella en las lecciones.
+- **Diagnóstico:** 3 preguntas de menos a más difícil que separen "lo reconozco" de "lo puedo producir".
+- **En cada lección:** intentar antes de que expliquen (abre con una pregunta o un caso en `idea` o el primer bloque cuando
+  sirva), una analogía antes del término técnico, cada término definido, ejemplo **y contraejemplo** (dónde NO aplica).
+- **Feynman:** una consigna para explicar la idea con palabras propias, como a un niño de 12 años, prohibiendo la jerga clave.
+- **Práctica deliberada:** un `reto` un poco por encima de lo que se acaba de aprender, aplicado a la vida real.
+- **Recordar sin mirar:** mezcla definición, explicación (por qué), aplicación y caso; no solo definiciones.
+- **Criterio de dominio por módulo:** qué tienes que poder HACER sin mirar para darlo por dominado (no "haber leído").
+- Los repasos los hace la app (tarjetas a 1, 3, 7, 16 y 35 días): las `tarjetas` son lo que el mentor repasaría.
+
 ## 3. Escribir `src/cursos/<id>.js`
 ```js
 const l = (titulo, minutos, datos) => ({ titulo, minutos, ejemplos: [], nota: '', ...datos });
@@ -55,17 +72,27 @@ const MODULO_1 = {
       nota,                               // lo que conviene matizar (ver reglas)
       recordar: [['pregunta', 'respuesta corta'], …],  // 3 a 5: "recordar sin mirar"
       tarjetas: [['frente', 'reverso'], …],            // 3: lo esencial para el repaso espaciado
+      feynman,                            // consigna: "Explícale a un niño de 12 años … sin usar las palabras X ni Y"
+      reto,                               // práctica deliberada: un poco por encima del nivel, en la vida real
     }),
   ],
+  comprobacion,                           // "Lo dominas si…": lo que puedes HACER sin mirar al terminar el módulo
 };
 
 export default {
   id, nombre, area, icono, nivel: 'Básico' | 'Intermedio' | 'Avanzado',
   paraQue,                                // para qué sirve el curso, en dos frases
+  ancla,                                  // la analogía de la vida diaria que sostiene todo el tema (2-3 frases)
+  principios: ['…', …],                   // 3 a 7 primeros principios, en orden de dependencia
+  ochenta,                                // el 20% que da el 80% del resultado y por qué
+  diagnostico: [['pregunta', 'respuesta'], …],  // exactamente 3, de menos a más difícil
   modulos: [MODULO_1, MODULO_2, MODULO_3],
   proyecto: { titulo, intro, pasos: [6 a 8 pasos] },  // proyecto final práctico, de 1 a 4 semanas
 };
 ```
+- `ancla`, `principios`, `ochenta`, `diagnostico`, `comprobacion`, `feynman` y `reto` salen en la app (pestaña 🗺️ Mapa, la
+  lista de lecciones y cada lección). Son opcionales para los cursos viejos, pero **todo curso nuevo los lleva**. La pestaña Mapa
+  trae además el botón que copia el prompt del mentor relleno (`src/mentor.js`); si cambias `docs/prompt-mentor.md`, cambia también ese archivo.
 - **Tamaño:** 3 módulos de 3 lecciones (9 lecciones) es lo normal; temas grandes pueden llevar 4 módulos. Cada lección de **unos
   10 minutos** (`minutos` entre 8 y 12; la prueba acepta de 5 a 15). Una lección = una idea; si no cabe, divídela.
 - **Recordar sin mirar:** preguntas que se respondan de memoria con lo de la lección; la respuesta, en una o dos frases.
@@ -79,7 +106,7 @@ export default {
 2. `npm test`: `tests/cursos.test.mjs` valida el formato de todos los cursos. Corrige hasta que pase.
 3. Agrega en `tests/cursos.test.mjs` una prueba del curso nuevo: número de lecciones y 5-10 autores o conceptos clave que no pueden faltar.
 4. `npm run build`.
-5. Ábrelo en el navegador (`#estudiar/<id>`, con `npm run dev`): revisa una lección, "recordar sin mirar", la pestaña Fuentes y
+5. Ábrelo en el navegador (`#estudiar/<id>`, con `npm run dev`): revisa una lección, "recordar sin mirar", las pestañas Mapa y Fuentes y
    que el plan de 🎓 Estudiar lo proponga.
 6. Actualiza el README (lista de cursos disponibles) y cuéntale al usuario cuántas lecciones y tarjetas quedaron, las fuentes
    principales y qué mitos o exageraciones corrigen las notas. No hagas commit sin que lo pida.

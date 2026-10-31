@@ -11,7 +11,7 @@ export const progresoCurso = () => ({
   hechas: {},     // número de lección: fecha en que se terminó
   practica: {},   // número de lección: { índice: fecha }
   recordar: {},   // número de lección: { índice: true si la sabía, false si no }
-  diario: {},     // número de lección: respuesta a la pregunta del diario
+  diario: {},     // número de lección: respuesta a la pregunta del diario; 'f' + número: su explicación simple (Feynman); proyecto: notas
   proyecto: {},   // índice del paso: fecha
 });
 

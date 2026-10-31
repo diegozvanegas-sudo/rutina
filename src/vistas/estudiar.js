@@ -9,6 +9,7 @@ import { lecturaQueToca, leidas } from '../biblioteca.js';
 import { progresoCurso, lecciones, leccion, leccionQueToca, hechas, avance, sumarTarjetas, repasar, pendientes, tarjeta, dominada,
   planDelDia, siguientes, anotar, rachaEstudio, INTERVALOS } from '../estudio.js';
 import { registrarCatalogo, ve, veRuta } from '../permisos.js';
+import { promptMentor } from '../mentor.js';
 
 // Las áreas y los cursos entran al catálogo del administrador
 registrarCatalogo('area', catalogoAreas);
@@ -134,6 +135,10 @@ function vistaLeccion(n) {
     '<h3 class="sub-libro">🔎 Ejemplos</h3><ul class="puntos-libro">' + l.ejemplos.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' +
     '<div class="nota-libro"><b>💡 Para tener en cuenta</b><div>' + esc(l.nota) + '</div></div>' +
     recordarSinMirar(l) +
+    // Opcionales (cursos nuevos): explicarlo simple con palabras propias y un reto un poco por encima del nivel
+    (l.feynman ? '<h3 class="sub-libro">🧒 Explícalo simple</h3><label class="campo">' + esc(l.feynman) + '<textarea rows="3" data-cambio="estudio-diario" data-c="' + c.id + '" data-n="f' + n + '">' + esc(p.diario['f' + n] || '') + '</textarea></label>' +
+      '<p class="nota-corta">Sin mirar la lección. Donde te trabes o uses palabras vagas, ahí está lo que no entiendes: vuelve a leer esa parte.</p>' : '') +
+    (l.reto ? '<div class="nota-libro"><b>🏋️ Reto</b><div>' + esc(l.reto) + '</div></div>' : '') +
     '<h3 class="sub-libro">✅ Práctica</h3><div class="practica-libro">' + l.practica.map((x, i) =>
       '<button type="button" class="paso-libro' + (pr[i] ? ' hecho' : '') + '" data-accion="estudio-practica" data-n="' + n + '" data-i="' + i + '" aria-pressed="' + !!pr[i] + '">' +
       '<span class="check-libro">' + (pr[i] ? '✓' : '') + '</span><span>' + esc(x) + '</span></button>').join('') + '</div>' +
@@ -154,7 +159,8 @@ function pestanaHoy() {
 
 function pestanaLecciones() {
   const c = C(), p = P(), toca = leccionQueToca(c, p), ls = lecciones(c);
-  return c.modulos.map((m, im) => '<section class="tarjeta"><h2>Módulo ' + (im + 1) + ': ' + esc(m.titulo) + '</h2><p class="nota-corta">' + esc(m.objetivo) + '</p><ol class="lista-libro">' +
+  return c.modulos.map((m, im) => '<section class="tarjeta"><h2>Módulo ' + (im + 1) + ': ' + esc(m.titulo) + '</h2><p class="nota-corta">' + esc(m.objetivo) + '</p>' +
+    (m.comprobacion ? '<p class="nota-corta">✔️ <b>Lo dominas si…</b> ' + esc(m.comprobacion) + '</p>' : '') + '<ol class="lista-libro">' +
     ls.filter((l) => l.modulo === im + 1).map((l) => '<li class="' + (p.hechas[l.n] ? 'leida' : l.n === toca ? 'toca' : '') + '"><button type="button" data-accion="estudio-abrir" data-n="' + l.n + '">' +
       '<span class="num-libro">' + (p.hechas[l.n] ? '✓' : l.n) + '</span><span><b>' + esc(l.titulo) + '</b><small>' + esc(l.idea) + '</small><small>' + l.minutos + ' min' +
       (Object.keys(p.practica[l.n] || {}).length ? ' · práctica ' + Object.keys(p.practica[l.n]).length + '/3' : '') + (p.diario[l.n] ? ' · con diario' : '') + '</small></span></button></li>').join('') +
@@ -169,14 +175,30 @@ function pestanaProyecto() {
     '<label class="campo">Notas del proyecto<textarea rows="4" data-cambio="estudio-diario" data-c="' + C().id + '" data-n="proyecto">' + esc(P().diario.proyecto || '') + '</textarea></label></section>';
 }
 
+// Mapa: la analogía ancla, los primeros principios, el 80/20, el diagnóstico y el prompt para estudiar con un mentor IA
+function pestanaMapa() {
+  const c = C();
+  return (c.ancla ? '<section class="tarjeta"><h2>⚓ La idea ancla</h2><p>' + esc(c.ancla) + '</p></section>' : '') +
+    (c.principios ? '<section class="tarjeta"><h2>🧱 Primeros principios</h2><p class="nota-corta">Lo fundamental: todo el curso se deriva de estas ideas.</p><ol class="puntos-libro">' +
+      c.principios.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ol>' + (c.ochenta ? '<div class="nota-libro"><b>🎯 El 20% que más rinde</b><div>' + esc(c.ochenta) + '</div></div>' : '') + '</section>' : '') +
+    (c.diagnostico ? '<section class="tarjeta"><h2>🩺 ¿Cuánto sabes ya?</h2><p class="nota-corta">Tres preguntas de menos a más difícil. Respóndelas antes de empezar y vuelve a hacerlo al terminar: la diferencia es lo que aprendiste.</p>' +
+      '<ol class="recordar">' + c.diagnostico.map(([q, a], i) => {
+        const clave = c.id + ':diag:' + i;
+        return '<li><b>' + esc(q) + '</b>' + (vistas.has(clave) ? '<div class="respuesta">' + esc(a) + '</div>' : '<button type="button" class="boton secundario" data-accion="estudio-ver" data-k="' + clave + '">Ver respuesta</button>') + '</li>';
+      }).join('') + '</ol></section>' : '') +
+    '<section class="tarjeta"><h2>🤖 Estudiar con un mentor IA</h2><p class="nota-corta">Copia este prompt y pégalo en Claude (u otra IA). Va con el curso, tus minutos y lo que llevas, y te hace un diagnóstico, preguntas una por una y repasos.</p>' +
+    '<button type="button" class="boton primario ancho" data-accion="estudio-copiar-mentor">📋 Copiar prompt</button>' +
+    '<details><summary>Ver el prompt</summary><textarea id="prompt-mentor" rows="12" readonly>' + esc(promptMentor(c, P(), { minutos: minutos() })) + '</textarea></details></section>';
+}
+
 const pestanaFuentes = () => '<p class="nota-corta">Las investigaciones y libros de donde sale cada módulo. Las notas "Para tener en cuenta" separan lo que tiene evidencia de lo que se suele exagerar.</p>' +
   C().modulos.map((m, im) => '<section class="tarjeta"><h2>Módulo ' + (im + 1) + ': ' + esc(m.titulo) + '</h2><ul class="puntos-libro fuentes">' +
     m.fuentes.map(([cita, para]) => '<li>' + esc(cita) + '<small>' + esc(para) + '</small></li>').join('') + '</ul></section>').join('');
 
 function vistaCurso() {
   const c = C(), a = area(c.area), p = P(), n = hechas(c, p), total = lecciones(c).length;
-  const tabs = { hoy: '📖 Hoy', lecciones: '📚 ' + total + ' lecciones', proyecto: '🎯 Proyecto', fuentes: '📎 Fuentes' };
-  const vistasP = { hoy: pestanaHoy, lecciones: pestanaLecciones, proyecto: pestanaProyecto, fuentes: pestanaFuentes };
+  const tabs = { hoy: '📖 Hoy', lecciones: '📚 ' + total + ' lecciones', mapa: '🗺️ Mapa', proyecto: '🎯 Proyecto', fuentes: '📎 Fuentes' };
+  const vistasP = { hoy: pestanaHoy, lecciones: pestanaLecciones, mapa: pestanaMapa, proyecto: pestanaProyecto, fuentes: pestanaFuentes };
   return '<button type="button" class="boton secundario" data-accion="estudio-area" data-a="' + a.id + '">← ' + a.icono + ' ' + esc(a.nombre) + '</button>' +
     '<h1>' + c.icono + ' ' + esc(c.nombre) + '</h1><p class="sub">' + esc(c.nivel) + ' · ' + esc(c.paraQue) + '</p>' +
     '<section class="tarjeta"><div class="fila-resumen"><b>📖 ' + n + ' de ' + total + ' lecciones</b><span>🔥 ' + rachaEstudio(E().dias) + ' días</span></div>' + barra(n / total) + '</section>' +
@@ -274,6 +296,11 @@ registrar({
     if (ok) repaso.bien++;
     repaso.i++; repaso.volteada = false;
     guardar();
+  },
+  async 'estudio-copiar-mentor'() {
+    const texto = promptMentor(C(), P(), { minutos: minutos() });
+    try { await navigator.clipboard.writeText(texto); toast('📋 Prompt copiado: pégalo en Claude'); }
+    catch { const t = document.getElementById('prompt-mentor'); if (t) { t.closest('details').open = true; t.select(); } toast('Selecciona el texto y cópialo'); }
   },
   'estudio-fin-repaso'() { repaso = null; repintar(); irArriba(); },
 });

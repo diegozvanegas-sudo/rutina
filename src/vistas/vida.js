@@ -2,7 +2,7 @@
 import { e, guardar, repintar, dia } from '../estado.js';
 import { iso, fechaCorta, sumarDias } from '../fechas.js';
 import { pesos, leerMonto } from '../finanzas.js';
-import { RELACIONES, estadoContacto, estadoEspera, resumenEsperas, IDEAS_ESTANDARES, cumplimientoEstandares } from '../vida.js';
+import { RELACIONES, estadoContacto, estadoEspera, resumenEsperas, IDEAS_POR_TEMA, cumplimientoEstandares } from '../vida.js';
 import { rango } from '../progreso.js';
 import { esc, barra, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
@@ -85,11 +85,12 @@ export function tarjetaEstandares(fecha = iso()) {
     (editandoEstandares || !lista.length ? editorEstandares(lista) : '<button type="button" class="boton secundario ancho" data-accion="estandares-editar">✏️ Editar estándares</button>') + '</section>';
 }
 function editorEstandares(lista) {
-  const ideas = IDEAS_ESTANDARES.filter((t) => !lista.some((s) => s.texto === t));
+  const libre = (t) => !lista.some((s) => s.texto === t);
   return (lista.length ? '<ul class="lista-pesos">' + lista.map((s) => '<li><span>' + esc(s.texto) + '</span><button type="button" class="icono" data-accion="estandar-quitar" data-id="' + s.id + '" aria-label="Quitar">✕</button></li>').join('') + '</ul>' : '') +
     '<div class="aportar"><input type="text" id="estandar-nuevo" placeholder="Mi regla: …" aria-label="Nuevo estándar">' +
     '<button type="button" class="boton primario" data-accion="estandar-agregar">＋</button></div>' +
-    (ideas.length ? '<div class="chips envolver">' + ideas.map((t) => '<button type="button" class="chip mini" data-accion="estandar-agregar" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>' : '') +
+    Object.entries(IDEAS_POR_TEMA).filter(([, ts]) => ts.some(libre)).map(([tema, ts]) => '<h3 class="tema-ideas">' + tema + '</h3><div class="chips envolver">' +
+      ts.filter(libre).map((t) => '<button type="button" class="chip mini" data-accion="estandar-agregar" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>').join('') +
     (lista.length ? '<button type="button" class="boton secundario ancho" data-accion="estandares-editar">✓ Listo</button>' : '');
 }
 

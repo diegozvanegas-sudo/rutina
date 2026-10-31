@@ -31,17 +31,53 @@ export function resumenEsperas(lista = []) {
 }
 
 // ---------- Estándares: est.estandares = [{ id, texto }], cumplidos en dias[fecha].estandares = { id: true } ----------
-export const IDEAS_ESTANDARES = [
-  'Entreno aunque no tenga ganas',
-  'Hago primero lo más importante',
-  'No cuento mis planes antes de hacerlos',
-  'Digo no sin dar explicaciones de más',
-  'Cero quejas: si algo no me gusta, lo cambio',
-  'Cumplo lo que prometo, también a mí',
-  'Trato con respeto a todos, y exijo respeto',
-  'No tomo decisiones de plata con prisa',
-  'Nada de redes la primera hora del día',
-];
+// Ideas para elegir, por tema (las que ya están en la lista no se vuelven a ofrecer)
+export const IDEAS_POR_TEMA = {
+  '💪 Cuerpo': [
+    'Entreno aunque no tenga ganas',
+    'Duermo 7 horas o más',
+    'No como basura entre semana',
+    'Tomo mis litros de agua',
+    'Cero alcohol la noche antes de entrenar o jugar',
+    'Me muevo todos los días, aunque sea caminar',
+  ],
+  '🧠 Mente y foco': [
+    'Hago primero lo más importante',
+    'Nada de redes la primera hora del día',
+    'Termino lo que empiezo',
+    'Leo todos los días, aunque sea una página',
+    'Celular lejos cuando trabajo o estudio',
+    'Me acuesto sin pantallas',
+  ],
+  '🗣️ Palabra y carácter': [
+    'Cumplo lo que prometo, también a mí',
+    'Digo la verdad aunque incomode',
+    'Llego a tiempo',
+    'No hablo mal de nadie a sus espaldas',
+    'Cero quejas: si algo no me gusta, lo cambio',
+    'Pido perdón rápido cuando me equivoco',
+  ],
+  '🤝 Relaciones': [
+    'Trato con respeto a todos, y exijo respeto',
+    'Digo no sin dar explicaciones de más',
+    'Escucho sin mirar el celular',
+    'Le escribo o llamo a alguien de mi círculo',
+    'Agradezco en voz alta',
+  ],
+  '💰 Plata': [
+    'No tomo decisiones de plata con prisa',
+    'Anoto todo lo que gasto',
+    'Ahorro primero, gasto lo que queda',
+    'No compro a crédito lo que no necesito',
+  ],
+  '🔒 Disciplina': [
+    'No cuento mis planes antes de hacerlos',
+    'Hago lo difícil cuando no tengo ganas',
+    'No negocio conmigo mismo',
+    'Reviso el día antes de dormir',
+  ],
+};
+export const IDEAS_ESTANDARES = Object.values(IDEAS_POR_TEMA).flat();
 export function cumplimientoEstandares(est, fechas) {
   const lista = est.estandares || [];
   if (!lista.length) return null;

@@ -530,6 +530,7 @@ a.kpi small span { color: var(--brand); }
 .consejos-libro { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin-bottom: 14px; }
 .consejos-libro .chip { border-radius: 12px; text-align: left; white-space: normal; }
 .chips.envolver { flex-wrap: wrap; overflow: visible; padding-bottom: 0; }
+.tema-ideas { font-size: 13px; color: var(--muted); margin: 12px 0 6px; font-weight: 600; }
 .chip.mini { min-height: 36px; padding: 4px 10px; font-size: 13px; }
 .concepto-libro { padding: 10px 0; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
 .concepto-libro:last-child { border-bottom: 0; }

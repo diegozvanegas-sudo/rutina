@@ -45,9 +45,9 @@ npm run build     # versión para publicar en dist/
   palabras simples e historias, escuchar, lo no verbal sin mitos, conversaciones difíciles, persuasión, influencia, cambiar
   opiniones, miedo escénico, preparar y ensayar, y voz, pausas y preguntas), **Inteligencia emocional** (9 lecciones: qué es y
   qué no, para qué sirven las emociones, nombrarlas, regulación, rabia y rumiación, cuerpo y escritura, empatía y compasión,
-  contagio y buenas noticias, trabajo, familia y cuándo pedir ayuda) y **Educación financiera** (4 módulos, 12 lecciones, para
+  contagio y buenas noticias, trabajo, familia y cuándo pedir ayuda), **Educación financiera** (4 módulos, 12 lecciones, para
   Colombia: presupuesto, fondo de emergencia, inflación e interés compuesto, deudas y usura, salir de deudas, centrales de
-  riesgo, riesgo y diversificación, fondos indexados, estafas, pensión y cesantías, renta y vivienda, plata y bienestar). Formato en `src/cursos/aprender-a-aprender.js`, validado por
+  riesgo, riesgo y diversificación, fondos indexados, estafas, pensión y cesantías, renta y vivienda, plata y bienestar), **Sesgos cognitivos** (9 lecciones: heurísticas, disponibilidad y representatividad, anclaje, confirmación, razonamiento motivado y punto ciego, juzgar a otros, memoria y supervivencia, azar y rachas, y cómo reducir sesgos). Formato en `src/cursos/aprender-a-aprender.js`, validado por
   `tests/cursos.test.mjs`. Para sumar el siguiente: `/agregar-curso` (`.claude/skills/agregar-curso/SKILL.md`), un curso por sesión.
 - **📚 Libros** (un área de Estudiar; `#libros` y `#libros/<id>` siguen funcionando): libros y cursos convertidos desde PDF, una lectura por día (si se salta una, al otro día sigue donde quedó):
   contenido completo, fórmulas, notas que matizan datos dudosos, afirmación, práctica del día, diario y racha.

@@ -48,7 +48,7 @@ test('las 7 áreas: Libros primero con los libros de siempre, y ningún id repet
   assert.equal(ids.length, 23); // 4 libros y 19 cursos
   assert.equal(area('esoterico').cursos.length, 6);
   assert.equal(curso('aprender-a-aprender').modulos.length, 3);
-  assert.equal(curso('sesgos-cognitivos'), null); // Próximamente
+  assert.equal(curso('no-existe'), null); // un id que no está en el catálogo
   assert.ok(catalogoAreas().libros.includes('Libros'));
   assert.ok(catalogoCursos()['aprender-a-aprender'].includes('Aprender y pensar'));
 });
@@ -120,6 +120,15 @@ test('Educación financiera: 4 módulos, 12 lecciones con los temas clave de Col
   const todo = JSON.stringify(c);
   for (const x of ['Lusardi', '50/30/20', 'Madrian', 'inflación', 'regla del 72', 'usura', 'bola de nieve', 'Ley 1266', 'Markowitz', 'Bogle', 'Ponzi',
     'Colpensiones', 'cesantías', 'DIAN', '4x1000', 'Fogafín', 'Superintendencia Financiera'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Sesgos cognitivos: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('sesgos-cognitivos');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Tversky', 'Kahneman', 'Gigerenzer', 'anclaje', 'disponibilidad', 'Wason', 'Kunda', 'Pronin', 'Jones', 'Tajfel', 'Fischhoff', 'Loftus', 'Wald', 'regresión a la media', 'Morewedge'])
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 

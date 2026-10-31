@@ -1,5 +1,5 @@
 // "Hoy": tablero con la mañana, las metas, el entrenamiento que toca y la semana
-import { e, avanceMetas, hayFutbol, elegirPlantilla } from '../estado.js';
+import { e, avanceMetas, hayFutbol, elegirPlantilla, guardar, repintar } from '../estado.js';
 import { iso, fechaLarga } from '../fechas.js';
 import { esc, barra, pct, botonSesion, registrar } from '../ui.js';
 import { visibles, SECCION_TARJETA } from '../orden.js';
@@ -110,10 +110,95 @@ export function vistaHoy() {
     (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
       avisos.slice(0, 3).map((a) => esc(a.icono + ' ' + a.nombre) + (a.estado === 'vencido' ? ' (vencido)' : '')).join(' · ') + '</span></a>' : '') +
     ids.filter((k) => ANCHAS.includes(k)).map((k) => TARJETAS[k]()).join('') + '</div>' +
-    '<div class="tablero">' + ids.filter((k) => !ANCHAS.includes(k)).map((k) => TARJETAS[k]()).join('') + '</div>' +
+    tablero(ids.filter((k) => !ANCHAS.includes(k))) +
+    '<div class="organizar-hoy"><button type="button" class="boton secundario" data-accion="hoy-organizar">' + (organizando ? '✓ Listo' : '✋ Organizar tarjetas') + '</button>' +
+    (organizando && guardadas()[columnas()] ? '<button type="button" class="boton secundario" data-accion="hoy-reordenar">↺ Acomodar solas</button>' : '') + '</div>' +
+    (organizando ? '<p class="nota-corta centro">Arrastra cada tarjeta a la columna y el lugar que quieras. Se guarda para este ancho de pantalla.</p>' : '') +
     '<p class="nota-corta centro"><a href="#editar/pantallas">↕ Ordenar o esconder tarjetas</a></p>';
+}
+
+// ---------- Tablero en columnas ----------
+// En el computador las tarjetas van en columnas independientes (sin huecos). Si el usuario las organizó arrastrando, se
+// respeta su orden (guardado por número de columnas); si no, se reparten solas según un tamaño aproximado. El tamaño sale
+// de los datos (cuántos hábitos, cuántas metas) y no de medir la pantalla, para que una tarjeta no salte de columna al crecer.
+let organizando = false;
+const columnas = () => (typeof window === 'undefined' ? 1 : innerWidth >= 2000 ? 4 : innerWidth >= 1400 ? 3 : innerWidth >= 900 ? 2 : 1);
+const guardadas = () => e().config.tablero || {};
+function altoAprox(k) {
+  if (k === 'manana') return 110 + 64 * e().habitos.length;
+  if (k === 'metas') return 100 + 44 * avanceMetas().activas.length;
+  if (k === 'gym') return diaDeHoy() ? 700 : 220;
+  return { dieta: 260, semana: 220, suenoPeso: 170, estandares: 160, plata: 110, cierre: 200 }[k] || 180;
+}
+function repartir(ids, n) {
+  const cols = Array.from({ length: n }, () => []), alto = Array(n).fill(0);
+  const guardado = (guardadas()[n] || []).map((c) => c.filter((k) => ids.includes(k)));
+  guardado.slice(0, n).forEach((c, i) => { cols[i] = c; alto[i] = c.reduce((s, k) => s + altoAprox(k), 0); });
+  // Las que no estaban en el orden guardado (nuevas o recién mostradas) van a la columna más corta
+  for (const k of ids) {
+    if (cols.some((c) => c.includes(k))) continue;
+    const i = alto.indexOf(Math.min(...alto));
+    cols[i].push(k);
+    alto[i] += altoAprox(k);
+  }
+  return cols;
+}
+function tablero(ids) {
+  const html = Object.fromEntries(ids.map((k) => [k, TARJETAS[k]()]));
+  const n = columnas(), conContenido = ids.filter((k) => html[k]), moviendo = organizando && n > 1;
+  return '<div class="tablero' + (moviendo ? ' organizando' : '') + '" style="--cols:' + n + '">' + repartir(conContenido, n).map((c, i) =>
+    '<div class="tablero-col" data-col="' + i + '">' + c.map((k) => '<div class="carta" data-carta="' + k + '"' + (moviendo ? ' draggable="true"' : '') + '>' + html[k] + '</div>').join('') + '</div>').join('') + '</div>';
+}
+// Guarda cómo quedaron las columnas después de arrastrar
+function guardarOrden() {
+  const t = document.querySelector('.tablero');
+  if (!t) return;
+  const cols = [...t.querySelectorAll('.tablero-col')].map((c) => [...c.querySelectorAll(':scope > .carta')].map((x) => x.dataset.carta));
+  e().config.tablero = { ...guardadas(), [cols.length]: cols };
+  guardar(false);
+}
+if (typeof window !== 'undefined') {
+  let ultimas = columnas();
+  // Al cambiar el ancho de la ventana, se rearma con el número de columnas que toca
+  addEventListener('resize', () => {
+    const n = columnas();
+    if (n !== ultimas) { ultimas = n; if (document.querySelector('.tablero')) repintar(); }
+  });
+  let arrastrada = null;
+  document.addEventListener('dragstart', (ev) => {
+    const c = ev.target.closest && ev.target.closest('.tablero.organizando .carta');
+    if (!c) return;
+    arrastrada = c;
+    c.classList.add('arrastrando');
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', c.dataset.carta);
+  });
+  document.addEventListener('dragover', (ev) => {
+    const col = arrastrada && ev.target.closest && ev.target.closest('.tablero.organizando .tablero-col');
+    if (!col) return;
+    ev.preventDefault();
+    // Se mueve en vivo: queda antes de la primera tarjeta cuyo centro está debajo del cursor
+    const antes = [...col.querySelectorAll(':scope > .carta:not(.arrastrando)')].find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+    if (antes) { if (antes.previousElementSibling !== arrastrada) col.insertBefore(arrastrada, antes); }
+    else if (col.lastElementChild !== arrastrada) col.appendChild(arrastrada);
+  });
+  document.addEventListener('drop', (ev) => { if (arrastrada) ev.preventDefault(); });
+  document.addEventListener('dragend', () => {
+    if (!arrastrada) return;
+    arrastrada.classList.remove('arrastrando');
+    arrastrada = null;
+    guardarOrden();
+  });
 }
 
 registrar({
   plantilla({ vacia }) { elegirPlantilla(!!vacia); },
+  'hoy-organizar'() { organizando = !organizando; repintar(); },
+  'hoy-reordenar'() {
+    const t = { ...guardadas() };
+    delete t[columnas()];
+    e().config.tablero = t;
+    guardar();
+  },
 });
+

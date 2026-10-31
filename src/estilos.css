@@ -60,9 +60,6 @@ small { color: var(--muted); }
   #vista { padding: 24px 32px 120px; max-width: 1100px; width: 100%; }
   #lateral { position: sticky; right: auto; bottom: auto; z-index: auto; width: auto; height: 100dvh; padding: 20px 16px; transform: none; visibility: visible; transition: none; box-shadow: none; }
   .nav-lateral a { min-height: 0; font-size: 16px; }
-  .tablero { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-  .tablero > * { margin: 0; }
-  .col-manana { grid-row: span 4; }
   /* Tarjetas de arriba de Hoy: lado a lado; el entrenador, más ancho */
   .arriba { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; margin-bottom: 14px; }
   .arriba > * { margin: 0; }
@@ -73,12 +70,22 @@ small { color: var(--muted); }
 /* Pantallas anchas: Hoy usa más espacio y el tablero pasa a tres columnas */
 @media (min-width: 1400px) {
   #vista[data-vista="hoy"] { max-width: 1640px; }
-  #vista[data-vista="hoy"] .tablero { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 2000px) {
   #vista[data-vista="hoy"] { max-width: 2200px; }
-  #vista[data-vista="hoy"] .tablero { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+/* Tablero de Hoy: columnas independientes (sin huecos); cada tarjeta se apila bajo la anterior */
+.tablero { display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); gap: 14px; align-items: start; margin-bottom: 14px; }
+.tablero-col { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.carta > *, .carta > .col-gym > :last-child { margin-bottom: 0; }
+.organizar-hoy { display: none; }
+@media (min-width: 900px) { .organizar-hoy { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; } }
+/* Modo organizar: se arrastran las tarjetas entre columnas */
+.tablero.organizando .tablero-col { min-height: 160px; padding: 6px; border: 2px dashed var(--line); border-radius: var(--radio); }
+.tablero.organizando .carta { cursor: grab; border-radius: var(--radio); outline: 2px solid var(--brand-soft); }
+.tablero.organizando .carta > * { pointer-events: none; }
+.tablero.organizando .carta.arrastrando { opacity: .35; }
 
 /* ---------- Piezas ---------- */
 .tarjeta { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radio); padding: 14px; margin: 0 0 14px; }
@@ -125,6 +132,11 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .habito.hecho .nombre { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--line); }
 .habito .detalle { color: var(--muted); font-size: 14px; }
 .habito .boton { justify-self: start; }
+/* Pantalla de Mañana en el computador: los hábitos en columnas para verlos todos */
+@media (min-width: 900px) {
+  #vista[data-vista="manana"] { max-width: 1640px; }
+  #vista[data-vista="manana"] .habitos { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); align-items: start; }
+}
 .espera { font-weight: 700; font-size: 15px; padding: 8px 10px; border-radius: 10px; }
 .espera.esperar { background: #3a2d10; color: var(--amarillo); }
 .espera.casi { background: #173a2a; color: #a9f0c9; }
@@ -382,7 +394,7 @@ button.avisos-hoy { font: inherit; text-align: left; cursor: pointer; width: 100
 .e-al-dia { background: var(--brand-soft); color: var(--brand); }
 .rec.e-borde-vencido { border-color: var(--rojo); }
 .rec.e-borde-pronto { border-color: var(--amarillo); }
-.hecho { display: grid; gap: 8px; margin-top: 6px; }
+div.hecho[data-rec] { display: grid; gap: 8px; margin-top: 6px; }
 
 /* Progreso y gráficos (paleta validada contra la superficie oscura #181e24) */
 :root { --serie-1: #3987e5; --serie-2: #d95926; --serie-3: #2fa37a; --rampa-1: #184f95; --rampa-2: #256abf; --rampa-3: #3987e5; --rampa-4: #86b6ef; }

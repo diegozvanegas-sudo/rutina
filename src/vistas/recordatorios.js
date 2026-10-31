@@ -68,8 +68,8 @@ function tarjeta(x, i) {
     '<details><summary>Editar</summary><div class="dos">' +
     '<label class="campo">Nombre<input type="text" data-cambio="ed" data-ruta="' + ruta + '.nombre" value="' + esc(x.nombre) + '"></label>' +
     '<label class="campo">Ícono<input type="text" maxlength="4" data-cambio="ed" data-ruta="' + ruta + '.icono" value="' + esc(x.icono || '') + '"></label>' +
-    '<label class="campo">Cada cuántos días (0 = no)<input type="number" inputmode="numeric" min="0" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.cadaDias" value="' + (x.cadaDias || 0) + '"></label>' +
-    '<label class="campo">Cada cuántos meses (0 = no)<input type="number" inputmode="numeric" min="0" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.cadaMeses" value="' + (x.cadaMeses || 0) + '"></label>' +
+    '<label class="campo">Cada cuántos días (opcional, 0 = sin fecha)<input type="number" inputmode="numeric" min="0" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.cadaDias" value="' + (x.cadaDias || 0) + '"></label>' +
+    '<label class="campo">Cada cuántos meses (opcional, 0 = sin fecha)<input type="number" inputmode="numeric" min="0" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.cadaMeses" value="' + (x.cadaMeses || 0) + '"></label>' +
     '<label class="campo">El costo va a<select data-cambio="ed" data-ruta="' + ruta + '.categoria">' + e().finanzas.categorias.gasto.map((c) =>
       '<option value="' + c.id + '"' + (c.id === categoriaDe(x) ? ' selected' : '') + '>' + c.icono + ' ' + esc(c.nombre) + '</option>').join('') + '</select></label>' +
     // Km y vehículo solo para lo de la moto

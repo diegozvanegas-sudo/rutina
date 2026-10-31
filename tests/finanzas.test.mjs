@@ -63,7 +63,7 @@ test('deudas: meses para pagar', () => {
 });
 
 test('aceite de la moto: lo que pase primero, km o meses', () => {
-  const aceite = { ...PLANTILLAS_RECORDATORIO[0], cadaKm: 3000, hechos: [] };
+  const aceite = { ...PLANTILLAS_RECORDATORIO[0], cadaKm: 3000, cadaMeses: 3, hechos: [] };
   const moto = { km: [{ fecha: '2026-10-01', km: 10000 }, { fecha: '2026-10-21', km: 10600 }] };
   assert.equal(estadoRecordatorio(aceite, moto, '2026-10-22').estado, 'sin-dato');
   aceite.hechos.push({ fecha: '2026-09-15', km: 8000 });

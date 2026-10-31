@@ -150,6 +150,15 @@ test('Neurociencia del desarrollo: 9 lecciones con los temas y autores clave', (
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Epigenética: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('epigenetica');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Waddington', 'metilación', 'histonas', 'Lyon', 'Fraga', 'Polderman', 'agouti', 'Heijmans', 'Weaver', 'Horvath', 'Heard', 'Esteller', 'Deichmann'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

@@ -213,6 +213,15 @@ test('Masonería: 9 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Ciencias ocultas: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('ciencias-ocultas');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Qué dice la tradición', 'Qué muestra la evidencia', 'Ptolomeo', 'Carlson', 'gemelos de tiempo', 'precesión', 'Zósimo', 'Lavoisier', 'Rutherford', 'Agrippa', 'Levack', 'Cartagena', 'Blavatsky', 'Dummett', 'lectura en frío'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

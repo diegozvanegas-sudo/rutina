@@ -20,8 +20,9 @@ import hermetismo from './hermetismo.js';
 import numerologia from './numerologia.js';
 import geometriaSagrada from './geometria-sagrada.js';
 import masoneria from './masoneria.js';
+import cienciasOcultas from './ciencias-ocultas.js';
 
-export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo, numerologia, geometriaSagrada, masoneria];
+export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo, numerologia, geometriaSagrada, masoneria, cienciasOcultas];
 export const curso = (id) => CURSOS.find((c) => c.id === id) || null;
 
 const c = (id, icono, nombre, descripcion) => ({ id, icono, nombre, descripcion });

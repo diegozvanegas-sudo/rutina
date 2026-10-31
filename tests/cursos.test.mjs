@@ -195,6 +195,15 @@ test('Numerología: 9 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Geometría sagrada: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('geometria-sagrada');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Qué dice la tradición', 'Qué muestra la evidencia', 'proporción áurea', 'Euclides', 'Fibonacci', 'nautilus', 'sólidos platónicos', 'Kepler', 'Markowitz', 'Partenón', 'Green', 'flor de la vida', 'Lu y Steinhardt', 'Modulor'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

@@ -132,6 +132,15 @@ test('Sesgos cognitivos: 9 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Neuroplasticidad: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('neuroplasticidad');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Hebb', 'Kandel', 'Maguire', 'Draganski', 'Sorrells', 'Ericsson', '10.000 horas', 'Erickson', 'Walker', 'Wiesel', 'Owen', 'Simons', '10 %', 'Mozart'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

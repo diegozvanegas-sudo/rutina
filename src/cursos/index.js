@@ -11,8 +11,9 @@ import comunicacionOratoria from './comunicacion-oratoria.js';
 import inteligenciaEmocional from './inteligencia-emocional.js';
 import educacionFinanciera from './educacion-financiera.js';
 import sesgosCognitivos from './sesgos-cognitivos.js';
+import neuroplasticidad from './neuroplasticidad.js';
 
-export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos];
+export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad];
 export const curso = (id) => CURSOS.find((c) => c.id === id) || null;
 
 const c = (id, icono, nombre, descripcion) => ({ id, icono, nombre, descripcion });

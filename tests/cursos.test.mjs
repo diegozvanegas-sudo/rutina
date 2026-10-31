@@ -168,6 +168,15 @@ test('Geopolítica: 12 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Gnosticismo: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('gnosticismo');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Qué dice la tradición', 'Qué muestra la evidencia', 'Nag Hammadi', 'Ireneo', 'Williams', 'Yaldabaot', 'Valentín', 'Tomás', 'Judas', 'Mani', 'cátaros', 'Samael Aun Weor', 'Atanasio'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

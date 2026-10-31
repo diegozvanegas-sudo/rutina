@@ -204,6 +204,15 @@ test('Geometría sagrada: 9 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Masonería: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('masoneria');
+  assert.equal(c.modulos.length, 3);
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Qué dice la tradición', 'Qué muestra la evidencia', 'Stevenson', 'Schaw', '1717', 'Anderson', 'Hiram', 'templarios', 'escuadra', 'Gran Oriente', 'Clemente XII', 'Bolívar', 'Loaiza Cano', 'Taxil', 'P2'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

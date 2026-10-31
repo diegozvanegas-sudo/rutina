@@ -70,6 +70,59 @@ test('Metacognición: 9 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Toma de decisiones: 9 lecciones con los temas y autores clave', () => {
+  const t = curso('toma-de-decisiones');
+  assert.equal(lecciones(t).length, 9);
+  const todo = JSON.stringify(t);
+  for (const x of ['Baron', 'Tversky', 'Nutt', 'Keeney', 'Tetlock', 'tasa base', 'valor esperado', 'Simon', 'Scheibehenne', 'Loewenstein', 'Klein', 'Janis', 'diario de decisiones'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Hábitos y productividad: 9 lecciones con los temas y autores clave', () => {
+  const h = curso('habitos-productividad');
+  assert.equal(lecciones(h).length, 9);
+  const todo = JSON.stringify(h);
+  for (const x of ['Wood', 'Lally', 'Maltz', 'Gollwitzer', 'Fogg', 'Neal', 'Hofmann', 'Harkin', 'Milkman', 'Locke', 'Oettingen', 'Leroy', 'Newport', 'Allen', 'Masicampo'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Procrastinación: 9 lecciones con los temas y autores clave', () => {
+  const p = curso('procrastinacion');
+  assert.equal(lecciones(p).length, 9);
+  const todo = JSON.stringify(p);
+  for (const x of ['Steel', 'Sirois', 'Pychyl', 'Tice', 'Ainslie', 'Hershfield', 'Berglas', 'Ariely', 'Wohl', 'Rozental', 'autocompasión', 'TDAH'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Comunicación y oratoria: 4 módulos, 12 lecciones con los temas y autores clave', () => {
+  const c = curso('comunicacion-oratoria');
+  assert.equal(c.modulos.length, 4);
+  assert.equal(lecciones(c).length, 12);
+  const todo = JSON.stringify(c);
+  for (const x of ['maldición del conocimiento', 'Minto', 'Oppenheimer', 'Rogers', 'Mehrabian', 'Bond', 'Gottman', 'Aristóteles', 'Petty', 'Cialdini', 'Broockman',
+    'Miller', 'Gilovich', 'Brooks', 'Mayer', 'Clark'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Inteligencia emocional: 9 lecciones con los temas y autores clave', () => {
+  const c = curso('inteligencia-emocional');
+  assert.equal(lecciones(c).length, 9);
+  const todo = JSON.stringify(c);
+  for (const x of ['Salovey', 'Goleman', 'Joseph', 'Ekman', 'Barrett', 'Lieberman', 'Gross', 'Bushman', 'Nolen-Hoeksema', 'Kross', 'Pennebaker',
+    'Singer', 'Gable', 'Hochschild', 'Gottman', '123'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Educación financiera: 4 módulos, 12 lecciones con los temas clave de Colombia', () => {
+  const c = curso('educacion-financiera');
+  assert.equal(c.modulos.length, 4);
+  assert.equal(lecciones(c).length, 12);
+  const todo = JSON.stringify(c);
+  for (const x of ['Lusardi', '50/30/20', 'Madrian', 'inflación', 'regla del 72', 'usura', 'bola de nieve', 'Ley 1266', 'Markowitz', 'Bogle', 'Ponzi',
+    'Colpensiones', 'cesantías', 'DIAN', '4x1000', 'Fogafín', 'Superintendencia Financiera'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

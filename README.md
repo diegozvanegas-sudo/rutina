@@ -34,8 +34,20 @@ npm run build     # versión para publicar en dist/
   Lógica sin pantalla en `src/estudio.js`; progreso en `estudio` = `{ actual, cursos, tarjetas, dias }`. En Hoy, la tarjeta
   **🎓 Estudio de hoy** reemplaza a las de los libros. Áreas y cursos entran a los permisos de Administrar (`area` / `curso`).
   Cursos disponibles: **Aprender a aprender** (9 lecciones: recuperación activa, repaso espaciado, intercalado, elaboración,
-  carga cognitiva, sueño y memoria) y **Metacognición** (9 lecciones: calibración, ilusiones de saber, planear, vigilar, evaluar,
-  errores, frenar el piloto automático y rutina semanal). Formato en `src/cursos/aprender-a-aprender.js`, validado por
+  carga cognitiva, sueño y memoria), **Metacognición** (9 lecciones: calibración, ilusiones de saber, planear, vigilar, evaluar,
+  errores, frenar el piloto automático y rutina semanal), **Toma de decisiones** (9 lecciones: decisión vs. resultado, marco y
+  opciones, criterios con pesos, probabilidades y tasa base, valor esperado y riesgo, reversible o no, emociones, intuición,
+  decidir en grupo y diario de decisiones), **Hábitos, productividad y organización personal** (9 lecciones: qué es un hábito,
+  cuánto tarda, señales y planes si-entonces, empezar pequeño y el entorno, romper malos hábitos, registro y recompensas,
+  metas y prioridades, trabajo profundo y sistema semanal), **Ciencia de la procrastinación** (9 lecciones: no es pereza, emociones,
+  ecuación de la motivación y yo del futuro, tareas que repelen, perfeccionismo y autosabotaje, plazos, empezar sin ganas,
+  autocompasión y plan con cuándo pedir ayuda), **Comunicación y oratoria** (4 módulos, 12 lecciones: idea principal, estructura,
+  palabras simples e historias, escuchar, lo no verbal sin mitos, conversaciones difíciles, persuasión, influencia, cambiar
+  opiniones, miedo escénico, preparar y ensayar, y voz, pausas y preguntas), **Inteligencia emocional** (9 lecciones: qué es y
+  qué no, para qué sirven las emociones, nombrarlas, regulación, rabia y rumiación, cuerpo y escritura, empatía y compasión,
+  contagio y buenas noticias, trabajo, familia y cuándo pedir ayuda) y **Educación financiera** (4 módulos, 12 lecciones, para
+  Colombia: presupuesto, fondo de emergencia, inflación e interés compuesto, deudas y usura, salir de deudas, centrales de
+  riesgo, riesgo y diversificación, fondos indexados, estafas, pensión y cesantías, renta y vivienda, plata y bienestar). Formato en `src/cursos/aprender-a-aprender.js`, validado por
   `tests/cursos.test.mjs`. Para sumar el siguiente: `/agregar-curso` (`.claude/skills/agregar-curso/SKILL.md`), un curso por sesión.
 - **📚 Libros** (un área de Estudiar; `#libros` y `#libros/<id>` siguen funcionando): libros y cursos convertidos desde PDF, una lectura por día (si se salta una, al otro día sigue donde quedó):
   contenido completo, fórmulas, notas que matizan datos dudosos, afirmación, práctica del día, diario y racha.

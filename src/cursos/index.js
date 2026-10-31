@@ -4,8 +4,14 @@
 import { LIBROS } from '../libros/index.js';
 import aprenderAAprender from './aprender-a-aprender.js';
 import metacognicion from './metacognicion.js';
+import tomaDeDecisiones from './toma-de-decisiones.js';
+import habitosProductividad from './habitos-productividad.js';
+import procrastinacion from './procrastinacion.js';
+import comunicacionOratoria from './comunicacion-oratoria.js';
+import inteligenciaEmocional from './inteligencia-emocional.js';
+import educacionFinanciera from './educacion-financiera.js';
 
-export const CURSOS = [aprenderAAprender, metacognicion];
+export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera];
 export const curso = (id) => CURSOS.find((c) => c.id === id) || null;
 
 const c = (id, icono, nombre, descripcion) => ({ id, icono, nombre, descripcion });

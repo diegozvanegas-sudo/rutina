@@ -48,7 +48,11 @@ small { color: var(--muted); }
 .sin-sesion #lateral, .sin-sesion .top-movil .menu, .sin-sesion #flotante, .sin-sesion #reproductor { display: none !important; }
 .entrar { max-width: 420px; margin: 12vh auto 0; display: grid; gap: 12px; }
 @media (min-width: 900px) { .sin-sesion .app { display: block; } }
-.resumen-lateral { display: grid; gap: 14px; padding: 14px; background: var(--bg); border-radius: var(--radio); font-size: 14px; }
+.resumen-lateral { display: grid; gap: 6px; padding: 8px; background: var(--bg); border-radius: var(--radio); font-size: 14px; }
+/* Cada fila del resumen lleva a su sección */
+.resumen-lateral a { display: block; padding: 6px; border-radius: 10px; color: var(--ink); text-decoration: none; }
+.resumen-lateral a:hover { background: var(--surface-2); }
+.resumen-lateral .barra { margin-bottom: 2px; }
 
 @media (min-width: 900px) {
   .app { display: grid; grid-template-columns: minmax(0, 1fr) 260px; }
@@ -59,6 +63,21 @@ small { color: var(--muted); }
   .tablero { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
   .tablero > * { margin: 0; }
   .col-manana { grid-row: span 4; }
+  /* Tarjetas de arriba de Hoy: lado a lado; el entrenador, más ancho */
+  .arriba { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: start; margin-bottom: 14px; }
+  .arriba > * { margin: 0; }
+}
+@media (min-width: 1200px) {
+  .arriba > .entrenador { grid-column: span 2; grid-row: span 3; }
+}
+/* Pantallas anchas: Hoy usa más espacio y el tablero pasa a tres columnas */
+@media (min-width: 1400px) {
+  #vista[data-vista="hoy"] { max-width: 1640px; }
+  #vista[data-vista="hoy"] .tablero { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 2000px) {
+  #vista[data-vista="hoy"] { max-width: 2200px; }
+  #vista[data-vista="hoy"] .tablero { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 /* ---------- Piezas ---------- */

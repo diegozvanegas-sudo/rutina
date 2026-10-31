@@ -71,9 +71,9 @@ function lateral() {
   return '<div class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b></div>' +
     '<nav class="nav-lateral" aria-label="Secciones">' + enlaces() + '</nav>' +
     '<div class="resumen-lateral">' +
-    (ve('seccion', 'manana') ? '<div><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(fraccionManana()) + '</div>' : '') +
-    (ve('seccion', 'metas') ? '<div><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</div>' : '') +
-    (ve('seccion', 'gym') ? '<div><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</div>' : '') +
+    (ve('seccion', 'manana') ? '<a href="#manana" title="Ir a Mañana"><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(fraccionManana()) + '</a>' : '') +
+    (ve('seccion', 'metas') ? '<a href="#metas" title="Ir a Metas"><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</a>' : '') +
+    (ve('seccion', 'gym') ? '<a href="#gym" title="Ir a Gym"><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</a>' : '') +
     '</div>' +
     '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || '') + '">☁️ ' + textoNube() + '</a>';
 }
@@ -143,6 +143,7 @@ function pintar() {
     return;
   }
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null;
+  $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
   $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
   $('lateral').innerHTML = lateral();

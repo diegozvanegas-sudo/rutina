@@ -105,9 +105,11 @@ export function vistaHoy() {
   return '<div class="cab-hoy"><div><h1>' + saludo() + '</h1><p class="sub">' + fechaLarga(iso()) + ' · semana ' + semanaActual() + '</p></div>' +
     '<a class="puntaje-hoy" href="#progreso" title="Puntaje del día: mañana, metas, gym y dieta"><b>' + (p ? p.total : 0) + '</b><small>/100 hoy</small></a></div>' +
     bienvenida() +
+    // Avisos, entrenador, foco y estudio: en el computador se acomodan lado a lado
+    '<div class="arriba">' +
     (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
       avisos.slice(0, 3).map((a) => esc(a.icono + ' ' + a.nombre) + (a.estado === 'vencido' ? ' (vencido)' : '')).join(' · ') + '</span></a>' : '') +
-    ids.filter((k) => ANCHAS.includes(k)).map((k) => TARJETAS[k]()).join('') +
+    ids.filter((k) => ANCHAS.includes(k)).map((k) => TARJETAS[k]()).join('') + '</div>' +
     '<div class="tablero">' + ids.filter((k) => !ANCHAS.includes(k)).map((k) => TARJETAS[k]()).join('') + '</div>' +
     '<p class="nota-corta centro"><a href="#editar/pantallas">↕ Ordenar o esconder tarjetas</a></p>';
 }

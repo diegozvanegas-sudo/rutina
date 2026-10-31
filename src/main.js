@@ -180,6 +180,22 @@ document.addEventListener('change', (ev) => {
   const el = ev.target.closest('[data-cambio]');
   if (el) ejecutar(el.dataset.cambio, el, ev);
 });
+// Campos de dinero: los puntos de miles se ponen mientras se escribe ("100000" → "100.000").
+// Con "k", "M" o coma decimal ("1,5M") se deja como está.
+document.addEventListener('input', (ev) => {
+  const el = ev.target;
+  if (!el.matches || !el.matches('[data-pesos]') || /[kKmM,]/.test(el.value)) return;
+  const v = el.value, cursor = el.selectionStart ?? v.length;
+  const digitosAntes = v.slice(0, cursor).replace(/\D/g, '').length;
+  const signo = /^\s*[-−]/.test(v) ? '−' : '', digitos = v.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  const nuevo = signo + digitos.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  if (nuevo === v) return;
+  el.value = nuevo;
+  // El cursor queda después del mismo número de dígitos
+  let pos = signo.length;
+  for (let n = 0; pos < nuevo.length && n < digitosAntes; pos++) if (/\d/.test(nuevo[pos])) n++;
+  el.setSelectionRange(pos, pos);
+});
 // "Enter"/"Ir" en el teclado del celular guarda el campo
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Enter' || ev.target.tagName !== 'INPUT') return;

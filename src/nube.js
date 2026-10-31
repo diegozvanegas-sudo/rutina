@@ -15,12 +15,12 @@ function poner(estado, error = '') { nube.estado = estado; nube.error = error; r
 
 let corriendo = null, otraVez = false, espera = null;
 
-export async function sincronizar() {
+export async function sincronizar(silencio = false) {
   if (!supabase || !nube.usuario) return;
   if (corriendo) { otraVez = true; return corriendo; }
   if (!navigator.onLine) { poner('sin-conexion'); return; }
   corriendo = (async () => {
-    poner('sincronizando');
+    if (!silencio) poner('sincronizando');
     try {
       const { data, error } = await supabase.rpc('rutina_leer');
       if (error) throw error;
@@ -31,13 +31,12 @@ export async function sincronizar() {
       const cambiosAlla = remoto && (base == null || cambioRemoto > base);
 
       if (cambiosAlla && cambiosAqui) {
-        // Los dos lados cambiaron desde la última vez (o es la primera vez en este celular con datos propios)
-        const usarNube = confirm('Hay cambios en este celular y también en la nube.\n\nAceptar: quedarse con lo de la nube.\nCancelar: subir lo de este celular y reemplazar la nube.');
-        if (usarNube) bajar(remoto); else await subir(local);
+        // Los dos lados cambiaron desde la última vez: queda lo último que se guardó, sea de aquí o de otro equipo
+        if (cambioRemoto >= (local.cambio || 0)) bajar(remoto); else await subir(local);
       } else if (cambiosAlla) bajar(remoto);
       else if (cambiosAqui || !remoto) await subir(local);
       nube.ultima = Date.now();
-      poner('al-dia');
+      if (!silencio || nube.estado !== 'al-dia') poner('al-dia');
     } catch (err) {
       poner(navigator.onLine ? 'error' : 'sin-conexion', err.message || String(err));
     }
@@ -119,6 +118,8 @@ export function iniciarNube() {
   window.addEventListener('offline', () => nube.usuario && poner('sin-conexion'));
   // Al volver a la app (otro equipo pudo haber guardado)
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { sincronizar(); cargarPermisos(); } });
+  // Con la app abierta también: cada 20 s se baja lo que otro equipo haya subido (los cambios de aquí se suben solos a los 3 s)
+  setInterval(() => { if (document.visibilityState === 'visible' && !corriendo && nube.estado !== 'pendiente') sincronizar(true); }, 20000);
 }
 
 export function textoNube() {

@@ -132,7 +132,10 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .chip.activo { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
 .ideas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .sticky-resumen { margin-top: 4px; }
-.ejercicio header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.ejercicio header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.ejercicio { scroll-margin-top: 90px; }
+.ejercicio.actual { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+.ejercicio .ahora { flex-basis: 100%; color: var(--brand); font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .musculo { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .ejercicio header h3 { flex: 1; }
 .mover-ej { display: flex; gap: 4px; align-self: center; }
@@ -333,6 +336,13 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .t-gasto .mov-monto { color: var(--rojo); }
 .t-ingreso .mov-monto, .t-retiro .mov-monto, .t-cobro .mov-monto { color: var(--verde); }
 .t-ahorro .mov-monto { color: var(--azul); }
+.resumen-cats { list-style: none; margin: 4px 0 10px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.resumen-cats button { width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 0 6px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.resumen-cats span { grid-column: 1 / -1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.resumen-cats b { font-variant-numeric: tabular-nums; }
+.resumen-cats small { color: var(--muted); align-self: end; }
+.resumen-cats .activo { border-color: var(--brand); background: var(--brand-soft); }
+.resumen-cats .activo span { color: var(--brand); }
 .dia-mov { font-size: 13px; color: var(--muted); text-transform: capitalize; margin: 10px 0 2px; }
 .verde { color: var(--verde); } .rojo { color: var(--rojo); } .azul { color: var(--azul); } .amarillo { color: var(--amarillo); }
 .barra.excedido span { background: var(--rojo); }

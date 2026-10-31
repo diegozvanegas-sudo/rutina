@@ -59,7 +59,7 @@ export function vistaEsperas() {
     '<section class="tarjeta"><h2>＋ Algo que quiero comprar</h2><nav class="chips">' +
     [['compra', '🛍️ Compra'], ['inversion', '📈 Inversión / negocio']].map(([k, t]) => '<button type="button" class="chip' + (espera.tipo === k ? ' activo' : '') + '" data-accion="espera-tipo" data-t="' + k + '">' + t + '</button>').join('') + '</nav>' +
     '<div class="dos"><label class="campo">Qué es<input type="text" id="espera-nombre" placeholder="' + (espera.tipo === 'inversion' ? 'Ej.: plataforma de cripto de un amigo' : 'Ej.: audífonos nuevos') + '"></label>' +
-    '<label class="campo">Cuánto<input type="text" inputmode="numeric" id="espera-monto" placeholder="$ 0"></label></div>' +
+    '<label class="campo">Cuánto<input type="text" inputmode="numeric" data-pesos id="espera-monto" placeholder="$ 0"></label></div>' +
     '<label class="campo">Por qué lo quiero<input type="text" id="espera-motivo" placeholder="Ej.: los míos ya fallan / me prometen el 10 % mensual"></label>' +
     (espera.tipo === 'inversion' ? '<div class="nota-libro"><b>🚩 Señales de alerta</b><div>Si se cumple una sola, no metas plata:</div><ul class="puntos-libro">' + SENALES.map((t) => '<li>' + t + '</li>').join('') + '</ul>' +
       '<div>Antes de invertir, verifica que la entidad esté vigilada por la Superintendencia Financiera.</div></div>' : '') +

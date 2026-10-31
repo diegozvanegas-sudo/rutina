@@ -14,6 +14,10 @@ import { iniciar } from '../temporizador.js';
 import { compartirImagen } from '../imagen.js';
 
 let semanaVista = null, diaVista = null, editandoObjetivos = false, fuerzaEj = null;
+// Ejercicio en el que vas: el último donde anotaste una serie (si le faltan) o el primero con series pendientes.
+// enfocar: al abrir el día o terminar un ejercicio, la pantalla baja a ese y deja listo el campo de reps
+let ultimoEj = null, actualId = null, enfocar = true;
+if (typeof window !== 'undefined') window.addEventListener('hashchange', () => { if (location.hash.startsWith('#gym')) enfocar = true; });
 
 export function diaDeHoy() {
   const n = diaSemana();
@@ -221,10 +225,11 @@ function moverEj(ej) {
     '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + lista + '" data-i="' + i + '" data-n="1" aria-label="Bajar ' + esc(ej.nombre) + '"' + (i === n - 1 ? ' disabled' : '') + '>↓</button></span>';
 }
 
+const ahora = '<span class="ahora">▶ Ahora</span>';
 function ejercicio(ej, sem, sufijo = '') {
   // "A / b" en el nombre: botón para separarlo en una biserie (juntar dos ejercicios cualquiera se hace en Editar)
-  const d = e().rutina.find((x) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre);
-  return '<article class="tarjeta ejercicio"><header><h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + '</header>' +
+  const d = e().rutina.find((x) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre), es = !sufijo && ej.id === actualId;
+  return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + '</header>' +
     (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
     ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i)).join('') +
     historialEj(ej, sem) +
@@ -249,7 +254,8 @@ function biserie(a, b, sem) {
   // Cada campo va a la fila pendiente de su ejercicio; si ese ya terminó, no aparece
   const campo = (f, ej, letra) => (f ? '<label class="campo">' + letra + ' · ' + esc(ej.nombre) + (ej.filas.length > 1 ? ' (' + f.tipo + ' ' + esc(f.esquema) + ')' : '') +
     '<input type="text" inputmode="numeric" placeholder="reps" data-serie="ronda@' + f.id + '"></label>' : '');
-  return '<article class="tarjeta ejercicio biserie"><header><h3>🔁 Biserie</h3><span class="musculo">sin descanso entre los dos · ⏱ ' + reloj(descanso) + ' después</span></header>' +
+  const es = actualId === a.id || actualId === b.id;
+  return '<article class="tarjeta ejercicio biserie' + (es ? ' actual' : '') + '"><header>' + (es ? ahora : '') + '<h3>🔁 Biserie</h3><span class="musculo">sin descanso entre los dos · ⏱ ' + reloj(descanso) + ' después</span></header>' +
     parte(a, 'A1') + parte(b, 'A2') +
     (fa || fb ? '<div class="bis-ronda"><div class="dos">' + campo(fa, a, 'A1') + campo(fb, b, 'A2') + '</div>' +
       '<button type="button" class="boton primario ancho" data-accion="gym-ronda" data-a="' + a.id + '" data-b="' + b.id + '">＋ Ronda ' + Math.min(ronda, plan) + ' de ' + plan + ' y descanso</button></div>'
@@ -336,8 +342,24 @@ export function textoDia(d, sem, estado = e()) {
   return lineas.join('\n');
 }
 
+function ejActual(d, sem) {
+  if (sem !== semanaActual()) return null;
+  const ult = d.ejercicios.find((ej) => ej.id === ultimoEj);
+  return ((ult && avanceEj(ult, sem).fila ? ult : d.ejercicios.find((ej) => avanceEj(ej, sem).fila)) || {}).id || null;
+}
+function irAlActual() {
+  const a = document.querySelector('.ejercicio.actual');
+  if (!a) return;
+  a.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  const campo = a.querySelector('[data-serie]');
+  if (campo) campo.focus({ preventScroll: true });
+}
+
 function vistaDia(d, sem) {
   const r = resumenSemana([d], registros(sem));
+  actualId = ejActual(d, sem);
+  // Después de pintar (y de que la vista vuelva arriba al cambiar de pantalla)
+  if (enfocar && actualId) { enfocar = false; setTimeout(irAlActual, 60); }
   return tarjetaCalentamiento(d, sem) +
     '<div class="fila-resumen sticky-resumen"><b>' + esc(d.nombre) + '</b><span>' + r.hechas + ' / ' + r.plan + ' series</span></div>' + barra(r.plan ? r.hechas / r.plan : 0) +
     '<div class="copiar-dia"><button type="button" class="boton secundario" data-accion="gym-copiar" data-dia="' + d.id + '">📋 Copiar resumen del día</button>' +
@@ -425,6 +447,10 @@ function cambiarReps(id, texto) {
   const ahora = repsDe(reg.reps).length;
   if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista); reg.unidad = (u && u.unidad) || 'kg'; }
   // Descanso automático al sumar una serie (si aún faltan). En una biserie lo arranca la ronda, después de los dos
+  if (ahora > antes) {
+    ultimoEj = info.ej.id;
+    if (!avanceEj(info.ej, semanaVista).fila) enfocar = true; // terminó: pasa al siguiente
+  }
   if (ahora > antes && ahora < info.f.series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
   if (ahora > antes && !eraRecord && esRecord()) toast('🏆 ¡Récord en ' + info.ej.nombre + '! Tu mejor 1RM estimado');
   else if (ahora >= info.f.series && ahora > antes) toast(estadoFila(info.f, reg).color === 'sube' ? '⬆ ¡Tope del rango! Sube peso la próxima semana' : '✓ ' + info.ej.nombre + ' completo');
@@ -432,7 +458,7 @@ function cambiarReps(id, texto) {
 }
 
 registrar({
-  'ir-dia'({ dia }) { diaVista = dia; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
+  'ir-dia'({ dia }) { diaVista = dia; enfocar = true; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
   semana(ds, el) { semanaVista = Number(el.value); repintar(); },
   'abrir-gym'({ p }) { diaVista = p; },
   'gym-objetivos'() { editandoObjetivos = !editandoObjetivos; repintar(); },

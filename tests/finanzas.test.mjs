@@ -63,7 +63,7 @@ test('deudas: meses para pagar', () => {
 });
 
 test('aceite de la moto: lo que pase primero, km o meses', () => {
-  const aceite = { ...PLANTILLAS_RECORDATORIO[0], hechos: [] };
+  const aceite = { ...PLANTILLAS_RECORDATORIO[0], cadaKm: 3000, hechos: [] };
   const moto = { km: [{ fecha: '2026-10-01', km: 10000 }, { fecha: '2026-10-21', km: 10600 }] };
   assert.equal(estadoRecordatorio(aceite, moto, '2026-10-22').estado, 'sin-dato');
   aceite.hechos.push({ fecha: '2026-09-15', km: 8000 });
@@ -76,6 +76,16 @@ test('aceite de la moto: lo que pase primero, km o meses', () => {
   moto.km.push({ fecha: '2026-11-02', km: 11100 });
   assert.equal(estadoRecordatorio(aceite, moto, '2026-11-02').estado, 'vencido');
   assert.equal(estadoRecordatorio(aceite, { km: [] }, '2026-12-20').estado, 'vencido'); // pasaron los 3 meses
+});
+
+test('motilada: cada N días, avisa un cuarto del intervalo antes', () => {
+  const corte = { ...PLANTILLAS_RECORDATORIO.find((p) => p.nombre === 'Motilada'), hechos: [{ fecha: '2026-10-01', km: null }] };
+  const s = estadoRecordatorio(corte, null, '2026-10-10');
+  assert.deepEqual([s.proxFecha, s.faltaDias, s.estado], ['2026-10-22', 12, 'al-dia']);
+  assert.equal(estadoRecordatorio(corte, null, '2026-10-17').estado, 'pronto'); // faltan 5 días (21 / 4)
+  assert.equal(estadoRecordatorio(corte, null, '2026-10-23').estado, 'vencido');
+  // Sin intervalo: solo guarda cuándo fue
+  assert.equal(estadoRecordatorio({ hechos: [{ fecha: '2026-01-01' }] }, null, '2026-10-23').estado, 'al-dia');
 });
 
 test('tarjeta vinculada: la compra sube el saldo y el pago no se cuenta dos veces', () => {

@@ -274,10 +274,14 @@ export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
       urgencia = Math.min(urgencia, res.faltaKm <= 0 ? -1 : res.faltaKm <= Math.max(200, rec.cadaKm * 0.1) ? 0 : 1);
     }
   }
-  if (rec.cadaMeses) {
-    res.proxFecha = sumarMeses(ultimo.fecha, rec.cadaMeses);
+  // Por tiempo: cada N meses o cada N días (motilada, inyección…); si están los dos, la fecha que llegue primero
+  const fechas = [rec.cadaMeses && sumarMeses(ultimo.fecha, rec.cadaMeses), rec.cadaDias && sumarDias(ultimo.fecha, rec.cadaDias)].filter(Boolean).sort();
+  if (fechas.length) {
+    res.proxFecha = fechas[0];
     res.faltaDias = diasEntre(hoy, res.proxFecha);
-    urgencia = Math.min(urgencia, res.faltaDias < 0 ? -1 : res.faltaDias <= 14 ? 0 : 1);
+    // "Pronto": 14 días antes; en lo que se repite cada pocos días, un cuarto del intervalo (mínimo 1 día)
+    const aviso = rec.cadaDias && res.proxFecha === sumarDias(ultimo.fecha, rec.cadaDias) ? Math.min(14, Math.max(1, Math.round(rec.cadaDias / 4))) : 14;
+    urgencia = Math.min(urgencia, res.faltaDias < 0 ? -1 : res.faltaDias <= aviso ? 0 : 1);
   }
   res.estado = urgencia < 0 ? 'vencido' : urgencia === 0 ? 'pronto' : 'al-dia';
   return res;

@@ -3,7 +3,7 @@
 import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta, fechaLarga, sumarDias } from '../fechas.js';
 import {
-  mesDe, sumarMeses, pesos, leerMonto, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, planPago, planMeta,
+  mesDe, sumarMeses, pesos, leerMonto, gastoDe, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, planPago, planMeta,
   agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, tarjetaDe, saldoCuenta, patrimonio, anotarPatrimonio,
   deseosDelMes, fijosPorRevisar, DIAS_REVISION, interesPrestamo, estadoCobro, interesesCobrados, cobroPrestamo,
 } from '../finanzas.js';
@@ -11,7 +11,7 @@ import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
 import { esc, barra, registrar, toast, subirBajar, miles } from '../ui.js';
 import { vistaEsperas } from './vida.js';
 
-let pestana = 'registrar', mesVista = null;
+let pestana = 'registrar', mesVista = null, filtroCat = null;
 const form = { tipo: 'gasto', categoria: null, metodo: null, monto: '', nota: '', fecha: null, editando: null };
 const simula = {}; // deuda id → abono extra al mes que se está probando
 const f = () => e().finanzas;
@@ -29,7 +29,7 @@ const listo = () => { anotarPatrimonio(f()); guardar(); };
 
 // Campo de dinero: acepta "25.000", "25000", "25k", "1,5M"
 const campoPesos = (titulo, ruta, valor) =>
-  '<label class="campo">' + titulo + '<input type="text" inputmode="numeric" data-cambio="fin-pesos" data-ruta="' + ruta + '" value="' + (valor ? Math.round(valor).toLocaleString('es-CO') : '') + '" placeholder="$ 0" autocomplete="off"></label>';
+  '<label class="campo">' + titulo + '<input type="text" inputmode="numeric" data-pesos data-cambio="fin-pesos" data-ruta="' + ruta + '" value="' + (valor ? Math.round(valor).toLocaleString('es-CO') : '') + '" placeholder="$ 0" autocomplete="off"></label>';
 const campoTexto = (titulo, ruta, valor, extra = '') =>
   '<label class="campo">' + titulo + '<input type="text" data-cambio="ed" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"' + extra + '></label>';
 const campoNumero = (titulo, ruta, valor, paso = '1') =>
@@ -86,7 +86,7 @@ function vistaRegistrar() {
     (form.editando ? '<div class="fila-resumen"><h2>✏️ Corrigiendo movimiento</h2><button type="button" class="boton secundario" data-accion="fin-cancelar-edicion">Cancelar</button></div>' : '') +
     '<nav class="chips">' + Object.entries(tipos).map(([k, t]) =>
       '<button type="button" class="chip' + (k === form.tipo ? ' activo' : '') + '" data-accion="fin-tipo" data-tipo="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    '<input id="fin-monto" class="monto-grande" type="text" inputmode="numeric" data-cambio="fin-form" data-k="monto" value="' + esc(form.monto) + '" placeholder="$ 0" aria-label="Monto" autocomplete="off">' +
+    '<input id="fin-monto" class="monto-grande" type="text" inputmode="numeric" data-pesos data-cambio="fin-form" data-k="monto" value="' + esc(form.monto) + '" placeholder="$ 0" aria-label="Monto" autocomplete="off">' +
     '<div class="rejilla-cats">' + cats.map((c) => '<button type="button" class="cat' + (c.id === form.categoria ? ' activo' : '') + '" data-accion="fin-cat" data-id="' + esc(c.id) + '"><span>' + c.icono + '</span>' + esc(c.nombre) + '</button>').join('') + '</div>' +
     pistaPresupuesto(r) +
     '<div class="chips metodos">' + metodos.map((m) => '<button type="button" class="chip' + (m.id === form.metodo ? ' activo' : '') + '" data-accion="fin-metodo" data-id="' + m.id + '">' + m.icono + ' ' + esc(m.nombre) + '</button>').join('') + '</div>' +
@@ -95,7 +95,21 @@ function vistaRegistrar() {
     '<label class="campo">Fecha<input type="date" data-cambio="fin-form" data-k="fecha" value="' + (form.fecha || iso()) + '" max="' + iso() + '"></label></div>' +
     '<button type="button" class="boton primario grande ancho" data-accion="fin-guardar">' + (form.editando ? 'Guardar cambios' : 'Guardar ' + tipos[form.tipo].split(' ')[1].toLowerCase()) + '</button></section>' +
     '<section class="tarjeta"><div class="fila-resumen"><h2>' + nombreMes(mesDe(iso())) + '</h2><span>Gastado <b>' + pesos(r.gastos) + '</b></span></div>' +
-    '<p class="nota-corta">Toca un movimiento para corregirlo.</p>' + listaMovimientos(r.movs) + '</section>';
+    resumenCategorias(r) +
+    '<p class="nota-corta">Toca un movimiento para corregirlo.</p>' + listaMovimientos(filtroCat ? r.movs.filter((m) => m.categoria === filtroCat && gastoDe(m)) : r.movs) + '</section>';
+}
+
+// Gasto del mes por categoría, de mayor a menor; tocar una deja solo sus movimientos en la lista
+function resumenCategorias(r) {
+  const filas = Object.entries(r.porCategoria).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (!filas.some(([id]) => id === filtroCat)) filtroCat = null;
+  if (!filas.length) return '';
+  return '<ul class="resumen-cats">' + filas.map(([id, v]) => {
+    const c = cat('gasto', id);
+    return '<li><button type="button" class="' + (id === filtroCat ? 'activo' : '') + '" data-accion="fin-filtro-cat" data-id="' + esc(id) + '"><span>' + c.icono + ' ' + esc(c.nombre) + '</span>' +
+      '<b>' + pesos(v) + '</b><small>' + Math.round((v / r.gastos) * 100) + ' %</small></button></li>';
+  }).join('') + '</ul>' +
+    (filtroCat ? '<p class="nota-corta">Solo ' + esc(cat('gasto', filtroCat).nombre) + ' · <a href="#" data-accion="fin-filtro-cat" data-id="">ver todo</a></p>' : '');
 }
 
 // ---------- Mes ----------
@@ -159,7 +173,7 @@ function vistaResumen() {
     cuentas().map((m) => {
       const s = saldoCuenta(f(), m);
       return '<div class="cuenta"><div class="fila-resumen"><span>' + m.icono + ' ' + esc(m.nombre) + (m.ajuste ? ' <small>ajustada el ' + fechaCorta(m.ajuste.fecha) + '</small>' : '') + '</span><b class="' + (s < 0 ? 'rojo' : '') + '">' + (s == null ? '—' : pesos(s)) + '</b></div>' +
-        '<div class="aportar"><input type="text" inputmode="numeric" placeholder="Saldo real hoy" aria-label="Saldo de ' + esc(m.nombre) + '" data-saldo="' + m.id + '">' +
+        '<div class="aportar"><input type="text" inputmode="numeric" data-pesos placeholder="Saldo real hoy" aria-label="Saldo de ' + esc(m.nombre) + '" data-saldo="' + m.id + '">' +
         '<button type="button" class="boton secundario" data-accion="fin-ajustar" data-id="' + m.id + '">Ajustar</button></div></div>';
     }).join('') + '</section>' +
     (hayMeses ? '<section class="tarjeta"><h2>Últimos 6 meses</h2><div class="leyenda"><span><i class="serie-1"></i>Ingresos</span><span><i class="serie-2"></i>Gastos</span><span><i class="serie-3"></i>Ahorro</span></div>' +
@@ -236,7 +250,7 @@ function vistaAhorro() {
         : '<p class="nota-corta verde">🎉 ¡Meta cumplida!</p>') : '') +
       (m.id === 'emergencia' ? '<p class="nota-corta">Para imprevistos (salud, moto, quedarte sin ingreso). La meta es ' + (m.meses || 6) + ' meses de gastos' +
         (prom ? ' (gastas en promedio ' + pesos(prom) + ' al mes)' : '; registra tus gastos y se calcula sola') + '. Guárdalo aparte, en una cuenta que puedas sacar rápido.</p>' : '') +
-      '<div class="aportar"><input type="text" inputmode="numeric" placeholder="$ 0" aria-label="Monto" data-aporte="' + m.id + '">' +
+      '<div class="aportar"><input type="text" inputmode="numeric" data-pesos placeholder="$ 0" aria-label="Monto" data-aporte="' + m.id + '">' +
       '<button type="button" class="boton primario" data-accion="fin-aportar" data-id="' + m.id + '">＋ Aportar</button>' +
       '<button type="button" class="boton secundario" data-accion="fin-retirar" data-id="' + m.id + '">Sacar</button></div>' +
       '<details><summary>Editar meta</summary><div class="dos">' + campoTexto('Nombre', r + '.nombre', m.nombre) + campoTexto('Ícono', r + '.icono', m.icono, ' maxlength="4"') +
@@ -249,7 +263,7 @@ function vistaAhorro() {
 const plazo = (meses) => (meses === Infinity ? '⚠ nunca' : meses ? meses + (meses === 1 ? ' mes' : ' meses') : '¡Pagada!');
 function simulador(d, actual) {
   const extra = simula[d.id] || 0, otro = extra ? planPago(d.saldo, d.tasa, (d.cuota || 0) + extra) : null;
-  return '<div class="simulador"><label class="campo">¿Y si pagas más cada mes?<input type="text" inputmode="numeric" placeholder="$ extra al mes" data-cambio="fin-simular" data-id="' + d.id + '" value="' + (extra ? miles(extra) : '') + '"></label>' +
+  return '<div class="simulador"><label class="campo">¿Y si pagas más cada mes?<input type="text" inputmode="numeric" data-pesos placeholder="$ extra al mes" data-cambio="fin-simular" data-id="' + d.id + '" value="' + (extra ? miles(extra) : '') + '"></label>' +
     (otro ? (otro.meses === Infinity ? '<p class="nota-corta">Aun así no alcanza para el interés.</p>'
       : '<p class="nota-corta">Con ' + pesos(extra) + ' más (' + pesos((d.cuota || 0) + extra) + ' al mes) terminas en <b>' + plazo(otro.meses) + '</b>' +
         (actual.meses !== Infinity ? ', <b>' + (actual.meses - otro.meses) + ' meses antes</b>, y te ahorras <b class="verde">' + pesos(actual.intereses - otro.intereses) + '</b> en intereses' : '') + '.</p>') : '') + '</div>';
@@ -272,7 +286,7 @@ function vistaDeudas() {
         (actual.intereses && actual.intereses !== Infinity ? '<small>pagando ' + pesos(actual.intereses) + ' de intereses</small>' : '') + '</div></div>' +
         (actual.meses === Infinity && saldo > 0 && d.cuota ? '<p class="aviso">La cuota no alcanza ni para el interés: sube la cuota o refinancia.</p>' : '') +
         (saldo > 0 && d.cuota && actual.meses !== Infinity ? simulador(d, actual) : '') +
-        (saldo > 0 ? '<div class="aportar dos-col"><input type="text" inputmode="numeric" placeholder="' + (d.cuota ? miles(d.cuota) : '$ 0') + '" aria-label="Monto a pagar" data-pago="' + d.id + '">' +
+        (saldo > 0 ? '<div class="aportar dos-col"><input type="text" inputmode="numeric" data-pesos placeholder="' + (d.cuota ? miles(d.cuota) : '$ 0') + '" aria-label="Monto a pagar" data-pago="' + d.id + '">' +
           '<button type="button" class="boton primario" data-accion="fin-pagar-deuda" data-id="' + d.id + '">Pagar</button></div>' +
           '<p class="nota-corta">Vacío = la cuota de ' + pesos(d.cuota) + '. Primero paga el interés del mes; lo demás baja el saldo.</p>' : '') +
         '<details><summary>Editar</summary><div class="dos">' + campoTexto('Nombre', r + '.nombre', d.nombre) + campoPesos('Saldo', r + '.saldo', d.saldo) +
@@ -294,7 +308,7 @@ function tarjetaPrestamo(p, i) {
       : '<p class="nota-corta">Pendiente' + (nuevo ? '' : ' sin monto') + '. Si sabes cuánto es, ponlo en Editar.</p>') +
     (p.nota ? '<p class="nota-corta">' + esc(p.nota) + '</p>' : '') +
     (p.limite ? '<p class="' + (p.limite < iso() ? 'aviso' : 'nota-corta') + '">Quedó de pagarte el ' + fechaCorta(p.limite) + (p.limite < iso() ? ' y ya pasó: recuérdale.' : '.') + '</p>' : '') +
-    (monto > 0 ? '<div class="aportar dos-col"><input type="text" inputmode="numeric" placeholder="' + (int ? miles(int) : '$ 0') + '" aria-label="Cuánto te pagó" data-cobro="' + p.id + '">' +
+    (monto > 0 ? '<div class="aportar dos-col"><input type="text" inputmode="numeric" data-pesos placeholder="' + (int ? miles(int) : '$ 0') + '" aria-label="Cuánto te pagó" data-cobro="' + p.id + '">' +
       '<button type="button" class="boton primario" data-accion="fin-cobrar" data-id="' + p.id + '">Me pagó</button></div>' +
       '<p class="nota-corta">' + (int ? 'Vacío = el interés del mes (' + pesos(int) + '). ' : '') + 'Primero cuenta como interés (eso es ingreso); lo demás baja lo que te debe.</p>' : '') +
     '<button type="button" class="boton secundario ancho" data-accion="fin-saldar" data-id="' + p.id + '">✓ Ya me pagó todo</button>' +
@@ -384,6 +398,7 @@ registrar({
   'fin-tipo'({ tipo }) { form.tipo = tipo; form.categoria = null; repintar(); },
   'fin-cat'({ id }) { form.categoria = id; repintar(); },
   'fin-metodo'({ id }) { form.metodo = id; repintar(); },
+  'fin-filtro-cat'({ id }, el, ev) { if (ev) ev.preventDefault(); filtroCat = id && id !== filtroCat ? id : null; repintar(); },
   'fin-form'({ k }, el) { form[k] = el.value; },
   'fin-mes'({ n }) { mesVista = mesDe(sumarMeses((mesVista || mesDe(iso())) + '-01', Number(n))); if (mesVista >= mesDe(iso())) mesVista = null; repintar(); },
   'fin-guardar'() {

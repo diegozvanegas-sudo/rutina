@@ -159,6 +159,15 @@ test('Epigenética: 9 lecciones con los temas y autores clave', () => {
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 
+test('Geopolítica: 12 lecciones con los temas y autores clave', () => {
+  const c = curso('geopolitica');
+  assert.equal(c.modulos.length, 4);
+  assert.equal(lecciones(c).length, 12);
+  const todo = JSON.stringify(c);
+  for (const x of ['Mackinder', 'Mahan', 'Morgenthau', 'Keohane', 'Wendt', 'Nye', 'maldición de los recursos', 'Farrell', 'Hufbauer', 'Selby', 'Allison', 'Ucrania', 'Consejo de Seguridad', 'Nicaragua', 'Tickner', 'Tetlock', 'Mercator'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
 test('la lección que toca es la primera sin terminar', () => {
   const p = progresoCurso();
   assert.equal(leccionQueToca(aa, p), 1);

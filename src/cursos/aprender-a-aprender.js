@@ -9,6 +9,7 @@ const l = (titulo, minutos, datos) => ({ titulo, minutos, ejemplos: [], nota: ''
 const RECORDAR = {
   titulo: 'Recordar: la práctica que más enseña',
   objetivo: 'Entender por qué releer engaña y cómo sacar la información de la cabeza la fija mejor que meterla otra vez.',
+  comprobacion: 'Tomas cualquier tema que estudiaste y, sin mirar, escribes lo que sabes, revisas contra la fuente y conviertes los huecos en preguntas para el siguiente repaso.',
   fuentes: [
     ['Dunlosky, J., Rawson, K. A., Marsh, E. J., Nathan, M. J. y Willingham, D. T. (2013). Improving students’ learning with effective learning techniques. Psychological Science in the Public Interest, 14(1), 4-58.', 'La revisión de 10 técnicas de estudio: cuáles sirven y cuáles no.'],
     ['Roediger, H. L. y Karpicke, J. D. (2006). Test-enhanced learning: Taking memory tests improves long-term retention. Psychological Science, 17(3), 249-255.', 'El experimento clásico de releer frente a recordar.'],
@@ -20,6 +21,8 @@ const RECORDAR = {
   lecciones: [
     l('La ilusión de saber', 10, {
       idea: 'Releer y subrayar se sienten productivos porque el texto se vuelve familiar, pero reconocer algo no es lo mismo que poder recordarlo.',
+      feynman: 'Explícale a un niño de 12 años por qué releer sus apuntes lo engaña, sin usar las palabras "familiaridad" ni "reconocer".',
+      reto: 'Antes de releer cualquier cosa esta semana, tápala y escribe en un minuto lo que crees saber. Anota cuántas veces lo que "sabías" no salió.',
       bloques: [
         ['Lo que hace casi todo el mundo', [
           'Cuando estudian solos, la mayoría de los estudiantes relee sus notas o el libro: en una encuesta de Karpicke y colegas (2009), el 84 % dijo que releía, y muy pocos usaban ponerse a prueba como estrategia principal.',
@@ -64,6 +67,8 @@ const RECORDAR = {
     }),
     l('Recuperación activa: sacar en vez de meter', 10, {
       idea: 'Cada vez que sacas un recuerdo de la memoria lo haces más fuerte y más fácil de encontrar la próxima vez. Ponerse a prueba no solo mide lo que sabes: lo enseña.',
+      feynman: 'Explícale a un niño de 12 años por qué hacerse preguntas enseña más que volver a leer, sin usar las palabras "recuperación" ni "memoria".',
+      reto: 'Toma algo que estudiaste hace una semana (del trabajo, de un curso o de las reglas de un deporte) y escribe sin mirar todo lo que recuerdes. Luego compara y marca lo que faltó.',
       bloques: [
         ['El experimento clásico', [
           'Roediger y Karpicke (2006) pusieron a estudiantes a aprender textos cortos. Unos los leyeron varias veces; otros los leyeron una vez y luego practicaron escribir todo lo que recordaban.',
@@ -107,6 +112,8 @@ const RECORDAR = {
     }),
     l('Cómo practicar recordando', 11, {
       idea: 'Hay muchas formas de sacar la información de la cabeza; todas comparten lo mismo: primero intentas sin mirar y después revisas.',
+      feynman: 'Explícale a un niño de 12 años cómo estudiar para un examen recordando en vez de leyendo, sin usar las palabras "tarjetas" ni "técnica".',
+      reto: 'Convierte una página de tus apuntes en 5 preguntas, guárdalas y respóndelas mañana sin mirar. Solo cuenta como sabida la que puedas escribir completa.',
       bloques: [
         ['Formas de practicar', [
           'Hoja en blanco: después de estudiar, escribe todo lo que recuerdes del tema, sin mirar. Luego compara y completa con otro color.',
@@ -157,6 +164,7 @@ const RECORDAR = {
 const CUANDO = {
   titulo: 'Cuándo y cómo practicar',
   objetivo: 'Repartir el estudio en el tiempo, mezclar temas parecidos y conectar lo nuevo con lo que ya sabes.',
+  comprobacion: 'Sin mirar, armas el plan de repasos de un tema nuevo (cuándo vuelves a él), mezclas en una misma práctica temas que se confunden y explicas el porqué de cada idea con algo que ya sabías.',
   fuentes: [
     ['Ebbinghaus, H. (1885). Über das Gedächtnis (La memoria). Leipzig: Duncker & Humblot.', 'La primera curva del olvido, medida en sí mismo con sílabas sin sentido.'],
     ['Murre, J. M. J. y Dros, J. (2015). Replication and analysis of Ebbinghaus’ forgetting curve. PLOS ONE, 10(7), e0120644.', 'La curva del olvido replicada 130 años después.'],
@@ -172,6 +180,8 @@ const CUANDO = {
   lecciones: [
     l('Repaso espaciado: volver antes de olvidar', 10, {
       idea: 'Lo mismo estudiado en varios días se recuerda mucho más que estudiado de una sola vez. Cada repaso, hecho justo cuando empieza a costar, alarga el tiempo que dura el recuerdo.',
+      feynman: 'Explícale a un niño de 12 años por qué es mejor estudiar 15 minutos cuatro días que una hora un solo día, sin usar las palabras "espaciado" ni "curva".',
+      reto: 'Arma en tu calendario los repasos de un tema nuevo a 1, 3 y 7 días, y cúmplelos. Al día 7, mide cuánto recuerdas sin mirar.',
       bloques: [
         ['La curva del olvido', [
           'Hermann Ebbinghaus (1885) se aprendió listas de sílabas sin sentido y midió cuánto olvidaba: la mayor parte se va en las primeras horas y días, y después el olvido se hace más lento.',
@@ -216,6 +226,8 @@ const CUANDO = {
     }),
     l('Intercalar: mezclar para aprender a elegir', 10, {
       idea: 'Practicar un solo tipo de problema seguido se siente fluido, pero mezclar tipos parecidos te obliga a decidir cuál es cuál, y eso es lo que pide la vida real.',
+      feynman: 'Explícale a un niño de 12 años por qué mezclar tipos de ejercicios ayuda aunque se sienta más difícil, sin usar las palabras "intercalar" ni "discriminar".',
+      reto: 'Escoge tres cosas parecidas que confundas (por ejemplo tres tipos de jugada a balón parado, o tres fórmulas) y practícalas mezcladas, diciendo antes de cada una cuál es y por qué.',
       bloques: [
         ['En bloque frente a intercalado', [
           'En bloque: 10 ejercicios del tipo A, luego 10 del tipo B, luego 10 del C (AAA BBB CCC).',
@@ -257,6 +269,8 @@ const CUANDO = {
     }),
     l('Elaboración: preguntar por qué y explicártelo', 10, {
       idea: 'Lo que conectas con lo que ya sabes se recuerda mejor. Preguntarte "¿por qué es así?" y explicarte cada paso convierte datos sueltos en una red.',
+      feynman: 'Explícale a un niño de 12 años qué pasa cuando conectas algo nuevo con algo que ya sabes, sin usar las palabras "elaborar" ni "red".',
+      reto: 'Toma un dato que te parezca suelto de tu trabajo o de un curso y pregúntate "¿por qué es así?" tres veces seguidas. Escribe las respuestas y dónde te quedaste sin saber.',
       bloques: [
         ['Interrogación elaborativa: ¿por qué?', [
           'Al leer un dato, pregúntate por qué es cierto y respóndelo con lo que sabes.',
@@ -303,6 +317,7 @@ const CUANDO = {
 const CEREBRO = {
   titulo: 'El cerebro que aprende',
   objetivo: 'Cuidar la memoria de trabajo, dormir para fijar lo aprendido y armar un sistema de estudio propio sin caer en mitos.',
+  comprobacion: 'Diseñas y cumples una semana de estudio con tu propio sistema (sin distracciones, buen sueño, repasos primero) y sabes decir qué mitos dejaste y por qué.',
   fuentes: [
     ['Cowan, N. (2001). The magical number 4 in short-term memory: A reconsideration of mental storage capacity. Behavioral and Brain Sciences, 24(1), 87-114.', 'La memoria de trabajo guarda unos 4 bloques, no 7.'],
     ['Sweller, J. (1988). Cognitive load during problem solving: Effects on learning. Cognitive Science, 12(2), 257-285.', 'El origen de la teoría de la carga cognitiva.'],
@@ -318,6 +333,8 @@ const CEREBRO = {
   lecciones: [
     l('Carga cognitiva: la mesa pequeña de la mente', 10, {
       idea: 'La memoria de trabajo, donde piensas lo nuevo, es muy pequeña. Si la llenas de ruido, distracciones o demasiada información a la vez, no queda espacio para aprender.',
+      feynman: 'Explícale a un niño de 12 años por qué no se aprende bien con el celular al lado, usando la imagen de la mesa pequeña y sin decir "memoria de trabajo".',
+      reto: 'Estudia algo difícil en un bloque de 25 minutos con el celular en otra habitación y una sola pestaña. Compara cuánto avanzaste con un bloque igual hecho como de costumbre.',
       bloques: [
         ['Una mesa pequeña y una bodega enorme', [
           'Memoria de trabajo: lo que tienes "en mente" ahora mismo. Es como una mesa pequeña: caben pocas cosas a la vez y se caen rápido si no las usas.',
@@ -364,6 +381,8 @@ const CEREBRO = {
     }),
     l('Sueño y memoria', 10, {
       idea: 'Dormir no es tiempo perdido para estudiar: mientras duermes, el cerebro repasa y fija lo que aprendiste, y una noche mala también daña lo que vas a aprender al otro día.',
+      feynman: 'Explícale a un niño de 12 años por qué trasnochar estudiando antes de un examen sale caro, sin usar las palabras "consolidación" ni "hipocampo".',
+      reto: 'Durante una semana, estudia lo más difícil del día en la tarde y no en la madrugada, y duerme al menos 7 horas. Al final, haz recordar sin mirar de lo que estudiaste y compara con otra semana.',
       bloques: [
         ['Dormir después de aprender', [
           'Ya en 1924, Jenkins y Dallenbach vieron que se olvidaba menos lo aprendido si después se dormía que si se pasaba el mismo tiempo despierto.',
@@ -405,6 +424,8 @@ const CEREBRO = {
     }),
     l('Tu sistema de estudio', 12, {
       idea: 'Las técnicas que funcionan se sienten más difíciles: esas son las dificultades deseables. Un buen sistema las vuelve hábito y deja de lado los mitos.',
+      feynman: 'Explícale a un niño de 12 años tu sistema de estudio completo en cinco pasos, sin usar ningún término técnico del curso.',
+      reto: 'Aplica tu sistema a un tema nuevo durante 7 días seguidos. Anota cada día qué paso se te saltó y por qué, y ajusta el sistema para que no se vuelva a saltar.',
       bloques: [
         ['Dificultades deseables', [
           'Robert y Elizabeth Bjork llaman así a lo que hace el estudio más lento y costoso en el momento pero mejora el aprendizaje: recordar en vez de releer, espaciar en vez de embutir, intercalar en vez de bloquear.',
@@ -460,6 +481,22 @@ export default {
   icono: '🧠',
   nivel: 'Básico',
   paraQue: 'Aprender cualquier cosa en menos tiempo y que se quede: las técnicas de estudio con mejor evidencia, cómo usarlas y los mitos que conviene soltar. Es la base para estudiar los demás cursos.',
+  ancla: 'Aprender es como abrir un camino en el monte: leer es mirar el camino, recorrerlo es recordar. Cada vez que lo caminas sin ayuda (recordar), se marca más; si lo vuelves a caminar justo cuando la maleza empieza a taparlo (espaciar), dura más; y si lo conectas con caminos que ya existen (elaborar), es más fácil encontrarlo.',
+  principios: [
+    'Reconocer no es recordar: lo que se siente familiar no es lo que puedes producir.',
+    'Sacar información de la cabeza la fortalece más que volver a meterla.',
+    'Lo que se repasa repartido en el tiempo dura mucho más que lo que se estudia de un tirón.',
+    'Lo que se conecta con lo que ya sabes se recuerda mejor y se aplica mejor.',
+    'La mente que piensa lo nuevo es pequeña: si se llena de ruido, no aprende.',
+    'Dormir fija lo aprendido; sin sueño, el estudio se pierde.',
+    'Las técnicas que funcionan se sienten más difíciles: el esfuerzo de recordar es la señal, no el problema.',
+  ],
+  ochenta: 'Recordar sin mirar y repasar espaciado. Con esas dos, hechas pocos minutos todos los días, se consigue la mayor parte del resultado; intercalar, elaborar, cuidar la atención y dormir bien lo mejoran, pero sin las dos primeras casi nada se queda.',
+  diagnostico: [
+    ['¿Qué técnica de estudio crees que funciona mejor: releer, subrayar o hacerte preguntas? ¿Por qué?', 'Hacerse preguntas (práctica de recuperación). Releer y subrayar se sienten productivos porque el texto se vuelve familiar, pero reconocer algo no es lo mismo que poder recordarlo.'],
+    ['Tienes 2 horas para preparar un examen dentro de una semana. ¿Cómo las repartes y por qué?', 'En varias sesiones cortas en días distintos (por ejemplo 4 de 30 minutos), cada una empezando por recordar sin mirar lo de la anterior. Repartir y recuperar da mucho más que un solo bloque de 2 horas.'],
+    ['Un compañero dice: "Mezclar temas me confunde, prefiero hacer 20 ejercicios del mismo tipo seguidos". ¿Qué le respondes?', 'Que la práctica en bloque se siente más fluida pero rinde menos en el examen: al mezclar tipos parecidos tiene que decidir cuál es cuál, que es justo lo que pide el examen. La confusión es una dificultad deseable.'],
+  ],
   modulos: [RECORDAR, CUANDO, CEREBRO],
   proyecto: {
     titulo: 'Dos semanas de estudio con método',

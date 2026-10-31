@@ -45,20 +45,41 @@ export const FINANZAS = () => ({
 });
 
 // Plantillas para agregar recordatorios con un toque. cadaKm / cadaMeses / cadaDias: lo que pase primero.
+// grupo: bajo qué subtítulo sale el botón en "Agregar recordatorio".
 export const PLANTILLAS_RECORDATORIO = [
-  { nombre: 'Cambio de aceite', icono: '🛢️', vehiculo: 'moto', cadaKm: 2000, cadaMeses: 0 },
-  { nombre: 'Aceite de transmisión', icono: '⚙️', vehiculo: 'moto', cadaKm: 6000, cadaMeses: 0 },
-  { nombre: 'Kit de arrastre (cadena)', icono: '⛓️', vehiculo: 'moto', cadaKm: 15000, cadaMeses: 0 },
-  { nombre: 'Llantas', icono: '🛞', vehiculo: 'moto', cadaKm: 12000, cadaMeses: 0 },
-  { nombre: 'Lubricar cadena', icono: '🧴', vehiculo: 'moto', cadaKm: 500, cadaMeses: 0 },
-  { nombre: 'SOAT', icono: '📄', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12 },
-  { nombre: 'Revisión técnico-mecánica', icono: '🔧', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12 },
-  { nombre: 'Impuesto del vehículo', icono: '🏛️', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12 },
+  { nombre: 'Cambio de aceite', icono: '🛢️', vehiculo: 'moto', cadaKm: 2000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Aceite de transmisión', icono: '⚙️', vehiculo: 'moto', cadaKm: 6000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Kit de arrastre (cadena)', icono: '⛓️', vehiculo: 'moto', cadaKm: 15000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Llantas', icono: '🛞', vehiculo: 'moto', cadaKm: 12000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Lubricar cadena', icono: '🧴', vehiculo: 'moto', cadaKm: 500, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Filtro de aire', icono: '🌬️', vehiculo: 'moto', cadaKm: 6000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Bujía', icono: '⚡', vehiculo: 'moto', cadaKm: 8000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Pastillas de freno', icono: '🛑', vehiculo: 'moto', cadaKm: 10000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Mantenimiento general', icono: '🔩', vehiculo: 'moto', cadaKm: 5000, cadaMeses: 0, grupo: 'moto' },
+  { nombre: 'Líquido de frenos', icono: '💧', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12, grupo: 'moto' },
+  { nombre: 'Revisar batería', icono: '🔋', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12, grupo: 'moto' },
+  { nombre: 'Cambiar casco', icono: '🪖', vehiculo: 'moto', cadaKm: 0, cadaMeses: 60, grupo: 'moto', nota: 'Cámbialo antes si tuvo un golpe fuerte o una caída.' },
+  { nombre: 'SOAT', icono: '📄', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12, grupo: 'papeles' },
+  { nombre: 'Revisión técnico-mecánica', icono: '🔧', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12, grupo: 'papeles' },
+  { nombre: 'Impuesto del vehículo', icono: '🏛️', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12, grupo: 'papeles' },
+  { nombre: 'Licencia de conducción', icono: '🪪', vehiculo: '', cadaKm: 0, cadaMeses: 120, categoria: 'transporte', grupo: 'papeles', nota: 'Pon en Editar los meses que le faltan según la fecha de vencimiento de la licencia.' },
+  { nombre: 'Pasaporte', icono: '🛂', vehiculo: '', cadaKm: 0, cadaMeses: 120, categoria: 'otros', grupo: 'papeles', nota: 'Pon en Editar los meses que le faltan según la fecha de vencimiento del pasaporte.' },
   // Cosas personales que se repiten: queda la fecha de cada vez y avisa cuando toca otra (categoria: a dónde va el costo en Finanzas)
-  { nombre: 'Motilada', icono: '💈', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 21, categoria: 'otros' },
-  { nombre: 'Inyección', icono: '💉', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'salud', nota: 'Pon en Editar cada cuántos días te toca según la fórmula del médico.' },
-  { nombre: 'Otro', icono: '🔔', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'otros' },
+  { nombre: 'Inyección', icono: '💉', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'salud', grupo: 'salud', nota: 'Pon en Editar cada cuántos días te toca según la fórmula del médico.' },
+  { nombre: 'Odontólogo', icono: '🦷', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'salud', grupo: 'salud' },
+  { nombre: 'Exámenes de sangre', icono: '🩸', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'salud', grupo: 'salud' },
+  { nombre: 'Optómetra', icono: '👁️', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'salud', grupo: 'salud' },
+  { nombre: 'Comprar suplementos', icono: '💊', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'gym', grupo: 'salud' },
+  { nombre: 'Guayos / tenis', icono: '👟', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'ropa', grupo: 'deporte' },
+  { nombre: 'Medias y canilleras', icono: '🧦', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'ropa', grupo: 'deporte' },
+  { nombre: 'Motilada', icono: '💈', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 21, categoria: 'otros', grupo: 'casa' },
+  { nombre: 'Cepillo de dientes', icono: '🪥', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'mercado', grupo: 'casa' },
+  { nombre: 'Cambiar sábanas', icono: '🛏️', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'otros', grupo: 'casa' },
+  { nombre: 'Filtro de agua', icono: '🚰', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'vivienda', grupo: 'casa' },
+  { nombre: 'Plan del celular', icono: '📱', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'celular', grupo: 'casa' },
+  { nombre: 'Otro', icono: '🔔', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'otros', grupo: 'casa' },
 ];
+export const GRUPOS_PLANTILLA = { moto: '🏍️ Moto', papeles: '📄 Papeles', salud: '🩺 Salud', deporte: '⚽ Deporte', casa: '🏠 Casa y personal' };
 
 export const RECORDATORIOS = () => ({
   vehiculos: [{ id: 'moto', nombre: 'Moto', icono: '🏍️', km: [] }],   // km: [{ fecha, km }] lecturas del odómetro

@@ -132,7 +132,9 @@ function altoAprox(k) {
 }
 function repartir(ids, n) {
   const cols = Array.from({ length: n }, () => []), alto = Array(n).fill(0);
-  const guardado = (guardadas()[n] || []).map((c) => c.filter((k) => ids.includes(k)));
+  // Cada tarjeta va una sola vez: si el orden guardado la tiene repetida, cuenta solo la primera
+  const vistas = new Set();
+  const guardado = (guardadas()[n] || []).map((c) => c.filter((k) => ids.includes(k) && !vistas.has(k) && vistas.add(k)));
   guardado.slice(0, n).forEach((c, i) => { cols[i] = c; alto[i] = c.reduce((s, k) => s + altoAprox(k), 0); });
   // Las que no estaban en el orden guardado (nuevas o recién mostradas) van a la columna más corta
   for (const k of ids) {
@@ -153,7 +155,8 @@ function tablero(ids) {
 function guardarOrden() {
   const t = document.querySelector('.tablero');
   if (!t) return;
-  const cols = [...t.querySelectorAll('.tablero-col')].map((c) => [...c.querySelectorAll(':scope > .carta')].map((x) => x.dataset.carta));
+  const vistas = new Set();
+  const cols = [...t.querySelectorAll('.tablero-col')].map((c) => [...c.querySelectorAll(':scope > .carta')].map((x) => x.dataset.carta).filter((k) => !vistas.has(k) && vistas.add(k)));
   e().config.tablero = { ...guardadas(), [cols.length]: cols };
   guardar(false);
 }
@@ -176,6 +179,8 @@ if (typeof window !== 'undefined') {
   document.addEventListener('dragover', (ev) => {
     const col = arrastrada && ev.target.closest && ev.target.closest('.tablero.organizando .tablero-col');
     if (!col) return;
+    // Si la pantalla se repintó a mitad del arrastre, la tarjeta vieja ya no es de este tablero: no se mete (se duplicaría)
+    if (arrastrada.closest('.tablero') !== col.closest('.tablero')) { arrastrada = null; return; }
     ev.preventDefault();
     // Se mueve en vivo: queda antes de la primera tarjeta cuyo centro está debajo del cursor
     const antes = [...col.querySelectorAll(':scope > .carta:not(.arrastrando)')].find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
@@ -184,7 +189,7 @@ if (typeof window !== 'undefined') {
   });
   document.addEventListener('drop', (ev) => { if (arrastrada) ev.preventDefault(); });
   document.addEventListener('dragend', () => {
-    if (!arrastrada) return;
+    if (!arrastrada || !arrastrada.isConnected) { arrastrada = null; return; }
     arrastrada.classList.remove('arrastrando');
     arrastrada = null;
     guardarOrden();

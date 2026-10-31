@@ -16,7 +16,7 @@ export function seccionCirculo() {
   const lista = (e().circulo ||= []), orden = { vencido: 0, pronto: 1, 'sin-dato': 2, 'al-dia': 3 };
   const filas = lista.map((p, i) => ({ p, i, s: estadoContacto(p) })).sort((a, b) => orden[a.s.estado] - orden[b.s.estado] || (b.s.dias || 0) - (a.s.dias || 0));
   return '<h2 class="titulo-grupo">👥 Círculo cercano</h2>' +
-    '<p class="nota-corta">Las 5 a 8 personas que más importan. Te avisa cuando llevas mucho sin hablar con alguien: las relaciones también se entrenan.</p>' +
+    '<p class="nota-corta">Las 5 a 8 personas que más importan. Te avisa cuando llevas mucho sin hablar con alguien: las relaciones también se entrenan.</p><div class="rejilla-rec">' +
     filas.map(({ p, i, s }) => {
       const ruta = 'circulo.' + i;
       return '<section class="tarjeta ed-item rec e-borde-' + s.estado + '"><div class="ed-cab"><b>' + esc(p.nombre) + ' <small>· ' + esc(p.relacion || '') + '</small></b>' +
@@ -35,7 +35,7 @@ export function seccionCirculo() {
     '<section class="tarjeta"><h2>＋ Agregar persona</h2><div class="dos">' +
     '<label class="campo">Nombre<input type="text" id="circulo-nombre" placeholder="Ej.: Mamá"></label>' +
     '<label class="campo">Relación<select id="circulo-relacion">' + Object.entries(RELACIONES).map(([r, n]) => '<option value="' + r + '">' + r + ' (cada ' + n + (n === 1 ? ' día' : ' días') + ')</option>').join('') + '</select></label></div>' +
-    '<button type="button" class="boton primario ancho" data-accion="circulo-agregar">Agregar</button></section>';
+    '<button type="button" class="boton primario ancho" data-accion="circulo-agregar">Agregar</button></section></div>';
 }
 
 // ---------- Regla de las 72 horas ----------

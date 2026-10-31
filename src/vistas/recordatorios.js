@@ -3,7 +3,7 @@
 import { e, guardar } from '../estado.js';
 import { iso, fechaCorta, diasEntre } from '../fechas.js';
 import { estadoRecordatorio, recordatoriosAutomaticos, ritmoKm, kmActual, pesos, leerMonto } from '../finanzas.js';
-import { PLANTILLAS_RECORDATORIO } from '../datos_finanzas.js';
+import { PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../datos_finanzas.js';
 import { esc, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
 import { seccionCirculo } from './vida.js';
@@ -84,7 +84,9 @@ export function vistaRecordatorios() {
   const auto = recordatoriosAutomaticos(e().finanzas);
   const orden = { vencido: 0, pronto: 1, 'sin-dato': 2, 'al-dia': 3 };
   const lista = r().lista.map((x, i) => ({ x, i, s: estadoRecordatorio(x, vehiculo(x.vehiculo)) })).sort((a, b) => orden[a.s.estado] - orden[b.s.estado]);
-  return '<h1>Recordatorios</h1>' +
+  const cuenta = (est) => lista.filter(({ s }) => s.estado === est).length, porLlamar = pendientesCirculo(e().circulo || []).length;
+  // En el computador: arriba la moto y un resumen; abajo cada grupo en una rejilla de tarjetas
+  return '<h1>Recordatorios</h1><div class="rec-arriba">' +
     r().vehiculos.map((v, i) => {
       const actual = kmActual(v.km), ritmo = ritmoKm(v.km);
       return '<section class="tarjeta"><div class="fila-resumen"><h2>' + v.icono + ' ' + esc(v.nombre) + '</h2><b>' + (actual != null ? km(actual) : 'sin km') + '</b></div>' +
@@ -96,14 +98,18 @@ export function vistaRecordatorios() {
           '<li><span>' + fechaCorta(l.fecha) + '</span><span>' + km(l.km) + ' <button type="button" class="icono borrar" data-accion="rec-borrar-km" data-v="' + v.id + '" data-k="' + k + '" aria-label="Borrar lectura del ' + fechaCorta(l.fecha) + '">🗑</button></span></li>').join('') + '</ul>' : '') +
         '</details></section>';
     }).join('') +
-    lista.map(({ x, i }) => tarjeta(x, i)).join('') +
-    (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2>' + auto.map((a) =>
+    '<section class="tarjeta rec-resumen"><h2>🔔 Resumen</h2><div class="datos-peso">' +
+    [['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día']].map(([k, t]) => '<div><small>' + t + '</small><b class="' + (cuenta(k) && k !== 'al-dia' ? 'e-txt-' + k : '') + '">' + cuenta(k) + '</b></div>').join('') + '</div>' +
+    '<p class="nota-corta">' + (auto.length ? auto.length + (auto.length === 1 ? ' pago' : ' pagos') + ' de Finanzas cerca · ' : '') + porLlamar + (porLlamar === 1 ? ' persona' : ' personas') + ' por llamar</p></section></div>' +
+    '<h2 class="titulo-grupo">🔧 Mis recordatorios</h2><div class="rejilla-rec">' + lista.map(({ x, i }) => tarjeta(x, i)).join('') + '</div>' +
+    (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2><div class="rejilla-rec">' + auto.map((a) =>
       '<section class="tarjeta"><div class="ed-cab"><b>' + esc(a.nombre) + '</b><span class="estado e-' + a.estado + '">' + ESTADOS[a.estado] + '</span></div>' +
       '<div class="fila-resumen nota-corta"><span>' + fechaCorta(a.fecha) + (a.faltan > 0 ? ' · en ' + a.faltan + ' días' : a.faltan === 0 ? ' · hoy' : '') + '</span><b>' + pesos(a.monto) + '</b></div>' +
-      '<button type="button" class="boton secundario ancho" data-accion="' + ({ fijo: 'fin-pagar-fijo', cobro: 'fin-cobrar' }[a.tipo] || 'fin-pagar-deuda') + '" data-id="' + a.id + '">' + (a.tipo === 'cobro' ? 'Registrar cobro' : 'Registrar pago') + '</button></section>').join('') : '') +
+      '<button type="button" class="boton secundario ancho" data-accion="' + ({ fijo: 'fin-pagar-fijo', cobro: 'fin-cobrar' }[a.tipo] || 'fin-pagar-deuda') + '" data-id="' + a.id + '">' + (a.tipo === 'cobro' ? 'Registrar cobro' : 'Registrar pago') + '</button></section>').join('') + '</div>' : '') +
     seccionCirculo() +
-    '<section class="tarjeta"><h2>＋ Agregar recordatorio</h2><div class="rejilla-cats">' + PLANTILLAS_RECORDATORIO.map((p, k) =>
-      '<button type="button" class="cat" data-accion="rec-agregar" data-k="' + k + '"><span>' + p.icono + '</span>' + esc(p.nombre) + '</button>').join('') + '</div>' +
+    '<section class="tarjeta"><h2>＋ Agregar recordatorio</h2><div class="grupos-plantilla">' + Object.entries(GRUPOS_PLANTILLA).map(([g, titulo]) =>
+      '<div><h3>' + titulo + '</h3><div class="rejilla-cats">' + PLANTILLAS_RECORDATORIO.map((p, k) => [p, k]).filter(([p]) => p.grupo === g).map(([p, k]) =>
+        '<button type="button" class="cat" data-accion="rec-agregar" data-k="' + k + '"><span>' + p.icono + '</span>' + esc(p.nombre) + '</button>').join('') + '</div></div>').join('') + '</div>' +
     '<p class="nota-corta">Los pagos fijos, las cuotas y los intereses por cobrar de Finanzas aparecen aquí solos cuando se acerca el día.</p></section>';
 }
 
@@ -153,7 +159,7 @@ registrar({
     toast('✓ ' + x.nombre + ' · hoy');
   },
   'rec-agregar'({ k }) {
-    const p = PLANTILLAS_RECORDATORIO[Number(k)];
+    const { grupo, ...p } = PLANTILLAS_RECORDATORIO[Number(k)];
     r().lista.push({ id: 'r' + uid(), ...p, vehiculo: p.vehiculo && vehiculo(p.vehiculo) ? p.vehiculo : '', hechos: [] });
     guardar();
     toast(p.icono + ' ' + p.nombre + ' agregado');

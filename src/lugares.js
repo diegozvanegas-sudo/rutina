@@ -50,7 +50,8 @@ export function estadoPieza(lugares) {
 }
 
 // ---------- Números ----------
-const fechasDe = (lista) => lista.flatMap((l) => (l.visitas || []).map((v) => ({ lugar: l, visita: v })));
+// Solo cuentan las visitas de los lugares marcados como visitados: al pasar uno a "quiero ir" sale de los números, y sus visitas vuelven si se marca otra vez
+const fechasDe = (lista) => lista.filter((l) => l.estado === 'visitado').flatMap((l) => (l.visitas || []).map((v) => ({ lugar: l, visita: v })));
 export function lineaTiempo(lista) {
   return fechasDe(lista).filter((x) => x.visita.fecha).sort((a, b) => b.visita.fecha.localeCompare(a.visita.fecha));
 }
@@ -94,6 +95,26 @@ export function agregarVisita(lugar, visita) {
   (lugar.visitas ??= []).push(visita);
   lugar.visitas.sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''));
   lugar.estado = 'visitado';
+}
+
+// Sin visitas, un lugar deja de contar como visitado
+export function quitarVisita(lugar, i) {
+  lugar.visitas.splice(i, 1);
+  if (!lugar.visitas.length) lugar.estado = 'quiero';
+}
+// "Ya estuve aquí": si la pieza ya tiene un lugar con su nombre (Támesis en Támesis) se marca ese; si no, hay que crear uno
+export function marcarPieza(lista, pieza) {
+  const l = lista.find((x) => x.pieza === pieza.id && x.nombre === pieza.nombre);
+  if (l) l.estado = 'visitado';
+  return l || null;
+}
+// Quitar una pieza de los visitados: los lugares creados solo para marcarla se borran; los demás pasan a "quiero ir"
+export function desmarcarPieza(lista, mapaId, piezaId, indice) {
+  for (const l of lugaresDePieza(lista, mapaId, piezaId, indice)) {
+    if (l.estado !== 'visitado') continue;
+    if (l.marcaEntera && !(l.visitas || []).length) lista.splice(lista.indexOf(l), 1);
+    else l.estado = 'quiero';
+  }
 }
 
 // ---------- Sorpréndeme: un plan de fin de semana ----------

@@ -8,7 +8,7 @@ import mundo from '../src/mapas/mundo.js';
 import { MAPAS } from '../src/mapas/index.js';
 import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, TIPOS_LUGAR } from '../src/datos_lugares.js';
 import { proyectar, desproyectar, piezaEn, dentroDePieza, cajaDe, piezaDelLugar, lugaresDePieza, estadoPieza, resumenMapa, avanceGrupos, lineaTiempo,
-  viajesDelAnio, paisesVisitados, ultimoVisitado, filtrar, ordenar, agregarVisita, sorprender, distanciaKm, mapaHijo, migas, enlaceSeguro } from '../src/lugares.js';
+  viajesDelAnio, paisesVisitados, ultimoVisitado, filtrar, ordenar, agregarVisita, sorprender, distanciaKm, mapaHijo, migas, enlaceSeguro, quitarVisita, marcarPieza, desmarcarPieza } from '../src/lugares.js';
 
 const TODOS = { mundo, colombia, brasil, antioquia };
 // El índice real importa los mapas con import(), que no hace falta aquí: estos datos cubren un nivel de arriba
@@ -168,6 +168,41 @@ test('agregar una visita marca el lugar como visitado y deja las visitas en orde
   agregarVisita(l, { fecha: '2026-01-02' });
   assert.equal(l.estado, 'visitado');
   assert.deepEqual(l.visitas.map((v) => v.fecha), ['2026-01-02', '2026-05-02']);
+});
+
+test('borrar la última visita devuelve el lugar a quiero ir, y deja de contar en los números', () => {
+  const l = lugar({ pieza: '05789' });
+  agregarVisita(l, { fecha: '2026-05-02' });
+  agregarVisita(l, { fecha: '2026-06-02' });
+  quitarVisita(l, 0);
+  assert.equal(l.estado, 'visitado');
+  quitarVisita(l, 0);
+  assert.equal(l.estado, 'quiero');
+  assert.equal(resumenMapa(antioquia, [l], SOLO, 2026).piezas, 0);
+  assert.equal(estadoPieza([l]).estado, 'quiero');
+});
+
+test('un lugar pasado a quiero ir sale de la línea de tiempo y de los viajes', () => {
+  const l = lugar({ estado: 'quiero', visitas: [{ fecha: '2026-05-02' }] });
+  assert.equal(lineaTiempo([l]).length, 0);
+  assert.equal(viajesDelAnio([l], 2026), 0);
+  assert.equal(ultimoVisitado([l]), null);
+  l.estado = 'visitado';
+  assert.equal(lineaTiempo([l]).length, 1);
+});
+
+test('marcar y quitar una pieza entera, sin duplicar lugares', () => {
+  const tamesis = lugar({ nombre: 'Támesis', pieza: '05789' }), otro = lugar({ nombre: 'Otro', pieza: '05789', estado: 'visitado', visitas: [{ fecha: '2026-01-01' }] });
+  const creado = lugar({ nombre: 'Andes', pieza: '05034', estado: 'visitado', marcaEntera: true }), lista = [tamesis, otro, creado];
+  assert.equal(marcarPieza(lista, pieza('Támesis')), tamesis);
+  assert.equal(tamesis.estado, 'visitado');
+  assert.equal(marcarPieza(lista, pieza('Jardín')), null);
+  desmarcarPieza(lista, 'antioquia', '05789', SOLO);
+  assert.equal(tamesis.estado, 'quiero');
+  assert.equal(otro.estado, 'quiero');
+  assert.equal(otro.visitas.length, 1); // las visitas no se pierden
+  desmarcarPieza(lista, 'antioquia', '05034', SOLO);
+  assert.ok(!lista.includes(creado)); // lo creado solo para marcar se borra
 });
 
 test('filtrar y ordenar', () => {

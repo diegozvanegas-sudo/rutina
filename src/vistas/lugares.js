@@ -7,7 +7,7 @@ import { nuevoMovimiento } from './finanzas.js';
 import { ve } from '../permisos.js';
 import { MAPAS, MAPA_INICIAL, cargarMapa } from '../mapas/index.js';
 import { TIPOS_LUGAR } from '../datos_lugares.js';
-import { proyectar, desproyectar, piezaEn, cajaDe, piezaDelLugar, lugaresDePieza, estadoPieza, resumenMapa, avanceGrupos, lineaTiempo, filtrar, ordenar, agregarVisita, sorprender, mapaHijo, migas, enlaceSeguro } from '../lugares.js';
+import { proyectar, desproyectar, piezaEn, cajaDe, piezaDelLugar, lugaresDePieza, estadoPieza, resumenMapa, avanceGrupos, lineaTiempo, filtrar, ordenar, agregarVisita, sorprender, mapaHijo, migas, enlaceSeguro, quitarVisita, marcarPieza, desmarcarPieza } from '../lugares.js';
 
 const lista = () => e().lugares.lista;
 const buscar = (id) => lista().find((l) => l.id === id);
@@ -84,7 +84,7 @@ function panelPieza() {
   return '<section class="tarjeta panel-pieza"><div class="fila-resumen"><h2>' + esc(p.nombre) + '</h2><button type="button" class="icono" data-accion="lug-cerrar-pieza" aria-label="Cerrar">✕</button></div>' +
     '<p class="nota-corta">' + esc(p.grupo) + ' · ' + plural(ls.length, 'lugar', 'lugares') + '</p>' +
     (ls.length ? '<ul class="lista-lugares">' + ls.map(fila).join('') + '</ul>' : '') +
-    '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="lug-ya-estuve" data-p="' + p.id + '">✓ Ya estuve aquí</button><button type="button" class="boton secundario" data-accion="lug-nuevo" data-p="' + p.id + '">＋ Agregar lugar aquí</button></div></section>';
+    '<div class="botones-rapidos">' + (ls.some((l) => l.estado === 'visitado') ? '<button type="button" class="boton secundario" data-accion="lug-quitar-pieza" data-p="' + p.id + '">↩ Quitar de visitados</button>' : '<button type="button" class="boton primario" data-accion="lug-ya-estuve" data-p="' + p.id + '">✓ Ya estuve aquí</button>') + '<button type="button" class="boton secundario" data-accion="lug-nuevo" data-p="' + p.id + '">＋ Agregar lugar aquí</button></div></section>';
 }
 
 // ---------- Lista ----------
@@ -325,9 +325,14 @@ registrar({
   'lug-ya-estuve'({ p }) {
     const pz = mapa.piezas.find((x) => x.id === p);
     const [lat, lon] = desproyectar(mapa, ...pz.centro);
-    lista().push({ id: nuevoId(), nombre: pz.nombre, ...lugarDePieza(pz), mapa: mapa.id, pieza: pz.id, tipo: 'pueblo', emoji: '📍', lat, lon, estado: 'visitado', visitas: [] });
+    if (!marcarPieza(lista().filter((l) => l.mapa === mapa.id), pz)) lista().push({ id: nuevoId(), nombre: pz.nombre, ...lugarDePieza(pz), mapa: mapa.id, tipo: 'pueblo', emoji: '📍', lat, lon, estado: 'visitado', visitas: [], marcaEntera: true });
     guardar();
     toast('✓ ' + pz.nombre + ' marcado como visitado');
+  },
+  'lug-quitar-pieza'({ p }) {
+    desmarcarPieza(lista(), mapa.id, p, MAPAS);
+    guardar();
+    toast('Quitado de visitados');
   },
   'lug-nuevo'({ p }) { borrador = { tipo: 'pueblo', estado: 'quiero', pieza: p || '', prioridad: 2 }; abierto = null; repintar(); setTimeout(() => document.querySelector('[data-form-lugar]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30); },
   async 'lug-editar'({ id }) {
@@ -384,8 +389,9 @@ registrar({
   },
   'lug-borrar-visita'({ id, i }) {
     const l = buscar(id), v = l && l.visitas[Number(i)];
-    if (!v || !confirm('¿Borrar esta visita?' + (v.gasto ? ' El gasto en Finanzas se queda allá.' : ''))) return;
-    l.visitas.splice(Number(i), 1);
+    const ultima = l && l.visitas.length === 1;
+    if (!v || !confirm('¿Borrar esta visita?' + (ultima ? ' Como es la única, el lugar vuelve a "quiero ir".' : '') + (v.gasto ? ' El gasto en Finanzas se queda allá.' : ''))) return;
+    quitarVisita(l, Number(i));
     guardar();
   },
   'lug-sorpresa'() {

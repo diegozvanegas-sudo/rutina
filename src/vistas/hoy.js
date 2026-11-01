@@ -1,7 +1,7 @@
 // "Hoy": tablero con la mañana, las metas, el entrenamiento que toca y la semana
 import { e, avanceMetas, hayFutbol, elegirPlantilla, guardar, repintar } from '../estado.js';
 import { iso, fechaLarga } from '../fechas.js';
-import { esc, barra, pct, botonSesion, registrar } from '../ui.js';
+import { esc, barra, tip, pct, botonSesion, registrar } from '../ui.js';
 import { visibles, SECCION_TARJETA } from '../orden.js';
 import { ve } from '../permisos.js';
 import { configurada, nube } from '../nube.js';
@@ -107,7 +107,7 @@ export function vistaHoy() {
     bienvenida() +
     // Avisos, entrenador, foco y estudio: en el computador se acomodan lado a lado
     '<div class="arriba">' +
-    (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
+    (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"' + tip(avisos.length > 3 ? avisos.map((a) => '• ' + a.icono + ' ' + a.nombre + (a.estado === 'vencido' ? ' (vencido)' : '')).join('\n') : '') + '><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
       avisos.slice(0, 3).map((a) => esc(a.icono + ' ' + a.nombre) + (a.estado === 'vencido' ? ' (vencido)' : '')).join(' · ') + '</span></a>' : '') +
     ids.filter((k) => ANCHAS.includes(k)).map((k) => TARJETAS[k]()).join('') + '</div>' +
     tablero(ids.filter((k) => !ANCHAS.includes(k))) +

@@ -493,7 +493,7 @@ div.hecho[data-rec] { display: grid; gap: 8px; margin-top: 6px; }
 .revision ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
 .revision li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.4; }
 .revision li span { flex: none; font-size: 18px; }
-.tip { position: fixed; z-index: 70; pointer-events: none; background: var(--ink); color: var(--bg); padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; max-width: 260px; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
+.tip { position: fixed; z-index: 70; pointer-events: none; background: var(--ink); color: var(--bg); padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; max-width: min(320px, 92vw); white-space: pre-line; box-shadow: 0 6px 18px rgba(0, 0, 0, .45); }
 .tip[hidden] { display: none; }
 
 /* Resumen del día para copiar */

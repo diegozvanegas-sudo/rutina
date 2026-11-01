@@ -310,6 +310,7 @@ function mostrarTip(el, x, y) {
   t.textContent = texto;
   t.hidden = false;
   const r = t.getBoundingClientRect();
+  clearTimeout(mostrarTip.t);
   t.style.left = Math.max(8, Math.min(window.innerWidth - r.width - 8, x - r.width / 2)) + 'px';
   t.style.top = Math.max(8, y - r.height - 14) + 'px';
 }
@@ -319,7 +320,9 @@ document.addEventListener('pointermove', (ev) => {
 });
 document.addEventListener('pointerdown', (ev) => {
   const el = ev.target.closest && ev.target.closest('[data-tip]');
-  if (el) mostrarTip(el, ev.clientX, ev.clientY);
+  if (el) mostrarTip(el, ev.clientX, ev.clientY); else $('tip').hidden = true;
+  // Con el dedo no hay "salir de encima": se quita solo después de leerlo
+  if (el && ev.pointerType === 'touch') mostrarTip.t = setTimeout(() => { $('tip').hidden = true; }, 4000);
 });
 document.addEventListener('focusin', (ev) => {
   const el = ev.target.closest && ev.target.closest('[data-tip]');

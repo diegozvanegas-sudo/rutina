@@ -8,6 +8,8 @@ export function barra(fraccion, clase = '') {
   return '<div class="barra ' + clase + '" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100"><span style="width:' + pct + '%"></span></div>';
 }
 
+// Detalle al pasar el mouse, tocar o enfocar (main.js muestra el cuadro). El texto puede tener varias líneas
+export const tip = (texto) => (texto ? ' data-tip="' + esc(texto) + '"' : '');
 export const pct = (f) => Math.round((f || 0) * 100) + ' %';
 export const miles = (n) => Math.round(n || 0).toLocaleString('es-CO');
 

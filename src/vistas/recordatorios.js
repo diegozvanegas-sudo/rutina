@@ -4,7 +4,7 @@ import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta, diasEntre } from '../fechas.js';
 import { estadoRecordatorio, proximoRecordatorio, recordatoriosAutomaticos, ritmoKm, kmActual, pesos, leerMonto } from '../finanzas.js';
 import { PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../datos_finanzas.js';
-import { esc, barra, registrar, toast } from '../ui.js';
+import { esc, barra, tip, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
 import { seccionCirculo } from './vida.js';
 import { pendientesCirculo } from '../vida.js';
@@ -93,7 +93,7 @@ function tarjeta(x, i) {
   const hecho = s.estado === 'programado' ? '' : hoyYa ? '<p class="rec-hecho-hoy">✓ Hecho hoy</p>'
     : '<button type="button" class="boton ' + (urge ? 'primario' : 'secundario') + ' ancho" data-accion="rec-hoy" data-id="' + x.id + '">' +
       (x.cadaKm && actual != null ? '✓ Hecho hoy, a los ' + km(actual) : '✓ Hecho hoy') + '</button>';
-  return '<section class="tarjeta rec e-borde-' + s.estado + '" data-rec-id="' + x.id + '"><div class="ed-cab"><b>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
+  return '<section class="tarjeta rec e-borde-' + s.estado + '" data-rec-id="' + x.id + '"><div class="ed-cab"><b' + tip(x.nota) + '>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
     '<span class="estado e-' + s.estado + '">' + ESTADOS[s.estado] + '</span></div>' +
     principal(x, s, actual) + hecho +
     '<div class="chips rec-pestanas">' + (s.estado === 'programado' ? '' : pest('hecho', '📅 Otra fecha')) + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +

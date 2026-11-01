@@ -4,7 +4,7 @@ import { iso, hora, fechaCorta, diaSemana } from '../fechas.js';
 import { proteinaSemana } from '../entrenador.js';
 import { barras } from '../graficos.js';
 import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, kcalDeMacros } from '../dieta.js';
-import { esc, barra, registrar, toast, miles, subirBajar } from '../ui.js';
+import { esc, barra, tip, registrar, toast, miles, subirBajar } from '../ui.js';
 
 let pestana = 'hoy', planVista = null;
 const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', descanso: '😌 Descanso' };
@@ -32,14 +32,16 @@ export function tarjetaComidasHoy(compacta = false) {
       '<div><small>' + t + '</small><b>' + r0(comido[k]) + '</b> / ' + r0(total[k]) + ' g' + barra(total[k] ? comido[k] / total[k] : 0) + '</div>').join('') + '</div>' +
     '<div class="comidas' + (compacta ? ' compactas' : '') + '">' + plan.comidas.map((c, i) => {
       const t = totalComida(c, d().alimentos), marca = hechas[tipo + ':' + i];
-      return '<div class="comida' + (marca ? ' hecha' : '') + '">' +
+      const items = c.items.map((it) => {
+        const a = alimento(it.alimento);
+        return (a ? a.nombre : it.alimento) + (a && a.por !== 'libre' ? ' ' + String(it.cant).replace('.', ',') + ' ' + unidad(a) : '');
+      });
+      const detalle = c.nombre + ' · ' + miles(t.kcal) + ' kcal\nProteína ' + r0(t.p) + ' g · Carbos ' + r0(t.c) + ' g · Grasa ' + r0(t.g) + ' g\n\n' + items.map((x) => '• ' + x).join('\n');
+      return '<div class="comida' + (marca ? ' hecha' : '') + '"' + tip(detalle) + '>' +
         '<button type="button" class="check" data-accion="dieta-comer" data-i="' + i + '" aria-pressed="' + !!marca + '" aria-label="' + esc(c.nombre) + '">' + (marca ? '✓' : '🍽') + '</button>' +
         '<div class="info"><div class="fila-resumen"><b>' + esc(c.nombre) + '</b><span class="nota-corta">' + miles(t.kcal) + ' kcal · P ' + r0(t.p) + '</span></div>' +
         (marca ? '<div class="nota-corta">Comida a las ' + hora(marca.ts) + '</div>' : '') +
-        (compacta ? '' : '<div class="nota-corta">' + c.items.map((it) => {
-          const a = alimento(it.alimento);
-          return esc(a ? a.nombre : it.alimento) + (a && a.por !== 'libre' ? ' ' + esc(String(it.cant).replace('.', ',')) + ' ' + unidad(a) : '');
-        }).join(' · ') + '</div>') + '</div></div>';
+        (compacta ? '' : '<div class="nota-corta">' + items.map(esc).join(' · ') + '</div>') + '</div></div>';
     }).join('') + '</div>';
 }
 

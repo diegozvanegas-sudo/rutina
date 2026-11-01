@@ -1,7 +1,7 @@
 // "Primera hora": checklist en orden; cada toque guarda la hora
 import { e, guardar, dia, racha, hechosManana, fraccionManana, alternarCrono, segundosCrono, textoHabito, ponerTextoHabito, pastillaDe } from '../estado.js';
 import { iso, hora, reloj } from '../fechas.js';
-import { esc, barra, registrar, toast } from '../ui.js';
+import { esc, barra, tip, registrar, toast } from '../ui.js';
 import { iniciar } from '../temporizador.js';
 import { abrirSesion } from './sesiones.js';
 import { IDEAS_HABITOS } from '../datos_iniciales.js';
@@ -46,7 +46,7 @@ export function listaManana(fecha = iso()) {
   if (!e().habitos.length) return '<p class="nota-corta">Aún no tienes hábitos de mañana. Agrega el primero aquí abajo.</p>' + agregarManana();
   return '<ol class="habitos">' + e().habitos.map((h, i) => {
     const reg = d.habitos[h.id];
-    return '<li class="habito' + (reg ? ' hecho' : '') + '">' +
+    return '<li class="habito' + (reg ? ' hecho' : '') + '"' + tip(reg && h.detalle ? h.nombre + '\n' + h.detalle : '') + '>' +
       '<button type="button" class="check" data-accion="marcar" data-id="' + h.id + '" aria-pressed="' + !!reg + '" aria-label="' + esc(h.nombre) + '">' + (reg ? '✓' : i + 1) + '</button>' +
       '<div class="info"><div class="nombre">' + esc(h.nombre) + '</div>' +
       '<div class="detalle">' + (reg ? 'Hecho a las ' + hora(reg.ts) : esc(h.detalle || '')) + '</div>' + extra(h, d, fecha) + '</div></li>';

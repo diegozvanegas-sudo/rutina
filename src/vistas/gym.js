@@ -9,7 +9,7 @@ import { partidos } from '../registro.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../entrenador.js';
 import { linea, tablaDatos } from '../graficos.js';
 import { CARDIO } from '../datos_iniciales.js';
-import { esc, barra, registrar, toast, copiarTexto, botonSesion } from '../ui.js';
+import { esc, barra, tip, registrar, toast, copiarTexto, botonSesion } from '../ui.js';
 import { iniciar } from '../temporizador.js';
 import { compartirImagen } from '../imagen.js';
 
@@ -397,12 +397,17 @@ function grafico(f, hasta) {
     '<span class="nota-corta">' + formatoPeso(ps[0]) + ' → <b>' + formatoPeso(ps[ps.length - 1]) + '</b></span>';
 }
 
+// Los ejercicios del día, al pasar por encima de su cuadro en la semana
+function tipDia(id) {
+  const dia = e().rutina.find((x) => x.id === id);
+  return dia && dia.ejercicios.length ? tip(dia.nombre + '\n\n' + dia.ejercicios.map((ej) => '• ' + ej.nombre).join('\n')) : '';
+}
 export function tarjetaSemana(sem = semanaActual(), conMusculos = false) {
   const r = resumenSemana(e().rutina, registros(sem), e().config.objetivos);
   const pos = (id) => { const d = e().rutina.find((x) => x.id === id); return id === 'core' ? 100 : (d && d.diaSemana) || 99; };
   r.dias.sort((a, b) => pos(a.id) - pos(b.id));
   return '<div class="fila-resumen"><b>Semana ' + sem + '</b><span>' + r.hechas + ' / ' + r.plan + ' series</span></div>' + barra(r.plan ? r.hechas / r.plan : 0) +
-    '<div class="dias-semana">' + r.dias.map((d) => (d.id === 'core' ? '<div class="dia-mini"' : '<button type="button" class="dia-mini" data-accion="ir-dia" data-dia="' + d.id + '"') + '><span>' + (DIAS_CORTOS[pos(d.id)] ? DIAS_CORTOS[pos(d.id)] + ' · ' : '') + esc(d.nombre) + '</span><b>' + d.hechas + '/' + d.plan + '</b>' + barra(d.plan ? d.hechas / d.plan : 0) + (d.id === 'core' ? '</div>' : '</button>')).join('') + '</div>' +
+    '<div class="dias-semana">' + r.dias.map((d) => (d.id === 'core' ? '<div class="dia-mini"' : '<button type="button" class="dia-mini" data-accion="ir-dia" data-dia="' + d.id + '"' + tipDia(d.id)) + '><span>' + (DIAS_CORTOS[pos(d.id)] ? DIAS_CORTOS[pos(d.id)] + ' · ' : '') + esc(d.nombre) + '</span><b>' + d.hechas + '/' + d.plan + '</b>' + barra(d.plan ? d.hechas / d.plan : 0) + (d.id === 'core' ? '</div>' : '</button>')).join('') + '</div>' +
     (conMusculos ? '<div class="fila-resumen"><h2>Series por músculo</h2><button type="button" class="boton secundario" data-accion="gym-objetivos">' + (editandoObjetivos ? '✓ Listo' : '✏️ Editar objetivos') + '</button></div>' +
       (editandoObjetivos ? '<p class="nota-corta">Series por semana que buscas para cada músculo: menos del mínimo es "Bajo", más del máximo es "Alto".</p>' : '') +
       '<div class="musculos">' + Object.entries(r.musculos).map(([m, x]) => {

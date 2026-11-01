@@ -86,7 +86,7 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   resumen del mes (tasa de ahorro, regla 50/30/20, por categoría y método, proyección), presupuesto por categoría, pagos fijos,
   metas de ahorro con fondo de emergencia (6 meses de gastos) y deudas (meses para pagar, estrategia avalancha).
 - **Recordatorios**: mantenimiento de la moto por km o por meses (lo que pase primero) con odómetro y fecha estimada,
-  plantillas (aceite, SOAT, tecnomecánica, cadena, llantas…) y los pagos fijos y cuotas de Finanzas, que aparecen solos.
+  plantillas con buscador (hipoteca, aceite, SOAT, cadena, llantas…) y los pagos fijos y cuotas de Finanzas, que aparecen solos. Cada tarjeta dice cuánto falta, se marca con un toque (con deshacer) y se edita en la misma tarjeta.
 - **🗺️ Lugares** (`src/vistas/lugares.js`, lógica en `src/lugares.js`, datos en `lugares.lista`): mapas SVG propios, sin internet ni librerías, en niveles: 🌍 Mundo › 🇨🇴 Colombia (33 departamentos) o 🇧🇷 Brasil (27 estados) ›
   🌄 Antioquia (125 municipios en 9 subregiones). Al tocar una pieza con mapa propio se entra a ese mapa, y las migas sirven para volver; las demás se marcan enteras. Los niveles de arriba toman el estado de abajo.
   Cada pieza se pinta según lo recorrido; encima van los puntos ● visitado y ☆ por visitar. Zoom con dedos, rueda y botones, y un botón por grupo. Cada lugar guarda sus visitas (fecha, con quién, calificación, nota, gasto,

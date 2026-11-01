@@ -785,3 +785,28 @@ a.libro-tarjeta { text-decoration: none; }
   .mapa-leyenda { position: static; background: none; padding: 0 8px 8px; }
 }
 @media (prefers-reduced-motion: reduce) { .mapa-entra .mapa-svg, .mapa-sale .mapa-svg { animation: none; } .pz { transition: none; } }
+
+/* ---------- Tarjetas de recordatorios ---------- */
+.rec { display: grid; gap: 8px; align-content: start; }
+.rec p { margin: 0; }
+.rec-titulo { font-size: 20px; font-weight: 700; }
+.rec-titulo small { font-size: 14px; font-weight: 400; }
+.rec .barra { margin: 0; }
+.e-barra-vencido span { background: var(--rojo); }
+.e-barra-pronto span { background: var(--amarillo); }
+.rec-hecho-hoy { color: var(--brand); font-weight: 700; min-height: 44px; display: flex; align-items: center; justify-content: center; }
+.rec-pestanas { margin: 0; }
+.rec-pestanas .chip { font-size: 14px; }
+.rec-editar { margin-top: 2px; }
+.rec-borrar { color: var(--rojo); justify-self: start; }
+.rec-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.rec-cabeza .titulo-grupo { margin: 0; }
+.rec-filtros { margin-bottom: 10px; }
+.rec-agregar > summary { padding: 4px 0; }
+.rec-agregar > summary h2 { display: inline; margin: 0; }
+.rec-buscar { width: 100%; margin: 10px 0; }
+.cat[hidden], .grupos-plantilla > div[hidden] { display: none; }
+#toast button { margin-left: 10px; min-height: 36px; padding: 0 10px; background: none; border: 1px solid currentColor; border-radius: 8px; color: inherit; font: inherit; font-weight: 800; cursor: pointer; pointer-events: auto; }
+/* Toda la app: los desplegables se tocan bien con el dedo */
+details > summary { min-height: 44px; padding-top: 10px; padding-bottom: 10px; box-sizing: border-box; }
+#toast { width: max-content; max-width: min(92vw, 520px); }

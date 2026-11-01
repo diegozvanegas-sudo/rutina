@@ -70,13 +70,31 @@ export function copiarTexto(texto, aviso = 'Copiado') {
   navigator.clipboard.writeText(texto).then(una(listo), una(viejo));
 }
 
-export function toast(msg) {
+// Con deshacer, el aviso trae un botón y dura un poco más para alcanzar a tocarlo
+let alDeshacer = null;
+export function toast(msg, deshacer = null) {
   const t = document.getElementById('toast');
   t.textContent = msg;
+  alDeshacer = deshacer;
+  if (deshacer) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.accion = 'toast-deshacer';
+    b.textContent = 'Deshacer';
+    t.append(' ', b);
+  }
   t.hidden = false;
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => { t.hidden = true; }, 2600);
+  toast.t = setTimeout(() => { t.hidden = true; alDeshacer = null; }, deshacer ? 6000 : 2600);
 }
+registrar({
+  'toast-deshacer'() {
+    const f = alDeshacer;
+    alDeshacer = null;
+    document.getElementById('toast').hidden = true;
+    if (f) f();
+  },
+});
 
 // Botón que abre una sesión guiada por su id (las que el usuario eligió para el descanso, el partido o el calentamiento)
 const ICONO_SESION = { checklist: '✅', calentamiento: '🔥', estiramiento: '🧘', fortalecimiento: '🦵', mente: '🧠' };

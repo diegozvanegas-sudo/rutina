@@ -287,6 +287,29 @@ export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
   return res;
 }
 
+// Lo que muestra la tarjeta: la frase del próximo (el límite que llegue primero, km o fecha) y cuánto del ciclo ya pasó (0 a 1)
+export function proximoRecordatorio(rec, s, kmHoy, hoy = iso()) {
+  const nKm = (n) => Math.round(n).toLocaleString('es-CO') + ' km', opciones = [];
+  if (s.proxKm != null) {
+    const f = s.faltaKm;
+    opciones.push({
+      titulo: f == null ? 'A los ' + nKm(s.proxKm) : f > 0 ? 'Faltan ' + nKm(f) : f === 0 ? 'Toca ya' : 'Te pasaste ' + nKm(-f),
+      fecha: s.fechaKm && f > 0 ? s.fechaKm : null, km: s.proxKm,
+      fraccion: kmHoy != null && s.ultimo.km != null ? (kmHoy - s.ultimo.km) / rec.cadaKm : 0,
+    });
+  }
+  if (s.proxFecha) {
+    const d = s.faltaDias, total = diasEntre(s.ultimo.fecha, s.proxFecha);
+    opciones.push({
+      titulo: d > 1 ? 'En ' + d + ' días' : d === 1 ? 'Mañana' : d === 0 ? 'Hoy' : d === -1 ? 'Era ayer' : 'Hace ' + -d + ' días',
+      fecha: s.proxFecha, km: null, fraccion: total > 0 ? diasEntre(s.ultimo.fecha, hoy) / total : 1,
+    });
+  }
+  if (!opciones.length) return null;
+  const elegida = opciones.reduce((a, b) => (b.fraccion > a.fraccion ? b : a));
+  return { ...elegida, fraccion: Math.max(0, Math.min(1, elegida.fraccion)) };
+}
+
 // Recordatorios que salen solos de Finanzas: pagos fijos, cuotas de deudas e intereses por cobrar de este mes
 export function recordatoriosAutomaticos(fin, hoy = iso()) {
   const lista = [];

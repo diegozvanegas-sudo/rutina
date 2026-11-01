@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { FINANZAS, PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../src/datos_finanzas.js';
 import {
   leerMonto, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, mesesParaPagar, sumarMeses,
-  estadoRecordatorio, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
+  estadoRecordatorio, proximoRecordatorio, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
   planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar, cobroPrestamo, interesPrestamo, estadoCobro,
 } from '../src/finanzas.js';
 
@@ -197,4 +197,31 @@ test('plantillas de recordatorio: categoría y grupo válidos, sin nombres repet
   assert.equal(PLANTILLAS_RECORDATORIO.find((p) => p.nombre === 'Pago de hipoteca').grupo, 'pagos');
   assert.equal(nombres.at(-1), 'Otro');
   assert.equal(nombres[0], 'Cambio de aceite');
+});
+
+test('la tarjeta muestra el límite que llega primero y cuánto del ciclo ya pasó', () => {
+  const hoy = '2026-11-01', v = { km: [{ fecha: '2026-10-01', km: 19000 }, { fecha: hoy, km: 21450 }] };
+  const ver = (rec) => proximoRecordatorio(rec, estadoRecordatorio(rec, rec.cadaKm ? v : null, hoy), rec.cadaKm ? 21450 : null, hoy);
+  // Por km: faltan 550 de 6.000, con 16.000 de partida
+  const t = ver({ cadaKm: 6000, cadaMeses: 0, hechos: [{ fecha: '2026-09-11', km: 16000 }] });
+  assert.equal(t.titulo, 'Faltan 550 km');
+  assert.equal(t.km, 22000);
+  assert.ok(Math.abs(t.fraccion - 5450 / 6000) < 1e-9);
+  // Si están km y meses, gana el que vaya más avanzado
+  const a = ver({ cadaKm: 2000, cadaMeses: 3, hechos: [{ fecha: '2026-10-31', km: 20000 }] });
+  assert.equal(a.km, 22000);
+  const f = ver({ cadaKm: 50000, cadaMeses: 1, hechos: [{ fecha: '2026-10-20', km: 21000 }] });
+  assert.equal(f.km, null);
+  assert.match(f.titulo, /^En \d+ días$/);
+  // Por tiempo, con las frases de hoy, mañana y vencido, y la barra sin pasarse de 1
+  const dias = (d, fecha = '2026-10-01') => ver({ cadaDias: d, cadaMeses: 0, cadaKm: 0, hechos: [{ fecha }] });
+  assert.equal(dias(31).titulo, 'Hoy');
+  assert.equal(dias(32).titulo, 'Mañana');
+  assert.equal(dias(30).titulo, 'Era ayer');
+  assert.equal(dias(20).titulo, 'Hace 11 días');
+  assert.equal(dias(20).fraccion, 1);
+  // Te pasaste de km
+  assert.equal(ver({ cadaKm: 2000, cadaMeses: 0, hechos: [{ fecha: '2026-09-01', km: 19000 }] }).titulo, 'Te pasaste 450 km');
+  // Sin regla no hay próximo
+  assert.equal(ver({ cadaKm: 0, cadaMeses: 0, cadaDias: 0, hechos: [{ fecha: '2026-09-01' }] }), null);
 });

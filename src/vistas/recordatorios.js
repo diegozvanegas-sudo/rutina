@@ -93,7 +93,7 @@ function tarjeta(x, i) {
   const hecho = s.estado === 'programado' ? '' : hoyYa ? '<p class="rec-hecho-hoy">✓ Hecho hoy</p>'
     : '<button type="button" class="boton ' + (urge ? 'primario' : 'secundario') + ' ancho" data-accion="rec-hoy" data-id="' + x.id + '">' +
       (x.cadaKm && actual != null ? '✓ Hecho hoy, a los ' + km(actual) : '✓ Hecho hoy') + '</button>';
-  return '<section class="tarjeta rec e-borde-' + s.estado + '" data-rec-id="' + x.id + '"><div class="ed-cab"><b' + tip(x.nota) + '>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
+  return '<section class="tarjeta rec e-borde-' + s.estado + (que ? ' rec-activa' : '') + '" data-rec-id="' + x.id + '"><div class="ed-cab"><b' + tip(x.nota) + '>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
     '<span class="estado e-' + s.estado + '">' + ESTADOS[s.estado] + '</span></div>' +
     principal(x, s, actual) + hecho +
     '<div class="chips rec-pestanas">' + (s.estado === 'programado' ? '' : pest('hecho', '📅 Otra fecha')) + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +
@@ -156,7 +156,7 @@ export function vistaRecordatorios() {
     (lista.length > 1 ? '<div class="chips rec-filtros"><button type="button" class="chip' + (filtroEstado ? '' : ' activo') + '" data-accion="rec-filtro" data-v="">Todos (' + lista.length + ')</button>' +
       [['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día'], ['programado', 'Programados']].filter(([k]) => cuenta(k)).map(([k, t]) =>
         '<button type="button" class="chip' + (filtroEstado === k ? ' activo' : '') + '" data-accion="rec-filtro" data-v="' + k + '">' + t + ' (' + cuenta(k) + ')</button>').join('') + '</div>' : '') +
-    (lista.length ? '<div class="rejilla-rec">' + visibles.map(({ x, i }) => tarjeta(x, i)).join('') + '</div>' : '<section class="tarjeta"><p class="nota-corta">Aún no tienes recordatorios. Toca ＋ Agregar y escoge uno.</p></section>') +
+    (lista.length ? '<div class="rejilla-rec' + (abierto.id ? ' con-activa' : '') + '">' + visibles.map(({ x, i }) => tarjeta(x, i)).join('') + '</div>' : '<section class="tarjeta"><p class="nota-corta">Aún no tienes recordatorios. Toca ＋ Agregar y escoge uno.</p></section>') +
     (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2><div class="rejilla-rec">' + auto.map((a) =>
       '<section class="tarjeta"><div class="ed-cab"><b>' + esc(a.nombre) + '</b><span class="estado e-' + a.estado + '">' + ESTADOS[a.estado] + '</span></div>' +
       '<div class="fila-resumen nota-corta"><span>' + fechaCorta(a.fecha) + (a.faltan > 0 ? ' · en ' + a.faltan + ' días' : a.faltan === 0 ? ' · hoy' : '') + '</span><b>' + pesos(a.monto) + '</b></div>' +
@@ -243,7 +243,11 @@ registrar({
     const nuevo = { id: 'r' + uid(), ...p, vehiculo: p.vehiculo && vehiculo(p.vehiculo) ? p.vehiculo : '', hechos: [] };
     r().lista.push(nuevo);
     filtroEstado = '';
+    // Lleva a la tarjeta nueva, resaltada y lista para editar
+    abierto = { id: nuevo.id, que: 'editar' };
+    agregarAbierto = false;
     guardar();
-    toast(p.icono + ' ' + p.nombre + ' agregado', () => { r().lista.splice(r().lista.indexOf(nuevo), 1); guardar(); });
+    setTimeout(() => document.querySelector('[data-rec-id="' + nuevo.id + '"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+    toast(p.icono + ' ' + p.nombre + ' agregado', () => { r().lista.splice(r().lista.indexOf(nuevo), 1); abierto = { id: null, que: null }; guardar(); });
   },
 });

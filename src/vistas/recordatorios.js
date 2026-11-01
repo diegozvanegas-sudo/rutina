@@ -93,7 +93,7 @@ function tarjeta(x, i) {
   const hecho = s.estado === 'programado' ? '' : hoyYa ? '<p class="rec-hecho-hoy">✓ Hecho hoy</p>'
     : '<button type="button" class="boton ' + (urge ? 'primario' : 'secundario') + ' ancho" data-accion="rec-hoy" data-id="' + x.id + '">' +
       (x.cadaKm && actual != null ? '✓ Hecho hoy, a los ' + km(actual) : '✓ Hecho hoy') + '</button>';
-  return '<section class="tarjeta rec e-borde-' + s.estado + '"><div class="ed-cab"><b>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
+  return '<section class="tarjeta rec e-borde-' + s.estado + '" data-rec-id="' + x.id + '"><div class="ed-cab"><b>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
     '<span class="estado e-' + s.estado + '">' + ESTADOS[s.estado] + '</span></div>' +
     principal(x, s, actual) + hecho +
     '<div class="chips rec-pestanas">' + (s.estado === 'programado' ? '' : pest('hecho', '📅 Otra fecha')) + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +
@@ -116,6 +116,19 @@ if (typeof document !== 'undefined') {
     caja.querySelectorAll('.grupos-plantilla > div').forEach((g) => { g.hidden = !g.querySelector('.cat:not([hidden])'); });
   });
   document.addEventListener('toggle', (ev) => { if (ev.target.id === 'rec-agregar') agregarAbierto = ev.target.open; }, true);
+  // El panel abierto se cierra al tocar fuera de su tarjeta o con Escape. Lo editado ya se guardó al salir del campo;
+  // "Otra fecha" se guarda con su botón, así que no se cierra si ya tiene algo escrito
+  const cerrarPanel = () => {
+    const caja = document.querySelector('[data-rec-id="' + abierto.id + '"] [data-rec]');
+    if (caja && [...caja.querySelectorAll('input')].some((c) => c.value !== c.defaultValue)) return;
+    abierto = { id: null, que: null };
+    repintar();
+  };
+  document.addEventListener('click', (ev) => {
+    if (!abierto.id || (ev.target.closest && ev.target.closest('.rec'))?.dataset.recId === abierto.id) return;
+    cerrarPanel();
+  });
+  document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && abierto.id) cerrarPanel(); });
 }
 
 export function vistaRecordatorios() {

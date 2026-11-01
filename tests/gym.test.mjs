@@ -197,3 +197,30 @@ test('biseries: el ejercicio marcado va con el siguiente, y el nombre "A / b" se
   assert.deepEqual(nombresBiserie('Curl bíceps / tríceps polea'), ['Curl bíceps', 'Tríceps polea']);
   assert.equal(nombresBiserie('Press plano'), null);
 });
+
+test('imagen de la rutina semanal: los 7 días, fútbol, descanso, metas y balance por músculo', async () => {
+  const { resumenRutina } = await import('../src/imagen-rutina.js');
+  const rutina = JSON.parse(JSON.stringify(RUTINA)), d3 = rutina.find((d) => d.id === 'd3'), f = d3.ejercicios[0].filas[0];
+  const estado = { rutina, sesiones: [{ id: 'rodilla', nombre: 'Rodilla' }, { id: 'calentamiento-futbol', nombre: 'Calentar fútbol' }], config: { futbol: [3, 5], sesionesDescanso: ['rodilla'], sesionesPartido: ['calentamiento-futbol', 'no-existe'] },
+    semanas: { 1: { [f.id]: { peso: '100', unidad: 'kg', reps: '7' } } } };
+  const r = resumenRutina(2, estado);
+  assert.equal(r.semana, 'Semana 2 · 19 oct – 25 oct');
+  assert.deepEqual(r.dias.map((d) => d.nombre), ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']);
+  assert.equal(r.dias[0].fecha, '19 oct');
+  const lunes = r.dias[0].entrenos[0];
+  assert.equal(lunes.nombre, 'Empuje + Bíceps');
+  assert.equal(lunes.series, lunes.ejercicios.reduce((s, ej) => s + ej.series, 0));
+  assert.equal(lunes.ejercicios[0].esquema, 'Top 1×4-7 · Back-off 2×8-12');
+  assert.ok(lunes.ejercicios[0].meta && lunes.ejercicios[0].sube); // llegó al tope: toca subir
+  assert.equal(lunes.ejercicios[1].meta, '');
+  assert.deepEqual(r.dias[2].sesiones, ['Calentar fútbol']); // la sesión que no existe no sale
+  assert.ok(r.dias[2].futbol && r.dias[2].entrenos.length);
+  assert.ok(!r.dias[3].entrenos.length && !r.dias[3].futbol);
+  assert.deepEqual(r.dias[3].sesiones, ['Rodilla']);
+  assert.equal(r.totales.partidos, 2);
+  assert.equal(r.totales.dias, 5);
+  assert.ok(r.core.length);
+  const pecho = r.musculos.find((m) => m.nombre === 'Pecho');
+  assert.ok(pecho.plan > 0 && pecho.max >= pecho.min && ['Bajo', 'Alto', 'En rango'].includes(pecho.estado));
+  assert.equal(r.totales.series, r.dias.reduce((s, d) => s + d.entrenos.reduce((t, x) => t + x.series, 0), 0) + r.core.reduce((s, ej) => s + ej.series, 0));
+});

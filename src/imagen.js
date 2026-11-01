@@ -83,13 +83,15 @@ export function dibujar(canvas, r) {
 }
 
 // Crea la imagen y la comparte (WhatsApp, galería…); si el navegador no deja compartir archivos, la descarga
-export async function compartirImagen(d, sem, estado) {
-  const canvas = dibujar(document.createElement('canvas'), resumenDia(d, sem, estado));
+export function compartirImagen(d, sem, estado) {
+  return entregarImagen(dibujar(document.createElement('canvas'), resumenDia(d, sem, estado)), 'resumen ' + d.nombre + ' semana ' + sem, d.nombre);
+}
+export async function entregarImagen(canvas, base, titulo) {
   const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/png'));
-  const nombre = ('resumen ' + d.nombre + ' semana ' + sem).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-') + '.png';
+  const nombre = base.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-') + '.png';
   const archivo = new File([blob], nombre, { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-    try { await navigator.share({ files: [archivo], title: d.nombre }); return 'compartida'; } catch (err) { if (err.name === 'AbortError') return 'cancelada'; }
+    try { await navigator.share({ files: [archivo], title: titulo }); return 'compartida'; } catch (err) { if (err.name === 'AbortError') return 'cancelada'; }
   }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove();

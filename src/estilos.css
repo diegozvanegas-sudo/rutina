@@ -810,3 +810,4 @@ a.libro-tarjeta { text-decoration: none; }
 /* Toda la app: los desplegables se tocan bien con el dedo */
 details > summary { min-height: 44px; padding-top: 10px; padding-bottom: 10px; box-sizing: border-box; }
 #toast { width: max-content; max-width: min(92vw, 520px); }
+.boton-rutina { margin-bottom: 14px; }

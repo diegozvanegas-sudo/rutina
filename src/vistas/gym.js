@@ -12,6 +12,7 @@ import { CARDIO } from '../datos_iniciales.js';
 import { esc, barra, tip, registrar, toast, copiarTexto, botonSesion } from '../ui.js';
 import { iniciar } from '../temporizador.js';
 import { compartirImagen } from '../imagen.js';
+import { compartirRutina } from '../imagen-rutina.js';
 
 let semanaVista = null, diaVista = null, editandoObjetivos = false, fuerzaEj = null;
 // Ejercicio en el que vas: el último donde anotaste una serie (si le faltan) o el primero con series pendientes.
@@ -420,7 +421,8 @@ export function tarjetaSemana(sem = semanaActual(), conMusculos = false) {
 }
 
 function vistaResumen(sem) {
-  return '<section class="tarjeta">' + tarjetaSemana(sem, true) + '</section>' +
+  return '<button type="button" class="boton primario ancho boton-rutina" data-accion="gym-imagen-rutina">🖼️ Crear imagen de mi rutina semanal</button>' +
+    '<section class="tarjeta">' + tarjetaSemana(sem, true) + '</section>' +
     '<section class="tarjeta fuerza"><h2>💪 Fuerza</h2>' + tarjetaFuerza(sem) + '</section>' +
     '<section class="tarjeta"><h2>Progreso de peso</h2><div class="progreso">' + e().rutina.flatMap((d) => d.ejercicios.map((ej) =>
       '<div class="progreso-fila"><span>' + esc(ej.nombre) + '<small>' + esc(d.nombre) + ' · ' + ej.filas[0].tipo + '</small></span>' + grafico(ej.filas[0], sem) + '</div>')).join('') + '</div></section>';
@@ -497,6 +499,12 @@ registrar({
     if (!d) return;
     try {
       const r = await compartirImagen(d, semanaVista ?? semanaActual(), e());
+      if (r === 'descargada') toast('🖼️ Imagen descargada');
+    } catch (err) { toast('No se pudo crear la imagen'); }
+  },
+  async 'gym-imagen-rutina'() {
+    try {
+      const r = await compartirRutina(semanaVista ?? semanaActual(), e());
       if (r === 'descargada') toast('🖼️ Imagen descargada');
     } catch (err) { toast('No se pudo crear la imagen'); }
   },

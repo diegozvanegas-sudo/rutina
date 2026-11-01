@@ -48,6 +48,23 @@ small { color: var(--muted); }
 .sin-sesion #lateral, .sin-sesion .top-movil .menu, .sin-sesion #flotante, .sin-sesion #reproductor { display: none !important; }
 .entrar { max-width: 420px; margin: 12vh auto 0; display: grid; gap: 12px; }
 @media (min-width: 900px) { .sin-sesion .app { display: block; } }
+/* Organizar el menú */
+.marca .barra-plegar { margin-left: auto; display: none; }
+.asa-barra { display: none; }
+.boton-suave { background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; text-align: left; padding: 8px 6px; min-height: 44px; border-radius: 10px; cursor: pointer; }
+.boton-suave:hover { background: var(--surface-2); color: var(--ink); }
+.lista-menu { grid-template-columns: minmax(0, 1fr); }
+.fila-menu .icono { min-width: 36px; flex: none; }
+.fila-menu { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 2px 4px; border-radius: 12px; background: var(--surface-2); font-weight: 600; }
+.fila-menu.apagado { opacity: .5; }
+.fila-menu.moviendo { outline: 2px solid var(--brand); }
+.fila-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.asa-fila { min-width: 40px; min-height: 44px; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: grab; touch-action: none; }
+.arrastrando-barra, .arrastrando-barra * { user-select: none; }
+.arrastrando-barra .asa-fila { cursor: grabbing; }
+.herr-menu { display: grid; gap: 6px; }
+.solo-pc { display: none; }
+@media (min-width: 900px) { .solo-pc { display: block; } }
 .resumen-lateral { display: grid; gap: 6px; padding: 8px; background: var(--bg); border-radius: var(--radio); font-size: 14px; }
 /* Cada fila del resumen lleva a su sección */
 .resumen-lateral a { display: block; padding: 6px; border-radius: 10px; color: var(--ink); text-decoration: none; }
@@ -55,7 +72,21 @@ small { color: var(--muted); }
 .resumen-lateral .barra { margin-bottom: 2px; }
 
 @media (min-width: 900px) {
-  .app { display: grid; grid-template-columns: minmax(0, 1fr) 260px; }
+  .app { display: grid; grid-template-columns: minmax(0, 1fr) var(--ancho-barra, 260px); }
+  .barra-compacta { --ancho-barra: 76px; }
+  .barra-izquierda .app { grid-template-columns: var(--ancho-barra, 260px) minmax(0, 1fr); }
+  .barra-izquierda #lateral { order: -1; border-left: 0; border-right: 1px solid var(--line); }
+  .asa-barra { display: block; position: fixed; top: 0; bottom: 0; right: calc(var(--ancho-barra, 260px) - 4px); width: 8px; z-index: 5; cursor: col-resize; touch-action: none; }
+  .asa-barra:hover, .arrastrando-barra .asa-barra { background: var(--brand-soft); }
+  .barra-izquierda .asa-barra { right: auto; left: calc(var(--ancho-barra, 260px) - 4px); }
+  .marca .barra-plegar { display: grid; }
+  .barra-compacta .marca { justify-content: center; }
+  .barra-compacta .marca .barra-plegar { margin: 0; }
+  /* Compacta: solo íconos; el nombre sale al pasar el mouse */
+  .barra-compacta #lateral { padding-inline: 8px; align-items: center; }
+  .barra-compacta .ocultable, .barra-compacta .marca b, .barra-compacta .marca .logo, .barra-compacta .barra-organizar, .barra-compacta .resumen-lateral, .barra-compacta .asa-barra { display: none; }
+  .barra-compacta .nav-lateral a { position: relative; justify-content: center; padding: 10px; gap: 0; }
+  .barra-compacta .insignia { position: absolute; top: 0; right: 0; margin: 0; }
   .top-movil, .velo { display: none; }
   #vista { padding: 24px 32px 120px; max-width: 1100px; width: 100%; }
   #lateral { position: sticky; right: auto; bottom: auto; z-index: auto; width: auto; height: 100dvh; padding: 20px 16px; transform: none; visibility: visible; transition: none; box-shadow: none; }
@@ -289,7 +320,8 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 
 /* Computador: el temporizador queda abajo, junto a la barra lateral (va al final para ganarle a la regla del celular) */
 @media (min-width: 900px) {
-  .flotante { left: auto; right: calc(260px + 24px); width: 380px; bottom: 24px; }
+  .flotante { left: auto; right: calc(var(--ancho-barra, 260px) + 24px); width: 380px; bottom: 24px; }
+  .barra-izquierda .flotante { right: 24px; }
 }
 
 /* Core dentro de cada día */

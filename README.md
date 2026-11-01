@@ -93,7 +93,8 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   reordenar (↑ ↓) y borrar. Un ejercicio se puede mover a otro día y sus registros se van con él. Cada día elige su calentamiento
   (cualquier sesión de tipo calentamiento), las sesiones que van junto a él y el plan de comida; también se eligen las sesiones del
   partido y de los días de descanso. Pestaña **Pantallas**: orden y qué se ve del menú, de las tarjetas de Hoy y de las metas
-  (las metas escondidas no cuentan en el puntaje). Categorías, pagos fijos, metas y deudas de Finanzas y los alimentos también se reordenan.
+  (las metas escondidas no cuentan en el puntaje). El menú también se organiza desde la misma barra: **✋ Organizar menú** (arrastrar y esconder),
+  plegar a solo íconos, cambiar el ancho arrastrando el borde, cambiar de lado y plegar el resumen. Categorías, pagos fijos, metas y deudas de Finanzas y los alimentos también se reordenan.
   En las sesiones, cada ejercicio puede llevar figura animada, foto propia (se reduce a 480 px) y enlace de video.
 - **Ajustes**: perfil (nombre del saludo y lunes de la semana 1 del gym), nube, Google Sheets, metas, espera de la pastilla, sonido, exportar/importar JSON y CSV.
 - **🛡️ Administrar** (solo el admin, con nube): usuarios de Rutina (correo, rol, última entrada y excepciones), permisos por rol

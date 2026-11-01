@@ -1,6 +1,6 @@
 import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
-import { e, cargar, esperarUsuario, alCambiar, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
+import { e, cargar, esperarUsuario, alCambiar, guardar, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct, barra, esc, claveDeDatos } from './ui.js';
 import { revisar, restante, sumar, detener } from './temporizador.js';
@@ -24,7 +24,7 @@ import { vistaLugares } from './vistas/lugares.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
-import { SECCIONES, visibles } from './orden.js';
+import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
 import { vistaAdministrar, bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
 
@@ -62,21 +62,57 @@ function enlaces() {
   const avisos = alertas().length;
   const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k)).concat(permitida('administrar') ? ['administrar'] : []);
   return ids.map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
-    '<a href="#' + k + '"' + (k === (DENTRO[actual()] || actual()) ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span>' + nombre + '</span>' +
+    '<a href="#' + k + '" title="' + nombre + '"' + (k === (DENTRO[actual()] || actual()) ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span class="ocultable">' + nombre + '</span>' +
     (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');
+}
+
+// Organizar el menú: arrastrar del asa ⠿ para ordenar y 👁 para esconder. Las escondidas siguen aquí para volver a mostrarlas
+let organizandoMenu = false;
+function filasOrganizar() {
+  const c = e().config;
+  return enOrden(c, 'menu').filter((k) => ve('seccion', k)).map((k) => {
+    const [icono, nombre] = VISTAS[k], apagado = oculto(c, 'menu', k);
+    return '<div class="fila-menu' + (apagado ? ' apagado' : '') + '" data-sec="' + k + '"><button type="button" class="asa-fila" aria-label="Arrastrar ' + nombre + '">⠿</button>' +
+      '<span class="ic" aria-hidden="true">' + icono + '</span><span class="fila-nombre">' + nombre + '</span>' +
+      (FIJAS.menu.includes(k) ? '' : '<button type="button" class="icono" data-accion="barra-ver" data-id="' + k + '" aria-pressed="' + !apagado + '" aria-label="Mostrar ' + nombre + ' en el menú">' + (apagado ? '🙈' : '👁️') + '</button>') + '</div>';
+  }).join('');
+}
+
+// Cómo quiere cada usuario la barra: compacta, ancho, lado y resumen plegado (config.barra). En el celular solo aplica el resumen
+const ANCHO_MIN = 200, ANCHO_MAX = 420;
+const ajustesBarra = () => (e().config.barra ??= {});
+function aplicarBarra() {
+  const b = ajustesBarra();
+  document.body.classList.toggle('barra-compacta', !!b.compacta);
+  document.body.classList.toggle('barra-izquierda', b.lado === 'izquierda');
+  document.documentElement.style.setProperty('--ancho-barra', (b.ancho || 260) + 'px');
 }
 
 // Barra lateral: fija a la derecha en el computador; en el celular se abre con ☰ desde la derecha
 function lateral() {
-  const total = e().habitos.length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {});
-  return '<div class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b></div>' +
-    '<nav class="nav-lateral" aria-label="Secciones">' + enlaces() + '</nav>' +
-    '<div class="resumen-lateral">' +
+  const total = e().habitos.length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {}), b = ajustesBarra();
+  const hacia = (b.lado === 'izquierda') === !!b.compacta ? '»' : '«';
+  if (b.compacta) organizandoMenu = false;
+  return '<div class="asa-barra" title="Arrastra para cambiar el ancho" aria-hidden="true"></div>' +
+    '<div class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b>' +
+    '<button type="button" class="icono barra-plegar" data-accion="barra-compacta" aria-pressed="' + !!b.compacta + '" aria-label="' + (b.compacta ? 'Expandir el menú' : 'Dejar solo los íconos') + '" title="' + (b.compacta ? 'Expandir el menú' : 'Dejar solo los íconos') + '">' + hacia + '</button></div>' +
+    (organizandoMenu ? '<div class="nav-lateral lista-menu">' + filasOrganizar() + '</div>' +
+      '<div class="herr-menu"><button type="button" class="boton primario" data-accion="barra-organizar">✓ Listo</button>' +
+      '<button type="button" class="boton secundario" data-accion="barra-restablecer">↺ Como venía</button>' +
+      '<button type="button" class="boton secundario solo-pc" data-accion="barra-lado">⇄ Cambiar de lado</button></div>'
+    : '<nav class="nav-lateral" aria-label="Secciones">' + enlaces() + '</nav>' +
+      '<button type="button" class="boton-suave barra-organizar" data-accion="barra-organizar">✋ Organizar menú</button>') +
+    (b.resumen === false ? '<button type="button" class="boton-suave ocultable" data-accion="barra-resumen" aria-expanded="false">▸ Resumen</button>' : '<button type="button" class="boton-suave ocultable" data-accion="barra-resumen" aria-expanded="true">▾ Resumen</button>') +
+    (b.resumen === false ? '' : resumenLateral(total, m, r)) +
+    '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || textoNube()) + '">☁️ <span class="ocultable">' + textoNube() + '</span></a>';
+}
+
+function resumenLateral(total, m, r) {
+  return '<div class="resumen-lateral">' +
     (ve('seccion', 'manana') ? '<a href="#manana" title="Ir a Mañana"><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(fraccionManana()) + '</a>' : '') +
     (ve('seccion', 'metas') ? '<a href="#metas" title="Ir a Metas"><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</a>' : '') +
     (ve('seccion', 'gym') ? '<a href="#gym" title="Ir a Gym"><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</a>' : '') +
-    '</div>' +
-    '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || '') + '">☁️ ' + textoNube() + '</a>';
+    '</div>';
 }
 
 function flotante() {
@@ -148,6 +184,7 @@ function pintar() {
   $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
   $('lateral').innerHTML = lateral();
+  aplicarBarra();
   flotante();
   document.title = VISTAS[v][1] + ' · Rutina';
   if (v === ultimaVista) window.scrollTo(0, y); else window.scrollTo(0, 0);
@@ -217,7 +254,53 @@ registrar({
   't-parar'() { detener(); },
   menu() { menu(!document.body.classList.contains('menu-abierto')); },
   'menu-cerrar'() { menu(false); },
+  'barra-organizar'() { organizandoMenu = !organizandoMenu; pedirPintar(); },
+  'barra-compacta'() { const b = ajustesBarra(); b.compacta = !b.compacta; guardar(); },
+  'barra-resumen'() { const b = ajustesBarra(); b.resumen = b.resumen === false; guardar(); },
+  'barra-lado'() { const b = ajustesBarra(); b.lado = b.lado === 'izquierda' ? 'derecha' : 'izquierda'; guardar(); },
+  'barra-ver'({ id }) { if (alternar(e().config, 'menu', id)) guardar(); },
+  'barra-restablecer'() { restablecer(e().config, 'menu'); guardar(); },
 });
+
+// Arrastre con eventos de puntero: funciona con mouse y con el dedo (el de HTML5 no sirve en el celular)
+document.addEventListener('pointerdown', (ev) => {
+  const asa = ev.target.closest && ev.target.closest('.asa-fila, .asa-barra');
+  if (!asa) return;
+  ev.preventDefault();
+  if (asa.classList.contains('asa-barra')) arrastrarAncho(ev);
+  else arrastrarFila(ev, asa.closest('.fila-menu'));
+});
+function arrastrar(ev, alMover, alSoltar) {
+  const fin = () => {
+    document.removeEventListener('pointermove', alMover);
+    document.removeEventListener('pointerup', fin);
+    document.removeEventListener('pointercancel', fin);
+    document.body.classList.remove('arrastrando-barra');
+    alSoltar();
+  };
+  document.body.classList.add('arrastrando-barra');
+  document.addEventListener('pointermove', alMover);
+  document.addEventListener('pointerup', fin);
+  document.addEventListener('pointercancel', fin);
+}
+function arrastrarFila(ev, fila) {
+  fila.classList.add('moviendo');
+  arrastrar(ev, (m) => {
+    const otras = [...fila.parentNode.children].filter((x) => x !== fila);
+    fila.parentNode.insertBefore(fila, otras.find((x) => { const r = x.getBoundingClientRect(); return m.clientY < r.top + r.height / 2; }) || null);
+  }, () => {
+    fila.classList.remove('moviendo');
+    const sig = fila.nextElementSibling;
+    if (colocar(e().config, 'menu', fila.dataset.sec, sig ? sig.dataset.sec : undefined)) guardar();
+  });
+}
+function arrastrarAncho(ev) {
+  const b = ajustesBarra();
+  arrastrar(ev, (m) => {
+    b.ancho = Math.min(ANCHO_MAX, Math.max(ANCHO_MIN, Math.round(b.lado === 'izquierda' ? m.clientX : window.innerWidth - m.clientX)));
+    aplicarBarra();
+  }, () => guardar());
+}
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') menu(false); });
 
 // Cuadro de los gráficos: al pasar el mouse, tocar o enfocar una marca con data-tip

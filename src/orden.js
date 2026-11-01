@@ -40,6 +40,15 @@ export function mover(config, tipo, id, n) {
   (config.orden ??= {})[tipo] = ids;
   return true;
 }
+// Pone un id justo antes de otro (sin "antesDe", al final): lo usa el arrastre del menú
+export function colocar(config, tipo, id, antesDe) {
+  const ids = enOrden(config, tipo).filter((x) => x !== id);
+  if (ids.length === enOrden(config, tipo).length) return false;
+  const i = ids.indexOf(antesDe);
+  ids.splice(i < 0 ? ids.length : i, 0, id);
+  (config.orden ??= {})[tipo] = ids;
+  return true;
+}
 export function alternar(config, tipo, id) {
   if (FIJAS[tipo].includes(id)) return false;
   const ocultos = ((config.ocultos ??= {})[tipo] = lista(config, 'ocultos', tipo)), i = ocultos.indexOf(id);

@@ -262,6 +262,11 @@ export const kmActual = (lecturas) => (lecturas.length ? Math.max(...lecturas.ma
 // Lo que pase primero: los km o los meses
 export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
   const ultimo = rec.hechos.length ? rec.hechos[rec.hechos.length - 1] : null;
+  if (!ultimo && rec.empieza) {
+    // Algo que aún no empieza (una hipoteca a futuro): no pide nada hasta 14 días antes del primer pago
+    const faltaDias = diasEntre(hoy, rec.empieza);
+    return { estado: faltaDias < 0 ? 'vencido' : faltaDias <= 14 ? 'pronto' : 'programado', empieza: rec.empieza, faltaDias };
+  }
   if (!ultimo) return { estado: 'sin-dato' };
   const km = vehiculo ? kmActual(vehiculo.km) : null, ritmo = vehiculo ? ritmoKm(vehiculo.km, hoy) : null;
   const res = { estado: 'al-dia', ultimo };
@@ -289,6 +294,10 @@ export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
 
 // Lo que muestra la tarjeta: la frase del próximo (el límite que llegue primero, km o fecha) y cuánto del ciclo ya pasó (0 a 1)
 export function proximoRecordatorio(rec, s, kmHoy, hoy = iso()) {
+  if (s.empieza) {
+    const d = s.faltaDias;
+    return { titulo: d > 1 ? 'Empieza en ' + d + ' días' : d === 1 ? 'Empieza mañana' : d === 0 ? 'Empieza hoy' : d === -1 ? 'Empezó ayer' : 'Empezó hace ' + -d + ' días', fecha: s.empieza, km: null, fraccion: 0 };
+  }
   const nKm = (n) => Math.round(n).toLocaleString('es-CO') + ' km', opciones = [];
   if (s.proxKm != null) {
     const f = s.faltaKm;

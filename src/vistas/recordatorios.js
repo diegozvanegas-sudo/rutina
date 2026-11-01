@@ -15,7 +15,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const categoriaDe = (x) => x.categoria || (x.vehiculo ? 'transporte' : 'otros');
 const vehiculo = (id) => r().vehiculos.find((v) => v.id === id) || null;
 const km = (n) => Math.round(n).toLocaleString('es-CO') + ' km';
-const ESTADOS = { vencido: 'Vencido', pronto: 'Pronto', 'al-dia': 'Al día', 'sin-dato': 'Sin registro', pendiente: 'Pendiente', pagado: 'Pagado' };
+const ESTADOS = { vencido: 'Vencido', pronto: 'Pronto', 'al-dia': 'Al día', 'sin-dato': 'Sin registro', programado: 'Programado', pendiente: 'Pendiente', pagado: 'Pagado' };
 
 // Lo que necesita atención: para el menú y para el tablero de Hoy
 export function alertas(hoy = iso()) {
@@ -42,7 +42,8 @@ const hace = (n) => (n <= 0 ? 'hoy' : n === 1 ? 'ayer' : 'hace ' + n + ' días')
 let abierto = { id: null, que: null }, filtroEstado = '';
 
 function principal(x, s, actual) {
-  if (s.estado === 'sin-dato') return '<p class="rec-titulo">Aún sin registro</p><p class="nota-corta">' + regla(x) + '. Márcalo la próxima vez, o anota cuándo fue el último.</p>';
+  if (s.estado === 'sin-dato') return '<p class="rec-titulo">Aún sin registro</p><p class="nota-corta">' + regla(x) + '. Márcalo la próxima vez o anota cuándo fue el último.' + (x.cadaKm ? '' : ' ¿Aún no empieza? Pon la fecha en ✏️ Editar.') + '</p>';
+  if (s.empieza) return '<p class="rec-titulo">' + proximoRecordatorio(x, s, actual).titulo + ' <small>' + fechaCorta(s.empieza) + '</small></p><p class="nota-corta">Después, ' + regla(x) + '. ' + (s.estado === 'programado' ? 'Te avisa 14 días antes.' : 'Márcalo cuando lo hagas.') + '</p>';
   const p = proximoRecordatorio(x, s, actual);
   const ultimo = 'Último: ' + fechaCorta(s.ultimo.fecha) + ' (' + hace(diasEntre(s.ultimo.fecha, iso())) + ')' + (s.ultimo.km != null ? ' · ' + km(s.ultimo.km) : '') + (s.ultimo.costo ? ' · ' + pesos(s.ultimo.costo) : '');
   if (!p) return '<p class="rec-titulo">Sin fecha fija</p><p class="nota-corta">' + ultimo + '</p>';
@@ -72,6 +73,8 @@ function panelEditar(x, i) {
     '<label class="campo">Ícono<input type="text" maxlength="4" data-cambio="ed" data-ruta="' + ruta + '.icono" value="' + esc(x.icono || '') + '"></label>' +
     '<label class="campo">Se repite cada (0 = sin fecha)<input type="number" inputmode="numeric" min="0" name="cada" data-cambio="rec-frecuencia" data-id="' + x.id + '" value="' + cada + '"></label>' +
     '<label class="campo">Unidad<select name="unidad" data-cambio="rec-frecuencia" data-id="' + x.id + '"><option value="dias"' + (enDias ? ' selected' : '') + '>Días</option><option value="meses"' + (enDias ? '' : ' selected') + '>Meses</option></select></label>' +
+    // Fecha del primer pago: solo mientras no haya nada registrado; después manda el historial
+    (x.hechos.length ? '' : '<label class="campo">Empieza el (opcional)<input type="date" data-cambio="ed" data-ruta="' + ruta + '.empieza" value="' + esc(x.empieza || '') + '"></label>') +
     // Km y vehículo solo para lo de la moto
     (x.vehiculo || x.cadaKm ? '<label class="campo">Cada cuántos km (0 = no)<input type="number" inputmode="numeric" min="0" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.cadaKm" value="' + (x.cadaKm || 0) + '"></label>' +
     '<label class="campo">Vehículo<select data-cambio="ed" data-ruta="' + ruta + '.vehiculo"><option value="">Ninguno</option>' +
@@ -87,13 +90,13 @@ function tarjeta(x, i) {
   const que = abierto.id === x.id ? abierto.que : null, hoyYa = (s.ultimo || {}).fecha === iso(), urge = s.estado !== 'al-dia';
   const pest = (k, t) => '<button type="button" class="chip' + (que === k ? ' activo' : '') + '" data-accion="rec-panel" data-id="' + x.id + '" data-q="' + k + '" aria-expanded="' + (que === k) + '">' + t + '</button>';
   // Hecho hoy, con un toque. Lo de km usa el odómetro; si no hay lectura, pide los km
-  const hecho = hoyYa ? '<p class="rec-hecho-hoy">✓ Hecho hoy</p>'
+  const hecho = s.estado === 'programado' ? '' : hoyYa ? '<p class="rec-hecho-hoy">✓ Hecho hoy</p>'
     : '<button type="button" class="boton ' + (urge ? 'primario' : 'secundario') + ' ancho" data-accion="rec-hoy" data-id="' + x.id + '">' +
       (x.cadaKm && actual != null ? '✓ Hecho hoy, a los ' + km(actual) : '✓ Hecho hoy') + '</button>';
   return '<section class="tarjeta rec e-borde-' + s.estado + '"><div class="ed-cab"><b>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
     '<span class="estado e-' + s.estado + '">' + ESTADOS[s.estado] + '</span></div>' +
     principal(x, s, actual) + hecho +
-    '<div class="chips rec-pestanas">' + pest('hecho', '📅 Otra fecha') + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +
+    '<div class="chips rec-pestanas">' + (s.estado === 'programado' ? '' : pest('hecho', '📅 Otra fecha')) + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +
     (que === 'hecho' ? panelHecho(x, actual) : que === 'historial' && x.hechos.length ? panelHistorial(x) : que === 'editar' ? panelEditar(x, i) : '') + '</section>';
 }
 
@@ -117,7 +120,7 @@ if (typeof document !== 'undefined') {
 
 export function vistaRecordatorios() {
   const auto = recordatoriosAutomaticos(e().finanzas);
-  const orden = { vencido: 0, pronto: 1, 'sin-dato': 2, 'al-dia': 3 };
+  const orden = { vencido: 0, pronto: 1, 'sin-dato': 2, 'al-dia': 3, programado: 4 };
   const lista = r().lista.map((x, i) => ({ x, i, s: estadoRecordatorio(x, vehiculo(x.vehiculo)) })).sort((a, b) => orden[a.s.estado] - orden[b.s.estado]);
   const cuenta = (est) => lista.filter(({ s }) => s.estado === est).length, visibles = lista.filter(({ s }) => !filtroEstado || s.estado === filtroEstado), porLlamar = pendientesCirculo(e().circulo || []).length;
   // En el computador: arriba la moto y un resumen; abajo cada grupo en una rejilla de tarjetas
@@ -138,7 +141,7 @@ export function vistaRecordatorios() {
     '<p class="nota-corta">' + (auto.length ? auto.length + (auto.length === 1 ? ' pago' : ' pagos') + ' de Finanzas cerca · ' : '') + porLlamar + (porLlamar === 1 ? ' persona' : ' personas') + ' por llamar</p></section></div>' +
     '<div class="rec-cabeza"><h2 class="titulo-grupo">🔧 Mis recordatorios</h2><button type="button" class="boton primario" data-accion="rec-abrir-agregar">＋ Agregar</button></div>' +
     (lista.length > 1 ? '<div class="chips rec-filtros"><button type="button" class="chip' + (filtroEstado ? '' : ' activo') + '" data-accion="rec-filtro" data-v="">Todos (' + lista.length + ')</button>' +
-      [['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día']].filter(([k]) => cuenta(k)).map(([k, t]) =>
+      [['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día'], ['programado', 'Programados']].filter(([k]) => cuenta(k)).map(([k, t]) =>
         '<button type="button" class="chip' + (filtroEstado === k ? ' activo' : '') + '" data-accion="rec-filtro" data-v="' + k + '">' + t + ' (' + cuenta(k) + ')</button>').join('') + '</div>' : '') +
     (lista.length ? '<div class="rejilla-rec">' + visibles.map(({ x, i }) => tarjeta(x, i)).join('') + '</div>' : '<section class="tarjeta"><p class="nota-corta">Aún no tienes recordatorios. Toca ＋ Agregar y escoge uno.</p></section>') +
     (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2><div class="rejilla-rec">' + auto.map((a) =>

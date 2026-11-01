@@ -436,7 +436,7 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 button.avisos-hoy { font: inherit; text-align: left; cursor: pointer; width: 100%; }
 .e-pronto { background: #3a2d10; color: var(--amarillo); }
 .e-vencido { background: #4a1d1d; color: #ffb3b3; }
-.e-pendiente, .e-sin-dato { background: var(--surface-2); color: var(--muted); }
+.e-pendiente, .e-sin-dato, .e-programado { background: var(--surface-2); color: var(--muted); }
 .e-al-dia { background: var(--brand-soft); color: var(--brand); }
 .rec.e-borde-vencido { border-color: var(--rojo); }
 .rec.e-borde-pronto { border-color: var(--amarillo); }

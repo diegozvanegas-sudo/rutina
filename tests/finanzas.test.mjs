@@ -225,3 +225,24 @@ test('la tarjeta muestra el límite que llega primero y cuánto del ciclo ya pas
   // Sin regla no hay próximo
   assert.equal(ver({ cadaKm: 0, cadaMeses: 0, cadaDias: 0, hechos: [{ fecha: '2026-09-01' }] }), null);
 });
+
+test('un recordatorio a futuro no pide nada hasta 14 días antes, y después del primer registro manda el historial', () => {
+  const rec = { cadaDias: 30, cadaMeses: 0, cadaKm: 0, empieza: '2027-03-15', hechos: [] };
+  const a = (hoy) => estadoRecordatorio(rec, null, hoy);
+  assert.equal(a('2026-11-01').estado, 'programado');
+  assert.equal(a('2027-02-28').estado, 'programado');
+  assert.equal(a('2027-03-01').estado, 'pronto');
+  assert.equal(a('2027-03-15').estado, 'pronto');
+  assert.equal(a('2027-03-16').estado, 'vencido');
+  const texto = (hoy) => proximoRecordatorio(rec, a(hoy), null, hoy).titulo;
+  assert.equal(texto('2027-03-13'), 'Empieza en 2 días');
+  assert.equal(texto('2027-03-14'), 'Empieza mañana');
+  assert.equal(texto('2027-03-15'), 'Empieza hoy');
+  assert.equal(texto('2027-03-16'), 'Empezó ayer');
+  assert.equal(texto('2027-03-20'), 'Empezó hace 5 días');
+  rec.hechos.push({ fecha: '2027-03-15' });
+  assert.equal(estadoRecordatorio(rec, null, '2027-03-16').estado, 'al-dia');
+  assert.equal(estadoRecordatorio(rec, null, '2027-03-16').proxFecha, '2027-04-14');
+  // Sin fecha de inicio, todo sigue igual
+  assert.equal(estadoRecordatorio({ cadaDias: 30, hechos: [] }, null, '2026-11-01').estado, 'sin-dato');
+});

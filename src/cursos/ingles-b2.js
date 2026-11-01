@@ -509,7 +509,7 @@ const OIDO = {
         ]],
       ],
       ejemplos: [
-        'Diego (otro) decía "I live in Medellín" con la vocal de "leave": sonaba "I leave in Medellín" (me voy de Medellín). Con la /ɪ/ corta se arregló.',
+        'Andrés decía "I live in Medellín" con la vocal de "leave": sonaba "I leave in Medellín" (me voy de Medellín). Con la /ɪ/ corta se arregló.',
         'Contraejemplo: la "th" (think, this) cuesta mucho y es muy visible, pero rara vez causa malentendidos; vale la pena practicarla, pero después de las vocales y el acento de las palabras.',
       ],
       practica: [

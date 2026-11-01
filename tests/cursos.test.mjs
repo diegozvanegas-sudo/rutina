@@ -74,6 +74,7 @@ test('las 7 áreas: Libros primero con los libros de siempre, y ningún id repet
   assert.equal(new Set(ids).size, ids.length);
   assert.equal(ids.length, 24); // 4 libros y 20 cursos
   assert.equal(area('esoterico').cursos.length, 6);
+  assert.equal(area('comunicacion').cursos.length, 3);
   assert.equal(curso('aprender-a-aprender').modulos.length, 3);
   assert.equal(curso('no-existe'), null); // un id que no está en el catálogo
   assert.ok(catalogoAreas().libros.includes('Libros'));
@@ -128,6 +129,17 @@ test('Comunicación y oratoria: 4 módulos, 12 lecciones con los temas y autores
   const todo = JSON.stringify(c);
   for (const x of ['maldición del conocimiento', 'Minto', 'Oppenheimer', 'Rogers', 'Mehrabian', 'Bond', 'Gottman', 'Aristóteles', 'Petty', 'Cialdini', 'Broockman',
     'Miller', 'Gilovich', 'Brooks', 'Mayer', 'Clark'])
+    assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Inglés camino a B2: 4 módulos, 12 lecciones con frases para escuchar y los autores clave', () => {
+  const c = curso('ingles-b2');
+  assert.equal(c.modulos.length, 4);
+  assert.equal(lecciones(c).length, 12);
+  assert.equal(c.idioma, 'en-US');
+  assert.ok(lecciones(c).every((l) => l.escuchar));
+  const todo = JSON.stringify(c);
+  for (const x of ['Krashen', 'Swain', 'Long', 'Nation', 'Lyster', 'Hamada', 'Munro', 'Norris', '4/3/2', 'schwa', 'sombra'])
     assert.ok(todo.includes(x), 'falta ' + x);
 });
 

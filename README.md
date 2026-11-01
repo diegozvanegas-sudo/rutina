@@ -87,8 +87,15 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   metas de ahorro con fondo de emergencia (6 meses de gastos) y deudas (meses para pagar, estrategia avalancha).
 - **Recordatorios**: mantenimiento de la moto por km o por meses (lo que pase primero) con odómetro y fecha estimada,
   plantillas (aceite, SOAT, tecnomecánica, cadena, llantas…) y los pagos fijos y cuotas de Finanzas, que aparecen solos.
-- **🗺️ Lugares** (`src/vistas/lugares.js`, datos en `lugares.lista`): los lugares visitados y por visitar. Por ahora solo la sección y sus
-  números; el mapa de Antioquia por municipio, los lugares y las fotos llegan por fases (después: mundo, Colombia y Brasil).
+- **🗺️ Lugares** (`src/vistas/lugares.js`, lógica en `src/lugares.js`, datos en `lugares.lista`): mapa SVG propio de Antioquia por municipio (125, en sus 9 subregiones),
+  sin internet ni librerías. Cada municipio se pinta según lo recorrido; encima van los puntos ● visitado y ☆ por visitar. Zoom con dedos, rueda y botones, y un botón por subregión.
+  Cada lugar guarda sus visitas (fecha, con quién, calificación, nota y gasto, que puede ir a Finanzas como ocio) o sus datos de "quiero ir". Trae 40 lugares iniciales para marcar, números,
+  avance por subregión, lista con filtros, línea de tiempo y 🎲 Sorpréndeme (plan de fin de semana según distancia y prioridad). Las coordenadas y horas de la lista inicial son aproximadas.
+  - **Agregar un mapa:** escribir su configuración en `scripts/mapas/<id>.mjs`, correr `node scripts/convertir-mapa.mjs scripts/mapas/<id>.mjs <archivo .shp o .geojson>` (simplifica con mapshaper
+    y avisa si pasa de 300 KB) y sumarlo a `src/mapas/index.js`. Fuentes: MGN del DANE para Colombia, IBGE para Brasil, Natural Earth para el mundo. El archivo de origen no se guarda en el repo;
+    Antioquia sale de `MGN2023_MPIO_POLITICO.zip` del DANE.
+  - **Falta para la fase 2** (retomar con "sigue con la fase 2 de Lugares"): mapas de mundo, Colombia y Brasil con navegación entre niveles y migas (la lógica de subir de nivel ya está en `piezaDelLugar`;
+    al sumarlos, poner `padre` y `piezaPadre` a Antioquia), lista inicial del resto de Colombia y de Brasil, y fotos comprimidas (IndexedDB, Supabase Storage, miniaturas, galería, espacio usado y exportar/importar).
 - **Editar**: rutina (días, ejercicios, series × reps, descansos, nota), hábitos de la mañana y sesiones: agregar, cambiar, duplicar (⧉),
   reordenar (↑ ↓) y borrar. Un ejercicio se puede mover a otro día y sus registros se van con él. Cada día elige su calentamiento
   (cualquier sesión de tipo calentamiento), las sesiones que van junto a él y el plan de comida; también se eligen las sesiones del

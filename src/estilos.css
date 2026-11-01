@@ -711,3 +711,59 @@ a.libro-tarjeta { text-decoration: none; }
 .adm-rol { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: end; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .ver-como { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; padding: 10px 12px;
   border-radius: 10px; background: #13263d; border: 1px solid var(--azul); color: var(--ink); }
+
+/* ---------- 🗺️ Lugares ---------- */
+.migas-mapa { color: var(--muted); font-size: 14px; margin: -6px 0 10px; }
+.tarjeta-mapa { padding: 8px; }
+.mapa-caja { position: relative; background: var(--bg); border-radius: var(--radio); overflow: hidden; }
+.mapa-entra .mapa-svg { animation: mapa-entra .45s ease-out; }
+@keyframes mapa-entra { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.mapa-svg { display: block; width: 100%; max-height: 78vh; margin: 0 auto; touch-action: pan-y; user-select: none; cursor: pointer; }
+.mapa-svg.con-zoom { touch-action: none; cursor: grab; }
+.ubicando .mapa-svg { cursor: crosshair; outline: 2px solid var(--amarillo); outline-offset: -2px; }
+.pz { fill: var(--surface-2); stroke: var(--bg); stroke-width: .8px; vector-effect: non-scaling-stroke; transition: fill .2s; }
+.pz:hover { fill: var(--line); }
+.pz.q { fill: rgba(245, 197, 66, .16); stroke: var(--amarillo); stroke-dasharray: 3 2; }
+.pz.v1 { fill: rgba(61, 214, 140, .5); }
+.pz.v2 { fill: rgba(61, 214, 140, .75); }
+.pz.v3 { fill: var(--brand); }
+.pz.sel { stroke: var(--ink); stroke-width: 2px; stroke-dasharray: none; }
+.pt { transform: scale(calc(1 / var(--z, 1))); cursor: pointer; }
+.pt-toque { fill: transparent; }
+.pt-v circle:not(.pt-toque) { fill: var(--ink); stroke: var(--bg); stroke-width: 1.5px; }
+.pt-q polygon { fill: var(--surface); stroke: var(--amarillo); stroke-width: 1.4px; }
+.pt.abierto polygon, .pt.abierto circle:not(.pt-toque) { fill: var(--amarillo); stroke: var(--ink); }
+.mapa-zoom { position: absolute; top: 8px; right: 8px; display: grid; gap: 4px; }
+.mapa-zoom .icono { background: var(--surface); border: 1px solid var(--line); }
+.mapa-leyenda { position: absolute; left: 8px; bottom: 8px; display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 8px; border-radius: 10px; background: var(--surface); font-size: 12px; color: var(--muted); pointer-events: none; }
+.mapa-leyenda span { display: flex; align-items: center; gap: 4px; }
+.ley { width: 12px; height: 12px; border-radius: 3px; background: var(--surface-2); border: 1px solid var(--line); }
+.ley.v2 { background: rgba(61, 214, 140, .75); }
+.ley.q { background: rgba(245, 197, 66, .16); border: 1px dashed var(--amarillo); }
+.grupos-zoom { margin-top: 8px; }
+.grupos-lugar { display: grid; gap: 4px; }
+@media (min-width: 900px) { .grupos-lugar { grid-template-columns: 1fr 1fr; column-gap: 16px; } }
+.grupo-lugar { display: block; width: 100%; padding: 6px; background: none; border: 0; border-radius: 10px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.grupo-lugar:hover { background: var(--surface-2); }
+.filtros-lugar { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 10px 0; }
+.filtros-lugar input, .filtros-lugar select { width: 100%; min-width: 0; }
+.lista-lugares { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.fila-lugar { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px; background: var(--surface-2); border: 0; border-radius: 12px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.fila-lugar.activa { outline: 2px solid var(--brand); }
+.lug-emoji { font-size: 22px; width: 30px; text-align: center; }
+.lug-txt { flex: 1; min-width: 0; display: grid; }
+.lug-txt small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lug-estado.v { color: var(--brand); }
+.lug-estado.q { color: var(--amarillo); }
+.lug-cal { color: var(--amarillo); }
+.visitas-lugar { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.visitas-lugar li { display: flex; justify-content: space-between; gap: 8px; padding: 8px; background: var(--surface-2); border-radius: 12px; }
+.visitas-lugar small { display: block; }
+.visitas-lugar p { margin: 4px 0 0; }
+.form-visita { margin-top: 10px; }
+.form-visita summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.plan-titulo { font-size: 20px; font-weight: 700; margin: 6px 0 2px; }
+.tiempo-lugar { list-style: none; margin: 8px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 6px; }
+.tiempo-lugar button { display: grid; gap: 2px; width: 100%; padding: 8px; background: none; border: 0; border-radius: 10px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.tiempo-lugar button:hover { background: var(--surface-2); }
+@media (prefers-reduced-motion: reduce) { .mapa-entra .mapa-svg { animation: none; } .pz { transition: none; } }

@@ -4,6 +4,7 @@ import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS, FUTBOL } from './d
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
+import { LUGARES_INICIALES } from './datos_lugares.js';
 import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular } from './dieta.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
@@ -30,7 +31,7 @@ function inicial() {
     dieta: dietaInicial(),
     finanzas: FINANZAS(),
     recordatorios: RECORDATORIOS(),
-    lugares: { lista: [] }, // 🗺️ Lugares: { id, nombre, pais, region, municipio, mapa, pieza, tipo, lat, lon, estado: visitado | quiero, visitas: [] }
+    lugares: { lista: LUGARES_INICIALES() }, // 🗺️ Lugares: { id, nombre, pais, region, municipio, mapa, pieza, tipo, emoji, lat, lon, estado: visitado | quiero, prioridad, epoca, horas, presupuesto, visitas: [{ fecha, con, calificacion, nota, gasto }] }
     libros: {},   // id del libro (src/libros): { leidos, practica, notas, perfil, fichas, vuelta }
     estudio: { cursos: {}, tarjetas: {}, dias: {} }, // 🎓 Estudiar (src/estudio.js)
     dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...}, libros: { id: {...} } }
@@ -49,7 +50,14 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1'];
+// Una sola vez: la lista inicial de lugares para marcar. Después cada quien la edita o la borra
+function sembrarLugares(est) {
+  if (est.lugaresV1) return;
+  est.lugares ??= { lista: [] };
+  for (const l of LUGARES_INICIALES()) if (!est.lugares.lista.some((x) => x.id === l.id)) est.lugares.lista.push(l);
+  est.lugaresV1 = true;
+}
 const nuevo = () => ({ ...inicial(), ...Object.fromEntries(MIGRACIONES.map((k) => [k, true])), bienvenida: true });
 
 let estado = null, oyentes = [];
@@ -74,7 +82,7 @@ export function cargar() {
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   estado.finanzas.prestamos ??= [];
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
-  estado.lugares ??= { lista: [] };
+  sembrarLugares(estado);
   estado.libros ??= {};
   estado.estudio ??= { cursos: {}, tarjetas: {}, dias: {} };
   if (estado.fenix) moverFenix(estado);
@@ -223,6 +231,7 @@ export function datosParaNube() {
 export function reemplazar(datos) {
   const propio = { activo: estado.activo, nube: estado.nube };
   estado = { ...inicial(), ...datos, ...propio };
+  sembrarLugares(estado);
   for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
   ponerSemana1(estado.config.semana1);
   escribir();
@@ -349,6 +358,7 @@ export function importar(texto) {
   const datos = JSON.parse(texto);
   if (!datos || datos.version !== 1 || !datos.rutina) throw new Error('El archivo no es una copia de esta app.');
   estado = { ...inicial(), ...datos, nube: estado.nube };
+  sembrarLugares(estado);
   for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
   ponerSemana1(estado.config.semana1);
   guardar();

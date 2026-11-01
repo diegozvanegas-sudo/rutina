@@ -14,17 +14,20 @@ import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import mapshaper from 'mapshaper';
 
-const LIMITE_KB = 300, ANCHO = 1000;
+const LIMITE_KB = 300;
 const [, , rutaConfig, entrada] = process.argv;
 if (!rutaConfig || !entrada) {
   console.error('Uso: node scripts/convertir-mapa.mjs scripts/mapas/<mapa>.mjs <archivo .shp o .geojson>');
   process.exit(1);
 }
-const cfg = (await import(pathToFileURL(resolve(rutaConfig)).href)).default;
+const cfg = (await import(pathToFileURL(resolve(rutaConfig)).href)).default, ANCHO = cfg.ancho || 1000;
 
 const dir = mkdtempSync(join(tmpdir(), 'mapa-')), salidaGeo = join(dir, 'salida.geojson');
 try {
-  await mapshaper.runCommands('-i "' + entrada + '" encoding=utf8 -filter "' + cfg.filtro + '" -simplify ' + cfg.simplificar + ' keep-shapes -clean -o format=geojson precision=0.00001 "' + salidaGeo + '"');
+  // disolver: une piezas por un campo (los departamentos de Colombia salen de sus municipios)
+  await mapshaper.runCommands('-i "' + entrada + '" encoding=utf8 ' + (cfg.filtro ? '-filter "' + cfg.filtro + '" ' : '') +
+    (cfg.disolver ? '-dissolve ' + cfg.disolver + ' copy-fields=' + cfg.campoNombre + ' ' : '') +
+    '-simplify ' + cfg.simplificar + (cfg.conservarFormas === false ? '' : ' keep-shapes') + ' -clean -o format=geojson precision=0.00001 "' + salidaGeo + '"');
   const geo = JSON.parse(readFileSync(salidaGeo, 'utf8'));
   const piezas = geo.features || geo.geometries;
   const anillos = (g) => (g.type === 'Polygon' ? g.coordinates : g.coordinates.flat());
@@ -44,9 +47,9 @@ try {
     const rings = anillos(f.geometry).map((a) => a.map(([lon, lat]) => [n1(x(lon)), n1(y(lat))]));
     const principal = rings.reduce((m, a) => (area(a) > area(m) ? a : m));
     const d = rings.map((a) => 'M' + a.slice(0, -1).map((q) => q.join(' ')).join('L') + 'Z').join('');
-    const nombre = cfg.nombres?.[id] || bonito(String(p[cfg.campoNombre]));
-    const grupo = cfg.grupos ? cfg.grupos[id] : '';
-    if (cfg.grupos && !grupo) throw new Error('Sin grupo: ' + id + ' ' + nombre);
+    const nombre = cfg.nombres?.[id] || (cfg.nombreTal ? String(p[cfg.campoNombre]) : bonito(String(p[cfg.campoNombre])));
+    const grupo = cfg.grupoDe ? cfg.grupoDe(p) : cfg.grupos ? cfg.grupos[id] : '';
+    if ((cfg.grupos || cfg.grupoDe) && !grupo) throw new Error('Sin grupo: ' + id + ' ' + nombre);
     return { id, nombre, grupo, d, centro: centroide(principal) };
   }).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
 

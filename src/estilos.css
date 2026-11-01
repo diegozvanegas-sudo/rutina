@@ -713,10 +713,16 @@ a.libro-tarjeta { text-decoration: none; }
   border-radius: 10px; background: #13263d; border: 1px solid var(--azul); color: var(--ink); }
 
 /* ---------- 🗺️ Lugares ---------- */
-.migas-mapa { color: var(--muted); font-size: 14px; margin: -6px 0 10px; }
+.migas-mapa { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; color: var(--muted); font-size: 14px; margin: -6px 0 10px; }
+.migas-mapa button { min-height: 44px; padding: 0 10px; background: none; border: 0; border-radius: 10px; color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; }
+.migas-mapa button:hover { background: var(--surface-2); }
+.migas-mapa [aria-current] { padding: 0 6px; color: var(--ink); font-weight: 700; }
+.migas-mapa .miga-otro { margin-left: auto; color: var(--muted); }
 .tarjeta-mapa { padding: 8px; }
 .mapa-caja { position: relative; background: var(--bg); border-radius: var(--radio); overflow: hidden; }
 .mapa-entra .mapa-svg { animation: mapa-entra .45s ease-out; }
+.mapa-sale .mapa-svg { animation: mapa-sale .45s ease-out; }
+@keyframes mapa-sale { from { opacity: 0; transform: scale(1.08); } to { opacity: 1; transform: none; } }
 @keyframes mapa-entra { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 .mapa-svg { display: block; width: 100%; max-height: 78vh; margin: 0 auto; touch-action: pan-y; user-select: none; cursor: pointer; }
 .mapa-svg.con-zoom { touch-action: none; cursor: grab; }
@@ -727,6 +733,8 @@ a.libro-tarjeta { text-decoration: none; }
 .pz.v1 { fill: rgba(61, 214, 140, .5); }
 .pz.v2 { fill: rgba(61, 214, 140, .75); }
 .pz.v3 { fill: var(--brand); }
+.pz.hijo { cursor: zoom-in; stroke: var(--muted); stroke-dasharray: none; }
+.pz.q.hijo { stroke: var(--amarillo); }
 .pz.sel { stroke: var(--ink); stroke-width: 2px; stroke-dasharray: none; }
 .pt { transform: scale(calc(1 / var(--z, 1))); cursor: pointer; }
 .pt-toque { fill: transparent; }
@@ -760,10 +768,20 @@ a.libro-tarjeta { text-decoration: none; }
 .visitas-lugar li { display: flex; justify-content: space-between; gap: 8px; padding: 8px; background: var(--surface-2); border-radius: 12px; }
 .visitas-lugar small { display: block; }
 .visitas-lugar p { margin: 4px 0 0; }
+.ver-fotos { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+.editar-enlace summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14px; color: var(--muted); }
+.editar-enlace input { width: 100%; min-width: 0; }
+.visitas-lugar li > div { flex: 1; min-width: 0; }
 .form-visita { margin-top: 10px; }
 .form-visita summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 600; }
 .plan-titulo { font-size: 20px; font-weight: 700; margin: 6px 0 2px; }
 .tiempo-lugar { list-style: none; margin: 8px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--line); display: grid; gap: 6px; }
 .tiempo-lugar button { display: grid; gap: 2px; width: 100%; padding: 8px; background: none; border: 0; border-radius: 10px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .tiempo-lugar button:hover { background: var(--surface-2); }
-@media (prefers-reduced-motion: reduce) { .mapa-entra .mapa-svg { animation: none; } .pz { transition: none; } }
+/* Celular: controles y leyenda debajo del mapa, para no taparlo; los mapas anchos ganan altura */
+@media (max-width: 600px) {
+  .mapa-svg { min-height: 240px; }
+  .mapa-zoom { position: static; display: flex; justify-content: flex-end; padding: 6px; }
+  .mapa-leyenda { position: static; background: none; padding: 0 8px 8px; }
+}
+@media (prefers-reduced-motion: reduce) { .mapa-entra .mapa-svg, .mapa-sale .mapa-svg { animation: none; } .pz { transition: none; } }

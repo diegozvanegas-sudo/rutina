@@ -1,11 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, statSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import antioquia from '../src/mapas/antioquia.js';
-import { LUGARES_INICIALES, TIPOS_LUGAR } from '../src/datos_lugares.js';
+import colombia from '../src/mapas/colombia.js';
+import brasil from '../src/mapas/brasil.js';
+import mundo from '../src/mapas/mundo.js';
+import { MAPAS } from '../src/mapas/index.js';
+import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, TIPOS_LUGAR } from '../src/datos_lugares.js';
 import { proyectar, desproyectar, piezaEn, dentroDePieza, cajaDe, piezaDelLugar, lugaresDePieza, estadoPieza, resumenMapa, avanceGrupos, lineaTiempo,
-  viajesDelAnio, paisesVisitados, ultimoVisitado, filtrar, ordenar, agregarVisita, sorprender, distanciaKm } from '../src/lugares.js';
+  viajesDelAnio, paisesVisitados, ultimoVisitado, filtrar, ordenar, agregarVisita, sorprender, distanciaKm, mapaHijo, migas, enlaceSeguro } from '../src/lugares.js';
 
+const TODOS = { mundo, colombia, brasil, antioquia };
 // El índice real importa los mapas con import(), que no hace falta aquí: estos datos cubren un nivel de arriba
 const INDICE = { antioquia: { padre: 'colombia', piezaPadre: '05' }, colombia: { padre: 'mundo', piezaPadre: 'CO' }, mundo: { padre: null } };
 const SOLO = { antioquia: { padre: null } };
@@ -25,22 +30,27 @@ test('Antioquia: 125 municipios en sus 9 subregiones', () => {
 });
 
 test('todos los mapas del índice tienen el mismo formato, su padre existe y pesan menos de 300 KB', () => {
-  const fuente = readFileSync(new URL('../src/mapas/index.js', import.meta.url), 'utf8');
-  const ids = [...fuente.matchAll(/^\s+(\w+): \{ id: '(\w+)'.*padre: (null|'\w+'), piezaPadre: (null|'\w+')/gm)];
-  assert.ok(ids.length >= 1);
-  for (const [, clave, id, padre] of ids) {
-    assert.equal(clave, id);
-    if (padre !== 'null') assert.ok(ids.some((x) => x[2] === padre.replaceAll("'", '')), 'el padre de ' + id + ' existe');
+  assert.deepEqual(Object.keys(MAPAS).sort(), Object.keys(TODOS).sort());
+  for (const [id, info] of Object.entries(MAPAS)) {
+    const m = TODOS[id];
+    assert.equal(info.id, id);
+    assert.equal(m.id, id);
+    assert.equal(m.padre, info.padre);
     assert.ok(statSync(new URL('../src/mapas/' + id + '.js', import.meta.url)).size < 300 * 1024, id + ' pesa demasiado');
+    if (info.padre) assert.ok(TODOS[info.padre].piezas.some((p) => p.id === info.piezaPadre), id + ': su pieza existe en el mapa de arriba');
+    assert.ok(m.nombre && m.ancho > 0 && m.alto > 0 && m.proyeccion.tipo === 'equirectangular');
+    assert.equal(new Set(m.piezas.map((p) => p.id)).size, m.piezas.length);
+    for (const p of m.piezas) {
+      assert.ok(p.id && p.nombre && p.grupo, id + ' ' + p.id);
+      assert.match(p.d, /^M[\d. L]+Z(M[\d. L]+Z)*$/, p.nombre);
+      assert.equal(p.centro.length, 2);
+      assert.ok(m.grupos.includes(p.grupo), p.nombre + ': ' + p.grupo);
+    }
   }
-  const m = antioquia;
-  assert.ok(m.id && m.nombre && m.ancho > 0 && m.alto > 0 && m.proyeccion.tipo === 'equirectangular');
-  for (const p of m.piezas) {
-    assert.ok(p.id && p.nombre && p.grupo, p.id);
-    assert.match(p.d, /^M[\d. L]+Z(M[\d. L]+Z)*$/, p.nombre);
-    assert.equal(p.centro.length, 2);
-    assert.ok(m.grupos.includes(p.grupo));
-  }
+  assert.equal(colombia.piezas.length, 33);
+  assert.equal(colombia.piezas.filter((p) => p.grupo === 'Andina').length, 11);
+  assert.equal(brasil.piezas.length, 27);
+  assert.ok(mundo.piezas.length > 200);
 });
 
 test('proyección: los lugares conocidos quedan en su sitio y se puede volver a lat/lon', () => {
@@ -53,17 +63,56 @@ test('proyección: los lugares conocidos quedan en su sitio y se puede volver a 
   assert.equal(piezaEn(antioquia, ...proyectar(antioquia, 4.7, -74.1)), null); // Bogotá está fuera
 });
 
-test('lista inicial: unos 40 de Antioquia, cada uno dentro de su municipio y con tipo válido', () => {
+test('lista inicial: Antioquia, resto de Colombia y Brasil, cada lugar dentro de su pieza y con tipo válido', () => {
   const lista = LUGARES_INICIALES();
-  assert.ok(lista.length >= 35 && lista.length <= 45);
+  const de = (m) => lista.filter((l) => l.mapa === m).length;
+  assert.equal(LUGARES_ANTIOQUIA().length, de('antioquia'));
+  assert.ok(de('antioquia') >= 35 && de('antioquia') <= 45);
+  assert.ok(de('colombia') >= 13 && de('colombia') <= 18);
+  assert.equal(de('brasil'), 10);
   assert.equal(new Set(lista.map((l) => l.id)).size, lista.length);
   for (const l of lista) {
-    const p = antioquia.piezas.find((x) => x.id === l.pieza);
+    const m = TODOS[l.mapa], p = m.piezas.find((x) => x.id === l.pieza);
     assert.ok(p, l.nombre + ': su pieza existe');
-    assert.ok(dentroDePieza(p, ...proyectar(antioquia, l.lat, l.lon)), l.nombre + ' cae dentro de ' + p.nombre);
+    assert.ok(dentroDePieza(p, ...proyectar(m, l.lat, l.lon)), l.nombre + ' cae dentro de ' + p.nombre);
     assert.ok(TIPOS_LUGAR[l.tipo], l.nombre);
     assert.equal(l.estado, 'quiero');
+    assert.ok(!mapaHijo(MAPAS, l.mapa, l.pieza), l.nombre + ' debe estar en el mapa más específico');
   }
+});
+
+test('navegación: Mundo › Colombia › Antioquia y Brasil, con niveles reales del índice', () => {
+  assert.deepEqual(migas(MAPAS, 'antioquia').map((m) => m.id), ['mundo', 'colombia', 'antioquia']);
+  assert.deepEqual(migas(MAPAS, 'mundo').map((m) => m.id), ['mundo']);
+  assert.equal(mapaHijo(MAPAS, 'mundo', 'COL').id, 'colombia');
+  assert.equal(mapaHijo(MAPAS, 'mundo', 'BRA').id, 'brasil');
+  assert.equal(mapaHijo(MAPAS, 'colombia', '05').id, 'antioquia');
+  assert.equal(mapaHijo(MAPAS, 'colombia', '13'), null);
+  const penol = LUGARES_ANTIOQUIA()[0];
+  assert.equal(piezaDelLugar(penol, 'colombia', MAPAS), '05');
+  assert.equal(piezaDelLugar(penol, 'mundo', MAPAS), 'COL');
+  assert.equal(piezaDelLugar(penol, 'brasil', MAPAS), null);
+  const visita = { ...penol, estado: 'visitado' };
+  assert.equal(resumenMapa(mundo, [visita], MAPAS, 2026).piezas, 1);
+  assert.equal(avanceGrupos(colombia, [visita], MAPAS).find((g) => g.grupo === 'Andina').hechas, 1);
+});
+
+test('proyección en cada mapa: las ciudades conocidas quedan en su pieza', () => {
+  const casos = [[mundo, 'COL', 6.25, -75.56], [mundo, 'BRA', -15.79, -47.88], [mundo, 'ESP', 40.42, -3.7], [colombia, '11', 4.65, -74.1], [colombia, '76', 3.45, -76.53], [brasil, 'RJ', -22.91, -43.2], [brasil, 'DF', -15.79, -47.88]];
+  for (const [m, id, lat, lon] of casos) {
+    assert.equal(piezaEn(m, ...proyectar(m, lat, lon))?.id, id, m.id + ' ' + id);
+    const [la, lo] = desproyectar(m, ...proyectar(m, lat, lon));
+    assert.ok(Math.abs(la - lat) < 1e-6 && Math.abs(lo - lon) < 1e-6);
+  }
+});
+
+test('enlace de fotos: solo http y https', () => {
+  assert.equal(enlaceSeguro(' https://drive.google.com/drive/folders/abc '), 'https://drive.google.com/drive/folders/abc');
+  assert.equal(enlaceSeguro('javascript:alert(1)'), '');
+  assert.equal(enlaceSeguro('data:text/html,x'), '');
+  assert.equal(enlaceSeguro('drive.google.com/x'), '');
+  assert.equal(enlaceSeguro(''), '');
+  assert.equal(enlaceSeguro(undefined), '');
 });
 
 test('niveles: un lugar sube a las piezas de los mapas de arriba', () => {

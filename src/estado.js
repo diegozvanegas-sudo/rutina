@@ -4,7 +4,7 @@ import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS, FUTBOL } from './d
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
-import { LUGARES_INICIALES } from './datos_lugares.js';
+import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, LUGARES_RESTO } from './datos_lugares.js';
 import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular } from './dieta.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
@@ -31,7 +31,7 @@ function inicial() {
     dieta: dietaInicial(),
     finanzas: FINANZAS(),
     recordatorios: RECORDATORIOS(),
-    lugares: { lista: LUGARES_INICIALES() }, // 🗺️ Lugares: { id, nombre, pais, region, municipio, mapa, pieza, tipo, emoji, lat, lon, estado: visitado | quiero, prioridad, epoca, horas, presupuesto, visitas: [{ fecha, con, calificacion, nota, gasto }] }
+    lugares: { lista: LUGARES_INICIALES() }, // 🗺️ Lugares: { id, nombre, pais, region, municipio, mapa, pieza, tipo, emoji, lat, lon, estado: visitado | quiero, prioridad, epoca, horas, presupuesto, visitas: [{ fecha, con, calificacion, nota, gasto, enlace }] }
     libros: {},   // id del libro (src/libros): { leidos, practica, notas, perfil, fichas, vuelta }
     estudio: { cursos: {}, tarjetas: {}, dias: {} }, // 🎓 Estudiar (src/estudio.js)
     dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...}, libros: { id: {...} } }
@@ -50,13 +50,14 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2'];
 // Una sola vez: la lista inicial de lugares para marcar. Después cada quien la edita o la borra
 function sembrarLugares(est) {
-  if (est.lugaresV1) return;
   est.lugares ??= { lista: [] };
-  for (const l of LUGARES_INICIALES()) if (!est.lugares.lista.some((x) => x.id === l.id)) est.lugares.lista.push(l);
-  est.lugaresV1 = true;
+  const sumar = (ls) => { for (const l of ls) if (!est.lugares.lista.some((x) => x.id === l.id)) est.lugares.lista.push(l); };
+  if (!est.lugaresV1) sumar(LUGARES_ANTIOQUIA());
+  if (!est.lugaresV2) sumar(LUGARES_RESTO());
+  est.lugaresV1 = est.lugaresV2 = true;
 }
 const nuevo = () => ({ ...inicial(), ...Object.fromEntries(MIGRACIONES.map((k) => [k, true])), bienvenida: true });
 

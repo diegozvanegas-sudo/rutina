@@ -16,7 +16,8 @@ for (const [g, ids] of Object.entries(SUBREGIONES)) for (const id of ids.split('
 export default {
   id: 'antioquia',
   nombre: 'Antioquia',
-  padre: null, // en la fase 2: 'colombia', con pieza '05'
+  padre: 'colombia',
+  pieza: '05',
   fuente: 'DANE, Marco Geoestadístico Nacional 2023 (municipios).',
   filtro: "dpto_ccdgo === '05'",
   campoId: 'mpio_cdpmp',

@@ -114,3 +114,21 @@ export function sorprender(lista, { mapa = 'antioquia', maxHoras = 4, cercaKm = 
     .sort((a, b) => distanciaKm(a, principal) - distanciaKm(b, principal)).slice(0, 2);
   return { principal, cercanos, dias: (principal.horas || 0) > 2 ? 2 : 1 };
 }
+
+// ---------- Navegación entre mapas ----------
+// El mapa que se abre al tocar una pieza (o null si la pieza se marca entera)
+export const mapaHijo = (indice, mapaId, piezaId) => Object.values(indice).find((m) => m.padre === mapaId && m.piezaPadre === piezaId) || null;
+// De arriba hacia abajo: Mundo › Colombia › Antioquia
+export function migas(indice, id) {
+  const r = [];
+  for (let m = indice[id]; m; m = indice[m.padre]) r.unshift(m);
+  return r;
+}
+
+// Enlace a las fotos (Drive u otro): solo http o https, para que un enlace pegado nunca ejecute nada
+export function enlaceSeguro(texto) {
+  try {
+    const u = new URL(String(texto || '').trim());
+    return u.protocol === 'https:' || u.protocol === 'http:' ? u.href : '';
+  } catch (err) { return ''; }
+}

@@ -49,7 +49,49 @@ const A = [
   ['turbo', 'Turbo', '05837', 'ciudad', '⛴️', 8.0950, -76.7286, 7.5, 3],
 ];
 
-export const LUGARES_INICIALES = () => A.map(([id, nombre, pieza, tipo, emoji, lat, lon, horas, prioridad]) => ({
+// Resto de Colombia: la pieza es el departamento. Las horas incluyen avión cuando es lo normal
+const C = [
+  ['cartagena', 'Cartagena', '13', 'ciudad', '🏰', 10.4236, -75.5478, 1.5, 1, 'Bolívar'],
+  ['tayrona', 'Parque Tayrona', '47', 'naturaleza', '🏝️', 11.3100, -74.0300, 3, 1, 'Magdalena'],
+  ['perdida', 'Ciudad Perdida', '47', 'historia', '🗿', 11.0386, -73.9253, 5, 2, 'Magdalena'],
+  ['sanandres', 'San Andrés', '88', 'playa', '🐠', 12.5567, -81.7185, 2, 1, 'San Andrés y Providencia'],
+  ['cocora', 'Valle de Cocora', '63', 'naturaleza', '🌴', 4.6380, -75.4870, 6, 1, 'Quindío'],
+  ['chicamocha', 'Cañón del Chicamocha', '68', 'mirador', '🏞️', 6.7700, -73.0200, 8, 2, 'Santander'],
+  ['barichara', 'Barichara', '68', 'pueblo', '🧱', 6.6347, -73.2231, 9, 2, 'Santander'],
+  ['leyva', 'Villa de Leyva', '15', 'pueblo', '🏘️', 5.6339, -73.5247, 8, 1, 'Boyacá'],
+  ['monserrate', 'Monserrate', '11', 'mirador', '⛰️', 4.6056, -74.0564, 1, 2, 'Bogotá'],
+  ['cristales', 'Caño Cristales', '50', 'agua', '🌈', 2.2600, -73.7900, 4, 2, 'Meta'],
+  ['tatacoa', 'Desierto de la Tatacoa', '41', 'naturaleza', '🌵', 3.2330, -75.1680, 9, 2, 'Huila'],
+  ['agustin', 'San Agustín', '41', 'historia', '🗿', 1.8833, -76.2700, 12, 3, 'Huila'],
+  ['cabovela', 'Cabo de la Vela', '44', 'playa', '🏜️', 12.1800, -72.1400, 5, 2, 'La Guajira'],
+  ['leticia', 'Leticia y el Amazonas', '91', 'naturaleza', '🦜', -4.2153, -69.9406, 3, 2, 'Amazonas'],
+  ['nuqui', 'Nuquí', '27', 'playa', '🐋', 5.7115, -77.2620, 2, 2, 'Chocó'],
+  ['lajas', 'Santuario de Las Lajas', '52', 'historia', '⛪', 0.8050, -77.5860, 5, 3, 'Nariño'],
+];
+// Brasil: la pieza es la sigla del estado
+const B = [
+  ['cristo', 'Cristo Redentor', 'RJ', 'historia', '🗽', -22.9519, -43.2105, 'Rio de Janeiro'],
+  ['pao', 'Pan de Azúcar', 'RJ', 'mirador', '🚠', -22.9486, -43.1566, 'Rio de Janeiro'],
+  ['iguazu', 'Cataratas del Iguazú', 'PR', 'agua', '💦', -25.6500, -54.4300, 'Paraná'],
+  ['salvador', 'Pelourinho, Salvador', 'BA', 'historia', '🥁', -12.9714, -38.5101, 'Bahia'],
+  ['lencois', 'Lençóis Maranhenses', 'MA', 'naturaleza', '🏜️', -2.4850, -43.1283, 'Maranhão'],
+  ['noronha', 'Fernando de Noronha', 'PE', 'playa', '🐢', -3.8550, -32.4240, 'Pernambuco'],
+  ['manaos', 'Manaos y el Amazonas', 'AM', 'naturaleza', '🛶', -3.1303, -60.0233, 'Amazonas'],
+  ['bonito', 'Bonito', 'MS', 'agua', '🐟', -21.1261, -56.4836, 'Mato Grosso do Sul'],
+  ['saopaulo', 'São Paulo', 'SP', 'ciudad', '🏙️', -23.5614, -46.6559, 'São Paulo'],
+  ['floripa', 'Florianópolis', 'SC', 'playa', '🏄', -27.5954, -48.5480, 'Santa Catarina'],
+];
+
+export const LUGARES_ANTIOQUIA = () => A.map(([id, nombre, pieza, tipo, emoji, lat, lon, horas, prioridad]) => ({
   id: 'ini-' + id, nombre, pais: 'Colombia', region: 'Antioquia', municipio: '', mapa: 'antioquia', pieza, tipo, emoji, lat, lon,
   estado: 'quiero', prioridad, epoca: '', horas, presupuesto: 0, visitas: [],
 }));
+export const LUGARES_RESTO = () => [
+  ...C.map(([id, nombre, pieza, tipo, emoji, lat, lon, horas, prioridad, region]) => ({
+    id: 'ini-' + id, nombre, pais: 'Colombia', region, municipio: '', mapa: 'colombia', pieza, tipo, emoji, lat, lon, estado: 'quiero', prioridad, epoca: '', horas, presupuesto: 0, visitas: [],
+  })),
+  ...B.map(([id, nombre, pieza, tipo, emoji, lat, lon, region]) => ({
+    id: 'ini-' + id, nombre, pais: 'Brasil', region, municipio: '', mapa: 'brasil', pieza, tipo, emoji, lat, lon, estado: 'quiero', prioridad: 2, epoca: '', horas: 0, presupuesto: 0, visitas: [],
+  })),
+];
+export const LUGARES_INICIALES = () => [...LUGARES_ANTIOQUIA(), ...LUGARES_RESTO()];

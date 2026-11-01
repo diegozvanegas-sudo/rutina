@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { FINANZAS, PLANTILLAS_RECORDATORIO } from '../src/datos_finanzas.js';
+import { FINANZAS, PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../src/datos_finanzas.js';
 import {
   leerMonto, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, mesesParaPagar, sumarMeses,
   estadoRecordatorio, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
@@ -184,4 +184,17 @@ test('plata prestada: el interés es ingreso, el abono baja lo que te deben y vu
   assert.equal(p.monto, 3400000);
   // Devolución sin intereses
   assert.deepEqual([cobroPrestamo(fin, p, 3400000, '2026-12-01', true).interes, p.monto], [0, 0]);
+});
+
+test('plantillas de recordatorio: categoría y grupo válidos, sin nombres repetidos, con la hipoteca y "Otro" al final', () => {
+  const f = FINANZAS(), cats = f.categorias.gasto.map((c) => c.id), nombres = PLANTILLAS_RECORDATORIO.map((p) => p.nombre);
+  assert.equal(new Set(nombres).size, nombres.length);
+  for (const p of PLANTILLAS_RECORDATORIO) {
+    if (p.categoria) assert.ok(cats.includes(p.categoria), p.nombre + ': ' + p.categoria); // las de la moto sin categoría van a Moto y transporte
+    assert.ok(GRUPOS_PLANTILLA[p.grupo], p.nombre + ': ' + p.grupo);
+    assert.ok(p.icono && (p.cadaKm || p.cadaMeses || p.cadaDias), p.nombre);
+  }
+  assert.equal(PLANTILLAS_RECORDATORIO.find((p) => p.nombre === 'Pago de hipoteca').grupo, 'pagos');
+  assert.equal(nombres.at(-1), 'Otro');
+  assert.equal(nombres[0], 'Cambio de aceite');
 });

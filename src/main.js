@@ -20,6 +20,7 @@ import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
 import { vistaEstudiar } from './vistas/estudiar.js';
 import { vistaCalendario } from './vistas/calendario.js';
+import { vistaLugares } from './vistas/lugares.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
@@ -36,7 +37,7 @@ iniciarAvisos();
 
 const PANTALLAS = {
   hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, finanzas: vistaFinanzas,
-  recordatorios: vistaRecordatorios, gym: vistaGym, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
+  recordatorios: vistaRecordatorios, lugares: vistaLugares, gym: vistaGym, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));

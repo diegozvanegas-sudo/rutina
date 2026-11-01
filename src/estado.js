@@ -30,6 +30,7 @@ function inicial() {
     dieta: dietaInicial(),
     finanzas: FINANZAS(),
     recordatorios: RECORDATORIOS(),
+    lugares: { lista: [] }, // 🗺️ Lugares: { id, nombre, pais, region, municipio, mapa, pieza, tipo, lat, lon, estado: visitado | quiero, visitas: [] }
     libros: {},   // id del libro (src/libros): { leidos, practica, notas, perfil, fichas, vuelta }
     estudio: { cursos: {}, tarjetas: {}, dias: {} }, // 🎓 Estudiar (src/estudio.js)
     dias: {},     // 'AAAA-MM-DD': { habitos: { id: { ts, texto } }, metas: {...}, crono: {...}, libros: { id: {...} } }
@@ -73,6 +74,7 @@ export function cargar() {
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   estado.finanzas.prestamos ??= [];
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
+  estado.lugares ??= { lista: [] };
   estado.libros ??= {};
   estado.estudio ??= { cursos: {}, tarjetas: {}, dias: {} };
   if (estado.fenix) moverFenix(estado);

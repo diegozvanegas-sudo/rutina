@@ -87,6 +87,8 @@ Pásale el PDF a Claude Code con `/agregar-libro` (`.claude/skills/agregar-libro
   metas de ahorro con fondo de emergencia (6 meses de gastos) y deudas (meses para pagar, estrategia avalancha).
 - **Recordatorios**: mantenimiento de la moto por km o por meses (lo que pase primero) con odómetro y fecha estimada,
   plantillas (aceite, SOAT, tecnomecánica, cadena, llantas…) y los pagos fijos y cuotas de Finanzas, que aparecen solos.
+- **🗺️ Lugares** (`src/vistas/lugares.js`, datos en `lugares.lista`): los lugares visitados y por visitar. Por ahora solo la sección y sus
+  números; el mapa de Antioquia por municipio, los lugares y las fotos llegan por fases (después: mundo, Colombia y Brasil).
 - **Editar**: rutina (días, ejercicios, series × reps, descansos, nota), hábitos de la mañana y sesiones: agregar, cambiar, duplicar (⧉),
   reordenar (↑ ↓) y borrar. Un ejercicio se puede mover a otro día y sus registros se van con él. Cada día elige su calentamiento
   (cualquier sesión de tipo calentamiento), las sesiones que van junto a él y el plan de comida; también se eligen las sesiones del

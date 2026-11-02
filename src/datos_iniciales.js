@@ -254,6 +254,18 @@ export const SESIONES = [
     ],
   },
   {
+    id: 'medidas', nombre: 'Medidas de la semana', tipo: 'checklist', pasos: [
+      k('cuando', 'El mismo día cada semana, en ayunas', 'Después del baño y antes de comer o entrenar. Sin ropa o con la misma ropa ligera.'),
+      k('cinta', 'Cinta métrica flexible', 'Ajustada a la piel sin hundirla y paralela al piso. Mírate al espejo para que no quede torcida.'),
+      k('cintura', 'Cintura: a la altura del ombligo', 'De pie y relajado, sin meter barriga. Bota el aire normal y mide. Hazlo 2 veces: si difieren, usa el promedio. Es la medida que más importa.'),
+      k('pecho', 'Pecho: a la altura de las tetillas', 'Brazos abajo y sin inflar el pecho, al final de una respiración normal.'),
+      k('brazo', 'Brazo: en la mitad, entre hombro y codo', 'Brazo colgando y relajado, siempre el mismo lado.'),
+      k('muslo', 'Muslo: en la mitad, entre cadera y rodilla', 'De pie, con el peso en las dos piernas y sin apretar, siempre el mismo lado.'),
+      k('anotar', 'Anotar en Dieta → Peso', 'Con la tarjeta 📏 Medidas. Una semana sola no dice nada: mira la tendencia.'),
+      k('foto', 'Una vez al mes: foto', 'De frente y de lado, con la misma luz y a la misma distancia.'),
+    ],
+  },
+  {
     id: 'cierre-noche', nombre: 'Cierre de la noche', tipo: 'checklist', pasos: [
       k('gastos', 'Anotar los gastos del día', 'En 💰 Finanzas → Registrar.'), k('estandares', 'Marcar mis estándares', 'En 🏠 Hoy.'),
       k('agenda', 'Revisar lo de mañana'), k('ropa', 'Dejar lista la ropa o el maletín'), k('comida', 'Preparar comida y pastillas de mañana'),

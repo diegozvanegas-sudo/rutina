@@ -46,10 +46,11 @@ export function tipoDeDia(diaRutina, futbol = false, futbolManana = false) {
 }
 
 // Objetivo del plan con un peso: proteína, carbohidratos y grasa por kg; las kcal salen de los macros (4 · P + 4 · C + 9 · G).
+// Con proteína fija (protFija, g al día) la proteína no baja al bajar de peso: es lo que protege el músculo en el déficit.
 // Sin carbos/grasa por kg (datos de antes) se usa el objetivo de kcal por kg.
 export const kcalDeMacros = (p, c, g) => 4 * p + 4 * c + 9 * g;
 export function objetivo(config, tipo, peso) {
-  const p = Math.round(config.protKg[tipo] * peso);
+  const p = config.protFija || Math.round(config.protKg[tipo] * peso);
   if (config.carbKg && config.grasaKg && config.carbKg[tipo] != null && config.grasaKg[tipo] != null) {
     const c = Math.round(config.carbKg[tipo] * peso), g = Math.round(config.grasaKg[tipo] * peso);
     return { p, c, g, kcal: Math.round(kcalDeMacros(p, c, g)) };
@@ -113,6 +114,62 @@ export function sugerenciaPeso(lista, hoy) {
   if (cambio <= -0.5) return { tipo: 'bien', cambio, texto: 'Vas al ritmo ideal. No cambies nada.' };
   if (cambio <= -0.2) return { tipo: 'lento', cambio, texto: 'Vas lento pero bajando. Si la fuerza sube, no cambies nada todavía.' };
   return { tipo: 'quieto', cambio, texto: 'El peso casi no cambió. Si sigue igual otra semana y la ropa no te queda más suelta, quita 150 kcal de carbos los días de descanso o camina más.' };
+}
+
+// Medidas anotadas, de la más vieja a la más nueva: { fecha, cintura, pecho, brazo, muslo }
+export function medidasDe(dias) {
+  return Object.keys(dias || {}).sort().filter((f) => dias[f].medidas && Object.keys(dias[f].medidas).length).map((f) => ({ fecha: f, ...dias[f].medidas }));
+}
+const diasEntre = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 86400000);
+// Cuánto cambió la cintura: la última medida contra la más reciente de hace al menos 12 días
+export function cambioCintura(medidas) {
+  const con = medidas.filter((m) => m.cintura > 0), fin = con[con.length - 1];
+  const inicio = fin && [...con].reverse().find((m) => diasEntre(m.fecha, fin.fecha) >= 12);
+  return inicio ? fin.cintura - inicio.cintura : null;
+}
+// Promedio de energía o hambre (1 a 5) de los últimos 7 días; con menos de 3 días no dice nada
+export function promedioSenal(dias, k, hoy) {
+  const v = Object.keys(dias || {}).filter((f) => dias[f][k] > 0 && diasEntre(f, hoy) >= 0 && diasEntre(f, hoy) < 7).map((f) => dias[f][k]);
+  return v.length >= 3 ? v.reduce((s, n) => s + n, 0) / v.length : null;
+}
+// Fuerza del último mes: promedio del cambio del 1RM estimado por ejercicio (progresoMes). Con menos de 3 ejercicios no dice nada
+export function fuerzaDelMes(progreso) {
+  return progreso.length >= 3 ? progreso.reduce((s, x) => s + x.cambio, 0) / progreso.length : null;
+}
+
+// Revisión de la semana: junta peso, cintura, fuerza, energía y hambre, y dice si conviene mover los carbos (gramos al día).
+// Primero se protege el músculo y la energía; bajar comida es lo último, y nunca si la cintura ya va bajando o hay mucha hambre.
+const DIAS_ENTRE_AJUSTES = 14, GRAMOS_AJUSTE = 40;
+export function revisionDieta({ lista, dias, progreso = [], ultimoAjuste = null }, hoy) {
+  const peso = sugerenciaPeso(lista, hoy), cintura = cambioCintura(medidasDe(dias)), fuerza = fuerzaDelMes(progreso);
+  const energia = promedioSenal(dias, 'energia', hoy), hambre = promedioSenal(dias, 'hambre', hoy);
+  const senales = { peso: peso.cambio, cintura, fuerza, energia, hambre };
+  const fin = (tipo, texto, gramos = 0) => ({ tipo, texto, gramos, senales });
+  if (peso.tipo === 'faltan') return fin('faltan', peso.texto);
+  if (ultimoAjuste && diasEntre(ultimoAjuste.fecha, hoy) < DIAS_ENTRE_AJUSTES) {
+    return fin('espera', 'Ajustaste los carbos hace ' + diasEntre(ultimoAjuste.fecha, hoy) + ' días. Espera a cumplir ' + DIAS_ENTRE_AJUSTES + ' para ver el efecto: cambiar antes confunde los datos.');
+  }
+  const motivos = [];
+  if (peso.tipo === 'rapido') motivos.push('bajas muy rápido');
+  if (fuerza != null && fuerza < -0.03) motivos.push('la fuerza va bajando');
+  if (energia != null && energia <= 2.5) motivos.push('tienes poca energía');
+  if (motivos.length) return fin('subir', 'Conviene comer un poco más: ' + motivos.join(', ') + '. Suma ' + GRAMOS_AJUSTE + ' g de carbos al día en los días de entreno, partido y recarga.' + (energia != null && energia <= 2.5 ? ' Si la energía sigue baja comiendo y durmiendo bien, coméntalo con tu médico.' : ''), GRAMOS_AJUSTE);
+  if (peso.tipo === 'bien' || peso.tipo === 'lento') return fin(peso.tipo, peso.texto);
+  if (cintura != null && cintura <= -0.5) return fin('recomposicion', 'El peso casi no cambia, pero la cintura bajó: estás perdiendo grasa y conservando músculo. No cambies nada.');
+  if (cintura == null) return fin('medir', 'El peso casi no cambió. Antes de comer menos, mide tu cintura durante 2 semanas: puede estar bajando aunque el peso no.');
+  if (hambre != null && hambre >= 4) return fin('hambre', 'El peso y la cintura no bajan, pero tienes mucha hambre: no quites comida todavía. Sube la verdura y camina más.');
+  return fin('bajar', 'El peso y la cintura no bajan. Quita ' + GRAMOS_AJUSTE + ' g de carbos al día en los días de gym y de descanso; los días de partido y la recarga no se tocan.', -GRAMOS_AJUSTE);
+}
+
+// Lo que cambiaría en los planes al mover los carbos. Al subir no se toca el descanso; al bajar no se tocan el partido ni la recarga
+export function ajusteCarbos(dt, gramos) {
+  const tipos = gramos > 0 ? ['inferior', 'superior', 'recarga', 'futbol'] : ['inferior', 'superior', 'descanso'];
+  const c = { ...dt.config, carbKg: { ...dt.config.carbKg } };
+  const resultados = tipos.filter((t) => dt.planes[t]).map((t) => {
+    c.carbKg[t] = Math.max(0.8, Math.round((((c.carbKg[t] || 0) * c.pesoBase + gramos) / c.pesoBase) * 100) / 100);
+    return [t, recalcular(dt.planes[t], dt.alimentos, objetivo(c, t, c.pesoBase))];
+  });
+  return { carbKg: c.carbKg, resultados };
 }
 
 // Pesos anotados, del más viejo al más nuevo

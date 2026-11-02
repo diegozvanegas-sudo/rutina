@@ -6,7 +6,7 @@ import { avanceChecklist, idPaso } from '../src/vistas/sesiones.js';
 const checklists = SESIONES.filter((s) => s.tipo === 'checklist');
 
 test('checklists de partida: antes de salir, maletín del partido y cierre de la noche, con ids únicos por punto', () => {
-  assert.deepEqual(checklists.map((s) => s.id), ['antes-de-salir', 'maletin-partido', 'cierre-noche']);
+  assert.deepEqual(checklists.map((s) => s.id), ['antes-de-salir', 'maletin-partido', 'medidas', 'cierre-noche']);
   for (const s of checklists) {
     const ids = s.pasos.map(idPaso);
     assert.ok(s.pasos.every((p) => p.id && p.nombre), s.id);

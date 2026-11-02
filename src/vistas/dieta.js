@@ -1,9 +1,10 @@
 // Dieta: plan del día (según el gym), comidas marcadas, planes editables, peso corporal y recálculo por peso
-import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, comidasDelDia } from '../estado.js';
+import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, comidasDelDia, semanaActual } from '../estado.js';
+import { progresoMes } from '../gym.js';
 import { iso, hora, fechaCorta, diaSemana } from '../fechas.js';
 import { proteinaSemana } from '../entrenador.js';
 import { barras } from '../graficos.js';
-import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, kcalDeMacros, sugerenciaPeso } from '../dieta.js';
+import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, revisionDieta, ajusteCarbos, medidasDe } from '../dieta.js';
 import { esc, barra, tip, registrar, toast, miles, subirBajar } from '../ui.js';
 
 let pestana = 'hoy', planVista = null;
@@ -113,32 +114,49 @@ function vistaPeso() {
   const c = d().config, lista = pesos(e().dias), hoy = (e().dias[iso()] || {}).peso;
   const ultimo = lista.length ? lista[lista.length - 1].peso : null, prom = tendencia(lista), ref = prom || ultimo || c.pesoBase;
   const inicio = c.pesoInicio || c.pesoBase;
-  const avance = inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0, imc = ref / Math.pow(c.estatura / 100, 2);
-  const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO'), sug = sugerenciaPeso(lista, iso());
+  const avance = inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0;
+  const hoyD = e().dias[iso()] || {}, medidas = medidasDe(e().dias), conCintura = medidas.filter((m) => m.cintura > 0), cintura = conCintura.length ? conCintura[conCintura.length - 1].cintura : null;
+  const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO'), sug = revisionDieta({ lista, dias: e().dias, progreso: progresoMes(e().semanas, e().rutina, semanaActual()), ultimoAjuste: d().ultimoAjuste }, iso());
   return '<section class="tarjeta"><label class="campo">Peso de hoy (kg)<input class="peso-grande" type="number" inputmode="decimal" step="0.1" min="0" data-cambio="dieta-peso" value="' + esc(hoy || '') + '" placeholder="' + esc(ultimo || c.pesoBase) + '"></label>' +
     '<p class="nota-corta">Mejor en ayunas, después del baño. El promedio de 7 días es el que se usa para recalcular.</p></section>' +
     '<section class="tarjeta"><div class="datos-peso">' +
     '<div><small>Promedio 7 días</small><b>' + (prom ? f1(prom) + ' kg' : '—') + '</b></div>' +
     '<div><small>Cambio desde ' + f1(inicio) + '</small><b>' + (prom ? (prom - inicio > 0 ? '+' : '') + f1(prom - inicio) + ' kg' : '—') + '</b></div>' +
     '<div><small>Falta para ' + f1(c.meta) + '</small><b>' + f1(Math.max(0, ref - c.meta)) + ' kg</b></div>' +
-    '<div><small>IMC</small><b>' + f1(imc) + '</b></div></div>' + barra(avance) + grafico(lista) +
+    '<div><small>Cintura (meta: menos de ' + f1(c.estatura / 2) + ')</small><b>' + (cintura ? f1(cintura) + ' cm' : '—') + '</b></div></div>' + barra(avance) + grafico(lista) +
     (prom && Math.abs(prom - c.pesoBase) >= 1 ? '<p class="aviso">Tu promedio cambió ' + f1(Math.abs(prom - c.pesoBase)) + ' kg desde que se calcularon los planes (' + f1(c.pesoBase) + ' kg). ' +
       '<a href="#dieta" data-accion="dieta-ir-planes">Recalcular los planes con ' + f1(prom) + ' kg →</a></p>' : '') + '</section>' +
-    '<section class="tarjeta"><h2>💡 Sugerencia de la semana</h2>' + (sug.cambio == null ? '' : '<p>Cambio de la semana: <b>' + (sug.cambio > 0 ? '+' : '') + f1(sug.cambio) + ' kg</b></p>') + '<p>' + sug.texto + '</p>' +
-    '<p class="nota-corta">Mira también la fuerza en Gym: si baja o te falta energía, suma carbos aunque el peso vaya bien.</p></section>' +
+    '<section class="tarjeta"><h2>Cómo te sentiste hoy</h2>' + escala('Energía', 'energia', hoyD.energia, '1 = sin energía · 5 = a tope') + escala('Hambre', 'hambre', hoyD.hambre, '1 = nada · 5 = mucha') + '</section>' +
+    '<section class="tarjeta"><div class="fila-resumen"><h2>📏 Medidas</h2><button type="button" class="boton secundario" data-accion="sesion" data-sesion="medidas">¿Cómo me mido?</button></div>' +
+    '<p class="nota-corta">Una vez por semana, en cm. La cintura es la que más dice si estás perdiendo grasa.</p><div class="dos">' +
+    Object.entries(MEDIDAS).map(([k, t]) => '<label class="campo">' + t + '<input type="number" inputmode="decimal" step="0.1" min="0" data-cambio="dieta-medida" data-k="' + k + '" value="' + esc((hoyD.medidas || {})[k] ?? '') + '"></label>').join('') + '</div>' +
+    (medidas.length ? '<ul class="lista-pesos">' + medidas.slice(-6).reverse().map((m) => '<li><span>' + fechaCorta(m.fecha) + '</span><span>' + Object.entries(MEDIDAS).filter(([k]) => m[k] > 0).map(([k, t]) => t + ' <b>' + f1(m[k]) + '</b>').join(' · ') + '</span></li>').join('') + '</ul>' : '') + '</section>' +
+    '<section class="tarjeta"><h2>💡 Sugerencia de la semana</h2><div class="datos-peso">' + senalesRevision(sug.senales, f1) + '</div><p>' + sug.texto + '</p>' +
+    (sug.gramos ? '<button type="button" class="boton primario ancho" data-accion="dieta-aplicar" data-g="' + sug.gramos + '">' + (sug.gramos > 0 ? 'Sumar ' : 'Quitar ') + Math.abs(sug.gramos) + ' g de carbos a los planes</button><p class="nota-corta">Antes de cambiar te muestra cuánto queda, y lo puedes deshacer en Planes.</p>' : '') + '</section>' +
     (lista.length ? '<section class="tarjeta"><h2>Registros</h2><ul class="lista-pesos">' + lista.slice(-14).reverse().map((x) =>
       '<li><span>' + fechaCorta(x.fecha) + '</span><b>' + f1(x.peso) + ' kg</b></li>').join('') + '</ul></section>' : '') +
     '<section class="tarjeta"><h2>Datos y fórmula</h2><div class="dos">' +
     numero('Peso inicial (kg)', 'dieta.config.pesoInicio', inicio, '0.1') + numero('Meta (kg)', 'dieta.config.meta', c.meta, '0.1') +
     numero('Planes calculados con (kg)', 'dieta.config.pesoBase', c.pesoBase, '0.1') +
     numero('Estatura (cm)', 'dieta.config.estatura', c.estatura) + '</div>' +
-    '<p class="nota-corta">Por cada kg de peso, cada plan apunta a (gramos por kg):</p><div class="tabla-scroll"><table class="historial formula"><thead><tr><th></th><th>Proteína</th><th>Carbos</th><th>Grasa</th><th>≈ kcal / kg</th></tr></thead><tbody>' +
+    numero('Proteína fija (g al día; 0 = según el peso)', 'dieta.config.protFija', c.protFija || 0) + '<p class="nota-corta">Por cada kg de peso, cada plan apunta a (gramos por kg):</p><div class="tabla-scroll"><table class="historial formula"><thead><tr><th></th><th>Proteína</th><th>Carbos</th><th>Grasa</th><th>≈ kcal / kg</th></tr></thead><tbody>' +
     Object.entries(TIPOS).map(([k, t]) => {
-      const kcalKg = kcalDeMacros(c.protKg[k] || 0, (c.carbKg || {})[k] || 0, (c.grasaKg || {})[k] || 0);
-      return '<tr><th>' + t + '</th><td>' + numero('', 'dieta.config.protKg.' + k, c.protKg[k], '0.01') + '</td><td>' + numero('', 'dieta.config.carbKg.' + k, (c.carbKg || {})[k], '0.01') +
-        '</td><td>' + numero('', 'dieta.config.grasaKg.' + k, (c.grasaKg || {})[k], '0.01') + '</td><td class="kcal-kg"><b>' + (Math.round(kcalKg * 10) / 10).toLocaleString('es-CO') + '</b><small>' + miles(kcalKg * ref) + ' kcal con ' + f1(ref) + ' kg</small></td></tr>';
+      const kcal = objetivo(c, k, ref).kcal, kcalKg = kcal / ref;
+      return '<tr><th>' + t + '</th><td>' + (c.protFija ? '<b>' + c.protFija + ' g</b>' : numero('', 'dieta.config.protKg.' + k, c.protKg[k], '0.01')) + '</td><td>' + numero('', 'dieta.config.carbKg.' + k, (c.carbKg || {})[k], '0.01') +
+        '</td><td>' + numero('', 'dieta.config.grasaKg.' + k, (c.grasaKg || {})[k], '0.01') + '</td><td class="kcal-kg"><b>' + (Math.round(kcalKg * 10) / 10).toLocaleString('es-CO') + '</b><small>' + miles(kcal) + ' kcal con ' + f1(ref) + ' kg</small></td></tr>';
     }).join('') +
     '</tbody></table></div><p class="nota-corta">Las kcal salen de los macros: 4 por gramo de proteína y de carbos, 9 por gramo de grasa. Al recalcular se ajusta primero la proteína, después la grasa (contando la de huevos y carne) y al final los carbos.</p><p class="nota-corta">Es una regla simple para ajustar cantidades, no una indicación médica: si el peso se estanca o bajas muy rápido, ajústala con tu nutricionista.</p></section>';
+}
+const MEDIDAS = { cintura: 'Cintura', pecho: 'Pecho', brazo: 'Brazo', muslo: 'Muslo' };
+function escala(titulo, k, valor, ayuda) {
+  return '<p class="nota-corta"><b>' + titulo + '</b> · ' + ayuda + '</p><nav class="chips" aria-label="' + titulo + '">' + [1, 2, 3, 4, 5].map((n) =>
+    '<button type="button" class="chip' + (valor === n ? ' activo' : '') + '" aria-pressed="' + (valor === n) + '" data-accion="dieta-senal" data-k="' + k + '" data-n="' + n + '">' + n + '</button>').join('') + '</nav>';
+}
+// Lo que se tuvo en cuenta en la sugerencia; lo que aún no tiene datos dice "—"
+function senalesRevision(s, f1) {
+  const conSigno = (n, u) => (n == null ? '—' : (n > 0 ? '+' : '') + f1(n) + u);
+  return [['Peso / semana', conSigno(s.peso, ' kg')], ['Cintura / 2 sem.', conSigno(s.cintura, ' cm')], ['Fuerza / mes', conSigno(s.fuerza == null ? null : s.fuerza * 100, ' %')], ['Energía', s.energia == null ? '—' : f1(s.energia) + ' / 5'], ['Hambre', s.hambre == null ? '—' : f1(s.hambre) + ' / 5']]
+    .map(([t, v]) => '<div><small>' + t + '</small><b>' + v + '</b></div>').join('');
 }
 function numero(titulo, ruta, valor, paso = '1') {
   return '<label class="campo">' + titulo + '<input type="number" inputmode="decimal" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
@@ -147,7 +165,7 @@ function numero(titulo, ruta, valor, paso = '1') {
 // ---------- Alimentos ----------
 function vistaAlimentos() {
   const lista = d().alimentos;
-  return '<p class="nota-corta">Valores por 100 g, por unidad o por porción fija. Al recalcular, la proteína sigue al peso y los carbohidratos ajustan las calorías.</p>' +
+  return '<p class="nota-corta">Valores por 100 g, por unidad o por porción fija. Al recalcular, la proteína queda en su cantidad fija (o sigue al peso, si la pones en 0) y los carbohidratos ajustan las calorías.</p>' +
     lista.map((a, i) => {
       const r = 'dieta.alimentos.' + i;
       const sel = (campo, opciones) => '<select data-cambio="ed" data-ruta="' + r + '.' + campo + '">' + Object.entries(opciones).map(([v, t]) => '<option value="' + v + '"' + (a[campo] === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
@@ -202,12 +220,36 @@ registrar({
     if (n > 0) hoy.peso = Math.round(n * 10) / 10; else delete hoy.peso;
     guardar();
   },
+  'dieta-senal'({ k, n }) {
+    const hoy = dia();
+    if (hoy[k] === Number(n)) delete hoy[k]; else hoy[k] = Number(n);
+    guardar();
+  },
+  'dieta-medida'({ k }, el) {
+    const n = Number(String(el.value).replace(',', '.')), hoy = dia();
+    hoy.medidas ??= {};
+    if (n > 0) hoy.medidas[k] = Math.round(n * 10) / 10; else delete hoy.medidas[k];
+    if (!Object.keys(hoy.medidas).length) delete hoy.medidas;
+    guardar();
+  },
+  'dieta-aplicar'({ g }) {
+    const gramos = Number(g), { carbKg, resultados } = ajusteCarbos(d(), gramos);
+    if (!confirm((gramos > 0 ? 'Sumar ' : 'Quitar ') + Math.abs(gramos) + ' g de carbos al día:\n\n' + resultados.map(([t, r]) => resumenCambio(t, r)).join('\n') + '\n\nPuedes deshacerlo en Planes.')) return;
+    d().anterior = JSON.parse(JSON.stringify(d().planes));
+    d().carbAnterior = d().config.carbKg;
+    d().config.carbKg = carbKg;
+    for (const [t, r] of resultados) d().planes[t] = r.plan;
+    d().ultimoAjuste = { fecha: iso(), gramos };
+    guardar();
+    toast('Planes ajustados');
+  },
   'dieta-recalcular'({ tipo }) {
     const peso = pesoActual(), tipos = tipo === 'todos' ? Object.keys(TIPOS) : [tipo];
     const resultados = tipos.map((t) => [t, recalcular(d().planes[t], d().alimentos, objetivo(d().config, t, peso))]);
     if (!confirm('Recalcular con ' + String(peso).replace('.', ',') + ' kg:\n\n' + resultados.map(([t, r]) => resumenCambio(t, r)).join('\n') +
       '\n\nSe ajustan las cantidades de proteína, grasa y carbohidratos. Puedes deshacerlo.')) return;
     d().anterior = JSON.parse(JSON.stringify(d().planes));
+    delete d().carbAnterior;
     for (const [t, r] of resultados) d().planes[t] = r.plan;
     if (tipos.length > 1) d().config.pesoBase = peso;
     guardar();
@@ -217,6 +259,8 @@ registrar({
     if (!d().anterior) return;
     d().planes = d().anterior;
     d().anterior = null;
+    // Si lo último fue un ajuste de carbos, también se deshace y se puede volver a sugerir
+    if (d().carbAnterior) { d().config.carbKg = d().carbAnterior; delete d().carbAnterior; delete d().ultimoAjuste; }
     guardar();
     toast('Se volvió a los planes anteriores');
   },

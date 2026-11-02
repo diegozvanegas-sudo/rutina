@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from '../src/datos_dieta.js';
-import { totalPlan, totalComida, tipoDeDia, objetivo, recalcular, pesos, tendencia, sugerenciaPeso } from '../src/dieta.js';
+import { totalPlan, totalComida, tipoDeDia, objetivo, recalcular, pesos, tendencia, sugerenciaPeso, revisionDieta, ajusteCarbos, cambioCintura, medidasDe, promedioSenal, fuerzaDelMes } from '../src/dieta.js';
 
 const kcal = (tipo) => Math.round(totalPlan(PLANES[tipo], ALIMENTOS).kcal);
 const prot = (tipo) => Math.round(totalPlan(PLANES[tipo], ALIMENTOS).p);
@@ -89,4 +89,73 @@ test('sugerencia de la semana según el ritmo, y sin datos no concluye', () => {
   assert.equal(sugerenciaPeso(semanas(88, 87.3), hoy).tipo, 'bien');
   assert.equal(sugerenciaPeso(semanas(88, 87.7), hoy).tipo, 'lento');
   assert.equal(sugerenciaPeso(semanas(88, 88), hoy).tipo, 'quieto');
+});
+
+test('proteína fija: no baja al bajar de peso; sin ella sigue al peso', () => {
+  assert.equal(objetivo({ ...CONFIG_DIETA, protFija: 185 }, 'inferior', 76).p, 185);
+  assert.equal(objetivo(CONFIG_DIETA, 'inferior', 76).p, Math.round(2.17 * 76));
+});
+
+// Dos semanas de peso: la anterior y la de ahora
+const fechaAtras = (n) => '2026-11-' + String(22 - n).padStart(2, '0');
+const pesosDe = (antes, ahora) => [8, 9, 10, 11].map((n) => ({ fecha: fechaAtras(n), peso: antes })).concat([0, 1, 2, 3].map((n) => ({ fecha: fechaAtras(n), peso: ahora })));
+const HOY = '2026-11-22';
+const conCintura = (antes, ahora) => ({ [fechaAtras(14)]: { medidas: { cintura: antes } }, [fechaAtras(0)]: { medidas: { cintura: ahora } } });
+const revision = (a, b, extra = {}) => revisionDieta({ lista: pesosDe(a, b), dias: {}, ...extra }, HOY);
+const progresoDe = (c) => [{ cambio: c }, { cambio: c }, { cambio: c }];
+
+test('revisión: al ritmo ideal no cambia nada', () => {
+  const r = revision(88, 87.3);
+  assert.deepEqual([r.tipo, r.gramos], ['bien', 0]);
+});
+
+test('revisión: bajar muy rápido, perder fuerza o tener poca energía suma carbos, aunque el peso vaya bien', () => {
+  assert.deepEqual([revision(88, 86.8).tipo, revision(88, 86.8).gramos], ['subir', 40]);
+  assert.equal(revision(88, 87.3, { progreso: progresoDe(-0.05) }).gramos, 40);
+  const energia = { [fechaAtras(0)]: { energia: 2 }, [fechaAtras(1)]: { energia: 2 }, [fechaAtras(2)]: { energia: 3 } };
+  assert.equal(revision(88, 87.3, { dias: energia }).gramos, 40);
+  // Una sola señal suelta o pocos días no alcanzan
+  assert.equal(revision(88, 87.3, { dias: { [fechaAtras(0)]: { energia: 1 } } }).gramos, 0);
+  assert.equal(revision(88, 87.3, { progreso: [{ cambio: -0.5 }] }).gramos, 0);
+});
+
+test('revisión: estancado solo quita comida si la cintura tampoco baja y no hay mucha hambre', () => {
+  assert.deepEqual([revision(88, 88).tipo, revision(88, 88).gramos], ['medir', 0]);
+  const baja = revision(88, 88, { dias: conCintura(98, 97) });
+  assert.deepEqual([baja.tipo, baja.gramos], ['recomposicion', 0]);
+  const igual = revision(88, 88, { dias: conCintura(98, 98) });
+  assert.deepEqual([igual.tipo, igual.gramos], ['bajar', -40]);
+  const hambre = { ...conCintura(98, 98) };
+  hambre[fechaAtras(0)].hambre = 5; hambre[fechaAtras(1)] = { hambre: 4 }; hambre[fechaAtras(2)] = { hambre: 4 };
+  assert.deepEqual([revision(88, 88, { dias: hambre }).tipo, revision(88, 88, { dias: hambre }).gramos], ['hambre', 0]);
+});
+
+test('revisión: después de un ajuste espera 14 días; sin datos de peso no concluye', () => {
+  assert.equal(revision(88, 86.8, { ultimoAjuste: { fecha: fechaAtras(5) } }).tipo, 'espera');
+  assert.equal(revision(88, 86.8, { ultimoAjuste: { fecha: fechaAtras(14) } }).tipo, 'subir');
+  assert.equal(revisionDieta({ lista: [], dias: {} }, HOY).tipo, 'faltan');
+});
+
+test('señales: cintura contra hace al menos 12 días, y promedios con mínimo de datos', () => {
+  assert.equal(cambioCintura(medidasDe(conCintura(98, 96.5))), -1.5);
+  assert.equal(cambioCintura(medidasDe({ [fechaAtras(5)]: { medidas: { cintura: 98 } }, [fechaAtras(0)]: { medidas: { cintura: 90 } } })), null);
+  assert.equal(promedioSenal({ [fechaAtras(0)]: { energia: 4 }, [fechaAtras(1)]: { energia: 4 } }, 'energia', HOY), null);
+  assert.equal(promedioSenal({ [fechaAtras(0)]: { energia: 4 }, [fechaAtras(1)]: { energia: 3 }, [fechaAtras(2)]: { energia: 2 }, [fechaAtras(9)]: { energia: 1 } }, 'energia', HOY), 3);
+  assert.equal(fuerzaDelMes([{ cambio: 0.1 }, { cambio: 0.2 }]), null);
+});
+
+test('ajuste de carbos: mueve los carbos sin bajar la proteína, y protege partido y recarga al bajar', async () => {
+  const { macrosPorKg } = await import('../src/dieta.js');
+  const dt = { alimentos: ALIMENTOS, planes: JSON.parse(JSON.stringify(PLANES)), config: { ...CONFIG_DIETA, protFija: 185, ...macrosPorKg(PLANES, ALIMENTOS, 87) } };
+  const sube = ajusteCarbos(dt, 40);
+  assert.deepEqual(sube.resultados.map(([t]) => t), ['inferior', 'superior', 'recarga', 'futbol']);
+  for (const [t, r] of sube.resultados) {
+    assert.ok(Math.abs(r.despues.c - (r.antes.c + 40)) <= 12, t + ' C ' + r.antes.c + ' → ' + r.despues.c);
+    assert.ok(Math.abs(r.despues.p - 185) <= 12, t + ' P ' + r.despues.p);
+  }
+  const baja = ajusteCarbos(dt, -40);
+  assert.deepEqual(baja.resultados.map(([t]) => t), ['inferior', 'superior', 'descanso']);
+  assert.equal(baja.carbKg.futbol, dt.config.carbKg.futbol);
+  assert.ok(baja.carbKg.descanso >= 0.8);
+  assert.equal(dt.planes.inferior.comidas[0].items[0].cant, PLANES.inferior.comidas[0].items[0].cant);
 });

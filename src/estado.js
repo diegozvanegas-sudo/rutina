@@ -16,9 +16,11 @@ const BASE = 'rutina_v1';
 let CLAVE = BASE, escribible = true;
 const copia = (o) => JSON.parse(JSON.stringify(o));
 
+const PROTEINA_FIJA = 185; // gramos al día
 const dietaInicial = () => {
   const d = { config: copia(CONFIG_DIETA), alimentos: copia(ALIMENTOS), planes: copia(PLANES), anterior: null };
   Object.assign(d.config, macrosPorKg(d.planes, d.alimentos, d.config.pesoBase));
+  d.config.protFija = PROTEINA_FIJA;
   return d;
 };
 
@@ -51,7 +53,7 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2', 'dietaEnergiaV1'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2', 'dietaEnergiaV1', 'dietaProgresoV1'];
 // 2 nov 2026: la carne con la grasa que dan sus calorías, plan de recarga antes del partido y más arroz el día de fútbol.
 // Los carbos y la grasa por kg se vuelven a tomar de los planes, para que recalcular no los deshaga
 function dietaEnergia(est) {
@@ -78,6 +80,15 @@ function dietaEnergia(est) {
   c.carbKg = { ...c.carbKg, ...x.carbKg }; c.grasaKg = { ...c.grasaKg, ...x.grasaKg };
   if (dt.planes.futbol) c.protKg.futbol = Math.round((totalPlan(dt.planes.futbol, dt.alimentos).p / c.pesoBase) * 100) / 100;
   est.dietaEnergiaV1 = true;
+  est.cambio = Date.now();
+}
+// 2 nov 2026: proteína fija y la sesión de medidas, también si los datos acaban de llegar de la nube
+function dietaProgreso(est) {
+  if (est.dietaProgresoV1) return;
+  est.dieta.config.protFija ??= PROTEINA_FIJA;
+  const s = SESIONES.find((x) => x.id === 'medidas');
+  if (!est.sesiones.some((x) => x.id === s.id)) est.sesiones.push(copia(s));
+  est.dietaProgresoV1 = true;
   est.cambio = Date.now();
 }
 // Una sola vez: lo que la primera combinación con la nube dejó repetido. Cuenta como cambio para que la nube también quede limpia
@@ -129,6 +140,7 @@ export function cargar() {
   if (estado.fenix) moverFenix(estado);
   quitarRepetidos(estado);
   dietaEnergia(estado);
+  dietaProgreso(estado);
   const c = estado.config, n = CONFIG_NUEVA();
   for (const k of Object.keys(n)) c[k] ??= n[k];
   ponerSemana1(c.semana1);
@@ -277,6 +289,7 @@ export function reemplazar(datos) {
   sembrarLugares(estado);
   quitarRepetidos(estado);
   dietaEnergia(estado);
+  dietaProgreso(estado);
   for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
   ponerSemana1(estado.config.semana1);
   escribir();

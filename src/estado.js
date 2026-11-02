@@ -5,7 +5,7 @@ import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
 import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, LUGARES_RESTO } from './datos_lugares.js';
-import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular } from './dieta.js';
+import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular, quitarComidasRepetidas } from './dieta.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
 import { visibles } from './orden.js';
@@ -51,12 +51,16 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2'];
 // Una sola vez: lo que la primera combinación con la nube dejó repetido. Cuenta como cambio para que la nube también quede limpia
 function quitarRepetidos(est) {
-  if (est.sinRepetidosV1) return;
-  limpiarRepetidos(est);
-  est.sinRepetidosV1 = true;
+  if (est.sinRepetidosV1 && est.sinRepetidosV2) return;
+  if (!est.sinRepetidosV1) limpiarRepetidos(est);
+  const dt = est.dieta;
+  for (const planes of [dt.planes, dt.anterior]) {
+    for (const [tipo, plan] of Object.entries(planes || {})) quitarComidasRepetidas(plan, dt.alimentos, objetivo(dt.config, tipo, dt.config.pesoBase));
+  }
+  est.sinRepetidosV1 = est.sinRepetidosV2 = true;
   est.cambio = Date.now();
 }
 // Una sola vez: la lista inicial de lugares para marcar. Después cada quien la edita o la borra

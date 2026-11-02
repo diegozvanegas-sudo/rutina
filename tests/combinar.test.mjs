@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { combinarEstado, limpiarRepetidos } from '../src/combinar.js';
-import { PLANES } from '../src/datos_dieta.js';
+import { PLANES, ALIMENTOS } from '../src/datos_dieta.js';
+import { quitarComidasRepetidas } from '../src/dieta.js';
 import { SESIONES, RUTINA, HABITOS } from '../src/datos_iniciales.js';
 import { FINANZAS, RECORDATORIOS } from '../src/datos_finanzas.js';
 import { LIBROS } from '../src/libros/index.js';
@@ -80,10 +81,23 @@ test('el orden de las llaves de la nube no duplica las comidas', () => {
   assert.equal(u.comidas.length, 2);
 });
 
-test('dos series idénticas siguen siendo dos al combinar', () => {
-  const s = [{ peso: 80, reps: 10 }, { peso: 80, reps: 10 }];
-  const u = combinarEstado({ s: [] }, { s }, { s: [...s, { peso: 70, reps: 5 }] }, true);
-  assert.equal(u.s.length, 3);
+test('una lista sin id ni fecha va entera: el plan recalculado en dos equipos no suma comidas', () => {
+  const comida = (g) => ({ nombre: 'Cena', items: [{ alimento: 'pollo', cant: g }] });
+  const b = { comidas: [comida(200)] }, l = { comidas: [comida(205)] }, r = { comidas: [comida(210)] };
+  assert.deepEqual(combinarEstado(b, l, r, true).comidas, l.comidas);
+  assert.deepEqual(combinarEstado(null, l, r, false).comidas, r.comidas);
+  assert.deepEqual(combinarEstado({ rango: [10, 20] }, { rango: [12, 20] }, { rango: [10, 22] }, true).rango, [12, 20]);
+});
+
+test('ninguna lista de los datos de la app crece al combinar sus planes recalculados', () => {
+  const datos = { PLANES, SESIONES, RUTINA, HABITOS, finanzas: FINANZAS(), recordatorios: RECORDATORIOS() };
+  const l = JSON.parse(JSON.stringify(datos)), r = enOtroOrden(datos);
+  for (const p of Object.values(l.PLANES)) p.comidas[0].items[0].cant += 5;
+  for (const p of Object.values(r.PLANES)) p.comidas[0].items[0].cant += 10;
+  const u = combinarEstado(null, l, r, true);
+  assert.equal(JSON.stringify(u.PLANES), JSON.stringify(l.PLANES));
+  assert.equal(u.SESIONES.length, SESIONES.length);
+  assert.equal(u.RUTINA.length, RUTINA.length);
 });
 
 test('la limpieza arregla listas repetidas enteras y registros con fecha iguales', () => {
@@ -98,6 +112,21 @@ test('la limpieza no toca lo que no está repetido, ni ids ni comidas distintas'
   const est = limpiarRepetidos({ con, parcial });
   assert.equal(est.con.length, 2);
   assert.equal(est.parcial.length, 3);
+});
+
+test('comidas repetidas con cantidades distintas: queda una de cada una, la más cercana a la meta', () => {
+  const alimentos = [{ id: 'pollo', por: 'g', p: 26, g: 3, c: 0, kcal: 100 }, { id: 'huevo', por: 'u', p: 6, g: 5, c: 0, kcal: 75 }];
+  const c = (nombre, alimento, cant) => ({ nombre, items: [{ alimento, cant }] });
+  const lista = () => ({ comidas: [c('Desayuno', 'huevo', 6), c('Cena', 'pollo', 200), c('Desayuno', 'huevo', 6), c('Cena', 'pollo', 200), c('Cena', 'pollo', 300)] });
+  assert.deepEqual(quitarComidasRepetidas(lista(), alimentos, { kcal: 650 }).comidas, [c('Desayuno', 'huevo', 6), c('Cena', 'pollo', 200)]);
+  assert.deepEqual(quitarComidasRepetidas(lista(), alimentos, { kcal: 750 }).comidas, [c('Desayuno', 'huevo', 6), c('Cena', 'pollo', 300)]);
+});
+
+test('dos comidas con el mismo nombre y alimentos distintos se quedan, y los planes de la app no cambian', () => {
+  const alimentos = [{ id: 'a', por: 'u', p: 1, g: 1, c: 1, kcal: 10 }, { id: 'b', por: 'u', p: 1, g: 1, c: 1, kcal: 10 }];
+  const plan = { comidas: [{ nombre: 'Merienda', items: [{ alimento: 'a', cant: 1 }] }, { nombre: 'Merienda', items: [{ alimento: 'b', cant: 1 }] }] };
+  assert.equal(quitarComidasRepetidas(plan, alimentos, { kcal: 10 }).comidas.length, 2);
+  for (const p of Object.values(PLANES)) assert.equal(quitarComidasRepetidas(JSON.parse(JSON.stringify(p)), ALIMENTOS, { kcal: 0 }).comidas.length, p.comidas.length);
 });
 
 test('la limpieza no le cambia nada a los datos que trae la app', () => {

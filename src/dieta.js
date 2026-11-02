@@ -19,6 +19,22 @@ export function totalPlan(plan, alimentos) {
   return plan.comidas.reduce((t, c) => sumar(t, totalComida(c, alimentos)), cero());
 }
 
+// Comidas repetidas por la sincronización: mismo nombre y mismos alimentos, aunque cambien las cantidades. Dos meriendas distintas
+// se quedan. De las versiones se deja el juego (las primeras o las últimas) que más se acerca a las calorías de la meta
+export function quitarComidasRepetidas(plan, alimentos, obj) {
+  const clave = (c) => c.nombre + '|' + c.items.map((i) => i.alimento).sort().join(',');
+  const primeras = new Map(), ultimas = new Map();
+  for (const c of plan.comidas) {
+    if (!primeras.has(clave(c))) primeras.set(clave(c), c);
+    ultimas.set(clave(c), c);
+  }
+  if (primeras.size === plan.comidas.length) return plan;
+  const a = [...primeras.values()], b = [...primeras.keys()].map((k) => ultimas.get(k));
+  const lejos = (comidas) => Math.abs(totalPlan({ comidas }, alimentos).kcal - obj.kcal);
+  plan.comidas = lejos(b) < lejos(a) ? b : a;
+  return plan;
+}
+
 // Qué plan toca según el día: partido → fútbol (aunque también haya gym); pierna → inferior; torso, empuje o tirón → superior;
 // sin entreno → descanso
 export function tipoDeDia(diaRutina, futbol = false) {

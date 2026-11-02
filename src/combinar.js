@@ -9,19 +9,15 @@ const texto = (x) => {
   return JSON.stringify(x);
 };
 const igual = (a, b) => texto(a) === texto(b);
-// Lo que tiene id se reconoce por su id; lo demás, por su contenido (un registro { fecha, km }, un texto).
-// Dos iguales en la misma lista siguen siendo dos (dos series o dos comidas idénticas)
-const porClave = (lista) => {
-  const vistas = new Map();
-  return new Map(lista.map((x) => {
-    if (esObjeto(x) && x.id != null) return ['id:' + x.id, x];
-    const v = texto(x), n = vistas.get(v) || 0;
-    vistas.set(v, n + 1);
-    return ['v:' + n + ':' + v, x];
-  }));
-};
+// Lo que tiene id se reconoce por su id; lo demás, por su contenido (un registro { fecha, km }, un texto)
+const claveDe = (x) => (esObjeto(x) && x.id != null ? 'id:' + x.id : 'v:' + texto(x));
+const porClave = (lista) => new Map(lista.map((x) => [claveDe(x), x]));
+// Solo se unen elemento por elemento las listas donde cada uno se reconoce solo: con id, con fecha o un texto.
+// Las demás (comidas, sus alimentos, pasos, rangos de números) van enteras: unirlas repetiría lo que se editó
+const sePuedeUnir = (x) => typeof x === 'string' || (esObjeto(x) && (x.id != null || x.fecha != null));
 
 function unirListas(base, local, remoto, ganaLocal) {
+  if (![...local, ...remoto].every(sePuedeUnir)) return ganaLocal ? local : remoto;
   const b = porClave(Array.isArray(base) ? base : []), l = porClave(local), r = porClave(remoto), salida = [];
   for (const [k, x] of l) {
     if (r.has(k)) salida.push(unir(b.get(k), x, r.get(k), ganaLocal));

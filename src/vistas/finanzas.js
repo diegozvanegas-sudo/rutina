@@ -5,7 +5,7 @@ import { iso, fechaCorta, fechaLarga, sumarDias } from '../fechas.js';
 import {
   mesDe, sumarMeses, pesos, leerMonto, gastoDe, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, planPago, planMeta,
   agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, tarjetaDe, saldoCuenta, patrimonio, anotarPatrimonio,
-  deseosDelMes, fijosPorRevisar, DIAS_REVISION, interesPrestamo, estadoCobro, interesesCobrados, cobroPrestamo,
+  deseosDelMes, fijosPorRevisar, DIAS_REVISION, interesPrestamo, estadoCobro, interesesCobrados, cobroPrestamo, prestarMas,
 } from '../finanzas.js';
 import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
 import { esc, barra, registrar, toast, subirBajar, miles } from '../ui.js';
@@ -45,7 +45,7 @@ export function nuevoMovimiento(m) { agregarMovimiento(f(), m); }
 const editable = (m) => ['gasto', 'ingreso', 'ahorro'].includes(m.tipo) && !m.deuda;
 function filaMovimiento(m) {
   const c = m.tipo === 'ahorro' || m.tipo === 'retiro' ? { icono: '🐷', nombre: (f().metas.find((x) => x.id === m.meta) || {}).nombre || 'Ahorro' }
-    : m.tipo === 'cobro' ? { icono: '🤝', nombre: 'Me pagaron' } : cat(m.tipo, m.categoria);
+    : m.tipo === 'cobro' ? { icono: '🤝', nombre: 'Me pagaron' } : m.tipo === 'presto' ? { icono: '🤝', nombre: 'Presté' } : cat(m.tipo, m.categoria);
   const signo = ['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? '+' : '−';
   const detalle = [m.nota, metodo(m.metodo).nombre, (m.tipo === 'pago-tarjeta' || m.tipo === 'cobro') && m.interes ? 'intereses ' + pesos(m.interes) : ''].filter(Boolean).join(' · ');
   return '<li class="mov t-' + m.tipo + (editable(m) ? ' editable" data-accion="fin-editar-mov" data-id="' + m.id + '" title="Tocar para corregir' : '') + '"><span class="mov-ic">' + c.icono + '</span><span class="mov-txt"><b>' + esc(c.nombre) + '</b><small>' +
@@ -301,21 +301,27 @@ const ESTADOS_COBRO = { pagado: '✓ Cobrado', pronto: 'Pronto', vencido: 'Sin p
 function tarjetaPrestamo(p, i) {
   const r = 'finanzas.prestamos.' + i, monto = p.monto || 0, int = interesPrestamo(p), cobrado = interesesCobrados(f(), p.id);
   const s = monto > 0 && p.tasa && p.dia ? estadoCobro(f(), p) : null, nuevo = p.nombre === 'Nuevo préstamo' && !monto;
+  const movs = f().movimientos.filter((m) => m.prestamo === p.id);
   return '<section class="tarjeta ed-item"><div class="ed-cab"><b>🤝 ' + esc(p.nombre) + '</b>' + (s ? '<span class="estado e-' + s.estado + '">' + ESTADOS_COBRO[s.estado] + '</span>' : '') + '</div>' +
     (monto > 0 ? '<div class="datos-peso"><div><small>Te debe</small><b>' + pesos(monto) + '</b></div>' +
       (p.tasa ? '<div><small>Interés al mes (' + p.tasa + ' %)</small><b class="verde">' + pesos(int) + '</b>' + (p.dia ? '<small>el día ' + p.dia + '</small>' : '') + '</div>' : '') +
       (cobrado ? '<div><small>Te ha pagado de intereses</small><b>' + pesos(cobrado) + '</b></div>' : '') + '</div>'
-      : '<p class="nota-corta">Pendiente' + (nuevo ? '' : ' sin monto') + '. Si sabes cuánto es, ponlo en Editar.</p>') +
+      : '<p class="nota-corta">Pendiente' + (nuevo ? '' : ' sin monto') + '. Si sabes cuánto es, anótalo abajo con "Le presté".</p>') +
     (p.nota ? '<p class="nota-corta">' + esc(p.nota) + '</p>' : '') +
     (p.limite ? '<p class="' + (p.limite < iso() ? 'aviso' : 'nota-corta') + '">Quedó de pagarte el ' + fechaCorta(p.limite) + (p.limite < iso() ? ' y ya pasó: recuérdale.' : '.') + '</p>' : '') +
-    (monto > 0 ? '<div class="aportar dos-col"><input type="text" inputmode="numeric" data-pesos placeholder="' + (int ? miles(int) : '$ 0') + '" aria-label="Cuánto te pagó" data-cobro="' + p.id + '">' +
-      '<button type="button" class="boton primario" data-accion="fin-cobrar" data-id="' + p.id + '">Me pagó</button></div>' +
-      '<p class="nota-corta">' + (int ? 'Vacío = el interés del mes (' + pesos(int) + '). ' : '') + 'Primero cuenta como interés (eso es ingreso); lo demás baja lo que te debe.</p>' : '') +
-    '<button type="button" class="boton secundario ancho" data-accion="fin-saldar" data-id="' + p.id + '">✓ Ya me pagó todo</button>' +
-    '<details' + (nuevo ? ' open' : '') + '><summary>Editar</summary><div class="dos">' + campoTexto('Quién o qué', r + '.nombre', p.nombre) + campoPesos('Te debe', r + '.monto', p.monto) +
+    '<div class="anotar-prestamo"><b>Anotar un movimiento</b><div class="dos">' +
+      '<label class="campo">Cuánto<input type="text" inputmode="numeric" data-pesos placeholder="' + (int && monto > 0 ? miles(int) : '$ 0') + '" autocomplete="off" data-cobro="' + p.id + '"></label>' +
+      '<label class="campo">Fecha<input type="date" data-cobro-fecha="' + p.id + '" value="' + iso() + '" max="' + iso() + '"></label></div>' +
+      '<label class="campo">Nota (opcional)<input type="text" data-cobro-nota="' + p.id + '" autocomplete="off"></label>' +
+      '<div class="' + (monto > 0 ? 'dos' : '') + '">' + (monto > 0 ? '<button type="button" class="boton primario" data-accion="fin-cobrar" data-id="' + p.id + '">Me pagó</button>' : '') +
+      '<button type="button" class="boton secundario' + (monto > 0 ? '' : ' ancho') + '" data-accion="fin-prestar" data-id="' + p.id + '">Le presté' + (monto > 0 ? ' más' : '') + '</button></div>' +
+      (monto > 0 ? '<p class="nota-corta">' + (int ? 'Si pagó y dejas Cuánto vacío, cuenta el interés del mes (' + pesos(int) + '). ' : '') + 'De un pago, primero se cuenta el interés (eso es ingreso); lo demás baja lo que te debe.</p>' : '') + '</div>' +
+    (movs.length ? '<details><summary>Movimientos (' + movs.length + ')</summary>' + listaMovimientos(movs) + '</details>' : '') +
+    (monto > 0 ? '<button type="button" class="boton secundario ancho" data-accion="fin-saldar" data-id="' + p.id + '">✓ Ya me pagó todo</button>' : '') +
+    '<details' + (nuevo ? ' open' : '') + '><summary>Editar datos del préstamo</summary><div class="dos">' + campoTexto('Quién o qué', r + '.nombre', p.nombre) + campoPesos('Te debe', r + '.monto', p.monto) +
     campoNumero('Interés % mensual', r + '.tasa', p.tasa, '0.1') + campoNumero('Día de cobro', r + '.dia', p.dia) +
     '<label class="campo">Quedó de pagarte (opcional)<input type="date" data-cambio="ed" data-ruta="' + r + '.limite" value="' + esc(p.limite || '') + '"></label>' +
-    selector('Te paga a', r + '.metodo', p.metodo || 'transferencia', cuentas()) + '</div>' + campoTexto('Nota', r + '.nota', p.nota) +
+    selector('Cuenta de los movimientos', r + '.metodo', p.metodo || 'transferencia', cuentas()) + '</div>' + campoTexto('Nota', r + '.nota', p.nota) +
     borrar('finanzas.prestamos', i, p.nombre) + '</details></section>';
 }
 function vistaPrestamos() {
@@ -325,7 +331,7 @@ function vistaPrestamos() {
     (alMes ? '<p>Intereses al mes: <b class="verde">' + pesos(alMes) + '</b></p>' : '') +
     '<p class="nota-corta">Plata que prestaste y cosas pendientes (la moto, la natillera…). El día de cobro sale en Recordatorios. Lo que te deben suma en tu patrimonio.</p></section>' +
     activos.map(({ p, i }) => tarjetaPrestamo(p, i)).join('') +
-    '<button type="button" class="boton secundario grande ancho" data-accion="ed-agregar" data-lista="finanzas.prestamos">＋ Préstamo o pendiente</button>' +
+    '<button type="button" class="boton secundario grande ancho prestamo-nuevo" data-accion="ed-agregar" data-lista="finanzas.prestamos">＋ Préstamo o pendiente</button>' +
     (saldados.length ? '<details class="tarjeta"><summary>Ya saldados (' + saldados.length + ')</summary><ul class="lista-pesos">' + saldados.map(({ p, i }) =>
       '<li><span>' + esc(p.nombre) + ' <small>· ' + fechaCorta(p.saldado) + '</small></span><span><button type="button" class="boton secundario" data-accion="fin-reabrir" data-id="' + p.id + '">Reabrir</button>' +
       borrar('finanzas.prestamos', i, p.nombre) + '</span></li>').join('') + '</ul></details>' : '');
@@ -368,13 +374,14 @@ export function pagarDeuda(id, monto) {
   toast(d.saldo > 0 ? 'Pago registrado · saldo ' + pesos(d.saldo) + (m.interes ? ' (' + pesos(m.interes) + ' fueron intereses)' : '') : '🎉 ¡' + d.nombre + ' pagada!');
 }
 
-export function cobrarPrestamo(id, monto) {
+export function cobrarPrestamo(id, monto, fecha = iso(), nota = '') {
   const p = f().prestamos.find((y) => y.id === id);
   if (!p) return;
   monto ||= interesPrestamo(p);
   if (!monto) { toast('Escribe cuánto te pagó'); return; }
   if (!confirm('¿' + p.nombre + ' te pagó ' + pesos(monto) + '?')) return;
-  const m = cobroPrestamo(f(), p, monto);
+  const m = cobroPrestamo(f(), p, monto, fecha);
+  if (nota) m.nota = nota;
   if (!(p.monto > 0) && m.abono) p.saldado = iso();
   listo();
   toast(p.saldado ? '🎉 ' + p.nombre + ': ¡saldado!' : '✓ Cobrado' + (m.interes ? ' · ' + pesos(m.interes) + ' de intereses' : '') + (m.abono ? ' · te debe ' + pesos(p.monto) : ''));
@@ -390,6 +397,7 @@ function moverAhorro(id, tipo) {
   toast((tipo === 'retiro' ? 'Sacaste ' : '🐷 Ahorraste ') + pesos(monto));
 }
 
+const datoPrestamo = (k, id) => (document.querySelector('[data-cobro-' + k + '="' + id + '"]') || { value: '' }).value.trim();
 const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, categoria: null, editando: null });
 
 registrar({
@@ -444,7 +452,15 @@ registrar({
   },
   'fin-cobrar'({ id }) {
     const campo = document.querySelector('[data-cobro="' + id + '"]');
-    cobrarPrestamo(id, campo ? leerMonto(campo.value) : 0);
+    cobrarPrestamo(id, campo ? leerMonto(campo.value) : 0, datoPrestamo('fecha', id) || iso(), datoPrestamo('nota', id));
+  },
+  'fin-prestar'({ id }) {
+    const p = f().prestamos.find((y) => y.id === id), campo = document.querySelector('[data-cobro="' + id + '"]'), monto = leerMonto(campo && campo.value);
+    if (!p) return;
+    if (!monto) { toast('Escribe cuánto le prestaste'); if (campo) campo.focus(); return; }
+    prestarMas(f(), p, monto, datoPrestamo('fecha', id) || iso(), datoPrestamo('nota', id));
+    listo();
+    toast('🤝 Anotado · te debe ' + pesos(p.monto));
   },
   'fin-saldar'({ id }) {
     const p = f().prestamos.find((y) => y.id === id), monto = Math.max(0, (p && p.monto) || 0);

@@ -4,7 +4,7 @@ import { FINANZAS, PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../src/dato
 import {
   leerMonto, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, mesesParaPagar, sumarMeses,
   estadoRecordatorio, proximoRecordatorio, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
-  planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar, cobroPrestamo, interesPrestamo, estadoCobro,
+  planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar, cobroPrestamo, prestarMas, interesPrestamo, estadoCobro,
 } from '../src/finanzas.js';
 
 const mov = (fecha, tipo, monto, extra = {}) => ({ id: fecha + tipo + monto, fecha, tipo, monto, metodo: 'efectivo', ...extra });
@@ -184,6 +184,26 @@ test('plata prestada: el interés es ingreso, el abono baja lo que te deben y vu
   assert.equal(p.monto, 3400000);
   // Devolución sin intereses
   assert.deepEqual([cobroPrestamo(fin, p, 3400000, '2026-12-01', true).interes, p.monto], [0, 0]);
+});
+
+test('prestar más: sube lo que te deben y baja la cuenta, sin ser gasto ni cambiar el patrimonio; borrarlo lo deshace', () => {
+  const fin = FINANZAS();
+  const p = { id: 'b', nombre: 'Bibi', monto: 700000, tasa: 0, dia: 0, metodo: 'nequi' };
+  fin.prestamos.push(p);
+  const nequi = fin.metodos.find((x) => x.id === 'nequi');
+  nequi.ajuste = { monto: 1000000, fecha: '2026-11-01', ts: 0 };
+  const antes = patrimonio(fin).neto;
+  const m = prestarMas(fin, p, 300000, '2026-11-02', 'Para la moto');
+  assert.equal(p.monto, 1000000);
+  assert.equal(m.nota, 'Para la moto');
+  assert.equal(m.fecha, '2026-11-02');
+  assert.equal(saldoCuenta(fin, nequi), 700000);
+  assert.equal(patrimonio(fin).neto, antes);
+  const r = resumenMes(fin, '2026-11', '2026-11-02');
+  assert.deepEqual([r.gastos, r.ingresos, r.balance], [0, 0, 0]);
+  quitarMovimiento(fin, m.id);
+  assert.equal(p.monto, 700000);
+  assert.equal(saldoCuenta(fin, nequi), 1000000);
 });
 
 test('plantillas de recordatorio: categoría y grupo válidos, sin nombres repetidos, con la hipoteca y "Otro" al final', () => {

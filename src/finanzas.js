@@ -95,6 +95,10 @@ export function cobroPrestamo(fin, p, monto, hoy = iso(), soloCapital = false) {
   const abono = Math.min(Math.max(0, p.monto || 0), Math.max(0, monto - falta)), interes = monto - abono;
   return agregarMovimiento(fin, { tipo: 'cobro', monto, interes, abono, metodo: p.metodo || 'transferencia', nota: p.nombre, fijo: 'prestamo:' + p.id, prestamo: p.id }, hoy);
 }
+// Le prestas más: sale de tu cuenta y sube lo que te deben (no es gasto, y el patrimonio no cambia). El abono negativo hace que borrarlo lo deshaga
+export function prestarMas(fin, p, monto, hoy = iso(), nota = '') {
+  return agregarMovimiento(fin, { tipo: 'presto', monto, abono: -Math.round(monto), metodo: p.metodo || 'transferencia', nota: nota || p.nombre, prestamo: p.id }, hoy);
+}
 
 // ---------- Resumen del mes ----------
 export function resumenMes(fin, mes, hoy = iso()) {

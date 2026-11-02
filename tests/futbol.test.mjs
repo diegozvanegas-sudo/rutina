@@ -56,6 +56,7 @@ test('miércoles y viernes el plan de comida es fútbol, puesto al peso de los o
   assert.equal(est.tipoDieta('2026-10-24'), 'inferior'); // sábado: pierna B
   assert.equal(est.tipoDieta('2026-10-19'), 'superior'); // lunes: empuje
   assert.equal(est.tipoDieta('2026-10-25'), 'descanso');
+  assert.equal(est.tipoDieta('2026-10-22'), 'recarga'); // jueves: descanso con partido mañana
   const d = est.e().dieta, kcal80 = totalPlan(d.planes.futbol, d.alimentos).kcal;
   assert.ok(kcal80 < totalPlan(PLANES.futbol, ALIMENTOS).kcal, 'con 80 kg el plan baja: ' + Math.round(kcal80));
   assert.ok(d.config.carbKg.futbol > d.config.carbKg.inferior);

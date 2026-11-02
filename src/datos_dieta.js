@@ -1,4 +1,4 @@
-// Dieta de partida: los tres planes de la hoja (entreno inferior, entreno superior, descanso) con 87 kg, más el día de fútbol.
+// Dieta de partida: los tres planes de la hoja (entreno inferior, entreno superior, descanso) con 87 kg, más el día de fútbol y la recarga.
 // Cada alimento guarda sus valores por 100 g (o por unidad) para poder recalcular cualquier cantidad.
 
 // grupo: proteina | carbo | grasa | verdura | otro  →  al recalcular, la proteína sigue al peso y los carbos ajustan las calorías
@@ -8,7 +8,7 @@ export const ALIMENTOS = [
   { id: 'avena', nombre: 'Avena', por: 'g', p: 10, g: 6, c: 67, kcal: 376, grupo: 'carbo' },
   { id: 'cafe', nombre: 'Café', por: 'u', p: 0, g: 0, c: 0, kcal: 0, grupo: 'otro' },
   { id: 'arroz', nombre: 'Arroz (cocido)', por: 'g', p: 2.5, g: 0.5, c: 26, kcal: 120, grupo: 'carbo' },
-  { id: 'carne', nombre: 'Carne magra', por: 'g', p: 24.4, g: 3.3, c: 0, kcal: 189, grupo: 'proteina' },
+  { id: 'carne', nombre: 'Carne magra', por: 'g', p: 24.4, g: 10, c: 0, kcal: 189, grupo: 'proteina' },
   { id: 'ensalada', nombre: 'Ensalada', por: 'libre', p: 1, g: 0, c: 5, kcal: 25, grupo: 'verdura' },
   { id: 'proteina', nombre: 'Proteína (scoop)', por: 'u', p: 25, g: 2, c: 3, kcal: 130, grupo: 'proteina', paso: 0.5 },
   { id: 'platano', nombre: 'Plátano', por: 'u', p: 1, g: 0, c: 25, kcal: 100, grupo: 'carbo', paso: 0.5 },
@@ -40,9 +40,18 @@ export const PLANES = {
     nombre: 'Fútbol', detalle: 'Partido en la noche · carbos altos', comidas: [
       { nombre: 'Desayuno', items: [it('huevo', 6), it('avena', 70), it('cafe', 1)] },
       { nombre: 'Almuerzo', items: [it('arroz', 250), it('carne', 180), it('ensalada', 1)] },
-      { nombre: 'Pre-partido (2-3 h antes)', items: [it('arroz', 150), it('pollo', 120), it('platano', 1)] },
+      { nombre: 'Pre-partido (2-3 h antes)', items: [it('arroz', 250), it('pollo', 120), it('platano', 1)] },
       { nombre: 'Antes de jugar (1 h)', items: [it('platano', 1)] },
-      { nombre: 'Cena post-partido', items: [it('pollo', 180), it('arroz', 200), it('verdura', 150)] },
+      { nombre: 'Cena post-partido', items: [it('pollo', 180), it('arroz', 250), it('verdura', 150)] },
+    ],
+  },
+  // Descanso con partido al día siguiente: lo mismo que descanso, con más arroz para llegar con energía
+  recarga: {
+    nombre: 'Recarga', detalle: 'Descanso antes de un partido · carbos altos', comidas: [
+      { nombre: 'Desayuno', items: [it('huevo', 6), it('almendras', 15), it('cafe', 1)] },
+      { nombre: 'Almuerzo', items: [it('carne', 180), it('arroz', 250), it('verdura', 200), it('ensalada', 1)] },
+      { nombre: 'Merienda', items: [it('proteina', 1), it('platano', 1)] },
+      { nombre: 'Cena', items: [it('pollo', 200), it('arroz', 200), it('verdura', 200), it('avena', 40)] },
     ],
   },
   descanso: {
@@ -60,6 +69,6 @@ export const PLANES = {
 // pero sus filas suman 1.785): al cambiar el peso, cada plan se recalcula con estos factores.
 export const CONFIG_DIETA = {
   pesoInicio: 87, pesoBase: 87, meta: 76, estatura: 168,
-  kcalKg: { inferior: 27.9, superior: 24.4, descanso: 20.5, futbol: 28.2 },
-  protKg: { inferior: 2.17, superior: 2.1, descanso: 2.06, futbol: 2.14 },
+  kcalKg: { inferior: 27.9, superior: 24.4, descanso: 20.5, futbol: 30.3, recarga: 25.4 },
+  protKg: { inferior: 2.17, superior: 2.1, descanso: 2.06, futbol: 2.18, recarga: 2.15 },
 };

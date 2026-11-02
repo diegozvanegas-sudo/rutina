@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from '../src/datos_dieta.js';
-import { totalPlan, totalComida, tipoDeDia, objetivo, recalcular, pesos, tendencia } from '../src/dieta.js';
+import { totalPlan, totalComida, tipoDeDia, objetivo, recalcular, pesos, tendencia, sugerenciaPeso } from '../src/dieta.js';
 
 const kcal = (tipo) => Math.round(totalPlan(PLANES[tipo], ALIMENTOS).kcal);
 const prot = (tipo) => Math.round(totalPlan(PLANES[tipo], ALIMENTOS).p);
@@ -57,7 +57,7 @@ test('peso: lista ordenada y promedio de los últimos 7', () => {
 test('macros por kg: con el mismo peso el plan no cambia; con menos peso se acerca a P, C y G', async () => {
   const { macrosPorKg, kcalDeMacros } = await import('../src/dieta.js');
   const config = { ...CONFIG_DIETA, ...macrosPorKg(PLANES, ALIMENTOS, 87) };
-  assert.deepEqual(macrosPorKg(PLANES, ALIMENTOS, 87).carbKg, { inferior: 2.74, superior: 2.06, futbol: 3.02, descanso: 1.16 });
+  assert.deepEqual(macrosPorKg(PLANES, ALIMENTOS, 87).carbKg, { inferior: 2.74, superior: 2.06, futbol: 3.47, recarga: 2.21, descanso: 1.16 });
   const obj87 = objetivo(config, 'inferior', 87);
   assert.equal(obj87.kcal, Math.round(kcalDeMacros(obj87.p, obj87.c, obj87.g)));
   const igual = recalcular(PLANES.inferior, ALIMENTOS, obj87).plan;
@@ -66,4 +66,27 @@ test('macros por kg: con el mismo peso el plan no cambia; con menos peso se acer
   assert.ok(Math.abs(r.despues.p - obj80.p) <= 8, 'P ' + Math.round(r.despues.p) + ' vs ' + obj80.p);
   assert.ok(Math.abs(r.despues.c - obj80.c) <= 8, 'C ' + Math.round(r.despues.c) + ' vs ' + obj80.c);
   assert.ok(Math.abs(r.despues.g - obj80.g) <= 6, 'G ' + Math.round(r.despues.g) + ' vs ' + obj80.g);
+});
+
+test('recarga: descanso con partido mañana; si ese día hay gym o partido, manda eso', () => {
+  assert.equal(tipoDeDia(null, false, true), 'recarga');
+  assert.equal(tipoDeDia(null, false, false), 'descanso');
+  assert.equal(tipoDeDia(null, true, true), 'futbol');
+  assert.equal(tipoDeDia({ calentamiento: 'empuje' }, false, true), 'superior');
+});
+
+test('la carne ya no se contradice: sus macros dan sus calorías', () => {
+  const c = ALIMENTOS.find((a) => a.id === 'carne');
+  assert.ok(Math.abs(4 * c.p + 9 * c.g + 4 * c.c - c.kcal) < 5);
+});
+
+test('sugerencia de la semana según el ritmo, y sin datos no concluye', () => {
+  const fecha = (n) => '2026-11-' + String(22 - n).padStart(2, '0');
+  const semanas = (antes, ahora) => [8, 9, 10, 11].map((n) => ({ fecha: fecha(n), peso: antes })).concat([0, 1, 2, 3].map((n) => ({ fecha: fecha(n), peso: ahora })));
+  const hoy = '2026-11-22';
+  assert.equal(sugerenciaPeso([{ fecha: hoy, peso: 88 }], hoy).tipo, 'faltan');
+  assert.equal(sugerenciaPeso(semanas(88, 86.8), hoy).tipo, 'rapido');
+  assert.equal(sugerenciaPeso(semanas(88, 87.3), hoy).tipo, 'bien');
+  assert.equal(sugerenciaPeso(semanas(88, 87.7), hoy).tipo, 'lento');
+  assert.equal(sugerenciaPeso(semanas(88, 88), hoy).tipo, 'quieto');
 });

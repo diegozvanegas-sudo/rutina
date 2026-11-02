@@ -36,10 +36,10 @@ export function quitarComidasRepetidas(plan, alimentos, obj) {
 }
 
 // Qué plan toca según el día: partido → fútbol (aunque también haya gym); pierna → inferior; torso, empuje o tirón → superior;
-// sin entreno → descanso
-export function tipoDeDia(diaRutina, futbol = false) {
+// sin entreno → descanso, o recarga si mañana hay partido
+export function tipoDeDia(diaRutina, futbol = false, futbolManana = false) {
   if (futbol) return 'futbol';
-  if (!diaRutina) return 'descanso';
+  if (!diaRutina) return futbolManana ? 'recarga' : 'descanso';
   // El plan elegido para ese día en Editar manda
   if (diaRutina.dieta) return diaRutina.dieta;
   return diaRutina.calentamiento === 'pierna' ? 'inferior' : 'superior';
@@ -100,6 +100,19 @@ export function recalcular(plan, alimentos, obj) {
   }
 
   return { plan: nuevo, antes, despues: totalPlan(nuevo, alimentos) };
+}
+
+// Sugerencia de la semana: compara el promedio de los últimos 7 días con el de los 7 anteriores. Con pocos registros no concluye
+export function sugerenciaPeso(lista, hoy) {
+  const diasAtras = (f) => Math.round((Date.parse(hoy) - Date.parse(f)) / 86400000);
+  const prom = (xs) => xs.reduce((s, x) => s + x.peso, 0) / xs.length;
+  const ahora = lista.filter((x) => diasAtras(x.fecha) < 7), antes = lista.filter((x) => diasAtras(x.fecha) >= 7 && diasAtras(x.fecha) < 14);
+  if (ahora.length < 4 || antes.length < 4) return { tipo: 'faltan', cambio: null, texto: 'Pésate al menos 4 días por semana durante 2 semanas para saber si el plan funciona.' };
+  const cambio = prom(ahora) - prom(antes);
+  if (cambio < -0.9) return { tipo: 'rapido', cambio, texto: 'Bajas muy rápido y puedes perder músculo. Suma 150–200 kcal de carbos, sobre todo alrededor del entreno.' };
+  if (cambio <= -0.5) return { tipo: 'bien', cambio, texto: 'Vas al ritmo ideal. No cambies nada.' };
+  if (cambio <= -0.2) return { tipo: 'lento', cambio, texto: 'Vas lento pero bajando. Si la fuerza sube, no cambies nada todavía.' };
+  return { tipo: 'quieto', cambio, texto: 'El peso casi no cambió. Si sigue igual otra semana y la ropa no te queda más suelta, quita 150 kcal de carbos los días de descanso o camina más.' };
 }
 
 // Pesos anotados, del más viejo al más nuevo

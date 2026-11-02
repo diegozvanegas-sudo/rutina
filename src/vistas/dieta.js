@@ -3,11 +3,11 @@ import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, comidasDelDia } fr
 import { iso, hora, fechaCorta, diaSemana } from '../fechas.js';
 import { proteinaSemana } from '../entrenador.js';
 import { barras } from '../graficos.js';
-import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, kcalDeMacros } from '../dieta.js';
+import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, kcalDeMacros, sugerenciaPeso } from '../dieta.js';
 import { esc, barra, tip, registrar, toast, miles, subirBajar } from '../ui.js';
 
 let pestana = 'hoy', planVista = null;
-const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', descanso: '😌 Descanso' };
+const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', recarga: '🍚 Recarga', descanso: '😌 Descanso' };
 const GRUPOS = { proteina: 'Proteína', carbo: 'Carbohidrato', grasa: 'Grasa', verdura: 'Verdura', otro: 'Otro' };
 const POR = { g: 'por 100 g', u: 'por unidad', libre: 'porción fija' };
 const r0 = (n) => Math.round(n || 0);
@@ -114,7 +114,7 @@ function vistaPeso() {
   const ultimo = lista.length ? lista[lista.length - 1].peso : null, prom = tendencia(lista), ref = prom || ultimo || c.pesoBase;
   const inicio = c.pesoInicio || c.pesoBase;
   const avance = inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0, imc = ref / Math.pow(c.estatura / 100, 2);
-  const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO');
+  const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO'), sug = sugerenciaPeso(lista, iso());
   return '<section class="tarjeta"><label class="campo">Peso de hoy (kg)<input class="peso-grande" type="number" inputmode="decimal" step="0.1" min="0" data-cambio="dieta-peso" value="' + esc(hoy || '') + '" placeholder="' + esc(ultimo || c.pesoBase) + '"></label>' +
     '<p class="nota-corta">Mejor en ayunas, después del baño. El promedio de 7 días es el que se usa para recalcular.</p></section>' +
     '<section class="tarjeta"><div class="datos-peso">' +
@@ -124,6 +124,8 @@ function vistaPeso() {
     '<div><small>IMC</small><b>' + f1(imc) + '</b></div></div>' + barra(avance) + grafico(lista) +
     (prom && Math.abs(prom - c.pesoBase) >= 1 ? '<p class="aviso">Tu promedio cambió ' + f1(Math.abs(prom - c.pesoBase)) + ' kg desde que se calcularon los planes (' + f1(c.pesoBase) + ' kg). ' +
       '<a href="#dieta" data-accion="dieta-ir-planes">Recalcular los planes con ' + f1(prom) + ' kg →</a></p>' : '') + '</section>' +
+    '<section class="tarjeta"><h2>💡 Sugerencia de la semana</h2>' + (sug.cambio == null ? '' : '<p>Cambio de la semana: <b>' + (sug.cambio > 0 ? '+' : '') + f1(sug.cambio) + ' kg</b></p>') + '<p>' + sug.texto + '</p>' +
+    '<p class="nota-corta">Mira también la fuerza en Gym: si baja o te falta energía, suma carbos aunque el peso vaya bien.</p></section>' +
     (lista.length ? '<section class="tarjeta"><h2>Registros</h2><ul class="lista-pesos">' + lista.slice(-14).reverse().map((x) =>
       '<li><span>' + fechaCorta(x.fecha) + '</span><b>' + f1(x.peso) + ' kg</b></li>').join('') + '</ul></section>' : '') +
     '<section class="tarjeta"><h2>Datos y fórmula</h2><div class="dos">' +

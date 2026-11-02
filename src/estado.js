@@ -51,7 +51,35 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2', 'dietaEnergiaV1'];
+// 2 nov 2026: la carne con la grasa que dan sus calorías, plan de recarga antes del partido y más arroz el día de fútbol.
+// Los carbos y la grasa por kg se vuelven a tomar de los planes, para que recalcular no los deshaga
+function dietaEnergia(est) {
+  if (est.dietaEnergiaV1) return;
+  const dt = est.dieta, c = dt.config, carne = dt.alimentos.find((a) => a.id === 'carne');
+  if (carne && carne.g === 3.3 && carne.kcal === 189) carne.g = 10;
+  for (const [nombre, mas] of [[/^pre-partido/i, 100], [/post-partido/i, 50]]) {
+    const arroz = (dt.planes.futbol?.comidas.find((x) => nombre.test(x.nombre))?.items || []).find((i) => i.alimento === 'arroz');
+    if (arroz) arroz.cant += mas;
+  }
+  if (!dt.planes.recarga) {
+    dt.planes.recarga = copia(PLANES.recarga);
+    c.kcalKg.recarga ??= CONFIG_DIETA.kcalKg.recarga;
+    c.protKg.recarga ??= CONFIG_DIETA.protKg.recarga;
+    if (c.pesoBase !== CONFIG_DIETA.pesoBase && c.carbKg && c.grasaKg) {
+      const x = macrosPorKg({ recarga: PLANES.recarga }, dt.alimentos, CONFIG_DIETA.pesoBase);
+      c.carbKg.recarga = x.carbKg.recarga; c.grasaKg.recarga = x.grasaKg.recarga;
+      dt.planes.recarga = recalcular(dt.planes.recarga, dt.alimentos, objetivo(c, 'recarga', c.pesoBase)).plan;
+    }
+  }
+  // Volver a los planes de antes no puede dejar el jueves sin plan
+  if (dt.anterior && !dt.anterior.recarga) dt.anterior.recarga = copia(dt.planes.recarga);
+  const x = macrosPorKg(dt.planes, dt.alimentos, c.pesoBase);
+  c.carbKg = { ...c.carbKg, ...x.carbKg }; c.grasaKg = { ...c.grasaKg, ...x.grasaKg };
+  if (dt.planes.futbol) c.protKg.futbol = Math.round((totalPlan(dt.planes.futbol, dt.alimentos).p / c.pesoBase) * 100) / 100;
+  est.dietaEnergiaV1 = true;
+  est.cambio = Date.now();
+}
 // Una sola vez: lo que la primera combinación con la nube dejó repetido. Cuenta como cambio para que la nube también quede limpia
 function quitarRepetidos(est) {
   if (est.sinRepetidosV1 && est.sinRepetidosV2) return;
@@ -100,6 +128,7 @@ export function cargar() {
   estado.estudio ??= { cursos: {}, tarjetas: {}, dias: {} };
   if (estado.fenix) moverFenix(estado);
   quitarRepetidos(estado);
+  dietaEnergia(estado);
   const c = estado.config, n = CONFIG_NUEVA();
   for (const k of Object.keys(n)) c[k] ??= n[k];
   ponerSemana1(c.semana1);
@@ -247,6 +276,7 @@ export function reemplazar(datos) {
   estado = { ...inicial(), ...datos, ...propio };
   sembrarLugares(estado);
   quitarRepetidos(estado);
+  dietaEnergia(estado);
   for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
   ponerSemana1(estado.config.semana1);
   escribir();
@@ -363,10 +393,10 @@ export function avanceMetas(fecha = iso()) {
 export const hayFutbol = (fecha = iso()) => (e().config.futbol || []).includes(diaSemana(fecha));
 
 // ---------- Dieta ----------
-// Plan que toca por el día: partido → fútbol, pierna → inferior, resto → superior, sin entreno → descanso
+// Plan que toca por el día: partido → fútbol, pierna → inferior, resto → superior, sin entreno → descanso o recarga si mañana hay partido
 export function tipoDietaAuto(fecha = iso()) {
   const n = diaSemana(fecha);
-  return tipoDeDia(e().rutina.find((x) => x.diaSemana === n), hayFutbol(fecha));
+  return tipoDeDia(e().rutina.find((x) => x.diaSemana === n), hayFutbol(fecha), hayFutbol(sumarDias(fecha, 1)));
 }
 // Plan del día: el elegido a mano ese día o el que toca
 export function tipoDieta(fecha = iso()) {

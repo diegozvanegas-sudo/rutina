@@ -16,7 +16,7 @@ const TIPOS_HABITO = { check: 'Marcar', cuenta: 'Cuenta regresiva', cronometro: 
 // Calentamiento del día: cualquier sesión de tipo calentamiento ("calentamiento-pierna" se guarda como "pierna", como antes)
 const calentamientos = () => ({ '': 'Sin calentamiento', ...Object.fromEntries(e().sesiones.filter((s) => s.tipo === 'calentamiento' && s.id !== 'calentamiento-futbol')
   .map((s) => [s.id.replace(/^calentamiento-/, ''), s.nombre])) });
-const PLANES_DIETA = { '': 'Automático (pierna → inferior, resto → superior)', inferior: 'Inferior', superior: 'Superior', descanso: 'Descanso' };
+const PLANES_DIETA = { '': 'Automático (pierna → inferior, resto → superior)', inferior: 'Inferior', superior: 'Superior', descanso: 'Descanso', recarga: 'Recarga' };
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const TIPOS_SESION = { checklist: 'Checklist (marcar con ✓)', calentamiento: 'Calentamiento', estiramiento: 'Estiramiento', fortalecimiento: 'Fortalecimiento', mente: 'Mente', otro: 'Otro' };
 const FIGURAS = { '': 'Automática (según el nombre)', '-': 'Sin figura', ...Object.fromEntries(OPCIONES_FIGURA.map((k) => [k, k[0].toUpperCase() + k.slice(1)])) };

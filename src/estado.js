@@ -10,6 +10,7 @@ import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
 import { visibles } from './orden.js';
 import { iso, sumarDias, semanaDe, diaSemana, hora, ponerSemana1, SEMANA_1_INICIAL } from './fechas.js';
+import { limpiarRepetidos } from './combinar.js';
 
 const BASE = 'rutina_v1';
 let CLAVE = BASE, escribible = true;
@@ -50,7 +51,14 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1'];
+// Una sola vez: lo que la primera combinación con la nube dejó repetido. Cuenta como cambio para que la nube también quede limpia
+function quitarRepetidos(est) {
+  if (est.sinRepetidosV1) return;
+  limpiarRepetidos(est);
+  est.sinRepetidosV1 = true;
+  est.cambio = Date.now();
+}
 // Una sola vez: la lista inicial de lugares para marcar. Después cada quien la edita o la borra
 function sembrarLugares(est) {
   est.lugares ??= { lista: [] };
@@ -87,6 +95,7 @@ export function cargar() {
   estado.libros ??= {};
   estado.estudio ??= { cursos: {}, tarjetas: {}, dias: {} };
   if (estado.fenix) moverFenix(estado);
+  quitarRepetidos(estado);
   const c = estado.config, n = CONFIG_NUEVA();
   for (const k of Object.keys(n)) c[k] ??= n[k];
   ponerSemana1(c.semana1);
@@ -233,6 +242,7 @@ export function reemplazar(datos) {
   const propio = { activo: estado.activo, nube: estado.nube };
   estado = { ...inicial(), ...datos, ...propio };
   sembrarLugares(estado);
+  quitarRepetidos(estado);
   for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
   ponerSemana1(estado.config.semana1);
   escribir();

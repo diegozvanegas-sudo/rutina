@@ -239,6 +239,12 @@ export function reemplazar(datos) {
   repintar();
 }
 export function marcarNube(nube) { estado.nube = nube; escribir(); }
+// La última copia sincronizada: contra ella se sabe qué cambió cada equipo. Si no cabe, se combina sin ella
+export function guardarBase(datos) { try { localStorage.setItem(CLAVE + ':base', JSON.stringify(datos)); } catch (err) { try { localStorage.removeItem(CLAVE + ':base'); } catch (e2) {} } }
+export function leerBase() { return leerClave(CLAVE + ':base'); }
+// Copia de lo que había aquí antes de combinar, por si algo sale mal
+export function guardarAntes(datos) { try { localStorage.setItem(CLAVE + ':antes', JSON.stringify(datos)); } catch (err) {} }
+export function marcarCambio(ts) { estado.cambio = ts; escribir(); }
 
 export function dia(fecha = iso()) {
   const d = (e().dias[fecha] ??= {});
@@ -270,16 +276,18 @@ export function quitarSemana() {
 
 // ---------- Mañana ----------
 // Sin hábitos no hay mañana completa (si no, la racha no termina nunca)
+// Los hábitos que tocan ese día (sin días elegidos, todos los días)
+export const habitosDe = (fecha = iso()) => e().habitos.filter((h) => !(h.dias && h.dias.length) || h.dias.includes(diaSemana(fecha)));
 export function mananaCompleta(fecha) {
-  const d = e().dias[fecha];
-  return !!d && e().habitos.length > 0 && e().habitos.every((h) => d.habitos && d.habitos[h.id]);
+  const d = e().dias[fecha], hs = habitosDe(fecha);
+  return !!d && hs.length > 0 && hs.every((h) => d.habitos && d.habitos[h.id]);
 }
 export function hechosManana(fecha = iso()) {
   const d = e().dias[fecha];
-  return e().habitos.filter((h) => d && d.habitos && d.habitos[h.id]).length;
+  return habitosDe(fecha).filter((h) => d && d.habitos && d.habitos[h.id]).length;
 }
 // Parte hecha (0–1); sin hábitos es 0
-export const fraccionManana = (fecha = iso()) => (e().habitos.length ? hechosManana(fecha) / e().habitos.length : 0);
+export const fraccionManana = (fecha = iso()) => (habitosDe(fecha).length ? hechosManana(fecha) / habitosDe(fecha).length : 0);
 // Lo escrito en un hábito "Con texto": el de agradecer sigue en d.gratitud (columna Gratitud); los demás en d.textos
 export const textoHabito = (d, h) => (h.id === 'agradecer' ? d.gratitud : d.textos && d.textos[h.id]) || '';
 export function ponerTextoHabito(d, h, texto) {
@@ -297,10 +305,15 @@ export function pastillaDe(d) {
   return p && d.habitos && d.habitos[p.id];
 }
 
-// Días seguidos con la mañana completa. Si hoy aún no está completa, cuenta hasta ayer.
+// Días con la mañana completa. "Nunca falles dos veces": un día fallado no suma pero no corta; dos seguidos, sí.
+// Los días sin hábitos programados no cuentan. Si hoy aún no está completa, cuenta hasta ayer.
 export function racha(hoy = iso()) {
-  let n = 0, f = mananaCompleta(hoy) ? hoy : sumarDias(hoy, -1);
-  while (mananaCompleta(f)) { n++; f = sumarDias(f, -1); }
+  if (!e().habitos.length) return 0;
+  let n = 0, fallos = 0, f = mananaCompleta(hoy) ? hoy : sumarDias(hoy, -1);
+  for (let i = 0; i < 3650; i++, f = sumarDias(f, -1)) {
+    if (!habitosDe(f).length) continue;
+    if (mananaCompleta(f)) { n++; fallos = 0; } else if (++fallos > 1) break;
+  }
   return n;
 }
 

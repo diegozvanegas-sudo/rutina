@@ -10,6 +10,7 @@ import { progresoCurso, lecciones, leccion, leccionQueToca, hechas, avance, suma
   planDelDia, siguientes, anotar, rachaEstudio, INTERVALOS } from '../estudio.js';
 import { registrarCatalogo, ve, veRuta } from '../permisos.js';
 import { promptMentor } from '../mentor.js';
+import { tarjetaIngles } from './mejora.js';
 
 // Las áreas y los cursos entran al catálogo del administrador
 registrarCatalogo('area', catalogoAreas);
@@ -226,6 +227,7 @@ function vistaCurso() {
   return '<button type="button" class="boton secundario" data-accion="estudio-area" data-a="' + a.id + '">← ' + a.icono + ' ' + esc(a.nombre) + '</button>' +
     '<h1>' + c.icono + ' ' + esc(c.nombre) + '</h1><p class="sub">' + esc(c.nivel) + ' · ' + esc(c.paraQue) + '</p>' +
     '<section class="tarjeta"><div class="fila-resumen"><b>📖 ' + n + ' de ' + total + ' lecciones</b><span>🔥 ' + rachaEstudio(E().dias) + ' días</span></div>' + barra(n / total) + '</section>' +
+    (c.id === 'ingles-b2' ? tarjetaIngles() : '') +
     '<nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) => '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="estudio-pestana" data-p="' + k + '">' + esc(t) + '</button>').join('') +
     '</nav>' + (vistasP[pestana] || pestanaHoy)();
 }

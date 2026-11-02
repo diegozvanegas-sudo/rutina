@@ -8,7 +8,7 @@ export const SECCIONES = {
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
 export const TARJETAS_HOY = {
-  entrenador: '🧑‍🏫 Tu entrenador hoy', foco: '🗓️ Foco y cierre de la semana', estudio: '🎓 Estudio de hoy', manana: '☀️ Primera hora', metas: '🎯 Metas',
+  entrenador: '🧑‍🏫 Tu entrenador hoy', experimento: '🧪 Experimento de la semana', foco: '🗓️ Foco y cierre de la semana', estudio: '🎓 Estudio de hoy', manana: '☀️ Primera hora', metas: '🎯 Metas',
   gym: '🏋️ Entrenamiento y fútbol', suenoPeso: '🌙 Sueño y peso', estandares: '🧭 Mis estándares', dieta: '🥗 Comidas', semana: '📅 Semana', plata: '💰 Plata del mes', cierre: '🌙 Cierre de la noche (desde las 7 p. m.)',
 };
 // Sección de la que depende cada tarjeta de Hoy: si el admin esconde la sección, la tarjeta tampoco se ve

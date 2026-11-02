@@ -1,5 +1,5 @@
 // "Primera hora": checklist en orden; cada toque guarda la hora
-import { e, guardar, dia, racha, hechosManana, fraccionManana, alternarCrono, segundosCrono, textoHabito, ponerTextoHabito, pastillaDe } from '../estado.js';
+import { e, guardar, dia, racha, habitosDe, hechosManana, fraccionManana, alternarCrono, segundosCrono, textoHabito, ponerTextoHabito, pastillaDe } from '../estado.js';
 import { iso, hora, reloj } from '../fechas.js';
 import { esc, barra, tip, registrar, toast } from '../ui.js';
 import { iniciar } from '../temporizador.js';
@@ -44,12 +44,13 @@ const TIPOS_RAPIDOS = { check: 'Marcar', texto: 'Con texto', cuenta: 'Cuenta reg
 export function listaManana(fecha = iso()) {
   const d = dia(fecha);
   if (!e().habitos.length) return '<p class="nota-corta">Aún no tienes hábitos de mañana. Agrega el primero aquí abajo.</p>' + agregarManana();
-  return '<ol class="habitos">' + e().habitos.map((h, i) => {
+  if (!habitosDe(fecha).length) return '<p class="nota-corta">Hoy no tienes hábitos programados. Día libre 🙌</p>' + agregarManana();
+  return '<ol class="habitos">' + habitosDe(fecha).map((h, i) => {
     const reg = d.habitos[h.id];
     return '<li class="habito' + (reg ? ' hecho' : '') + '"' + tip(reg && h.detalle ? h.nombre + '\n' + h.detalle : '') + '>' +
       '<button type="button" class="check" data-accion="marcar" data-id="' + h.id + '" aria-pressed="' + !!reg + '" aria-label="' + esc(h.nombre) + '">' + (reg ? '✓' : i + 1) + '</button>' +
       '<div class="info"><div class="nombre">' + esc(h.nombre) + '</div>' +
-      '<div class="detalle">' + (reg ? 'Hecho a las ' + hora(reg.ts) : esc(h.detalle || '')) + '</div>' + extra(h, d, fecha) + '</div></li>';
+      '<div class="detalle">' + (reg ? (reg.minimo ? '🌱 Versión mínima a las ' : 'Hecho a las ') + hora(reg.ts) : esc(h.detalle || '')) + '</div>' + extra(h, d, fecha) + (!reg && h.minimo ? '<button type="button" class="boton-suave habito-minimo" data-accion="marcar-minimo" data-id="' + h.id + '">🌱 Hoy solo el mínimo: ' + esc(h.minimo) + '</button>' : '') + '</div></li>';
   }).join('') + '</ol>' + agregarManana();
 }
 
@@ -63,9 +64,9 @@ function agregarManana() {
 let tipoNuevo = 'check';
 
 export function cabeceraManana(fecha = iso()) {
-  const n = hechosManana(fecha), total = e().habitos.length, r = racha(fecha);
+  const n = hechosManana(fecha), total = habitosDe(fecha).length, r = racha(fecha);
   if (!total) return '';
-  return '<div class="fila-resumen"><span><b>' + n + ' / ' + total + '</b> hechos</span><span class="racha" title="Días seguidos con la mañana completa">🔥 ' + r + ' día' + (r === 1 ? '' : 's') + '</span></div>' + barra(fraccionManana(fecha));
+  return '<div class="fila-resumen"><span><b>' + n + ' / ' + total + '</b> hechos</span><span class="racha" title="Días con la mañana completa. Un día fallado no la corta; dos seguidos, sí.">🔥 ' + r + ' día' + (r === 1 ? '' : 's') + '</span></div>' + barra(fraccionManana(fecha));
 }
 
 export function vistaManana() {
@@ -86,6 +87,7 @@ export function revisarCronos(fecha = iso()) {
 }
 
 registrar({
+  'marcar-minimo'({ id }) { dia().habitos[id] = { ts: Date.now(), minimo: true }; guardar(); },
   marcar({ id }) {
     const h = dia().habitos;
     if (h[id]) { if (!confirm('¿Desmarcar este hábito?')) return; delete h[id]; } else h[id] = { ts: Date.now() };

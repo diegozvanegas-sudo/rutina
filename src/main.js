@@ -1,6 +1,6 @@
 import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
-import { e, cargar, esperarUsuario, alCambiar, guardar, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
+import { e, cargar, esperarUsuario, alCambiar, guardar, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct, barra, esc, claveDeDatos } from './ui.js';
 import { revisar, restante, sumar, detener } from './temporizador.js';
@@ -90,7 +90,7 @@ function aplicarBarra() {
 
 // Barra lateral: fija a la derecha en el computador; en el celular se abre con ☰ desde la derecha
 function lateral() {
-  const total = e().habitos.length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {}), b = ajustesBarra();
+  const total = habitosDe().length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {}), b = ajustesBarra();
   const hacia = (b.lado === 'izquierda') === !!b.compacta ? '»' : '«';
   if (b.compacta) organizandoMenu = false;
   return '<div class="asa-barra" title="Arrastra para cambiar el ancho" aria-hidden="true"></div>' +

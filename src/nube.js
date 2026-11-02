@@ -1,7 +1,8 @@
 // Copia en la nube (Supabase, esquema "rutina" del proyecto de microrrutas). El celular sigue siendo lo principal:
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
-import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario } from './estado.js';
+import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio } from './estado.js';
+import { combinarEstado } from './combinar.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -31,8 +32,12 @@ export async function sincronizar(silencio = false) {
       const cambiosAlla = remoto && (base == null || cambioRemoto > base);
 
       if (cambiosAlla && cambiosAqui) {
-        // Los dos lados cambiaron desde la última vez: queda lo último que se guardó, sea de aquí o de otro equipo
-        if (cambioRemoto >= (local.cambio || 0)) bajar(remoto); else await subir(local);
+        // Los dos lados cambiaron desde la última vez: se combinan, y solo en lo que chocan gana lo último guardado
+        const aqui = datosParaNube();
+        guardarAntes(aqui);
+        reemplazar(combinarEstado(leerBase(), aqui, remoto.datos, (local.cambio || 0) > cambioRemoto));
+        marcarCambio(Math.max(Date.now(), cambioRemoto + 1));
+        await subir(e());
       } else if (cambiosAlla) bajar(remoto);
       else if (cambiosAqui || !remoto) await subir(local);
       nube.ultima = Date.now();
@@ -54,18 +59,20 @@ function tieneDatos(est) {
 function bajar(remoto) {
   reemplazar(remoto.datos);
   marcarNube({ usuario: nube.usuario.id, base: Number(remoto.version) });
+  guardarBase(remoto.datos);
 }
 async function subir(local) {
   const cambio = local.cambio || Date.now();
-  const { data, error } = await supabase.rpc('rutina_guardar', { p_datos: datosParaNube(), p_version: cambio });
+  const datos = datosParaNube();
+  const { data, error } = await supabase.rpc('rutina_guardar', { p_datos: datos, p_version: cambio });
   if (error) throw error;
   if (Number(data) > cambio) {
-    // Otro equipo guardó algo más nuevo justo antes: se baja eso
-    const r = await supabase.rpc('rutina_leer');
-    if (!r.error && r.data && r.data[0]) bajar(r.data[0]);
+    // Otro equipo guardó algo más nuevo justo antes: otra vuelta para combinarlo
+    otraVez = true;
     return;
   }
   marcarNube({ usuario: nube.usuario.id, base: cambio });
+  guardarBase(datos);
 }
 
 // Después de cada cambio, se sube a los pocos segundos (agrupa varios toques seguidos)

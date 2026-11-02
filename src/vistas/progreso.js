@@ -11,6 +11,7 @@ import { esc, registrar } from '../ui.js';
 import { horasSueno, partidos, energiaSegunPierna } from '../registro.js';
 import { cierreSemana } from './registro.js';
 import { tarjetaFuerza } from './gym.js';
+import { tableroMejora, revisionDomingo, tarjetaQueFunciona, historialExperimentos } from './mejora.js';
 
 let dias = 30;
 const LETRA = ['', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
@@ -158,14 +159,14 @@ function graficoFutbol() {
 }
 
 function revision() {
-  return '<section class="tarjeta revision"><h2>📝 Revisión de la semana</h2><ul>' + revisionSemanal().map((f) =>
+  return '<section class="tarjeta revision"><h2>📝 Revisión de la semana</h2>' + revisionDomingo() + '<ul>' + revisionSemanal().map((f) =>
     '<li>' + (f.ir ? '<a href="' + f.ir + '">' : '') + '<span>' + f.icono + '</span><span class="txt">' + esc(f.texto) + '</span>' + (f.ir ? '<span class="flecha" aria-hidden="true">›</span></a>' : '') + '</li>').join('') + '</ul></section>' + cierreSemana();
 }
 
 export function vistaProgreso() {
   return '<div class="cab-vista"><h1>Progreso</h1><div class="chips filtro" role="group" aria-label="Rango">' + [7, 30, 90].map((n) =>
     '<button type="button" class="chip' + (n === dias ? ' activo' : '') + '" data-accion="prog-dias" data-n="' + n + '">' + n + ' días</button>').join('') + '</div></div>' +
-    indicadores() + revision() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoSueno() + graficoFutbol() + graficoGym() + tarjeta('💪 Fuerza', '<div class="fuerza">' + tarjetaFuerza() + '</div>', '1RM estimado del top set: compara peso y reps en un solo número.', '#gym/resumen') + graficoCardio() + graficoMetas() + graficoPlata() + '</div>';
+    indicadores() + tableroMejora() + revision() + tarjetaQueFunciona() + historialExperimentos() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoSueno() + graficoFutbol() + graficoGym() + tarjeta('💪 Fuerza', '<div class="fuerza">' + tarjetaFuerza() + '</div>', '1RM estimado del top set: compara peso y reps en un solo número.', '#gym/resumen') + graficoCardio() + graficoMetas() + graficoPlata() + '</div>';
 }
 
 registrar({ 'prog-dias'({ n }) { dias = Number(n); repintar(); } });

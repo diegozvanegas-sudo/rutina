@@ -816,3 +816,32 @@ details > summary { min-height: 44px; padding-top: 10px; padding-bottom: 10px; b
 .con-activa .rec:not(.rec-activa) { opacity: .5; transition: opacity .15s; }
 .con-activa .rec:not(.rec-activa):hover { opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .con-activa .rec:not(.rec-activa) { transition: none; } }
+/* ---------- Mejora continua ---------- */
+.pendiente-hoy { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.pendiente-hoy a { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-weight: 700; text-decoration: none; }
+.pendiente-hoy a.ok { border-color: var(--brand); color: var(--brand); }
+.plegada > summary { color: var(--ink); font-weight: 800; font-size: 18px; }
+.plegada > :not(summary) { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.plegada[open] > section > h2:first-child { display: none; }
+.lista-mejora { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 6px; }
+@media (min-width: 900px) { .lista-mejora { grid-template-columns: 1fr 1fr; } }
+.lista-mejora a { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); color: var(--ink); text-decoration: none; }
+.m-ic { font-size: 22px; }
+.m-txt { flex: 1; min-width: 0; display: grid; }
+.m-val { display: grid; text-align: right; }
+.m-mejor { color: var(--brand); font-weight: 800; }
+.m-peor { color: var(--amarillo); font-weight: 800; }
+.revision-domingo { display: grid; gap: 4px; margin-bottom: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.revision-domingo p { margin: 0; }
+.revision-pregunta { margin-top: 6px !important; font-weight: 700; }
+.lista-funciona { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.lista-funciona li { display: grid; gap: 2px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); }
+.experimento { display: grid; gap: 8px; }
+.experimento h2, .experimento p { margin: 0; }
+.experimento .barra { margin: 0; }
+.habito-minimo { justify-self: start; }
+.ed-titulo { flex: 1; min-width: 0; min-height: 44px; background: none; border: 0; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.ed-cuerpo { display: grid; gap: 10px; }
+.ed-cuerpo[hidden] { display: none; }
+.dias-habito .chip { min-width: 44px; justify-content: center; }
+.plegada .col-gym > section, .plegada > div > section { margin: 0; padding: 0; border: 0; background: none; }

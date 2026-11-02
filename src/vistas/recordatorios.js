@@ -28,6 +28,7 @@ export function alertas(hoy = iso()) {
 }
 
 function regla(x) {
+  if (x.diaMes && !x.cadaKm) return 'El día ' + x.diaMes + ' de cada mes';
   const partes = [];
   if (x.cadaKm) partes.push('cada ' + km(x.cadaKm));
   if (x.cadaMeses) partes.push('cada ' + x.cadaMeses + (x.cadaMeses === 1 ? ' mes' : ' meses'));
@@ -45,7 +46,7 @@ function principal(x, s, actual) {
   if (s.estado === 'sin-dato') return '<p class="rec-titulo">Aún sin registro</p><p class="nota-corta">' + regla(x) + '. Márcalo la próxima vez o anota cuándo fue el último.' + (x.cadaKm ? '' : ' ¿Aún no empieza? Pon la fecha en ✏️ Editar.') + '</p>';
   if (s.empieza) return '<p class="rec-titulo">' + proximoRecordatorio(x, s, actual).titulo + ' <small>' + fechaCorta(s.empieza) + '</small></p><p class="nota-corta">Después, ' + regla(x) + '. ' + (s.estado === 'programado' ? 'Te avisa 14 días antes.' : 'Márcalo cuando lo hagas.') + '</p>';
   const p = proximoRecordatorio(x, s, actual);
-  const ultimo = 'Último: ' + fechaCorta(s.ultimo.fecha) + ' (' + hace(diasEntre(s.ultimo.fecha, iso())) + ')' + (s.ultimo.km != null ? ' · ' + km(s.ultimo.km) : '') + (s.ultimo.costo ? ' · ' + pesos(s.ultimo.costo) : '');
+  const ultimo = !s.ultimo ? 'Aún sin registro' : 'Último: ' + fechaCorta(s.ultimo.fecha) + ' (' + hace(diasEntre(s.ultimo.fecha, iso())) + ')' + (s.ultimo.km != null ? ' · ' + km(s.ultimo.km) : '') + (s.ultimo.costo ? ' · ' + pesos(s.ultimo.costo) : '');
   if (!p) return '<p class="rec-titulo">Sin fecha fija</p><p class="nota-corta">' + ultimo + '</p>';
   const cuando = [p.km != null ? 'a los ' + km(p.km) : '', p.fecha ? (p.km != null ? '≈ ' : '') + fechaCorta(p.fecha) : ''].filter(Boolean).join(' · ');
   return '<p class="rec-titulo">' + p.titulo + (cuando ? ' <small>' + cuando + '</small>' : '') + '</p>' + barra(p.fraccion, 'e-barra-' + s.estado) +
@@ -73,6 +74,7 @@ function panelEditar(x, i) {
     '<label class="campo">Ícono<input type="text" maxlength="4" data-cambio="ed" data-ruta="' + ruta + '.icono" value="' + esc(x.icono || '') + '"></label>' +
     '<label class="campo">Se repite cada (0 = sin fecha)<input type="number" inputmode="numeric" min="0" name="cada" data-cambio="rec-frecuencia" data-id="' + x.id + '" value="' + cada + '"></label>' +
     '<label class="campo">Unidad<select name="unidad" data-cambio="rec-frecuencia" data-id="' + x.id + '"><option value="dias"' + (enDias ? ' selected' : '') + '>Días</option><option value="meses"' + (enDias ? '' : ' selected') + '>Meses</option></select></label>' +
+    (x.cadaKm ? '' : '<label class="campo">O un día fijo del mes (1 a 31)<input type="number" inputmode="numeric" min="0" max="31" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.diaMes" value="' + (x.diaMes || '') + '" placeholder="Ej.: 15"></label>') +
     // Fecha del primer pago: solo mientras no haya nada registrado; después manda el historial
     (x.hechos.length ? '' : '<label class="campo">Empieza el (opcional)<input type="date" data-cambio="ed" data-ruta="' + ruta + '.empieza" value="' + esc(x.empieza || '') + '"></label>') +
     // Km y vehículo solo para lo de la moto

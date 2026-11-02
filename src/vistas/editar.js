@@ -76,6 +76,11 @@ function elegirSesiones(titulo, ruta, ids) {
     e().sesiones.map((x) => '<button type="button" class="chip' + (sel.includes(x.id) ? ' activo' : '') + '" data-accion="ed-sesiones-lista" data-ruta="' + ruta + '" data-id="' + esc(x.id) + '">' + esc(x.nombre) + '</button>').join('') + '</nav></details>';
 }
 
+// Cada elemento se ve cerrado, con su nombre y controles; se abre al tocarlo y resalta mientras se edita
+let itemAbierto = null;
+const abrirItem = (r, titulo, ctrl) => '<section class="tarjeta ed-item' + (itemAbierto === r ? ' rec-activa' : '') + '"><div class="ed-cab"><button type="button" class="ed-titulo" data-accion="ed-abrir" data-r="' + r + '" aria-expanded="' + (itemAbierto === r) + '"><span aria-hidden="true">' + (itemAbierto === r ? '▾' : '▸') + '</span> <b>' + titulo + '</b></button>' + ctrl + '</div><div class="ed-cuerpo"' + (itemAbierto === r ? '' : ' hidden') + '>';
+const DIAS_CHIP = ['', 'L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
 // ---------- Hábitos ----------
 function editorHabitos() {
   const hs = e().habitos, sesiones = Object.fromEntries(e().sesiones.map((s) => [s.id, s.nombre]));
@@ -85,14 +90,16 @@ function editorHabitos() {
     (faltan ? '<button type="button" class="boton secundario" data-accion="ed-habitos-ejemplo">↩ Traer los de ejemplo (' + faltan + ')</button>' : '') + '</div>' +
     (hs.length ? '' : '<p class="nota-corta">Lista vacía: agrega tus hábitos con "＋ Hábito".</p>') + hs.map((h, i) => {
     const r = 'habitos.' + i;
-    return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (i + 1) + '. ' + esc(h.nombre) + '</b>' + controles('habitos', i, hs.length, h.nombre) + '</div>' +
+    return abrirItem(r, (i + 1) + '. ' + esc(h.nombre), controles('habitos', i, hs.length, h.nombre)) +
       '<div class="dos">' + campo('Nombre', r + '.nombre', h.nombre) + campo('Detalle', r + '.detalle', h.detalle) + '</div>' +
+      campo('Versión mínima para un mal día (opcional)', r + '.minimo', h.minimo, ' placeholder="Ej.: 10 min de escucha"') +
+      '<p class="nota-corta">Qué días toca (sin marcar, todos):</p><nav class="chips dias-habito">' + [1, 2, 3, 4, 5, 6, 7].map((n) => '<button type="button" class="chip' + ((h.dias || []).includes(n) ? ' activo' : '') + '" data-accion="ed-habito-dia" data-i="' + i + '" data-n="' + n + '" aria-pressed="' + (h.dias || []).includes(n) + '">' + DIAS_CHIP[n] + '</button>').join('') + '</nav>' +
       '<div class="dos">' + lista('Tipo', r + '.tipo', h.tipo, TIPOS_HABITO) +
       (h.tipo === 'cuenta' ? numero('Duración (segundos)', r + '.segundos', h.segundos) : '') +
       (h.tipo === 'cronometro' ? numero('Meta (minutos)', r + '.segundos', Math.round((h.segundos || 0) / 60), ' data-factor="60"') : '') +
       (h.tipo === 'sesion' ? lista('Sesión', r + '.sesion', h.sesion, sesiones) : '') + '</div>' +
       (h.nombre === 'Nuevo hábito' ? ideasHabito(i) : '') +
-      (h.tipo === 'espera' && !hs.some((x) => x.tipo === 'pastilla') ? '<p class="aviso">⚠ La espera arranca al marcar un hábito de tipo "Pastilla": agrega uno.</p>' : '') + '</section>';
+      (h.tipo === 'espera' && !hs.some((x) => x.tipo === 'pastilla') ? '<p class="aviso">⚠ La espera arranca al marcar un hábito de tipo "Pastilla": agrega uno.</p>' : '') + '</div></section>';
   }).join('') + '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="habitos">＋ Hábito</button>';
 }
 
@@ -131,14 +138,14 @@ function editorRutina() {
       '<datalist id="musculos">' + musculos.map((m) => '<option value="' + esc(m) + '">').join('') + '</datalist>' +
       d.ejercicios.map((ej, j) => {
         const r = 'rutina.' + i + '.ejercicios.' + j;
-        return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (j + 1) + '. ' + esc(ej.nombre) + '</b>' + controles('rutina.' + i + '.ejercicios', j, d.ejercicios.length, ej.nombre) + '</div>' +
+        return abrirItem(r, (j + 1) + '. ' + esc(ej.nombre), controles('rutina.' + i + '.ejercicios', j, d.ejercicios.length, ej.nombre)) +
           '<div class="dos">' + campo('Ejercicio', r + '.nombre', ej.nombre) + campo('Músculo', r + '.musculo', ej.musculo, ' list="musculos"') + '</div>' +
           '<label class="campo">Series × reps<input type="text" data-cambio="ed-esquema" data-ruta="' + r + '" value="' + esc(esquemaDe(ej)) + '" placeholder="Top 1×4-7 · Back-off 2×8-12"></label>' +
           '<div class="dos">' + campo('Nota', r + '.nota', ej.nota, ' placeholder="Técnica, máquina, agarre…"') +
           (rutina.length > 1 ? '<label class="campo">Mover a otro día<select data-cambio="ed-mover-dia" data-dia="' + i + '" data-j="' + j + '"><option value="">—</option>' +
             rutina.map((x, k) => (k === i ? '' : '<option value="' + k + '">' + esc(x.nombre) + '</option>')).join('') + '</select></label>' : '') + '</div>' +
           (d.id !== 'core' && d.ejercicios[j + 1] ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.biserie"' + (ej.biserie ? ' checked' : '') + '> 🔁 En biserie con el siguiente (' + esc(d.ejercicios[j + 1].nombre) + ')</label>' : '') +
-          '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></section>';
+          '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></div></section>';
       }).join('') +
       '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="rutina.' + i + '.ejercicios">＋ Ejercicio</button>' +
       '<p class="nota-corta">Series × reps: "3×8-12", "4×10 + fallo", "1×1 min" o con top set y back-off separados por "·". ' +
@@ -157,12 +164,12 @@ function editorSesiones() {
       (/^calentamiento-/.test(s.id) ? '<p class="nota-corta">Se abre desde los días con calentamiento "' + esc(s.id.replace('calentamiento-', '')) + '".</p>' : '') + '</section>' +
       (s.tipo === 'checklist' ? '<p class="nota-corta">Cada punto se marca con ✓ en 🧘 Sesiones y la lista se reinicia cada día.</p>' + s.pasos.map((p, j) => {
         const r = 'sesiones.' + i + '.pasos.' + j;
-        return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (j + 1) + '. ' + esc(p.nombre) + '</b>' + controles('sesiones.' + i + '.pasos', j, s.pasos.length, p.nombre) + '</div>' +
-          '<div class="dos">' + campo('Punto', r + '.nombre', p.nombre) + campo('Nota (opcional)', r + '.desc', p.desc) + '</div></section>';
+        return abrirItem(r, (j + 1) + '. ' + esc(p.nombre), controles('sesiones.' + i + '.pasos', j, s.pasos.length, p.nombre)) +
+          '<div class="dos">' + campo('Punto', r + '.nombre', p.nombre) + campo('Nota (opcional)', r + '.desc', p.desc) + '</div></div></section>';
       }).join('') + '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="sesiones.' + i + '.pasos">＋ Punto</button>' :
       s.pasos.map((p, j) => {
         const r = 'sesiones.' + i + '.pasos.' + j, porReps = !!p.reps;
-        return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (j + 1) + '. ' + esc(p.nombre) + '</b>' + controles('sesiones.' + i + '.pasos', j, s.pasos.length, p.nombre) + '</div>' +
+        return abrirItem(r, (j + 1) + '. ' + esc(p.nombre), controles('sesiones.' + i + '.pasos', j, s.pasos.length, p.nombre)) +
           '<div class="dos">' + campo('Ejercicio', r + '.nombre', p.nombre) + campo('Músculo', r + '.musculo', p.musculo) + '</div>' +
           '<div class="dos">' + '<label class="campo">Modo<select data-cambio="ed-modo" data-ruta="' + r + '"><option value="tiempo"' + (porReps ? '' : ' selected') + '>Por tiempo</option><option value="reps"' + (porReps ? ' selected' : '') + '>Por repeticiones</option></select></label>' +
           numero('Series', r + '.series', p.series || 1) + '</div>' +
@@ -170,7 +177,7 @@ function editorSesiones() {
           numero('Descanso entre series (s)', r + '.descanso', p.descanso ?? 30) + '</div>' +
           '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.lados"' + (p.lados ? ' checked' : '') + '> Por lado (izquierdo y derecho)</label>' +
           '<label class="campo">Descripción<textarea rows="2" data-cambio="ed" data-ruta="' + r + '.desc">' + esc(p.desc || '') + '</textarea></label>' +
-          mediosPaso(p, r) + '</section>';
+          mediosPaso(p, r) + '</div></section>';
       }).join('') +
       '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="sesiones.' + i + '.pasos">＋ Ejercicio</button>'));
 }
@@ -259,7 +266,14 @@ function nuevo(listaRuta) {
 }
 
 registrar({
-  'ed-pestana'({ p }) { pestana = p; repintar(); },
+  'ed-pestana'({ p }) { pestana = p; itemAbierto = null; repintar(); },
+  'ed-abrir'({ r }) { itemAbierto = itemAbierto === r ? null : r; repintar(); },
+  'ed-habito-dia'({ i, n }) {
+    const h = e().habitos[Number(i)], d = Number(n), dias = (h.dias ??= []), k = dias.indexOf(d);
+    if (k < 0) dias.push(d); else dias.splice(k, 1);
+    dias.sort();
+    guardar();
+  },
   'orden-mover'({ tipo, id, n }) { if (moverOrden(e().config, tipo, id, Number(n))) guardar(); },
   'orden-ver'({ tipo, id }) { if (alternar(e().config, tipo, id)) guardar(); },
   'orden-restablecer'({ tipo }) { restablecer(e().config, tipo); guardar(); },
@@ -384,6 +398,7 @@ registrar({
     const item = nuevo(ruta);
     if (!item) return;
     obtener(ruta).push(item);
+    itemAbierto = ruta + '.' + (obtener(ruta).length - 1);
     guardar();
     setTimeout(() => { const t = document.querySelectorAll('.ed-item'); if (t.length) t[t.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 50);
   },

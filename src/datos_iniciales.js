@@ -11,6 +11,7 @@ export const HABITOS = [
 
 // Ideas para un hábito nuevo de la mañana: al tocar una se llena nombre, tipo, detalle y tiempo
 export const IDEAS_HABITOS = [
+  { nombre: 'Inglés 90 min', detalle: 'Escuchar, hablar y repasar', tipo: 'cronometro', segundos: 5400, minimo: '10 min de escucha' },
   { nombre: 'Tomar un vaso de agua', detalle: 'Apenas te levantes', tipo: 'check' },
   { nombre: 'Tender la cama', detalle: 'La primera tarea cumplida del día', tipo: 'check' },
   { nombre: 'Ducha fría', detalle: 'Termina con 30 s de agua fría', tipo: 'cuenta', segundos: 30 },

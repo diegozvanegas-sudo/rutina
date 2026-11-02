@@ -2,6 +2,10 @@
 import { e, avanceMetas, hayFutbol, elegirPlantilla, guardar, repintar } from '../estado.js';
 import { iso, fechaLarga } from '../fechas.js';
 import { esc, barra, tip, pct, botonSesion, registrar } from '../ui.js';
+import { TARJETAS_HOY } from '../orden.js';
+import { habitosDe, hechosManana, comidasDelDia, planDieta } from '../estado.js';
+import { tarjetaExperimento } from './mejora.js';
+import { experimentoActivo, estadoExperimento } from '../mejora.js';
 import { visibles, SECCION_TARJETA } from '../orden.js';
 import { ve } from '../permisos.js';
 import { configurada, nube } from '../nube.js';
@@ -77,6 +81,7 @@ function bienvenida() {
 
 // Cada tarjeta del tablero; el orden y cuáles se ven los elige el usuario (Editar > Pantallas)
 const TARJETAS = {
+  experimento: () => tarjetaExperimento(),
   entrenador: () => entrenador(),
   foco: () => tarjetaFoco(),
   estudio: () => tarjetaEstudioHoy(),
@@ -97,6 +102,21 @@ const TARJETAS = {
 };
 // Entrenador, foco y estudio van arriba, a lo ancho; las demás en el tablero de dos columnas
 const ANCHAS = ['entrenador', 'foco', 'estudio'];
+// Lo largo o de consulta va plegado en el celular, para que Hoy se lea de un vistazo; cada quien lo abre y queda como lo dejó
+const PLEGABLES = ['estandares', 'semana', 'plata', 'suenoPeso', 'dieta', 'metas', 'gym'];
+const PLEGADAS_CELULAR = ['estandares', 'semana', 'plata', 'suenoPeso', 'dieta', 'metas'];
+const abierta = (k) => { const c = e().config.hoyAbiertas || {}; return k in c ? c[k] : !(columnas() === 1 && PLEGADAS_CELULAR.includes(k)); };
+const plegable = (k, html) => (!html || !PLEGABLES.includes(k) ? html : '<details class="tarjeta plegada" data-plegar="' + k + '"' + (abierta(k) ? ' open' : '') + '><summary>' + esc(TARJETAS_HOY[k]) + '</summary>' + html + '</details>');
+// Lo que falta hoy, de un vistazo
+function pendienteHoy() {
+  const hs = habitosDe().length, plan = planDieta().comidas.length, m = avanceMetas(), x = experimentoActivo();
+  const fichas = [];
+  if (hs) fichas.push(['☀️', hechosManana() + '/' + hs, '#manana', hechosManana() >= hs]);
+  if (m.activas.length) fichas.push(['🎯', pct(m.total), '#metas', m.total >= 1]);
+  if (plan) fichas.push(['🥗', comidasDelDia().n + '/' + plan, '#dieta', comidasDelDia().n >= plan]);
+  if (x && !estadoExperimento(x).termino) fichas.push(['🧪', estadoExperimento(x).hoyListo ? 'Hecho' : 'Pendiente', '#hoy', estadoExperimento(x).hoyListo]);
+  return fichas.length ? '<nav class="pendiente-hoy" aria-label="Lo de hoy">' + fichas.map(([i, t, ir, ok]) => '<a href="' + ir + '" class="' + (ok ? 'ok' : '') + '"><span aria-hidden="true">' + i + '</span> ' + esc(t) + '</a>').join('') + '</nav>' : '';
+}
 
 export function vistaHoy() {
   // Las tarjetas de una sección que el admin escondió tampoco se ven
@@ -104,7 +124,7 @@ export function vistaHoy() {
   const ids = visibles(e().config, 'hoy').filter((k) => !SECCION_TARJETA[k] || ve('seccion', SECCION_TARJETA[k]));
   return '<div class="cab-hoy"><div><h1>' + saludo() + '</h1><p class="sub">' + fechaLarga(iso()) + ' · semana ' + semanaActual() + '</p></div>' +
     '<a class="puntaje-hoy" href="#progreso" title="Puntaje del día: mañana, metas, gym y dieta"><b>' + (p ? p.total : 0) + '</b><small>/100 hoy</small></a></div>' +
-    bienvenida() +
+    bienvenida() + pendienteHoy() +
     // Avisos, entrenador, foco y estudio: en el computador se acomodan lado a lado
     '<div class="arriba">' +
     (avisos.length ? '<a class="tarjeta avisos-hoy" href="#recordatorios"' + tip(avisos.length > 3 ? avisos.map((a) => '• ' + a.icono + ' ' + a.nombre + (a.estado === 'vencido' ? ' (vencido)' : '')).join('\n') : '') + '><b>🔔 ' + avisos.length + (avisos.length === 1 ? ' recordatorio' : ' recordatorios') + '</b><span>' +
@@ -146,7 +166,7 @@ function repartir(ids, n) {
   return cols;
 }
 function tablero(ids) {
-  const html = Object.fromEntries(ids.map((k) => [k, TARJETAS[k]()]));
+  const html = Object.fromEntries(ids.map((k) => [k, plegable(k, TARJETAS[k]())]));
   const n = columnas(), conContenido = ids.filter((k) => html[k]), moviendo = organizando && n > 1;
   return '<div class="tablero' + (moviendo ? ' organizando' : '') + '" style="--cols:' + n + '">' + repartir(conContenido, n).map((c, i) =>
     '<div class="tablero-col" data-col="' + i + '">' + c.map((k) => '<div class="carta" data-carta="' + k + '"' + (moviendo ? ' draggable="true"' : '') + '>' + html[k] + '</div>').join('') + '</div>').join('') + '</div>';
@@ -161,6 +181,13 @@ function guardarOrden() {
   guardar(false);
 }
 if (typeof window !== 'undefined') {
+  // Recuerda qué tarjetas dejó abiertas o plegadas
+  document.addEventListener('toggle', (ev) => {
+    const k = ev.target.dataset && ev.target.dataset.plegar;
+    if (!k || abierta(k) === ev.target.open) return;
+    (e().config.hoyAbiertas ??= {})[k] = ev.target.open;
+    guardar(false);
+  }, true);
   let ultimas = columnas();
   // Al cambiar el ancho de la ventana, se rearma con el número de columnas que toca
   addEventListener('resize', () => {

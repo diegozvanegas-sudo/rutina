@@ -267,6 +267,15 @@ export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
     const faltaDias = diasEntre(hoy, rec.empieza);
     return { estado: faltaDias < 0 ? 'vencido' : faltaDias <= 14 ? 'pronto' : 'programado', empieza: rec.empieza, faltaDias };
   }
+  if (rec.diaMes && !rec.cadaKm) {
+    // Día fijo: lo pagado hasta 14 días antes o después del vencimiento cuenta para ese mes
+    const siguiente = (f) => fechaPago(rec.diaMes, mesDe(sumarMeses(f.slice(0, 7) + '-01', 1)));
+    let proxFecha;
+    if (ultimo) { proxFecha = fechaPago(rec.diaMes, mesDe(ultimo.fecha)); if (diasEntre(ultimo.fecha, proxFecha) <= 14) proxFecha = siguiente(ultimo.fecha); }
+    else { proxFecha = fechaPago(rec.diaMes, mesDe(hoy)); if (proxFecha < hoy) proxFecha = siguiente(hoy); }
+    const faltaDias = diasEntre(hoy, proxFecha);
+    return { estado: faltaDias < 0 ? 'vencido' : faltaDias <= 7 ? 'pronto' : 'al-dia', ultimo, proxFecha, faltaDias };
+  }
   if (!ultimo) return { estado: 'sin-dato' };
   const km = vehiculo ? kmActual(vehiculo.km) : null, ritmo = vehiculo ? ritmoKm(vehiculo.km, hoy) : null;
   const res = { estado: 'al-dia', ultimo };
@@ -308,10 +317,10 @@ export function proximoRecordatorio(rec, s, kmHoy, hoy = iso()) {
     });
   }
   if (s.proxFecha) {
-    const d = s.faltaDias, total = diasEntre(s.ultimo.fecha, s.proxFecha);
+    const d = s.faltaDias, total = s.ultimo ? diasEntre(s.ultimo.fecha, s.proxFecha) : 0;
     opciones.push({
       titulo: d > 1 ? 'En ' + d + ' días' : d === 1 ? 'Mañana' : d === 0 ? 'Hoy' : d === -1 ? 'Era ayer' : 'Hace ' + -d + ' días',
-      fecha: s.proxFecha, km: null, fraccion: total > 0 ? diasEntre(s.ultimo.fecha, hoy) / total : 1,
+      fecha: s.proxFecha, km: null, fraccion: !s.ultimo ? 0 : total > 0 ? diasEntre(s.ultimo.fecha, hoy) / total : 1,
     });
   }
   if (!opciones.length) return null;

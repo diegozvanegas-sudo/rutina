@@ -246,3 +246,19 @@ test('un recordatorio a futuro no pide nada hasta 14 días antes, y después del
   // Sin fecha de inicio, todo sigue igual
   assert.equal(estadoRecordatorio({ cadaDias: 30, hechos: [] }, null, '2026-11-01').estado, 'sin-dato');
 });
+
+test('recordatorio por día fijo: cae siempre el mismo día, y lo pagado cerca del vencimiento cuenta para ese mes', () => {
+  const r = (hechos, diaMes = 15) => ({ cadaDias: 30, cadaKm: 0, diaMes, hechos });
+  assert.equal(estadoRecordatorio(r([]), null, '2026-11-01').proxFecha, '2026-11-15');
+  assert.equal(estadoRecordatorio(r([]), null, '2026-11-20').proxFecha, '2026-12-15');
+  assert.equal(estadoRecordatorio(r([]), null, '2026-11-01').estado, 'al-dia');
+  assert.equal(estadoRecordatorio(r([]), null, '2026-11-10').estado, 'pronto');
+  assert.equal(estadoRecordatorio(r([{ fecha: '2026-11-15' }]), null, '2026-11-16').proxFecha, '2026-12-15');
+  assert.equal(estadoRecordatorio(r([{ fecha: '2026-11-12' }]), null, '2026-11-13').proxFecha, '2026-12-15'); // pagó antes
+  assert.equal(estadoRecordatorio(r([{ fecha: '2026-11-20' }]), null, '2026-11-21').proxFecha, '2026-12-15'); // pagó tarde
+  assert.equal(estadoRecordatorio(r([{ fecha: '2026-10-15' }]), null, '2026-11-16').estado, 'vencido');
+  assert.equal(estadoRecordatorio(r([], 31), null, '2027-02-01').proxFecha, '2027-02-28');
+  const s = estadoRecordatorio(r([]), null, '2026-11-01');
+  assert.equal(proximoRecordatorio(r([]), s, null, '2026-11-01').titulo, 'En 14 días');
+  assert.equal(proximoRecordatorio(r([]), s, null, '2026-11-01').fraccion, 0);
+});

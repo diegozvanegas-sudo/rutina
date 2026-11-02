@@ -1,6 +1,6 @@
 // Sesiones guiadas (calentamiento, estiramiento, rodilla): un ejercicio a la vez con cuenta regresiva.
 // Las de tipo checklist (antes de salir, maletín del partido) no tienen tiempo: cada punto se marca con ✓.
-import { e, dia, guardar } from '../estado.js';
+import { e, dia, guardar, repintar } from '../estado.js';
 import { reloj, iso } from '../fechas.js';
 import { esc, registrar, pitido, barra, toast } from '../ui.js';
 import { figuraPaso, videoPaso } from '../figuras.js';
@@ -151,12 +151,17 @@ function terminarChecklist() {
   if (rep && rep.alTerminar) { rep.alTerminar(); rep.alTerminar = null; }
 }
 
+let tipoVisto = null;
 export function vistaSesiones() {
   const grupos = {};
   // Las checklists van primero: son las que se usan a diario
   for (const s of [...e().sesiones].sort((a, b) => (b.tipo === 'checklist') - (a.tipo === 'checklist'))) (grupos[s.tipo] ??= []).push(s);
-  return '<h1>Sesiones</h1>' + Object.entries(grupos).map(([tipo, lista]) =>
-    '<h2 class="titulo-grupo">' + (TIPOS[tipo] || esc(tipo)) + '</h2>' + lista.map((s) => s.tipo === 'checklist' ? tarjetaChecklist(s) :
+  // Una categoría a la vez, para no recorrer toda la lista
+  const tipos = Object.keys(grupos);
+  if (!tipos.includes(tipoVisto)) tipoVisto = tipos[0];
+  return '<h1>Sesiones</h1><nav class="chips pestanas" aria-label="Categoría">' + tipos.map((t) => '<button type="button" class="chip' + (t === tipoVisto ? ' activo' : '') + '" data-accion="ses-tipo" data-t="' + esc(t) + '">' + (TIPOS[t] || esc(t)) + ' (' + grupos[t].length + ')</button>').join('') + '</nav>' +
+    Object.entries(grupos).filter(([tipo]) => tipo === tipoVisto).map(([tipo, lista]) =>
+    lista.map((s) => s.tipo === 'checklist' ? tarjetaChecklist(s) :
       '<section class="tarjeta sesion"><div class="fila-resumen"><b>' + esc(s.nombre) + '</b><span>~' + Math.round(duracion(s) / 60) + ' min · ' + s.pasos.length + ' ejercicios</span></div>' +
       '<details><summary>Ver ejercicios</summary><ol class="pasos">' + s.pasos.map((p) =>
         '<li class="paso-con-figura">' + figuraPaso(p, { animar: false }) + '<div><b>' + esc(p.nombre) + '</b> <span class="nota-corta">' + esc(p.musculo || '') + ' · ' +
@@ -167,6 +172,7 @@ export function vistaSesiones() {
 }
 
 registrar({
+  'ses-tipo'({ t }) { tipoVisto = t; repintar(); },
   'check-paso'({ sesion, paso }) {
     const s = e().sesiones.find((x) => x.id === sesion);
     if (!s) return;

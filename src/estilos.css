@@ -860,3 +860,21 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .diario > span { display: grid; min-width: 0; }
 .diario small { color: var(--muted); }
 .diario .boton { flex: none; }
+/* Finanzas: buscador de categorías, subcategorías y lo que más anotas */
+.titulo-campo { margin: 4px 0 6px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.titulo-campo small { font-weight: 400; }
+.fin-buscar { width: 100%; margin: 0 0 8px; }
+.fin-resultados { display: grid; gap: 6px; margin-bottom: 8px; }
+.fin-resultados:empty { display: none; }
+.resultado-cat { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 8px; min-height: 44px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font: inherit; font-size: 14px; text-align: left; cursor: pointer; }
+.resultado-cat span { font-size: 20px; text-align: center; }
+.resultado-cat small { color: var(--muted); font-size: 12px; }
+.subcats { margin: -2px 0 8px; }
+.subcats .chips, .frecuentes { padding-bottom: 6px; }
+.subs-mes { margin: 2px 0 10px; }
+.t-transferencia .mov-monto { color: var(--muted); }
+.plantillas-meta > summary { padding-left: 0; }
+.cat-elegida { width: 100%; display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 8px; min-height: 48px; margin-bottom: 8px; padding: 6px 12px; border-radius: 12px; border: 1px solid var(--brand); background: var(--brand-soft); color: var(--brand); font: inherit; font-size: 15px; text-align: left; cursor: pointer; }
+.cat-elegida span { font-size: 22px; text-align: center; }
+.cat-elegida small { color: var(--muted); font-size: 13px; text-decoration: underline; }
+.registrar > .chips.envolver { margin-bottom: 12px; }

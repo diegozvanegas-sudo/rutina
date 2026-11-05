@@ -18,12 +18,72 @@ export const CATEGORIAS_GASTO = [
   { id: 'suscripciones', nombre: 'Suscripciones', icono: '📺', grupo: 'deseo' },
   { id: 'regalos', nombre: 'Regalos', icono: '🎁', grupo: 'deseo' },
   { id: 'otros', nombre: 'Otros', icono: '🧾', grupo: 'deseo' },
+  { id: 'familia', nombre: 'Familia', icono: '👨‍👩‍👧', grupo: 'necesidad' },
+  { id: 'mascotas', nombre: 'Mascotas', icono: '🐾', grupo: 'necesidad' },
+  { id: 'impuestos', nombre: 'Impuestos y trámites', icono: '🏛️', grupo: 'necesidad' },
+  { id: 'cuidado', nombre: 'Cuidado personal', icono: '💈', grupo: 'deseo' },
+  { id: 'tecnologia', nombre: 'Tecnología', icono: '💻', grupo: 'deseo' },
+  { id: 'viajes', nombre: 'Viajes', icono: '✈️', grupo: 'deseo' },
 ];
 export const CATEGORIAS_INGRESO = [
   { id: 'salario', nombre: 'Salario', icono: '💼' },
   { id: 'extra', nombre: 'Extra / freelance', icono: '🧑‍💻' },
   { id: 'reembolso', nombre: 'Reembolso', icono: '↩️' },
   { id: 'otro-ingreso', nombre: 'Otro', icono: '💸' },
+  { id: 'prestaciones', nombre: 'Prima y cesantías', icono: '🏛️' },
+  { id: 'ventas', nombre: 'Ventas', icono: '🛍️' },
+  { id: 'arriendos', nombre: 'Arriendos que cobro', icono: '🏘️' },
+  { id: 'rendimientos', nombre: 'Rendimientos', icono: '📈' },
+];
+// Categorías que llegaron después: se agregan una vez a los datos que ya están en el celular (las que borres no vuelven)
+export const CATEGORIAS_NUEVAS_V2 = { gasto: ['familia', 'mascotas', 'impuestos', 'cuidado', 'tecnologia', 'viajes'], ingreso: ['prestaciones', 'ventas', 'arriendos', 'rendimientos'] };
+
+// Subcategorías opcionales de cada categoría: el presupuesto y la regla 50/30/20 siguen por categoría,
+// la subcategoría solo dice en qué se fue la plata. Cada texto es "ícono nombre"; el id sale del nombre, así que no lo cambies.
+const SUBS = {
+  vivienda: '🔑 Arriendo|🏦 Cuota de vivienda|🏢 Administración|🔧 Reparaciones|🛠️ Mantenimiento|🧱 Remodelación|🛋️ Muebles|🧺 Electrodomésticos|🖼️ Decoración|🔩 Ferretería|🌱 Jardinería|🔒 Seguridad del hogar|📦 Mudanza|☂️ Seguro de vivienda|🍳 Utensilios de cocina',
+  servicios: '⚡ Energía|🚰 Agua|🔥 Gas|🗑️ Aseo (recolección)',
+  mercado: '🛒 Mercado general|🍎 Frutas|🥦 Verduras|🥩 Carnes|🍗 Pollo|🐟 Pescado|🥚 Huevos|🥛 Lácteos|🍞 Panadería|🌾 Granos y cereales|🥤 Bebidas|💧 Agua en botella|🧼 Aseo y limpieza|🧻 Papel y desechables',
+  transporte: '🚇 Metro|🚌 Bus|🚕 Taxi|📱 Uber y plataformas|🚍 Intermunicipal|🔧 Mantenimiento de moto|🛢️ Cambio de aceite|🛞 Llantas|⚙️ Repuestos|🧽 Lavado|🅿️ Parqueadero|🛣️ Peajes|📄 SOAT|🔍 Tecnomecánica|🛡️ Seguro del vehículo|🪖 Accesorios de moto|🚨 Multas|🪪 Licencia de conducción|🚗 Mantenimiento de carro',
+  gasolina: '⛽ Corriente|🔥 Extra|🛢️ ACPM',
+  salud: '🏥 EPS|🩺 Prepagada|👨‍⚕️ Consulta médica|🦷 Odontología|👁️ Optometría|🩸 Exámenes|💊 Medicamentos|🧠 Psicología|💆 Fisioterapia|🚑 Urgencias|🏨 Hospitalización|🧴 Dermatología|🛡️ Seguro de salud|🧾 Seguridad social',
+  celular: '📱 Plan del celular|📶 Recargas|🌐 Internet|📺 Televisión|☎️ Teléfono fijo',
+  deudas: '💳 Tarjeta de crédito|📉 Intereses|🏦 Libre inversión|🏍️ Crédito de vehículo|🏡 Hipoteca|🤝 Préstamo personal|👨‍👩‍👧 Deuda familiar|🏧 Cuota de manejo|💸 Comisiones bancarias|🛡️ Seguro de la deuda',
+  educacion: '🎓 Universidad|📝 Matrícula|💻 Curso virtual|🏫 Curso presencial|📜 Certificación|📚 Libros|🎧 Audiolibros|🎤 Seminario|🎓 Diplomado|🗣️ Idiomas|✏️ Papelería|📖 Material de estudio',
+  comida: '🍽️ Restaurante|🛵 Domicilio|🍔 Comida rápida|☕ Cafetería|🍿 Snacks|🍬 Dulces|💼 Almuerzo de trabajo',
+  gym: '🏋️ Mensualidad|🧑‍🏫 Entrenador|🥤 Proteína|⚡ Creatina|🔥 Preentreno|💊 Vitaminas y suplementos|👟 Ropa y calzado deportivo|🥊 Accesorios del gym|🏆 Competencias|⚽ Cancha y fútbol|🏊 Natación|🚴 Ciclismo|🏃 Running|💆 Masaje deportivo',
+  ocio: '🎬 Cine|🎵 Conciertos|🎟️ Eventos|🍻 Bares|🪩 Discoteca|🚶 Salidas|🎲 Juegos|🎮 Videojuegos|🎨 Hobbies',
+  ropa: '👕 Camisetas|👖 Pantalones y jeans|👔 Camisas|🧥 Chaquetas|🩲 Ropa interior|🧦 Medias|👞 Zapatos|👟 Tenis|🩴 Sandalias|⌚ Relojes|🕶️ Gafas|👜 Bolsos y carteras|💍 Joyas y accesorios|🧵 Arreglos|🧺 Lavandería',
+  suscripciones: '🎞️ Netflix|🏰 Disney+|📦 Amazon Prime|🎭 HBO Max|🎧 Spotify|▶️ YouTube Premium|☁️ Nube|🧩 Software y licencias|🤖 Herramientas de IA|📰 Noticias y revistas',
+  regalos: '🎂 Cumpleaños|🎄 Navidad|💝 Pareja|💒 Matrimonios|🎉 Celebraciones',
+  otros: '📮 Envíos|📠 Fotocopias|🛍️ Compras por internet|💁 Propinas|❓ Imprevisto|🕳️ Plata perdida|💵 Efectivo sin anotar|🙏 Donaciones',
+  familia: '🤲 Apoyo a mis padres|💑 Pareja|🧒 Hijos|💸 Ayuda económica|🏠 Reunión familiar',
+  mascotas: '🦴 Comida|🩺 Veterinario|💉 Vacunas|🛁 Baño y peluquería|🧸 Accesorios',
+  impuestos: '🧮 Declaración de renta|🏘️ Predial|🏍️ Impuesto vehicular|📑 Retención|🪪 Documentos|⚖️ Gastos legales|🏛️ Trámites',
+  cuidado: '💈 Barbería|💇 Peluquería|🧴 Cuidado de la piel|🌸 Perfumería|🪒 Afeitado|🪥 Higiene',
+  tecnologia: '📱 Celular|💻 Computador|📲 Tablet|🎧 Audífonos|⌚ Smartwatch|📺 Televisor|📷 Cámara|🖱️ Periféricos|🧩 Componentes de PC|🔌 Accesorios|🛠️ Reparación|🏠 Domótica|🧮 Aplicaciones',
+  viajes: '✈️ Vuelos|🏨 Hotel|🚌 Transporte del viaje|🍽️ Comidas del viaje|🗺️ Tours|🧳 Equipaje',
+  salario: '💼 Sueldo|⏱️ Horas extras|🌙 Recargos nocturnos|🎯 Bonificación|📊 Comisiones',
+  extra: '🧑‍💻 Freelance|📄 Prestación de servicios|🏪 Negocio propio',
+  prestaciones: '🎁 Prima|🏛️ Cesantías|💵 Intereses de cesantías|📑 Liquidación|🏖️ Vacaciones pagadas',
+  ventas: '🌐 Venta por internet|🛍️ Venta ocasional|♻️ Algo usado',
+  rendimientos: '🏦 Intereses de CDT|💳 Intereses de cuenta|📈 Dividendos|💹 Ganancia de inversión',
+  reembolso: '↩️ Devolución de compra|💼 Gastos de trabajo|🏥 Reembolso de salud',
+  'otro-ingreso': '🏆 Premio|🎁 Regalo recibido|📀 Regalías',
+};
+export const slug = (t) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+export const SUBCATEGORIAS = Object.fromEntries(Object.entries(SUBS).map(([cat, txt]) => [cat, txt.split('|').map((x) => {
+  const i = x.indexOf(' ');
+  return { id: slug(x.slice(i + 1)), icono: x.slice(0, i), nombre: x.slice(i + 1) };
+})]));
+
+// Metas de ahorro e inversión para agregar con un toque. inversion: la plata cambia de valor, así que se anota cuánto vale hoy
+export const PLANTILLAS_META = [
+  { nombre: 'Vivienda', icono: '🏡' }, { nombre: 'Moto o carro', icono: '🏍️' }, { nombre: 'Viaje', icono: '✈️' }, { nombre: 'Estudios', icono: '🎓' },
+  { nombre: 'Tecnología', icono: '💻' }, { nombre: 'Negocio', icono: '💼' }, { nombre: 'Impuestos del año', icono: '🧾' }, { nombre: 'Compra grande', icono: '🛋️' },
+  { nombre: 'Pensión voluntaria', icono: '👴' },
+  { nombre: 'CDT', icono: '🏦', inversion: true }, { nombre: 'Fondo de inversión', icono: '📊', inversion: true }, { nombre: 'Acciones y ETF', icono: '📈', inversion: true },
+  { nombre: 'Dólares', icono: '💵', inversion: true }, { nombre: 'Cripto', icono: '🪙', inversion: true }, { nombre: 'Oro', icono: '🥇', inversion: true },
 ];
 export const METODOS = [
   { id: 'efectivo', nombre: 'Efectivo', icono: '💵' },
@@ -35,8 +95,9 @@ export const METODOS = [
 ];
 
 export const FINANZAS = () => ({
-  movimientos: [],   // { id, fecha, tipo: gasto | ingreso | ahorro, monto, categoria, metodo, nota, fijo?, meta?, deuda? }
+  movimientos: [],   // { id, fecha, tipo: gasto | ingreso | ahorro | transferencia, monto, categoria, sub?, metodo, destino? (transferencia), nota, fijo?, meta?, deuda? }
   categorias: { gasto: CATEGORIAS_GASTO.map((c) => ({ ...c, presupuesto: 0 })), ingreso: CATEGORIAS_INGRESO.map((c) => ({ ...c })) },
+  subs: [],          // { id, cat, nombre, icono } subcategorías que agregaste tú
   metodos: METODOS.map((m) => ({ ...m })),
   fijos: [],         // { id, nombre, monto, categoria, metodo, dia }  pagos de cada mes
   metas: [{ id: 'emergencia', nombre: 'Fondo de emergencia', icono: '🛟', objetivo: 0, meses: 6 }],  // objetivo 0 = 6 meses de gastos
@@ -109,7 +170,7 @@ export const PLANTILLAS_RECORDATORIO = [
   { nombre: 'Revisar centrales de riesgo', icono: '📊', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'otros', grupo: 'digital', nota: 'Datacrédito y TransUnion: es gratis consultar tu historial.' },
   { nombre: 'Limpiar el computador', icono: '💻', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'otros', grupo: 'digital', nota: 'Polvo del ventilador, actualizaciones y archivos que sobran.' },
   { nombre: 'Pendiente de todos los días', icono: '📌', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 1, diario: true, categoria: 'otros', grupo: 'personal' },
-  { nombre: 'Motilada', icono: '💈', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 21, categoria: 'otros', grupo: 'personal' },
+  { nombre: 'Motilada', icono: '💈', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 21, categoria: 'cuidado', grupo: 'personal' },
   { nombre: 'Cepillo de dientes', icono: '🪥', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'mercado', grupo: 'personal' },
   { nombre: 'Cuchillas de afeitar', icono: '🪒', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'mercado', grupo: 'personal' },
   { nombre: 'Ropa interior y medias', icono: '🩲', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'ropa', grupo: 'personal' },
@@ -155,10 +216,10 @@ export const PLANTILLAS_RECORDATORIO = [
   { nombre: 'Planear vacaciones', icono: '✈️', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'ocio', grupo: 'personal' },
   { nombre: 'Aniversario', icono: '💝', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'regalos', grupo: 'personal' },
   { nombre: 'Cortar las uñas', icono: '✂️', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 15, categoria: 'otros', grupo: 'personal' },
-  { nombre: 'Vacuna de la mascota', icono: '💉', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'otros', grupo: 'mascota' },
-  { nombre: 'Desparasitar la mascota', icono: '🐾', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'otros', grupo: 'mascota' },
-  { nombre: 'Baño de la mascota', icono: '🛁', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'otros', grupo: 'mascota' },
-  { nombre: 'Comida de la mascota', icono: '🦴', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'otros', grupo: 'mascota' },
+  { nombre: 'Vacuna de la mascota', icono: '💉', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'mascotas', grupo: 'mascota' },
+  { nombre: 'Desparasitar la mascota', icono: '🐾', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'mascotas', grupo: 'mascota' },
+  { nombre: 'Baño de la mascota', icono: '🛁', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'mascotas', grupo: 'mascota' },
+  { nombre: 'Comida de la mascota', icono: '🦴', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'mascotas', grupo: 'mascota' },
   { nombre: 'Otro', icono: '🔔', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'otros', grupo: 'personal' },
 ];
 export const GRUPOS_PLANTILLA = { pagos: '💳 Pagos', moto: '🏍️ Moto', papeles: '📄 Papeles', salud: '🩺 Salud', deporte: '⚽ Deporte', casa: '🏠 Casa', digital: '💻 Digital y dinero', personal: '🧍 Personal', mascota: '🐾 Mascota' };

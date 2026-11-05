@@ -1,5 +1,6 @@
 // Reglas de Finanzas y Recordatorios (sin pantalla, para poder probarlas)
 import { desdeIso, iso, sumarDias, diasEntre } from './fechas.js';
+import { SUBCATEGORIAS } from './datos_finanzas.js';
 
 export const mesDe = (fecha) => fecha.slice(0, 7);
 export function diasDelMes(mes) {
@@ -104,7 +105,7 @@ export function prestarMas(fin, p, monto, hoy = iso(), nota = '') {
 export function resumenMes(fin, mes, hoy = iso()) {
   const movs = fin.movimientos.filter((m) => mesDe(m.fecha) === mes);
   const grupo = Object.fromEntries(fin.categorias.gasto.map((c) => [c.id, c.grupo]));
-  const r = { ingresos: 0, gastos: 0, ahorro: 0, gastosFijos: 0, pagosTarjeta: 0, porCategoria: {}, porMetodo: {}, porGrupo: { necesidad: 0, deseo: 0 }, movs };
+  const r = { ingresos: 0, gastos: 0, ahorro: 0, gastosFijos: 0, pagosTarjeta: 0, porCategoria: {}, porSub: {}, porMetodo: {}, porGrupo: { necesidad: 0, deseo: 0 }, movs };
   for (const m of movs) {
     if (m.tipo === 'ingreso') { r.ingresos += m.monto; continue; }
     if (m.tipo === 'cobro') { r.ingresos += m.interes || 0; continue; } // de lo que te pagan, solo el interés es ingreso
@@ -117,6 +118,7 @@ export function resumenMes(fin, mes, hoy = iso()) {
       r.gastos += g;
       if (m.fijo) r.gastosFijos += g;
       r.porCategoria[m.categoria] = (r.porCategoria[m.categoria] || 0) + g;
+      if (m.sub) { const s = (r.porSub[m.categoria] ??= {}); s[m.sub] = (s[m.sub] || 0) + g; }
       r.porGrupo[grupo[m.categoria] || 'deseo'] += g;
       r.porMetodo[m.metodo] = (r.porMetodo[m.metodo] || 0) + g;
       continue;
@@ -162,6 +164,13 @@ export function gastoPromedio(fin, hoy = iso(), meses = 3) {
 export function aportado(fin, metaId) {
   return fin.movimientos.filter((m) => m.tipo === 'ahorro' && m.meta === metaId).reduce((s, m) => s + m.monto, 0)
     - fin.movimientos.filter((m) => m.tipo === 'retiro' && m.meta === metaId).reduce((s, m) => s + m.monto, 0);
+}
+// Lo que vale hoy una meta: lo aportado; en una inversión, el valor que anotaste más lo que aportaste o sacaste después
+export function valorMeta(fin, meta) {
+  const v = meta.inversion && meta.valor;
+  if (!v) return aportado(fin, meta.id);
+  const despues = (m) => m.fecha > v.fecha || (m.fecha === v.fecha && (m.creado || 0) > v.ts);
+  return fin.movimientos.filter((m) => m.meta === meta.id && despues(m)).reduce((s, m) => s + (m.tipo === 'ahorro' ? m.monto : m.tipo === 'retiro' ? -m.monto : 0), v.monto);
 }
 export function objetivoMeta(fin, meta, hoy = iso()) {
   return meta.objetivo || (meta.meses ? Math.round(gastoPromedio(fin, hoy) * meta.meses) : 0);
@@ -220,11 +229,12 @@ export function saldoCuenta(fin, metodo) {
   const a = metodo.ajuste;
   if (!a) return null;
   const despues = (m) => m.fecha > a.fecha || (m.fecha === a.fecha && (m.creado || 0) > a.ts);
-  return fin.movimientos.filter((m) => m.metodo === metodo.id && despues(m)).reduce((s, m) =>
-    s + (['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? m.monto : -m.monto), a.monto);
+  // Una transferencia sale de su método y entra a su destino
+  return fin.movimientos.filter((m) => (m.metodo === metodo.id || (m.tipo === 'transferencia' && m.destino === metodo.id)) && despues(m)).reduce((s, m) =>
+    s + (m.tipo === 'transferencia' ? (m.destino === metodo.id ? m.monto : -m.monto) : ['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? m.monto : -m.monto), a.monto);
 }
 export function patrimonio(fin) {
-  const ahorro = fin.metas.reduce((s, m) => s + aportado(fin, m.id), 0);
+  const ahorro = fin.metas.reduce((s, m) => s + valorMeta(fin, m), 0);
   const cuentas = fin.metodos.filter((m) => !esCredito(fin, m.id)).reduce((s, m) => s + (saldoCuenta(fin, m) || 0), 0);
   const deudas = fin.deudas.reduce((s, d) => s + Math.max(0, d.saldo || 0), 0);
   const porCobrar = (fin.prestamos || []).filter((p) => !p.saldado).reduce((s, p) => s + Math.max(0, p.monto || 0), 0);
@@ -356,4 +366,45 @@ export function recordatoriosAutomaticos(fin, hoy = iso()) {
     if (s.estado !== 'pagado') lista.push({ tipo: 'cobro', id: p.id, nombre: 'Cobrar intereses: ' + p.nombre, monto: interesPrestamo(p), ...s });
   }
   return lista.sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
+
+// ---------- Categorías y subcategorías ----------
+const llanoDe = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const lista = (fin, tipo) => fin.categorias[tipo === 'ingreso' ? 'ingreso' : 'gasto'];
+// Las del catálogo más las que agregaste tú
+export const subsDe = (fin, catId) => [...(SUBCATEGORIAS[catId] || []), ...(fin.subs || []).filter((x) => x.cat === catId)];
+export function subDe(fin, catId, subId) {
+  if (!subId) return null;
+  return subsDe(fin, catId).find((x) => x.id === subId) || { id: subId, nombre: subId.replace(/-/g, ' '), icono: '🏷️' };
+}
+// Busca en nombres de categorías y subcategorías, sin importar tildes ni mayúsculas
+export function buscarCategorias(fin, tipo, texto, max = 12) {
+  const q = llanoDe(texto).trim();
+  if (!q) return [];
+  const salida = [];
+  for (const c of lista(fin, tipo)) {
+    if (llanoDe(c.nombre).includes(q)) salida.push({ categoria: c.id, sub: null, nombre: c.nombre, icono: c.icono, cat: c.nombre });
+    for (const x of subsDe(fin, c.id)) if (llanoDe(x.nombre).includes(q)) salida.push({ categoria: c.id, sub: x.id, nombre: x.nombre, icono: x.icono, cat: c.nombre });
+  }
+  // Primero lo que empieza por lo que escribiste
+  return salida.sort((a, b) => llanoDe(b.nombre).startsWith(q) - llanoDe(a.nombre).startsWith(q)).slice(0, max);
+}
+// Lo que más anotas: las combinaciones de categoría y subcategoría de los últimos 90 días que se repiten
+export function frecuentes(fin, tipo, hoy = iso(), max = 6) {
+  const desde = sumarDias(hoy, -90), cuenta = new Map();
+  const existe = new Set(lista(fin, tipo).map((c) => c.id));
+  for (const m of fin.movimientos) {
+    if (m.tipo !== tipo || m.fecha < desde || !existe.has(m.categoria)) continue;
+    const k = m.categoria + '|' + (m.sub || '');
+    cuenta.set(k, (cuenta.get(k) || 0) + 1);
+  }
+  return [...cuenta].filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, max).map(([k]) => {
+    const [categoria, sub] = k.split('|');
+    return { categoria, sub: sub || null };
+  });
+}
+// ¿Ya anotaste lo mismo ese día? (mismo tipo, monto, categoría y fecha)
+export function posibleDuplicado(fin, m) {
+  return fin.movimientos.find((x) => x.tipo === m.tipo && x.monto === Math.round(m.monto) && x.fecha === m.fecha && (x.categoria || null) === (m.categoria || null)
+    && (x.meta || null) === (m.meta || null) && (x.destino || null) === (m.destino || null)) || null;
 }

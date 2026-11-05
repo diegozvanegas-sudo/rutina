@@ -3,7 +3,7 @@
 import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS, FUTBOL } from './datos_iniciales.js';
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
-import { FINANZAS, RECORDATORIOS } from './datos_finanzas.js';
+import { FINANZAS, RECORDATORIOS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, CATEGORIAS_NUEVAS_V2 } from './datos_finanzas.js';
 import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, LUGARES_RESTO } from './datos_lugares.js';
 import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular, quitarComidasRepetidas } from './dieta.js';
 import { LIBROS } from './libros/index.js';
@@ -133,6 +133,17 @@ export function cargar() {
   if (!estado.piernasV2) { piernasCbum(estado); estado.piernasV2 = true; }
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   estado.finanzas.prestamos ??= [];
+  estado.finanzas.subs ??= [];
+  // Una sola vez: las categorías nuevas (familia, mascotas, viajes, ventas…) se agregan al final sin tocar las tuyas
+  if (!estado.finCatV2) {
+    const cats = estado.finanzas.categorias, base = { gasto: CATEGORIAS_GASTO, ingreso: CATEGORIAS_INGRESO };
+    for (const tipo of ['gasto', 'ingreso']) for (const id of CATEGORIAS_NUEVAS_V2[tipo]) {
+      if (cats[tipo].some((c) => c.id === id)) continue;
+      const c = base[tipo].find((x) => x.id === id);
+      cats[tipo].push(tipo === 'gasto' ? { ...c, presupuesto: 0 } : { ...c });
+    }
+    estado.finCatV2 = true;
+  }
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
   estado.recordatorios.eventos ??= [];
   sembrarLugares(estado);

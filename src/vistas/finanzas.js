@@ -6,13 +6,15 @@ import {
   mesDe, sumarMeses, pesos, leerMonto, gastoDe, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, planPago, planMeta,
   agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, tarjetaDe, saldoCuenta, patrimonio, anotarPatrimonio,
   deseosDelMes, fijosPorRevisar, DIAS_REVISION, interesPrestamo, estadoCobro, interesesCobrados, cobroPrestamo, prestarMas,
+  subsDe, subDe, buscarCategorias, frecuentes, posibleDuplicado, valorMeta,
 } from '../finanzas.js';
+import { PLANTILLAS_META, slug } from '../datos_finanzas.js';
 import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
 import { esc, barra, registrar, toast, subirBajar, miles } from '../ui.js';
 import { vistaEsperas } from './vida.js';
 
 let pestana = 'registrar', mesVista = null, filtroCat = null;
-const form = { tipo: 'gasto', categoria: null, metodo: null, monto: '', nota: '', fecha: null, editando: null };
+const form = { tipo: 'gasto', categoria: null, sub: null, metodo: null, destino: null, monto: '', nota: '', fecha: null, editando: null };
 const simula = {}; // deuda id → abono extra al mes que se está probando
 const f = () => e().finanzas;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -42,14 +44,15 @@ export function nuevoMovimiento(m) { agregarMovimiento(f(), m); }
 
 // ---------- Registrar ----------
 // Se pueden corregir gastos, ingresos y aportes; las cuotas de deudas y los retiros se borran y se registran de nuevo
-const editable = (m) => ['gasto', 'ingreso', 'ahorro'].includes(m.tipo) && !m.deuda;
+const editable = (m) => ['gasto', 'ingreso', 'ahorro', 'transferencia'].includes(m.tipo) && !m.deuda;
 function filaMovimiento(m) {
   const c = m.tipo === 'ahorro' || m.tipo === 'retiro' ? { icono: '🐷', nombre: (f().metas.find((x) => x.id === m.meta) || {}).nombre || 'Ahorro' }
-    : m.tipo === 'cobro' ? { icono: '🤝', nombre: 'Me pagaron' } : m.tipo === 'presto' ? { icono: '🤝', nombre: 'Presté' } : cat(m.tipo, m.categoria);
-  const signo = ['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? '+' : '−';
-  const detalle = [m.nota, metodo(m.metodo).nombre, (m.tipo === 'pago-tarjeta' || m.tipo === 'cobro') && m.interes ? 'intereses ' + pesos(m.interes) : ''].filter(Boolean).join(' · ');
+    : m.tipo === 'cobro' ? { icono: '🤝', nombre: 'Me pagaron' } : m.tipo === 'presto' ? { icono: '🤝', nombre: 'Presté' }
+    : m.tipo === 'transferencia' ? { icono: '🔄', nombre: 'Transferencia' } : subDe(f(), m.categoria, m.sub) || cat(m.tipo, m.categoria);
+  const signo = m.tipo === 'transferencia' ? '' : ['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? '+ ' : '− ';
+  const detalle = [m.sub && cat(m.tipo, m.categoria).nombre, m.nota, m.tipo === 'transferencia' ? 'De ' + metodo(m.metodo).nombre + ' a ' + metodo(m.destino).nombre : metodo(m.metodo).nombre, (m.tipo === 'pago-tarjeta' || m.tipo === 'cobro') && m.interes ? 'intereses ' + pesos(m.interes) : ''].filter(Boolean).join(' · ');
   return '<li class="mov t-' + m.tipo + (editable(m) ? ' editable" data-accion="fin-editar-mov" data-id="' + m.id + '" title="Tocar para corregir' : '') + '"><span class="mov-ic">' + c.icono + '</span><span class="mov-txt"><b>' + esc(c.nombre) + '</b><small>' +
-    esc(detalle) + '</small></span><span class="mov-monto">' + signo + ' ' + pesos(m.monto) + '</span>' +
+    esc(detalle) + '</small></span><span class="mov-monto">' + signo + pesos(m.monto) + '</span>' +
     '<button type="button" class="icono borrar" data-accion="fin-borrar-mov" data-id="' + m.id + '" aria-label="Borrar movimiento">✕</button></li>';
 }
 function listaMovimientos(movs) {
@@ -69,10 +72,39 @@ function pistaPresupuesto(r) {
     (quedan < 0 ? 'te pasaste ' + pesos(-quedan) : 'quedan ' + pesos(quedan)) + '</b></div>' + barra(lleva / tope, quedan < 0 ? 'excedido' : '') + '</div>';
 }
 
+const TIPOS = { gasto: '💸 Gasto', ingreso: '💰 Ingreso', ahorro: '🐷 Ahorro', transferencia: '🔄 Transferir' };
+const BOTON = { gasto: 'Guardar gasto', ingreso: 'Guardar ingreso', ahorro: 'Guardar ahorro', transferencia: 'Guardar transferencia' };
+const conSubs = () => form.tipo === 'gasto' || form.tipo === 'ingreso';
+const botonElegir = (x) => '<button type="button" class="chip" data-accion="fin-elegir" data-cat="' + esc(x.categoria) + '" data-sub="' + esc(x.sub || '') + '">' +
+  (subDe(f(), x.categoria, x.sub) || cat(form.tipo, x.categoria)).icono + ' ' + esc((subDe(f(), x.categoria, x.sub) || cat(form.tipo, x.categoria)).nombre) + '</button>';
+// Resultados del buscador: categoría y subcategoría de un toque
+function resultadosBusqueda(texto) {
+  const r = buscarCategorias(f(), form.tipo, texto);
+  if (!texto.trim()) return '';
+  return r.length ? r.map((x) => '<button type="button" class="resultado-cat" data-accion="fin-elegir" data-cat="' + esc(x.categoria) + '" data-sub="' + esc(x.sub || '') + '"><span>' + x.icono + '</span><b>' + esc(x.nombre) + '</b>' +
+    (x.sub ? '<small>' + esc(x.cat) + '</small>' : '<small>categoría</small>') + '</button>').join('')
+    : '<p class="nota-corta">Nada con «' + esc(texto.trim()) + '». Elige la categoría abajo y crea la subcategoría con «＋ Otra».</p>';
+}
+// Lo de una transferencia: de qué cuenta sale y a cuál llega. No es gasto ni ingreso
+function camposTransferencia() {
+  const lista = cuentas();
+  if (lista.length < 2) return '<p class="aviso">Necesitas al menos dos cuentas para transferir.</p>';
+  if (!lista.some((m) => m.id === form.metodo)) form.metodo = lista[0].id;
+  const destinos = lista.filter((m) => m.id !== form.metodo);
+  if (!destinos.some((m) => m.id === form.destino)) form.destino = destinos[0].id;
+  const chips = (l, accion, activo) => '<div class="chips metodos">' + l.map((m) => '<button type="button" class="chip' + (m.id === activo ? ' activo' : '') + '" data-accion="' + accion + '" data-id="' + m.id + '">' + m.icono + ' ' + esc(m.nombre) + '</button>').join('') + '</div>';
+  return '<p class="titulo-campo">Sale de</p>' + chips(lista, 'fin-metodo', form.metodo) + '<p class="titulo-campo">Llega a</p>' + chips(destinos, 'fin-destino', form.destino) +
+    '<p class="nota-corta">Mover plata entre tus cuentas no cuenta como gasto ni como ingreso: solo cambia el saldo de cada una.</p>';
+}
+
 function vistaRegistrar() {
-  const tipos = { gasto: '💸 Gasto', ingreso: '💰 Ingreso', ahorro: '🐷 Ahorro' };
+  const tipos = TIPOS;
   const cats = form.tipo === 'ahorro' ? f().metas.map((m) => ({ id: m.id, nombre: m.nombre, icono: m.icono || '🐷' })) : f().categorias[form.tipo === 'ingreso' ? 'ingreso' : 'gasto'];
   if (!cats.some((c) => c.id === form.categoria)) form.categoria = null;
+  const subs = conSubs() && form.categoria ? subsDe(f(), form.categoria) : [];
+  if (!subs.some((x) => x.id === form.sub)) form.sub = null;
+  const frec = conSubs() && !form.categoria && !form.editando ? frecuentes(f(), form.tipo) : [];
+  const transf = form.tipo === 'transferencia';
   // Lo que entra o pasa a ahorro sale de una cuenta, no de la tarjeta de crédito
   const metodos = form.tipo === 'gasto' ? f().metodos : cuentas();
   const ultimoMetodo = [...f().movimientos].reverse().find((m) => metodos.some((x) => x.id === m.metodo));
@@ -84,16 +116,24 @@ function vistaRegistrar() {
   return porLlegar.map((x) => '<button type="button" class="tarjeta avisos-hoy ancho" data-accion="fin-pagar-fijo" data-id="' + x.id + '"><b>' + cat('ingreso', x.categoria).icono + ' ¿Llegó ' + esc(x.nombre) + '?</b><span>Toca para registrar ' + pesos(x.monto) + '</span></button>').join('') +
     '<section class="tarjeta registrar' + (form.editando ? ' editando' : '') + '">' +
     (form.editando ? '<div class="fila-resumen"><h2>✏️ Corrigiendo movimiento</h2><button type="button" class="boton secundario" data-accion="fin-cancelar-edicion">Cancelar</button></div>' : '') +
-    '<nav class="chips">' + Object.entries(tipos).map(([k, t]) =>
+    '<nav class="chips envolver">' + Object.entries(tipos).map(([k, t]) =>
       '<button type="button" class="chip' + (k === form.tipo ? ' activo' : '') + '" data-accion="fin-tipo" data-tipo="' + k + '">' + t + '</button>').join('') + '</nav>' +
     '<input id="fin-monto" class="monto-grande" type="text" inputmode="numeric" data-pesos data-cambio="fin-form" data-k="monto" value="' + esc(form.monto) + '" placeholder="$ 0" aria-label="Monto" autocomplete="off">' +
-    '<div class="rejilla-cats">' + cats.map((c) => '<button type="button" class="cat' + (c.id === form.categoria ? ' activo' : '') + '" data-accion="fin-cat" data-id="' + esc(c.id) + '"><span>' + c.icono + '</span>' + esc(c.nombre) + '</button>').join('') + '</div>' +
+    (transf ? camposTransferencia() :
+    (frec.length ? '<p class="titulo-campo">Lo que más anotas</p><div class="chips envolver frecuentes">' + frec.map(botonElegir).join('') + '</div>' : '') +
+    (conSubs() && form.categoria ? '' : (conSubs() ? '<input type="search" class="fin-buscar" placeholder="Buscar: gasolina, Netflix, barbería…" aria-label="Buscar categoría" autocomplete="off"><div class="fin-resultados"></div>' : '') +
+    '<div class="rejilla-cats">' + cats.map((c) => '<button type="button" class="cat' + (c.id === form.categoria ? ' activo' : '') + '" data-accion="fin-cat" data-id="' + esc(c.id) + '"><span>' + c.icono + '</span>' + esc(c.nombre) + '</button>').join('') + '</div>') +
+    // Elegida la categoría, la cuadrícula se recoge: queda la elegida y sus subcategorías a la vista
+    (conSubs() && form.categoria ? '<div class="subcats"><button type="button" class="cat-elegida" data-accion="fin-cat" data-id=""><span>' + cat(form.tipo, form.categoria).icono + '</span><b>' + esc(cat(form.tipo, form.categoria).nombre) + '</b><small>Cambiar</small></button>' +
+      '<p class="titulo-campo">¿En qué? <small>(opcional)</small></p><div class="chips envolver">' +
+      subs.map((x) => '<button type="button" class="chip' + (x.id === form.sub ? ' activo' : '') + '" data-accion="fin-sub" data-id="' + esc(x.id) + '">' + x.icono + ' ' + esc(x.nombre) + '</button>').join('') +
+      '<button type="button" class="chip" data-accion="fin-sub-nueva">＋ Otra</button></div></div>' : '') +
     pistaPresupuesto(r) +
-    '<div class="chips metodos">' + metodos.map((m) => '<button type="button" class="chip' + (m.id === form.metodo ? ' activo' : '') + '" data-accion="fin-metodo" data-id="' + m.id + '">' + m.icono + ' ' + esc(m.nombre) + '</button>').join('') + '</div>' +
+    '<div class="chips metodos">' + metodos.map((m) => '<button type="button" class="chip' + (m.id === form.metodo ? ' activo' : '') + '" data-accion="fin-metodo" data-id="' + m.id + '">' + m.icono + ' ' + esc(m.nombre) + '</button>').join('') + '</div>') +
     (tarjeta ? '<p class="nota-corta">💳 Suma al saldo de <b>' + esc(tarjeta.nombre) + '</b> (' + pesos(Math.max(0, tarjeta.saldo)) + ' hoy).</p>' : '') +
     '<div class="dos"><label class="campo">Nota<input type="text" data-cambio="fin-form" data-k="nota" value="' + esc(form.nota) + '" placeholder="Opcional"></label>' +
     '<label class="campo">Fecha<input type="date" data-cambio="fin-form" data-k="fecha" value="' + (form.fecha || iso()) + '" max="' + iso() + '"></label></div>' +
-    '<button type="button" class="boton primario grande ancho" data-accion="fin-guardar">' + (form.editando ? 'Guardar cambios' : 'Guardar ' + tipos[form.tipo].split(' ')[1].toLowerCase()) + '</button></section>' +
+    '<button type="button" class="boton primario grande ancho" data-accion="fin-guardar">' + (form.editando ? 'Guardar cambios' : BOTON[form.tipo]) + '</button></section>' +
     '<section class="tarjeta"><div class="fila-resumen"><h2>' + nombreMes(mesDe(iso())) + '</h2><span>Gastado <b>' + pesos(r.gastos) + '</b></span></div>' +
     resumenCategorias(r) +
     '<p class="nota-corta">Toca un movimiento para corregirlo.</p>' + listaMovimientos(filtroCat ? r.movs.filter((m) => m.categoria === filtroCat && gastoDe(m)) : r.movs) + '</section>';
@@ -142,8 +182,11 @@ function vistaMes() {
     }).join('') + '</section>' : '<p class="aviso">Registra tus ingresos del mes (o tu salario en 🔁 Fijos) para ver la regla 50/30/20 y la tasa de ahorro.</p>') +
     '<section class="tarjeta"><h2>Por categoría</h2>' + (cats.length ? '<p class="nota-corta">Las flechas comparan con ' + nombreMes(mesDe(sumarMeses(mes + '-01', -1))) + '.</p>' + cats.map((c) => {
       const v = r.porCategoria[c.id] || 0, tope = c.presupuesto, pasado = tope && v > tope;
+      const subs = Object.entries(r.porSub[c.id] || {}).sort((a, b) => b[1] - a[1]);
       return '<div class="fila-resumen"><span>' + c.icono + ' ' + esc(c.nombre) + vs(c.id, v) + '</span><span><b class="' + (pasado ? 'rojo' : '') + '">' + pesos(v) + '</b>' + (tope ? ' / ' + pesos(tope) : '') + '</span></div>' +
-        barra(tope ? v / tope : r.gastos ? v / r.gastos : 0, pasado ? 'excedido' : '');
+        barra(tope ? v / tope : r.gastos ? v / r.gastos : 0, pasado ? 'excedido' : '') +
+        (subs.length ? '<p class="nota-corta subs-mes">' + subs.map(([id, x]) => { const sb = subDe(f(), c.id, id); return sb.icono + ' ' + esc(sb.nombre) + ' ' + pesos(x); }).join(' · ') +
+          (v - subs.reduce((a, [, x]) => a + x, 0) > 0 ? ' · sin detalle ' + pesos(v - subs.reduce((a, [, x]) => a + x, 0)) : '') + '</p>' : '');
     }).join('') : '<p class="nota-corta">Sin gastos este mes.</p>') + '</section>' +
     (Object.keys(r.porMetodo).length ? '<section class="tarjeta"><h2>Por método de pago</h2>' + Object.entries(r.porMetodo).sort((a, b) => b[1] - a[1]).map(([id, v]) =>
       '<div class="fila-resumen"><span>' + metodo(id).icono + ' ' + esc(metodo(id).nombre) + '</span><b>' + pesos(v) + '</b></div>').join('') +
@@ -242,9 +285,16 @@ function vistaFijos() {
 function vistaAhorro() {
   const prom = gastoPromedio(f());
   return f().metas.map((m, i) => {
-    const r = 'finanzas.metas.' + i, obj = objetivoMeta(f(), m), lleva = aportado(f(), m.id), plan = obj ? planMeta(f(), m) : null;
+    const r = 'finanzas.metas.' + i, obj = objetivoMeta(f(), m), lleva = valorMeta(f(), m), puesto = aportado(f(), m.id), plan = obj && !m.inversion ? planMeta(f(), m) : null;
+    const gana = m.inversion && m.valor ? lleva - puesto : null;
     return '<section class="tarjeta ed-item"><div class="ed-cab"><b>' + (m.icono || '🐷') + ' ' + esc(m.nombre) + '</b>' + (m.id === 'emergencia' ? '' : borrar('finanzas.metas', i, m.nombre)) + '</div>' +
-      '<div class="fila-resumen"><span><b>' + pesos(lleva) + '</b> de ' + (obj ? pesos(obj) : '—') + '</span><b>' + (obj ? pct(lleva / obj) : '') + '</b></div>' + barra(obj ? lleva / obj : 0) +
+      (m.inversion ? '<div class="datos-peso"><div><small>Vale hoy</small><b>' + pesos(lleva) + '</b>' + (m.valor ? '<small>anotado el ' + fechaCorta(m.valor.fecha) + '</small>' : '<small>anota el valor abajo</small>') + '</div>' +
+        '<div><small>Le has puesto</small><b>' + pesos(puesto) + '</b></div>' + (gana != null ? '<div><small>' + (gana >= 0 ? 'Ganancia' : 'Pérdida') + '</small><b class="' + (gana >= 0 ? 'verde' : 'rojo') + '">' + pesos(Math.abs(gana)) + '</b>' +
+        (puesto > 0 ? '<small>' + pct(gana / puesto) + '</small>' : '') + '</div>' : '') + '</div>' +
+        '<div class="aportar"><input type="text" inputmode="numeric" data-pesos placeholder="Valor hoy" aria-label="Valor de hoy de ' + esc(m.nombre) + '" data-valor-meta="' + m.id + '">' +
+        '<button type="button" class="boton secundario" data-accion="fin-valor-meta" data-id="' + m.id + '">Anotar valor</button></div>' +
+        (obj ? '<div class="fila-resumen"><span>Meta ' + pesos(obj) + '</span><b>' + pct(lleva / obj) + '</b></div>' + barra(lleva / obj) : '')
+      : '<div class="fila-resumen"><span><b>' + pesos(lleva) + '</b> de ' + (obj ? pesos(obj) : '—') + '</span><b>' + (obj ? pct(lleva / obj) : '') + '</b></div>' + barra(obj ? lleva / obj : 0)) +
       (plan ? (plan.falta ? '<p class="' + (plan.vencida ? 'aviso' : 'nota-corta') + '">' + (plan.vencida ? 'La fecha (' + fechaCorta(m.fecha) + ') ya pasó y faltan ' + pesos(plan.falta) + '. Pon una fecha nueva.'
         : 'Para el ' + fechaCorta(m.fecha) + ' te faltan ' + pesos(plan.falta) + ': aparta <b>' + pesos(plan.porMes) + ' al mes</b>' + (plan.meses > 1 ? ' durante ' + plan.meses + ' meses' : '') + '.') + '</p>'
         : '<p class="nota-corta verde">🎉 ¡Meta cumplida!</p>') : '') +
@@ -254,9 +304,14 @@ function vistaAhorro() {
       '<button type="button" class="boton primario" data-accion="fin-aportar" data-id="' + m.id + '">＋ Aportar</button>' +
       '<button type="button" class="boton secundario" data-accion="fin-retirar" data-id="' + m.id + '">Sacar</button></div>' +
       '<details><summary>Editar meta</summary><div class="dos">' + campoTexto('Nombre', r + '.nombre', m.nombre) + campoTexto('Ícono', r + '.icono', m.icono, ' maxlength="4"') +
-      (m.id === 'emergencia' ? campoNumero('Meses de gastos', r + '.meses', m.meses || 6) : '') + campoPesos(m.id === 'emergencia' ? 'Meta fija (opcional)' : 'Meta', r + '.objetivo', m.objetivo) +
+      (m.id === 'emergencia' ? campoNumero('Meses de gastos', r + '.meses', m.meses || 6) : selector('Tipo', r + '.inversion', m.inversion ? 'si' : '', [{ id: '', nombre: 'Ahorro' }, { id: 'si', nombre: 'Inversión (cambia de valor)' }])) +
+      campoPesos(m.id === 'emergencia' ? 'Meta fija (opcional)' : 'Meta', r + '.objetivo', m.objetivo) +
       '<label class="campo">Para cuándo (opcional)<input type="date" data-cambio="ed" data-ruta="' + r + '.fecha" value="' + esc(m.fecha || '') + '" min="' + iso() + '"></label></div></details></section>';
-  }).join('') + '<button type="button" class="boton secundario grande ancho" data-accion="ed-agregar" data-lista="finanzas.metas">＋ Meta de ahorro</button>';
+  }).join('') + '<button type="button" class="boton secundario grande ancho" data-accion="ed-agregar" data-lista="finanzas.metas">＋ Meta de ahorro</button>' +
+    '<details class="tarjeta plantillas-meta"><summary><b>Agregar con un toque</b></summary>' +
+    [['Ahorro', (x) => !x.inversion], ['Inversión', (x) => x.inversion]].map(([t, filtro]) => '<p class="titulo-campo">' + t + '</p><div class="chips envolver">' +
+      PLANTILLAS_META.filter(filtro).map((x) => '<button type="button" class="chip" data-accion="fin-meta-plantilla" data-nombre="' + esc(x.nombre) + '">' + x.icono + ' ' + esc(x.nombre) + '</button>').join('') + '</div>').join('') +
+    '<p class="nota-corta">En una inversión anota de vez en cuando cuánto vale. Tu patrimonio usa ese valor, no solo lo que le pusiste.</p></details>';
 }
 
 // ---------- Deudas ----------
@@ -390,7 +445,8 @@ export function cobrarPrestamo(id, monto, fecha = iso(), nota = '') {
 function moverAhorro(id, tipo) {
   const campo = document.querySelector('[data-aporte="' + id + '"]'), monto = leerMonto(campo && campo.value);
   if (!monto) { toast('Escribe el monto'); if (campo) campo.focus(); return; }
-  if (tipo === 'retiro' && monto > aportado(f(), id)) { toast('No hay tanto ahorrado en esa meta'); return; }
+  const meta = f().metas.find((m) => m.id === id);
+  if (tipo === 'retiro' && monto > (meta ? valorMeta(f(), meta) : aportado(f(), id))) { toast('No hay tanto ahorrado en esa meta'); return; }
   nuevoMovimiento({ tipo, monto, meta: id, metodo: 'transferencia', nota: tipo === 'retiro' ? 'Retiro' : '' });
   campo.value = '';
   listo();
@@ -400,17 +456,51 @@ function moverAhorro(id, tipo) {
 // Lo escrito en el formulario se recuerda letra a letra: así da igual el orden (monto, categoría, nota…) y nada se pierde al repintar
 if (typeof document !== 'undefined') {
   document.addEventListener('input', (ev) => { const el = ev.target; if (el.matches && el.matches('[data-cambio="fin-form"]')) form[el.dataset.k] = el.value; });
+  // El buscador de categorías muestra resultados sin repintar, para no perder el cursor
+  document.addEventListener('input', (ev) => {
+    const el = ev.target;
+    if (!el.matches || !el.matches('.fin-buscar')) return;
+    const caja = el.parentElement.querySelector('.fin-resultados');
+    if (caja) caja.innerHTML = resultadosBusqueda(el.value);
+  });
 }
 // En el computador, al abrir Registrar el cursor queda en el monto (en el celular no, para que no salte el teclado)
 const enfocarMonto = () => { if (matchMedia('(min-width: 900px)').matches) setTimeout(() => document.getElementById('fin-monto')?.focus({ preventScroll: true }), 50); };
 const datoPrestamo = (k, id) => (document.querySelector('[data-cobro-' + k + '="' + id + '"]') || { value: '' }).value.trim();
-const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, categoria: null, editando: null });
+// Tras elegir o cambiar la categoría, que quede a la vista lo que sigue (en el celular la cuadrícula es larga)
+const verElegida = () => setTimeout(() => document.querySelector('.subcats, .fin-buscar')?.scrollIntoView({ block: 'nearest' }), 30);
+const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, categoria: null, sub: null, editando: null });
 
 registrar({
   'abrir-finanzas'({ p }) { pestana = p; },
   'fin-pestana'({ p }) { pestana = p; repintar(); window.scrollTo(0, 0); if (p === 'registrar') enfocarMonto(); },
-  'fin-tipo'({ tipo }) { form.tipo = tipo; form.categoria = null; repintar(); },
-  'fin-cat'({ id }) { form.categoria = id; repintar(); },
+  'fin-tipo'({ tipo }) { form.tipo = tipo; form.categoria = null; form.sub = null; repintar(); },
+  'fin-cat'({ id }) { if (form.categoria !== id) form.sub = null; form.categoria = id || null; repintar(); verElegida(); },
+  'fin-sub'({ id }) { form.sub = form.sub === id ? null : id; repintar(); },
+  'fin-elegir'({ cat: c, sub }) { form.categoria = c; form.sub = sub || null; repintar(); verElegida(); },
+  'fin-destino'({ id }) { form.destino = id; repintar(); },
+  'fin-sub-nueva'() {
+    const nombre = (prompt('Nombre de la subcategoría en ' + cat(form.tipo, form.categoria).nombre + ':') || '').trim(), id = slug(nombre);
+    if (!id || !form.categoria) return;
+    if (!subsDe(f(), form.categoria).some((x) => x.id === id)) (f().subs ||= []).push({ id, cat: form.categoria, nombre, icono: '🏷️' });
+    form.sub = id;
+    guardar();
+  },
+  'fin-meta-plantilla'({ nombre }) {
+    const x = PLANTILLAS_META.find((y) => y.nombre === nombre);
+    if (!x) return;
+    f().metas.push({ id: 'meta' + uid(), nombre: x.nombre, icono: x.icono, objetivo: 0, ...(x.inversion ? { inversion: 'si' } : {}) });
+    guardar();
+    toast('✓ ' + x.icono + ' ' + x.nombre + ' agregada');
+  },
+  'fin-valor-meta'({ id }) {
+    const campo = document.querySelector('[data-valor-meta="' + id + '"]'), monto = leerMonto(campo && campo.value), m = f().metas.find((x) => x.id === id);
+    if (!m) return;
+    if (!monto) { toast('Escribe cuánto vale hoy'); if (campo) campo.focus(); return; }
+    m.valor = { monto, fecha: iso(), ts: Date.now() };
+    listo();
+    toast('✓ ' + m.nombre + ' vale ' + pesos(monto));
+  },
   'fin-metodo'({ id }) { form.metodo = id; repintar(); },
   'fin-filtro-cat'({ id }, el, ev) { if (ev) ev.preventDefault(); filtroCat = id && id !== filtroCat ? id : null; repintar(); },
   'fin-form'({ k }, el) { form[k] = el.value; },
@@ -418,11 +508,18 @@ registrar({
   'fin-guardar'() {
     const campo = document.getElementById('fin-monto'), monto = leerMonto(campo ? campo.value : form.monto);
     if (!monto) { toast('Escribe el monto'); if (campo) campo.focus(); return; }
-    if (!form.categoria) { toast(form.tipo === 'ahorro' ? 'Elige la meta de ahorro' : 'Elige la categoría'); return; }
+    const transf = form.tipo === 'transferencia';
+    if (transf && (!form.destino || form.destino === form.metodo)) { toast('Elige de qué cuenta sale y a cuál llega'); return; }
+    if (!transf && !form.categoria) { toast(form.tipo === 'ahorro' ? 'Elige la meta de ahorro' : 'Elige la categoría'); return; }
     const base = { tipo: form.tipo, monto, metodo: form.metodo, nota: form.nota.trim(), fecha: form.fecha || iso() };
-    const datos = form.tipo === 'ahorro' ? { ...base, meta: form.categoria, categoria: undefined } : { ...base, categoria: form.categoria, meta: undefined };
-    const nombre = form.tipo === 'ahorro' ? (f().metas.find((m) => m.id === form.categoria) || {}).nombre : cat(form.tipo, form.categoria).nombre;
+    const datos = transf ? { ...base, destino: form.destino, categoria: undefined, sub: undefined, meta: undefined }
+      : form.tipo === 'ahorro' ? { ...base, meta: form.categoria, categoria: undefined, sub: undefined } : { ...base, categoria: form.categoria, sub: form.sub || undefined, meta: undefined };
+    const nombre = transf ? 'De ' + metodo(form.metodo).nombre + ' a ' + metodo(form.destino).nombre
+      : form.tipo === 'ahorro' ? (f().metas.find((m) => m.id === form.categoria) || {}).nombre : (subDe(f(), form.categoria, form.sub) || cat(form.tipo, form.categoria)).nombre;
     const editando = form.editando;
+    // Mismo monto, misma categoría y mismo día: puede que ya lo hayas anotado
+    const igual = !editando && posibleDuplicado(f(), datos);
+    if (igual && !confirm('Ya anotaste ' + pesos(monto) + ' en ' + nombre + ' ese día. ¿Guardar otro igual?')) return;
     if (editando) cambiarMovimiento(f(), editando, datos); else nuevoMovimiento(datos);
     // Aviso si con este gasto la categoría pasa su presupuesto
     const c = form.tipo === 'gasto' && cat('gasto', form.categoria), lleva = c && c.presupuesto ? resumenMes(f(), mesDe(base.fecha)).porCategoria[c.id] || 0 : 0;
@@ -433,7 +530,7 @@ registrar({
   'fin-editar-mov'({ id }) {
     const m = f().movimientos.find((x) => x.id === id);
     if (!m) return;
-    Object.assign(form, { tipo: m.tipo, categoria: m.tipo === 'ahorro' ? m.meta : m.categoria, metodo: m.metodo, monto: miles(m.monto), nota: m.nota || '', fecha: m.fecha, editando: id });
+    Object.assign(form, { tipo: m.tipo, categoria: m.tipo === 'ahorro' ? m.meta : m.categoria, sub: m.sub || null, metodo: m.metodo, destino: m.destino || null, monto: miles(m.monto), nota: m.nota || '', fecha: m.fecha, editando: id });
     pestana = 'registrar';
     repintar();
     window.scrollTo(0, 0);

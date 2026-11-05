@@ -282,3 +282,11 @@ test('recordatorio por día fijo: cae siempre el mismo día, y lo pagado cerca d
   assert.equal(proximoRecordatorio(r([]), s, null, '2026-11-01').titulo, 'En 14 días');
   assert.equal(proximoRecordatorio(r([]), s, null, '2026-11-01').fraccion, 0);
 });
+
+test('recordatorio de todos los días: pendiente hasta marcarlo hoy, y mañana vuelve a salir', () => {
+  const x = { nombre: 'Pastilla', diario: true, hechos: [] };
+  assert.equal(estadoRecordatorio(x, null, '2026-11-04').estado, 'pendiente');
+  x.hechos.push({ fecha: '2026-11-04' });
+  assert.equal(estadoRecordatorio(x, null, '2026-11-04').estado, 'al-dia');
+  assert.equal(estadoRecordatorio(x, null, '2026-11-05').estado, 'pendiente');
+});

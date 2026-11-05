@@ -1,4 +1,4 @@
-// 🛡️ Administrar (solo admin): el rol de cada usuario, qué ve cada rol, excepciones por usuario, roles y "Ver como".
+// 🛡️ Administrar (solo admin): el rol de cada usuario, qué ve cada rol, qué ve cada usuario, roles y "Ver como".
 // Todo se guarda en Supabase (supabase/esquema.sql, funciones rutina_admin_*). El admin nunca ve los datos de los demás.
 import { repintar } from '../estado.js';
 import { esc, registrar, toast } from '../ui.js';
@@ -6,7 +6,7 @@ import { configurada, llamar, cargarPermisos } from '../nube.js';
 import { esAdmin, catalogo, tiposCatalogo, TIPOS, SIEMPRE, reglaDe, permisosDe, ponerVerComo } from '../permisos.js';
 
 let datos = null, cargando = false, error = '', pestana = 'usuarios';
-const PESTANAS = { usuarios: '👥 Usuarios', permisos: '🔐 Permisos por rol', roles: '🏷️ Roles', ver: '👁 Ver como' };
+const PESTANAS = { usuarios: '👥 Usuarios', porUsuario: '🔐 Permisos por usuario', permisos: '🏷️ Permisos por rol', roles: '🏷️ Roles', ver: '👁 Ver como' };
 
 async function cargar() {
   cargando = true; error = ''; repintar();
@@ -46,6 +46,24 @@ function usuarios() {
             '<option value="1"' + (v === true ? ' selected' : '') + '>Ver</option><option value="0"' + (v === false ? ' selected' : '') + '>No ver</option></select></label>';
         }).join('') + '</div>').join('') + '</details>') + '</section>';
   }).join('') || '<p class="nota-corta">Aún no ha entrado nadie más. Cada persona aparece aquí la primera vez que entra a la app.</p>';
+}
+
+// Lo que ve cada usuario: su excepción si la tiene; si no, lo de su rol
+const veUsuario = (u, tipo, id) => { const v = reglaDe(datos, tipo, id, { usuario: u.id }); return v !== null ? v : reglaDe(datos, tipo, id, { rol: u.rol }) !== false; };
+const corto = (correo) => String(correo || '').split('@')[0];
+function porUsuario() {
+  const lista = datos.usuarios.filter((u) => u.rol !== 'admin');
+  if (!lista.length) return '<p class="nota-corta">Aún no ha entrado nadie más. Cada persona aparece aquí la primera vez que entra a la app.</p>';
+  return '<p class="nota-corta">Marcado = lo ve. Cada persona empieza con lo de su rol; lo que cambies aquí es solo para ella y queda resaltado. ' +
+    'Si lo vuelves a dejar como su rol, sigue otra vez al rol. Hoy y Ajustes siempre se ven.</p>' +
+    elementos().map(([tipo, filas]) => '<section class="tarjeta"><h2>' + TIPOS[tipo] + '</h2><div class="tabla-scroll"><table class="adm-tabla"><thead><tr><th></th>' +
+      lista.map((u) => '<th title="' + esc(u.correo) + '">' + esc(corto(u.correo)) + '<br><small>' + esc(nombreRol(u.rol)) + '</small></th>').join('') + '</tr></thead><tbody>' +
+      filas.map(([id, nombre]) => '<tr><th>' + esc(nombre) + '</th>' + lista.map((u) => {
+        const propia = reglaDe(datos, tipo, id, { usuario: u.id }) !== null, delRol = reglaDe(datos, tipo, id, { rol: u.rol }) !== false;
+        return '<td' + (propia ? ' class="adm-propia" title="Solo para ' + esc(corto(u.correo)) + ' (su rol ' + (delRol ? 'lo ve' : 'no lo ve') + ')"' : '') + '>' +
+          '<input type="checkbox" data-cambio="adm-regla-usuario" data-tipo="' + tipo + '" data-id="' + esc(id) + '" data-u="' + u.id + '"' + (veUsuario(u, tipo, id) ? ' checked' : '') +
+          ' aria-label="' + esc(corto(u.correo)) + ' ve ' + esc(nombre) + '"></td>';
+      }).join('') + '</tr>').join('') + '</tbody></table></div></section>').join('');
 }
 
 function permisos() {
@@ -89,7 +107,7 @@ export function vistaAdministrar() {
   if (!datos) return titulo + '<p class="nota-corta">Cargando…</p>';
   return titulo + '<nav class="chips pestanas">' + Object.entries(PESTANAS).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="adm-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    { usuarios, permisos, roles, ver: verComo }[pestana]();
+    { usuarios, porUsuario, permisos, roles, ver: verComo }[pestana]();
 }
 
 // Banner mientras el admin mira la app como otro
@@ -105,6 +123,11 @@ registrar({
   // Excepción de un usuario: "" quita la regla, "1" ver, "0" no ver
   'adm-regla'({ tipo, id, u }, el) {
     cambiar('rutina_admin_permiso', { p_tipo: tipo, p_elemento: id, p_rol: null, p_usuario: u, p_visible: el.value === '' ? null : el.value === '1' });
+  },
+  // Casilla de un usuario: si queda igual a lo de su rol se quita la excepción
+  'adm-regla-usuario'({ tipo, id, u }, el) {
+    const usuario = datos.usuarios.find((x) => x.id === u), delRol = reglaDe(datos, tipo, id, { rol: usuario.rol }) !== false;
+    cambiar('rutina_admin_permiso', { p_tipo: tipo, p_elemento: id, p_rol: null, p_usuario: u, p_visible: el.checked === delRol ? null : el.checked });
   },
   // Por rol: visible es lo de siempre, así que marcar quita la regla y desmarcar la pone en "no ver"
   'adm-regla-rol'({ tipo, id, rol }, el) {

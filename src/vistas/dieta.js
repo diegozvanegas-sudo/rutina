@@ -90,7 +90,7 @@ function vistaPlanes() {
         '<div class="items">' + c.items.map((it, j) => {
           const a = alimento(it.alimento), v = valoresItem(it, d().alimentos);
           return '<div class="item"><span class="item-nombre">' + esc(a ? a.nombre : it.alimento) + '</span>' +
-            (a && a.por !== 'libre' ? '<label class="item-cant"><input type="number" inputmode="decimal" min="0" step="' + (a.paso || (a.por === 'g' ? 5 : 1)) + '" data-cambio="ed" data-tipo="num" data-ruta="' + rc + '.items.' + j + '.cant" value="' + esc(it.cant) + '" aria-label="Cantidad"><span>' + unidad(a) + '</span></label>' : '<span class="item-cant nota-corta">libre</span>') +
+            (a && a.por !== 'libre' ? '<label class="item-cant"><input type="text" inputmode="decimal" autocomplete="off" min="0" step="' + (a.paso || (a.por === 'g' ? 5 : 1)) + '" data-cambio="ed" data-tipo="num" data-ruta="' + rc + '.items.' + j + '.cant" value="' + esc(it.cant) + '" aria-label="Cantidad"><span>' + unidad(a) + '</span></label>' : '<span class="item-cant nota-corta">libre</span>') +
             '<span class="item-kcal">' + miles(v.kcal) + ' kcal<small>P ' + r0(v.p) + ' · C ' + r0(v.c) + '</small></span>' +
             '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="' + rc + '.items" data-i="' + j + '" data-nombre="' + esc(a ? a.nombre : '') + '" aria-label="Quitar">✕</button></div>';
         }).join('') + '</div>' +
@@ -117,7 +117,7 @@ function vistaPeso() {
   const avance = inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0;
   const hoyD = e().dias[iso()] || {}, medidas = medidasDe(e().dias), conCintura = medidas.filter((m) => m.cintura > 0), cintura = conCintura.length ? conCintura[conCintura.length - 1].cintura : null;
   const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO'), sug = revisionDieta({ lista, dias: e().dias, progreso: progresoMes(e().semanas, e().rutina, semanaActual()), ultimoAjuste: d().ultimoAjuste }, iso());
-  return '<section class="tarjeta"><label class="campo">Peso de hoy (kg)<input class="peso-grande" type="number" inputmode="decimal" step="0.1" min="0" data-cambio="dieta-peso" value="' + esc(hoy || '') + '" placeholder="' + esc(ultimo || c.pesoBase) + '"></label>' +
+  return '<section class="tarjeta"><label class="campo">Peso de hoy (kg)<input class="peso-grande" type="text" inputmode="decimal" autocomplete="off" step="0.1" min="0" data-cambio="dieta-peso" value="' + esc(hoy || '') + '" placeholder="' + esc(ultimo || c.pesoBase) + '"></label>' +
     '<p class="nota-corta">Mejor en ayunas, después del baño. El promedio de 7 días es el que se usa para recalcular.</p></section>' +
     '<section class="tarjeta"><div class="datos-peso">' +
     '<div><small>Promedio 7 días</small><b>' + (prom ? f1(prom) + ' kg' : '—') + '</b></div>' +
@@ -129,7 +129,7 @@ function vistaPeso() {
     '<section class="tarjeta"><h2>Cómo te sentiste hoy</h2>' + escala('Energía', 'energia', hoyD.energia, '1 = sin energía · 5 = a tope') + escala('Hambre', 'hambre', hoyD.hambre, '1 = nada · 5 = mucha') + '</section>' +
     '<section class="tarjeta"><div class="fila-resumen"><h2>📏 Medidas</h2><button type="button" class="boton secundario" data-accion="sesion" data-sesion="medidas">¿Cómo me mido?</button></div>' +
     '<p class="nota-corta">Una vez por semana, en cm. La cintura es la que más dice si estás perdiendo grasa.</p><div class="dos">' +
-    Object.entries(MEDIDAS).map(([k, t]) => '<label class="campo">' + t + '<input type="number" inputmode="decimal" step="0.1" min="0" data-cambio="dieta-medida" data-k="' + k + '" value="' + esc((hoyD.medidas || {})[k] ?? '') + '"></label>').join('') + '</div>' +
+    Object.entries(MEDIDAS).map(([k, t]) => '<label class="campo">' + t + '<input type="text" inputmode="decimal" autocomplete="off" step="0.1" min="0" data-cambio="dieta-medida" data-k="' + k + '" value="' + esc((hoyD.medidas || {})[k] ?? '') + '"></label>').join('') + '</div>' +
     (medidas.length ? '<ul class="lista-pesos">' + medidas.slice(-6).reverse().map((m) => '<li><span>' + fechaCorta(m.fecha) + '</span><span>' + Object.entries(MEDIDAS).filter(([k]) => m[k] > 0).map(([k, t]) => t + ' <b>' + f1(m[k]) + '</b>').join(' · ') + '</span></li>').join('') + '</ul>' : '') + '</section>' +
     '<section class="tarjeta"><h2>💡 Sugerencia de la semana</h2><div class="datos-peso">' + senalesRevision(sug.senales, f1) + '</div><p>' + sug.texto + '</p>' +
     (sug.gramos ? '<button type="button" class="boton primario ancho" data-accion="dieta-aplicar" data-g="' + sug.gramos + '">' + (sug.gramos > 0 ? 'Sumar ' : 'Quitar ') + Math.abs(sug.gramos) + ' g de carbos a los planes</button><p class="nota-corta">Antes de cambiar te muestra cuánto queda, y lo puedes deshacer en Planes.</p>' : '') + '</section>' +
@@ -159,7 +159,7 @@ function senalesRevision(s, f1) {
     .map(([t, v]) => '<div><small>' + t + '</small><b>' + v + '</b></div>').join('');
 }
 function numero(titulo, ruta, valor, paso = '1') {
-  return '<label class="campo">' + titulo + '<input type="number" inputmode="decimal" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
+  return '<label class="campo">' + titulo + '<input type="text" inputmode="decimal" autocomplete="off" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
 }
 
 // ---------- Alimentos ----------

@@ -134,6 +134,7 @@ export function cargar() {
   if (!estado.finanzas) estado.finanzas = FINANZAS();
   estado.finanzas.prestamos ??= [];
   if (!estado.recordatorios) estado.recordatorios = RECORDATORIOS();
+  estado.recordatorios.eventos ??= [];
   sembrarLugares(estado);
   estado.libros ??= {};
   estado.estudio ??= { cursos: {}, tarjetas: {}, dias: {} };

@@ -124,7 +124,11 @@ export function iniciarNube() {
   window.addEventListener('online', () => { sincronizar(); cargarPermisos(); });
   window.addEventListener('offline', () => nube.usuario && poner('sin-conexion'));
   // Al volver a la app (otro equipo pudo haber guardado)
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { sincronizar(); cargarPermisos(); } });
+  // Al salir (cambiar de app, apagar la pantalla) lo pendiente se sube ya, sin esperar los 3 s
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { sincronizar(); cargarPermisos(); }
+    else if (nube.estado === 'pendiente') { clearTimeout(espera); sincronizar(true); }
+  });
   // Con la app abierta también: cada 20 s se baja lo que otro equipo haya subido (los cambios de aquí se suben solos a los 3 s)
   setInterval(() => { if (document.visibilityState === 'visible' && !corriendo && nube.estado !== 'pendiente') sincronizar(true); }, 20000);
 }

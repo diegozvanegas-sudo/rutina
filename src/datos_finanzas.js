@@ -108,6 +108,7 @@ export const PLANTILLAS_RECORDATORIO = [
   { nombre: 'Cambiar contraseñas', icono: '🔑', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'otros', grupo: 'digital', nota: 'Correo y bancos primero; activa la verificación en dos pasos.' },
   { nombre: 'Revisar centrales de riesgo', icono: '📊', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'otros', grupo: 'digital', nota: 'Datacrédito y TransUnion: es gratis consultar tu historial.' },
   { nombre: 'Limpiar el computador', icono: '💻', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'otros', grupo: 'digital', nota: 'Polvo del ventilador, actualizaciones y archivos que sobran.' },
+  { nombre: 'Pendiente de todos los días', icono: '📌', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 1, diario: true, categoria: 'otros', grupo: 'personal' },
   { nombre: 'Motilada', icono: '💈', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 21, categoria: 'otros', grupo: 'personal' },
   { nombre: 'Cepillo de dientes', icono: '🪥', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'mercado', grupo: 'personal' },
   { nombre: 'Cuchillas de afeitar', icono: '🪒', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'mercado', grupo: 'personal' },
@@ -165,4 +166,5 @@ export const GRUPOS_PLANTILLA = { pagos: '💳 Pagos', moto: '🏍️ Moto', pap
 export const RECORDATORIOS = () => ({
   vehiculos: [{ id: 'moto', nombre: 'Moto', icono: '🏍️', km: [] }],   // km: [{ fecha, km }] lecturas del odómetro
   lista: [{ id: 'aceite-moto', ...PLANTILLAS_RECORDATORIO[0], hechos: [] }], // hechos: [{ fecha, km, costo }]
+  eventos: [],                                                          // ver eventos.js
 });

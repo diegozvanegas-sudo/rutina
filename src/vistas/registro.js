@@ -21,7 +21,7 @@ export function tarjetaSuenoPeso(fecha = iso()) {
     '<label class="campo">Me levanté<input type="time" data-cambio="sueno" data-f="' + fecha + '" data-k="levante" value="' + esc(s.levante || '') + '"></label></div>' +
     (h != null ? '<p class="' + (h < 7 ? 'aviso' : 'nota-corta') + '">Dormiste <b>' + f1(h) + ' h</b>' + (h < 7 ? '. Menos de 7 h frena la recuperación y la fuerza: hoy acuéstate más temprano.' : '. ¡Bien!') + '</p>' : '') +
     '<p class="nota-corta">¿Cómo dormiste? (1 = muy mal · 5 = excelente)</p>' + puntos(5, s.calidad, 'sueno-calidad', 'data-f="' + fecha + '"', 'Calidad del sueño') +
-    '<label class="campo">Peso en ayunas (kg)<input type="number" inputmode="decimal" step="0.1" min="0" data-cambio="dieta-peso" value="' + esc(d.peso || '') + '" placeholder="' + esc(ultimoPeso || '') + '"></label>' +
+    '<label class="campo">Peso en ayunas (kg)<input type="text" inputmode="decimal" autocomplete="off" step="0.1" min="0" data-cambio="dieta-peso" value="' + esc(d.peso || '') + '" placeholder="' + esc(ultimoPeso || '') + '"></label>' +
     '<a class="nota-corta" href="#dieta/peso">Ver la tendencia del peso →</a></section>';
 }
 

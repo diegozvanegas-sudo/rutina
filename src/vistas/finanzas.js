@@ -33,7 +33,7 @@ const campoPesos = (titulo, ruta, valor) =>
 const campoTexto = (titulo, ruta, valor, extra = '') =>
   '<label class="campo">' + titulo + '<input type="text" data-cambio="ed" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"' + extra + '></label>';
 const campoNumero = (titulo, ruta, valor, paso = '1') =>
-  '<label class="campo">' + titulo + '<input type="number" inputmode="decimal" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
+  '<label class="campo">' + titulo + '<input type="text" inputmode="decimal" autocomplete="off" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
 const selector = (titulo, ruta, valor, opciones) =>
   '<label class="campo">' + titulo + '<select data-cambio="ed" data-ruta="' + ruta + '">' + opciones.map((o) => '<option value="' + esc(o.id) + '"' + (o.id === (valor || '') ? ' selected' : '') + '>' + esc((o.icono ? o.icono + ' ' : '') + o.nombre) + '</option>').join('') + '</select></label>';
 const borrar = (lista, i, nombre) => '<span class="ed-controles">' + subirBajar(lista, i) + '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="' + lista + '" data-i="' + i + '" data-nombre="' + esc(nombre) + '" aria-label="Borrar">🗑</button></span>';
@@ -397,12 +397,18 @@ function moverAhorro(id, tipo) {
   toast((tipo === 'retiro' ? 'Sacaste ' : '🐷 Ahorraste ') + pesos(monto));
 }
 
+// Lo escrito en el formulario se recuerda letra a letra: así da igual el orden (monto, categoría, nota…) y nada se pierde al repintar
+if (typeof document !== 'undefined') {
+  document.addEventListener('input', (ev) => { const el = ev.target; if (el.matches && el.matches('[data-cambio="fin-form"]')) form[el.dataset.k] = el.value; });
+}
+// En el computador, al abrir Registrar el cursor queda en el monto (en el celular no, para que no salte el teclado)
+const enfocarMonto = () => { if (matchMedia('(min-width: 900px)').matches) setTimeout(() => document.getElementById('fin-monto')?.focus({ preventScroll: true }), 50); };
 const datoPrestamo = (k, id) => (document.querySelector('[data-cobro-' + k + '="' + id + '"]') || { value: '' }).value.trim();
 const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, categoria: null, editando: null });
 
 registrar({
   'abrir-finanzas'({ p }) { pestana = p; },
-  'fin-pestana'({ p }) { pestana = p; repintar(); window.scrollTo(0, 0); },
+  'fin-pestana'({ p }) { pestana = p; repintar(); window.scrollTo(0, 0); if (p === 'registrar') enfocarMonto(); },
   'fin-tipo'({ tipo }) { form.tipo = tipo; form.categoria = null; repintar(); },
   'fin-cat'({ id }) { form.categoria = id; repintar(); },
   'fin-metodo'({ id }) { form.metodo = id; repintar(); },

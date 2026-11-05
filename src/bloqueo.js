@@ -13,11 +13,16 @@ const reto = () => crypto.getRandomValues(new Uint8Array(32));
 
 // cerrado: al abrir la app empieza bloqueada · auto: pedir la huella sola al mostrar el candado
 export const bloqueo = { disponible: false, cerrado: true, auto: true, intentando: false, error: '' };
+// Recargar la página no vuelve a pedir la huella si estuviste en la app hace menos de 5 minutos (se recuerda solo en esta pestaña)
+const VISTA = 'rutina-abierta';
+const marcarVista = () => { try { sessionStorage.setItem(VISTA, String(Date.now())); } catch (err) {} };
+try { if (Date.now() - Number(sessionStorage.getItem(VISTA)) < AUSENCIA) bloqueo.cerrado = false; } catch (err) {}
+window.addEventListener('pagehide', () => { if (!bloqueo.cerrado) marcarVista(); });
 
 // Activo para el usuario con sesión en este equipo
 export const huellaActiva = () => { const h = leer(); return !!(h && nube.usuario && h.usuario === nube.usuario.id); };
 export const bloqueada = () => bloqueo.cerrado && huellaActiva();
-export function abrir() { bloqueo.cerrado = false; bloqueo.error = ''; }
+export function abrir() { bloqueo.cerrado = false; bloqueo.error = ''; marcarVista(); }
 
 export async function activarHuella() {
   const cred = await navigator.credentials.create({ publicKey: {
@@ -57,6 +62,6 @@ if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAut
 // Al volver a la app después de 5 minutos fuera se vuelve a bloquear
 let fuera = 0;
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') { fuera = Date.now(); return; }
+  if (document.visibilityState === 'hidden') { fuera = Date.now(); if (!bloqueo.cerrado) marcarVista(); return; }
   if (fuera && Date.now() - fuera > AUSENCIA && huellaActiva() && !bloqueo.cerrado) { bloqueo.cerrado = true; bloqueo.auto = true; repintar(); }
 });

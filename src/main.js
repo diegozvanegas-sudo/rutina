@@ -15,7 +15,7 @@ import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import { vistaEditar } from './vistas/editar.js';
 import { vistaDieta } from './vistas/dieta.js';
 import { vistaFinanzas } from './vistas/finanzas.js';
-import { vistaRecordatorios, alertas } from './vistas/recordatorios.js';
+import { vistaRecordatorios, alertas, bannerDiarios } from './vistas/recordatorios.js';
 import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
 import { vistaEstudiar } from './vistas/estudiar.js';
@@ -181,7 +181,7 @@ function pintar() {
   }
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
-  $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + VISTAS[v][2]();
+  $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios() + VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
   $('lateral').innerHTML = lateral();
   aplicarBarra();

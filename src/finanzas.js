@@ -266,6 +266,11 @@ export const kmActual = (lecturas) => (lecturas.length ? Math.max(...lecturas.ma
 // Lo que pase primero: los km o los meses
 export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
   const ultimo = rec.hechos.length ? rec.hechos[rec.hechos.length - 1] : null;
+  // Todos los días: pendiente hasta que se marque hoy; mañana vuelve a salir
+  if (rec.diario) {
+    const hecho = !!ultimo && ultimo.fecha === hoy;
+    return { estado: hecho ? 'al-dia' : 'pendiente', ultimo, proxFecha: hecho ? sumarDias(hoy, 1) : hoy, faltaDias: hecho ? 1 : 0 };
+  }
   if (!ultimo && rec.empieza) {
     // Algo que aún no empieza (una hipoteca a futuro): no pide nada hasta 14 días antes del primer pago
     const faltaDias = diasEntre(hoy, rec.empieza);

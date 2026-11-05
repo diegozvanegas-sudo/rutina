@@ -16,7 +16,7 @@ const TIPOS_HABITO = { check: 'Marcar', cuenta: 'Cuenta regresiva', cronometro: 
 // Calentamiento del día: cualquier sesión de tipo calentamiento ("calentamiento-pierna" se guarda como "pierna", como antes)
 const calentamientos = () => ({ '': 'Sin calentamiento', ...Object.fromEntries(e().sesiones.filter((s) => s.tipo === 'calentamiento' && s.id !== 'calentamiento-futbol')
   .map((s) => [s.id.replace(/^calentamiento-/, ''), s.nombre])) });
-const PLANES_DIETA = { '': 'Automático (pierna → inferior, resto → superior)', inferior: 'Inferior', superior: 'Superior', descanso: 'Descanso', recarga: 'Recarga' };
+const PLANES_DIETA = { '': 'Automático (pierna → inferior)', inferior: 'Inferior', superior: 'Superior', descanso: 'Descanso', recarga: 'Recarga' };
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const TIPOS_SESION = { checklist: 'Checklist (marcar con ✓)', calentamiento: 'Calentamiento', estiramiento: 'Estiramiento', fortalecimiento: 'Fortalecimiento', mente: 'Mente', otro: 'Otro' };
 const FIGURAS = { '': 'Automática (según el nombre)', '-': 'Sin figura', ...Object.fromEntries(OPCIONES_FIGURA.map((k) => [k, k[0].toUpperCase() + k.slice(1)])) };
@@ -129,10 +129,10 @@ function editorRutina() {
     (!d ? '' : '<section class="tarjeta"><div class="ed-cab"><b>Día</b>' + (d.id === 'core' ? '' : controles('rutina', i, rutina.length, d.nombre)) + '</div>' +
       '<div class="dos">' + campo('Nombre', 'rutina.' + i + '.nombre', d.nombre) +
       (d.id === 'core' ? '<p class="nota-corta">El core se anota al final de cualquier día.</p>' : lista('Día de la semana', 'rutina.' + i + '.diaSemana', d.diaSemana, Object.fromEntries(DIAS.map((t, n) => [n ? String(n) : '', t || 'Sin asignar'])), 'num')) + '</div>' +
-      (d.id === 'core' ? '' : '<div class="dos">' + lista('Calentamiento', 'rutina.' + i + '.calentamiento', d.calentamiento || '', calentamientos()) +
+      (d.id === 'core' ? '' : '<div class="dos dos-largo">' + lista('Calentamiento', 'rutina.' + i + '.calentamiento', d.calentamiento || '', calentamientos()) +
         campo('Cardio', 'rutina.' + i + '.cardio', d.cardio) + '</div>' +
         (d.calentamiento ? elegirSesiones('Junto al calentamiento', 'rutina.' + i + '.extras', extrasCalentamiento(d)) : '') +
-        '<div class="dos">' + campo('Antes de empezar', 'rutina.' + i + '.previo', d.previo, ' placeholder="Ej.: movilidad previa 5-10 min"') +
+        '<div class="dos dos-largo">' + campo('Antes de empezar', 'rutina.' + i + '.previo', d.previo, ' placeholder="Ej.: movilidad previa 5-10 min"') +
         lista('Plan de comida', 'rutina.' + i + '.dieta', d.dieta || '', PLANES_DIETA) + '</div>') +
       '</section>' +
       '<datalist id="musculos">' + musculos.map((m) => '<option value="' + esc(m) + '">').join('') + '</datalist>' +
@@ -330,7 +330,7 @@ registrar({
   'ed-sesion'({ id }) { sesionEd = id; repintar(); },
   ed({ ruta, tipo, factor }, el) {
     let v = tipo === 'bool' ? el.checked : el.value;
-    if (tipo === 'num') v = v === '' ? null : Math.max(0, Number(v) || 0) * (Number(factor) || 1);
+    if (tipo === 'num') v = v === '' ? null : Math.max(0, Number(String(v).replace(',', '.')) || 0) * (Number(factor) || 1);
     else if (typeof v === 'string') v = v.trim();
     if (/\.nombre$/.test(ruta) && !v) { toast('El nombre no puede quedar vacío'); repintar(); return; }
     poner(ruta, v);

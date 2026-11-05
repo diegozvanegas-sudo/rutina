@@ -1,7 +1,8 @@
 // Recordatorios: mantenimiento de la moto por km o por tiempo (lo que pase primero), los que se agreguen desde plantillas
-// y los que salen solos de Finanzas (pagos fijos y cuotas de deudas).
+// los que salen solos de Finanzas (pagos fijos y cuotas de deudas) y los eventos que no hay que perderse.
 import { e, guardar, repintar } from '../estado.js';
-import { iso, fechaCorta, diasEntre } from '../fechas.js';
+import { iso, fechaCorta, fechaLarga, diasEntre } from '../fechas.js';
+import { ordenarEventos, eventosCerca, cuandoFalta, AVISAR_DIAS } from '../eventos.js';
 import { estadoRecordatorio, proximoRecordatorio, recordatoriosAutomaticos, ritmoKm, kmActual, pesos, leerMonto } from '../finanzas.js';
 import { PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../datos_finanzas.js';
 import { esc, barra, tip, registrar, toast } from '../ui.js';
@@ -19,15 +20,17 @@ const ESTADOS = { vencido: 'Vencido', pronto: 'Pronto', 'al-dia': 'Al día', 'si
 
 // Lo que necesita atención: para el menú y para el tablero de Hoy
 export function alertas(hoy = iso()) {
-  const propios = r().lista.map((x) => ({ x, s: estadoRecordatorio(x, vehiculo(x.vehiculo), hoy) })).filter(({ s }) => s.estado === 'vencido' || s.estado === 'pronto')
+  const propios = r().lista.map((x) => ({ x, s: estadoRecordatorio(x, vehiculo(x.vehiculo), hoy) })).filter(({ s }) => ['vencido', 'pronto', 'pendiente'].includes(s.estado))
     .map(({ x, s }) => ({ nombre: x.nombre, icono: x.icono, estado: s.estado }));
   const auto = recordatoriosAutomaticos(e().finanzas, hoy).filter((a) => a.estado === 'vencido' || a.estado === 'pronto')
     .map((a) => ({ nombre: a.nombre, icono: '💸', estado: a.estado, monto: a.monto }));
   const personas = pendientesCirculo(e().circulo, hoy).map(({ p, s }) => ({ nombre: 'Hablar con ' + p.nombre, icono: '👥', estado: s.estado }));
-  return [...propios, ...auto, ...personas];
+  const eventos = eventosCerca(r().eventos, hoy).map(({ x, s }) => ({ nombre: x.nombre + ' · ' + cuandoFalta(s.faltan), icono: x.icono || '🎟️', estado: 'pronto' }));
+  return [...eventos, ...propios, ...auto, ...personas];
 }
 
 function regla(x) {
+  if (x.diario) return 'Todos los días: sale arriba en toda la app hasta que lo marques';
   if (x.diaMes && !x.cadaKm) return 'El día ' + x.diaMes + ' de cada mes';
   const partes = [];
   if (x.cadaKm) partes.push('cada ' + km(x.cadaKm));
@@ -83,6 +86,7 @@ function panelEditar(x, i) {
     r().vehiculos.map((w) => '<option value="' + w.id + '"' + (w.id === x.vehiculo ? ' selected' : '') + '>' + esc(w.nombre) + '</option>').join('') + '</select></label>' : '') +
     '<label class="campo">El costo va a<select data-cambio="ed" data-ruta="' + ruta + '.categoria">' + e().finanzas.categorias.gasto.map((c) =>
       '<option value="' + c.id + '"' + (c.id === categoriaDe(x) ? ' selected' : '') + '>' + c.icono + ' ' + esc(c.nombre) + '</option>').join('') + '</select></label></div>' +
+    '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + ruta + '.diario"' + (x.diario ? ' checked' : '') + '> 📌 Todos los días, hasta que lo marque (sale arriba en toda la app)</label>' +
     '<label class="campo">Nota<textarea rows="2" data-cambio="ed" data-ruta="' + ruta + '.nota">' + esc(x.nota || '') + '</textarea></label>' +
     '<button type="button" class="boton secundario rec-borrar" data-accion="ed-borrar" data-lista="recordatorios.lista" data-i="' + i + '" data-nombre="' + esc(x.nombre) + '">🗑 Borrar recordatorio</button>';
 }
@@ -100,6 +104,49 @@ function tarjeta(x, i) {
     principal(x, s, actual) + hecho +
     '<div class="chips rec-pestanas">' + (s.estado === 'programado' ? '' : pest('hecho', '📅 Otra fecha')) + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +
     (que === 'hecho' ? panelHecho(x, actual) : que === 'historial' && x.hechos.length ? panelHistorial(x) : que === 'editar' ? panelEditar(x, i) : '') + '</section>';
+}
+
+// ---------- Eventos ----------
+const ESTADO_EVENTO = { hoy: ['pronto', 'Hoy'], pronto: ['pronto', ''], programado: ['programado', ''], 'por-confirmar': ['sin-dato', 'Por confirmar'] };
+const buscar = (x) => 'https://www.google.com/search?q=' + encodeURIComponent(x.nombre + ' fecha');
+const enlaceSeguro = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
+const opcionesAviso = (v) => AVISAR_DIAS.map((n) => '<option value="' + n + '"' + (Number(v) === n ? ' selected' : '') + '>' + (n === 1 ? '1 día antes' : n + ' días antes') + '</option>').join('');
+function tarjetaEvento(x, i, s) {
+  const [clase, texto] = ESTADO_EVENTO[s.estado] || ['programado', ''], ruta = 'recordatorios.eventos.' + i, enlace = enlaceSeguro(x.enlace);
+  const cuando = s.fecha ? fechaLarga(s.fecha) + (x.hora ? ' · ' + esc(x.hora) : '') : 'Aún no sabes cuándo es';
+  return '<section class="tarjeta rec e-borde-' + clase + '"><div class="ed-cab"><b>' + esc((x.icono || '🎟️') + ' ' + x.nombre) + '</b>' +
+    '<span class="estado e-' + clase + '">' + (texto || (s.faltan === 1 ? 'Mañana' : 'En ' + s.faltan + ' días')) + '</span></div>' +
+    '<p class="rec-titulo">' + cuando + '</p>' +
+    '<p class="nota-corta">' + [x.lugar ? '📍 ' + esc(x.lugar) : '', x.anual ? '🔁 Cada año' : '', s.fecha ? 'Te avisa ' + (Number(x.avisarDias ?? 7) || 0) + ' días antes' : 'Cuando sepas la fecha, ponla en Editar y te avisa'].filter(Boolean).join(' · ') + '</p>' +
+    (x.nota ? '<p class="nota-corta">📝 ' + esc(x.nota) + '</p>' : '') +
+    (enlace || !s.fecha ? '<div class="chips">' + (enlace ? '<a class="chip" href="' + esc(enlace) + '" target="_blank" rel="noopener">🔗 Abrir enlace</a>' : '') +
+      (s.fecha ? '' : '<a class="chip" href="' + esc(buscar(x)) + '" target="_blank" rel="noopener">🔎 Buscar la fecha</a>') + '</div>' : '') +
+    '<details><summary>✏️ Editar</summary><div class="dos">' +
+    '<label class="campo">Nombre<input type="text" data-cambio="ed" data-ruta="' + ruta + '.nombre" value="' + esc(x.nombre) + '"></label>' +
+    '<label class="campo">Ícono<input type="text" maxlength="4" data-cambio="ed" data-ruta="' + ruta + '.icono" value="' + esc(x.icono || '') + '"></label>' +
+    '<label class="campo">Fecha<input type="date" data-cambio="ed" data-ruta="' + ruta + '.fecha" value="' + esc(x.fecha || '') + '"></label>' +
+    '<label class="campo">Hora (opcional)<input type="time" data-cambio="ed" data-ruta="' + ruta + '.hora" value="' + esc(x.hora || '') + '"></label>' +
+    '<label class="campo">Avisarme<select data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.avisarDias">' + opcionesAviso(x.avisarDias ?? 7) + '</select></label>' +
+    '<label class="campo">Lugar<input type="text" data-cambio="ed" data-ruta="' + ruta + '.lugar" value="' + esc(x.lugar || '') + '" placeholder="Ej.: Atanasio Girardot"></label></div>' +
+    '<label class="campo">Enlace (boletas, página, transmisión)<input type="url" inputmode="url" data-cambio="ed" data-ruta="' + ruta + '.enlace" value="' + esc(x.enlace || '') + '" placeholder="https://…"></label>' +
+    '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + ruta + '.anual"' + (x.anual ? ' checked' : '') + '> Se repite cada año (cumpleaños, fechas especiales)</label>' +
+    '<label class="campo">Nota<textarea rows="2" data-cambio="ed" data-ruta="' + ruta + '.nota">' + esc(x.nota || '') + '</textarea></label>' +
+    '<button type="button" class="boton secundario rec-borrar" data-accion="ed-borrar" data-lista="recordatorios.eventos" data-i="' + i + '" data-nombre="' + esc(x.nombre) + '">🗑 Borrar evento</button></details></section>';
+}
+function seccionEventos() {
+  const { proximos, porConfirmar, pasados } = ordenarEventos(r().eventos);
+  return '<h2 class="titulo-grupo">🎟️ Eventos</h2><p class="nota-corta">Conciertos, partidos, estrenos, cumpleaños: lo que quieres ver o no perderte. Cuando se acerca, te avisa aquí, en Hoy y en el menú.</p>' +
+    '<div class="rejilla-rec">' + [...proximos, ...porConfirmar].map(({ x, i, s }) => tarjetaEvento(x, i, s)).join('') +
+    '<section class="tarjeta"><h2>＋ Agregar evento</h2><label class="campo">Qué es<input type="text" id="evento-nombre" placeholder="Ej.: concierto de …, final de la liga"></label><div class="dos">' +
+    '<label class="campo">Fecha (si ya la sabes)<input type="date" id="evento-fecha"></label>' +
+    '<label class="campo">Hora (opcional)<input type="time" id="evento-hora"></label>' +
+    '<label class="campo">Avisarme<select id="evento-aviso">' + opcionesAviso(7) + '</select></label></div>' +
+    '<label class="interruptor"><input type="checkbox" id="evento-anual"> Se repite cada año</label>' +
+    '<button type="button" class="boton primario ancho" data-accion="evento-agregar">Agregar</button>' +
+    '<p class="nota-corta">¿Aún no sabes la fecha? Agrégalo igual: queda como «Por confirmar», con un botón para buscarla.</p></section></div>' +
+    (pasados.length ? '<details class="tarjeta"><summary><h2>🕘 Ya pasaron (' + pasados.length + ')</h2></summary><ul class="lista-pesos">' + pasados.map(({ x, i, s }) =>
+      '<li><span>' + esc((x.icono || '🎟️') + ' ' + x.nombre) + '</span><span>' + fechaCorta(s.fecha) +
+      ' <button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="recordatorios.eventos" data-i="' + i + '" data-nombre="' + esc(x.nombre) + '" aria-label="Borrar ' + esc(x.nombre) + '">🗑</button></span></li>').join('') + '</ul></details>' : '');
 }
 
 let agregarAbierto = false;
@@ -135,7 +182,7 @@ if (typeof document !== 'undefined') {
 
 export function vistaRecordatorios() {
   const auto = recordatoriosAutomaticos(e().finanzas);
-  const orden = { vencido: 0, pronto: 1, 'sin-dato': 2, 'al-dia': 3, programado: 4 };
+  const orden = { pendiente: 0, vencido: 0, pronto: 1, 'sin-dato': 2, 'al-dia': 3, programado: 4 };
   const lista = r().lista.map((x, i) => ({ x, i, s: estadoRecordatorio(x, vehiculo(x.vehiculo)) })).sort((a, b) => orden[a.s.estado] - orden[b.s.estado]);
   const cuenta = (est) => lista.filter(({ s }) => s.estado === est).length, visibles = lista.filter(({ s }) => !filtroEstado || s.estado === filtroEstado), porLlamar = pendientesCirculo(e().circulo || []).length;
   // En el computador: arriba la moto y un resumen; abajo cada grupo en una rejilla de tarjetas
@@ -156,9 +203,10 @@ export function vistaRecordatorios() {
     '<p class="nota-corta">' + (auto.length ? auto.length + (auto.length === 1 ? ' pago' : ' pagos') + ' de Finanzas cerca · ' : '') + porLlamar + (porLlamar === 1 ? ' persona' : ' personas') + ' por llamar</p></section></div>' +
     '<div class="rec-cabeza"><h2 class="titulo-grupo">🔧 Mis recordatorios</h2><button type="button" class="boton primario" data-accion="rec-abrir-agregar">＋ Agregar</button></div>' +
     (lista.length > 1 ? '<div class="chips rec-filtros"><button type="button" class="chip' + (filtroEstado ? '' : ' activo') + '" data-accion="rec-filtro" data-v="">Todos (' + lista.length + ')</button>' +
-      [['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día'], ['programado', 'Programados']].filter(([k]) => cuenta(k)).map(([k, t]) =>
+      [['pendiente', 'De hoy'], ['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día'], ['programado', 'Programados']].filter(([k]) => cuenta(k)).map(([k, t]) =>
         '<button type="button" class="chip' + (filtroEstado === k ? ' activo' : '') + '" data-accion="rec-filtro" data-v="' + k + '">' + t + ' (' + cuenta(k) + ')</button>').join('') + '</div>' : '') +
     (lista.length ? '<div class="rejilla-rec' + (abierto.id ? ' con-activa' : '') + '">' + visibles.map(({ x, i }) => tarjeta(x, i)).join('') + '</div>' : '<section class="tarjeta"><p class="nota-corta">Aún no tienes recordatorios. Toca ＋ Agregar y escoge uno.</p></section>') +
+    seccionEventos() +
     (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2><div class="rejilla-rec">' + auto.map((a) =>
       '<section class="tarjeta"><div class="ed-cab"><b>' + esc(a.nombre) + '</b><span class="estado e-' + a.estado + '">' + ESTADOS[a.estado] + '</span></div>' +
       '<div class="fila-resumen nota-corta"><span>' + fechaCorta(a.fecha) + (a.faltan > 0 ? ' · en ' + a.faltan + ' días' : a.faltan === 0 ? ' · hoy' : '') + '</span><b>' + pesos(a.monto) + '</b></div>' +
@@ -171,7 +219,22 @@ export function vistaRecordatorios() {
     '<p class="nota-corta">Los pagos fijos, las cuotas y los intereses por cobrar de Finanzas aparecen aquí solos cuando se acerca el día.</p></details>';
 }
 
+// Lo de todos los días que aún no se marcó: franja arriba de toda la app (main.js) hasta que se toque ✓
+export function bannerDiarios() {
+  const pendientes = r().lista.filter((x) => x.diario && estadoRecordatorio(x, vehiculo(x.vehiculo)).estado === 'pendiente');
+  return pendientes.map((x) => '<div class="diario"><span>' + (x.icono || '📌') + ' <b>' + esc(x.nombre) + '</b>' + (x.nota ? '<small>' + esc(x.nota) + '</small>' : '') + '</span>' +
+    '<button type="button" class="boton primario" data-accion="rec-hoy" data-id="' + x.id + '">✓ Listo</button></div>').join('');
+}
+
 registrar({
+  'evento-agregar'() {
+    const val = (id) => document.getElementById(id), nombre = val('evento-nombre').value.trim();
+    if (!nombre) { toast('Escribe qué evento es'); return; }
+    const x = { id: 'ev' + uid(), nombre, icono: '🎟️', fecha: val('evento-fecha').value, hora: val('evento-hora').value, avisarDias: Number(val('evento-aviso').value) || 7, anual: val('evento-anual').checked };
+    r().eventos.push(x);
+    guardar();
+    toast('🎟️ ' + nombre + ' agregado', () => { r().eventos.splice(r().eventos.indexOf(x), 1); guardar(); });
+  },
   'rec-km'({ v }, el) {
     const n = Math.round(Number(el.value));
     if (!(n > 0)) return;

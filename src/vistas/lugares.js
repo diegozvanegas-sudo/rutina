@@ -145,13 +145,13 @@ function formulario() {
     '<p class="nota-corta">' + (b.lat != null ? 'Punto: ' + b.lat.toFixed(4) + ', ' + b.lon.toFixed(4) : 'Sin tocar el mapa, el punto queda en el centro.') + '</p>' +
     '<label class="campo">Prioridad<select name="prioridad">' + [[1, 'Alta'], [2, 'Media'], [3, 'Baja']].map(([n, t]) => '<option value="' + n + '"' + (n === (b.prioridad || 2) ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></label>' +
     '<label class="campo">Mejor época<input type="text" name="epoca" value="' + esc(b.epoca || '') + '"></label>' +
-    '<label class="campo">Horas desde Medellín<input type="number" inputmode="decimal" min="0" step="0.5" name="horas" value="' + esc(b.horas ?? '') + '"></label>' +
+    '<label class="campo">Horas desde Medellín<input type="text" inputmode="decimal" autocomplete="off" min="0" step="0.5" name="horas" value="' + esc(b.horas ?? '') + '"></label>' +
     '<label class="campo">Presupuesto aproximado<input type="text" inputmode="numeric" data-pesos name="presupuesto" value="' + esc(b.presupuesto || '') + '"></label>' +
     '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="lug-guardar">Guardar</button><button type="button" class="boton secundario" data-accion="lug-cancelar">Cancelar</button></div></section>';
 }
 function leerForm() {
   const caja = document.querySelector('[data-form-lugar]'), val = (n) => caja.querySelector('[name="' + n + '"]').value.trim();
-  return { ...borrador, nombre: val('nombre'), emoji: val('emoji'), tipo: val('tipo'), estado: val('estado'), pieza: val('pieza'), prioridad: Number(val('prioridad')), epoca: val('epoca'), horas: Number(val('horas')) || 0, presupuesto: leerMonto(val('presupuesto')) || 0 };
+  return { ...borrador, nombre: val('nombre'), emoji: val('emoji'), tipo: val('tipo'), estado: val('estado'), pieza: val('pieza'), prioridad: Number(val('prioridad')), epoca: val('epoca'), horas: Number(val('horas').replace(',', '.')) || 0, presupuesto: leerMonto(val('presupuesto')) || 0 };
 }
 
 // ---------- Línea de tiempo y Sorpréndeme ----------

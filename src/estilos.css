@@ -145,6 +145,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); out
 textarea { resize: vertical; min-height: 60px; }
 .campo { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
 .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Campos con textos largos (cardio, plan de comida): en el celular uno debajo del otro para que no se corten */
+@media (max-width: 600px) { .dos-largo { grid-template-columns: 1fr; } }
 .interruptor { display: flex; gap: 12px; align-items: center; }
 .interruptor input { width: 24px; min-height: 24px; height: 24px; }
 details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
@@ -847,3 +849,14 @@ details > summary { min-height: 44px; padding-top: 10px; padding-bottom: 10px; b
 .ed-cuerpo[hidden] { display: none; }
 .dias-habito .chip { min-width: 44px; justify-content: center; }
 .plegada .col-gym > section, .plegada > div > section { margin: 0; padding: 0; border: 0; background: none; }
+.lista-analisis { list-style: none; margin: 8px 0 12px; padding: 0; display: grid; gap: 8px; }
+.lista-analisis li span { display: grid; gap: 2px; }
+.lista-analisis small { color: var(--muted); }
+textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
+.lista-analisis li.pendiente { opacity: .6; }
+.rec.e-borde-pendiente { border-color: var(--amarillo); }
+/* Pendientes de todos los días: franja arriba de toda la app hasta marcarlos */
+.diario { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; background: #3a2d10; border: 1px solid var(--amarillo); }
+.diario > span { display: grid; min-width: 0; }
+.diario small { color: var(--muted); }
+.diario .boton { flex: none; }

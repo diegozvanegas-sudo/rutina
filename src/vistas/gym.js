@@ -8,6 +8,7 @@ import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../entrenador.js';
 import { linea, tablaDatos } from '../graficos.js';
+import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../analisis.js';
 import { CARDIO } from '../datos_iniciales.js';
 import { esc, barra, tip, registrar, toast, copiarTexto, botonSesion } from '../ui.js';
 import { iniciar } from '../temporizador.js';
@@ -308,7 +309,7 @@ function tarjetaCardio(d, sem) {
     '<p class="nota-corta">Plan: ' + esc(planCardio()) + '</p>' +
     (ult ? '<p class="ultimo">Último (semana ' + ult.semana + '): <b>' + esc(textoCardio(ult)) + '</b></p>' : '') +
     '<div class="campos-cardio">' + CAMPOS_CARDIO.map(([k, t, paso]) =>
-      '<label class="campo">' + t + '<input type="number" inputmode="decimal" min="0" step="' + paso + '" data-cambio="cardio" data-dia="' + d.id + '" data-k="' + k + '" value="' + esc(c[k] ?? '') + '"' +
+      '<label class="campo">' + t + '<input type="text" inputmode="decimal" autocomplete="off" min="0" step="' + paso + '" data-cambio="cardio" data-dia="' + d.id + '" data-k="' + k + '" value="' + esc(c[k] ?? '') + '"' +
       (ult && ult[k] != null && ult[k] !== '' ? ' placeholder="' + esc(ult[k]) + '"' : '') + '></label>').join('') + '</div>' +
     '<label class="campo">Nota<input type="text" data-cambio="cardio" data-dia="' + d.id + '" data-k="nota" value="' + esc(c.nota || '') + '" placeholder="Ej.: escaladora en vez de cinta, me sentí pesado…"></label>' +
     (ult && !hecho ? '<button type="button" class="boton secundario" data-accion="cardio-repetir" data-dia="' + d.id + '">↻ Igual que la última vez</button>' : '') +
@@ -368,7 +369,21 @@ function vistaDia(d, sem) {
     '<details><summary>Ver texto</summary><pre class="texto-copia">' + esc(textoDia(d, sem)) + '</pre></details></div>' +
     gruposDia(d.ejercicios).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem))).join('') +
     tarjetaCore(d, sem) +
-    tarjetaCardio(d, sem);
+    tarjetaCardio(d, sem) +
+    (r.hechas ? tarjetaAnalisis(d, sem) : '');
+}
+// Al terminar: cómo fue cada ejercicio y el prompt completo para que Claude lo analice como entrenador
+function tarjetaAnalisis(d, sem) {
+  const lista = resumenEjercicios(d, sem), cuenta = (k) => lista.filter((x) => x.estado === k).length;
+  return '<section class="tarjeta analisis"><h2>🧠 Análisis del entreno</h2>' +
+    '<p class="nota-corta">' + [cuenta('record') && '🏆 ' + cuenta('record') + ' récord' + (cuenta('record') > 1 ? 's' : ''), cuenta('sube') && '⬆️ ' + cuenta('sube') + ' subieron',
+      cuenta('igual') && '➖ ' + cuenta('igual') + ' igual', cuenta('baja') && '⬇️ ' + cuenta('baja') + ' bajaron', cuenta('estancado') && '⚠️ ' + cuenta('estancado') + ' estancados'].filter(Boolean).join(' · ') + '</p>' +
+    '<ul class="lista-analisis">' + lista.map((x) => '<li' + (x.estado === 'sin-dato' ? ' class="pendiente"' : '') + '><span><b>' + ICONO_ESTADO[x.estado] + ' ' + esc(x.nombre) + '</b>' +
+      '<small>' + esc(TEXTO_ESTADO[x.estado] + (x.cambio != null && Math.abs(x.cambio) >= 0.005 ? ' (' + (x.cambio > 0 ? '+' : '') + (Math.round(x.cambio * 1000) / 10).toLocaleString('es-CO') + ' %)' : '') +
+        (x.semanasParado >= 3 ? ' · ' + x.semanasParado + ' semanas sin récord' : '') + (x.meta ? ' · próxima: ' + x.meta : '')) + '</small></span></li>').join('') + '</ul>' +
+    '<button type="button" class="boton primario ancho" data-accion="gym-analisis" data-dia="' + d.id + '">📋 Copiar análisis completo para Claude</button>' +
+    '<p class="nota-corta">Lleva la sesión, el historial de cada ejercicio, el volumen por músculo, el sueño, la proteína, el peso y el fútbol, con las instrucciones para que te responda como entrenador. Pégalo en Claude.</p>' +
+    '<details><summary>Ver el texto</summary><textarea id="prompt-entreno" class="texto-copia" rows="10" readonly>' + esc(promptEntreno(d, sem, textoDia(d, sem))) + '</textarea></details></section>';
 }
 
 // Core al final de cualquier día: se anota en el día que se hace y cuenta para el total de la semana
@@ -507,6 +522,10 @@ registrar({
       const r = await compartirRutina(semanaVista ?? semanaActual(), e());
       if (r === 'descargada') toast('🖼️ Imagen descargada');
     } catch (err) { toast('No se pudo crear la imagen'); }
+  },
+  'gym-analisis'({ dia }) {
+    const d = e().rutina.find((x) => x.id === dia), sem = semanaVista ?? semanaActual();
+    if (d) copiarTexto(promptEntreno(d, sem, textoDia(d, sem)), '📋 Análisis copiado: pégalo en Claude');
   },
   'gym-copiar'({ dia }) {
     const d = e().rutina.find((x) => x.id === dia);

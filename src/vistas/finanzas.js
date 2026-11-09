@@ -12,6 +12,7 @@ import { PLANTILLAS_META, slug } from '../datos_finanzas.js';
 import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
 import { esc, barra, registrar, toast, subirBajar, miles } from '../ui.js';
 import { vistaEsperas } from './vida.js';
+import { vistaCalculadora, valorCalculadora } from './calculadora.js';
 
 let pestana = 'registrar', mesVista = null, filtroCat = null;
 const form = { tipo: 'gasto', categoria: null, sub: null, metodo: null, destino: null, monto: '', nota: '', fecha: null, editando: null };
@@ -393,10 +394,10 @@ function vistaPrestamos() {
 }
 
 export function vistaFinanzas() {
-  const tabs = { registrar: '➕ Registrar', mes: '📊 Mes', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h' };
+  const tabs = { registrar: '➕ Registrar', calcular: '🧮 Calcular', mes: '📊 Mes', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h' };
   return '<h1>Finanzas</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="fin-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    ({ mes: vistaMes, resumen: vistaResumen, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas, prestamos: vistaPrestamos, esperas: vistaEsperas }[pestana] || vistaRegistrar)();
+    ({ mes: vistaMes, resumen: vistaResumen, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas, prestamos: vistaPrestamos, esperas: vistaEsperas, calcular: vistaCalculadora }[pestana] || vistaRegistrar)();
 }
 
 // ---------- Hoy: lo que queda para deseos ----------
@@ -474,6 +475,16 @@ const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, ca
 registrar({
   'abrir-finanzas'({ p }) { pestana = p; },
   'fin-pestana'({ p }) { pestana = p; repintar(); window.scrollTo(0, 0); if (p === 'registrar') enfocarMonto(); },
+  // Lo que dio la calculadora pasa como monto al formulario de Registrar
+  'calc-usar'() {
+    const v = valorCalculadora();
+    if (!v) { toast('Primero haz una cuenta con resultado mayor que cero'); return; }
+    form.monto = miles(v);
+    pestana = 'registrar';
+    repintar();
+    window.scrollTo(0, 0);
+    toast('Monto ' + pesos(v) + ': elige categoría y guarda');
+  },
   'fin-tipo'({ tipo }) { form.tipo = tipo; form.categoria = null; form.sub = null; repintar(); },
   'fin-cat'({ id }) { if (form.categoria !== id) form.sub = null; form.categoria = id || null; repintar(); verElegida(); },
   'fin-sub'({ id }) { form.sub = form.sub === id ? null : id; repintar(); },

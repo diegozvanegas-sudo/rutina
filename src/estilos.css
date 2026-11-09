@@ -878,3 +878,16 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .cat-elegida span { font-size: 22px; text-align: center; }
 .cat-elegida small { color: var(--muted); font-size: 13px; text-decoration: underline; }
 .registrar > .chips.envolver { margin-bottom: 12px; }
+
+/* Finanzas · 🧮 Calcular */
+.calc-pantalla { font-size: 26px; text-align: right; font-variant-numeric: tabular-nums; margin-top: 8px; }
+.calc-resultado { text-align: right; font-size: 22px; font-weight: 700; color: var(--verde); margin: 6px 4px 10px; min-height: 1.4em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.calc-teclado { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.calc-teclado .boton { min-height: 56px; font-size: 22px; padding: 6px; }
+.calc-teclado .calc-op { color: var(--brand); }
+.calc-lista { margin-top: 10px; }
+.calc-lista li { gap: 12px; align-items: baseline; }
+.calc-lista li b { text-align: right; white-space: nowrap; }
+.calc-lista li span { min-width: 0; }
+.calc-sub { margin-top: 14px; }
+@media (min-width: 900px) { .calc-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; } .calc-rejilla > .calc { grid-row: span 3; } }

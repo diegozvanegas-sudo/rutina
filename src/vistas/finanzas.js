@@ -6,7 +6,7 @@ import {
   mesDe, sumarMeses, pesos, leerMonto, gastoDe, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, planPago, planMeta,
   agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, tarjetaDe, saldoCuenta, patrimonio, anotarPatrimonio,
   deseosDelMes, fijosPorRevisar, DIAS_REVISION, interesPrestamo, estadoCobro, interesesCobrados, cobroPrestamo, prestarMas,
-  subsDe, subDe, buscarCategorias, frecuentes, posibleDuplicado, valorMeta,
+  subsDe, subDe, buscarCategorias, frecuentes, posibleDuplicado, valorMeta, pagosSinDeuda, convertirEnPagoDeuda,
 } from '../finanzas.js';
 import { PLANTILLAS_META, slug } from '../datos_finanzas.js';
 import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
@@ -15,7 +15,7 @@ import { vistaEsperas } from './vida.js';
 import { vistaCalculadora, valorCalculadora } from './calculadora.js';
 
 let pestana = 'registrar', mesVista = null, filtroCat = null;
-const form = { tipo: 'gasto', categoria: null, sub: null, metodo: null, destino: null, monto: '', nota: '', fecha: null, editando: null };
+const form = { tipo: 'gasto', categoria: null, sub: null, metodo: null, destino: null, monto: '', nota: '', fecha: null, editando: null, deuda: null };
 const simula = {}; // deuda id → abono extra al mes que se está probando
 const f = () => e().finanzas;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -44,6 +44,21 @@ const borrar = (lista, i, nombre) => '<span class="ed-controles">' + subirBajar(
 export function nuevoMovimiento(m) { agregarMovimiento(f(), m); }
 
 // ---------- Registrar ----------
+// En "Cuotas y deudas": ¿a cuál deuda va? Así solo el interés cuenta como gasto y el saldo baja
+const deudasAbiertas = () => f().deudas.filter((d) => d.saldo > 0);
+function elegirDeuda() {
+  if (form.tipo !== 'gasto' || form.categoria !== 'deudas' || form.editando) return '';
+  const ds = deudasAbiertas();
+  if (!form.deuda && ds.length === 1) form.deuda = ds[0].id;
+  if (!ds.some((d) => d.id === form.deuda) && form.deuda !== 'otra') form.deuda = null;
+  if (!ds.length) return '<p class="aviso">Si es el pago de una deuda, anótala primero en <a href="#finanzas/deudas" data-accion="fin-pestana" data-p="deudas">💳 Deudas</a>: así solo cuenta el interés como gasto y el saldo baja. Si no, se guarda como gasto entero.</p>';
+  const d = ds.find((x) => x.id === form.deuda);
+  return '<p class="titulo-campo">¿A cuál deuda va el pago?</p><div class="chips envolver">' +
+    ds.map((x) => '<button type="button" class="chip' + (x.id === form.deuda ? ' activo' : '') + '" data-accion="fin-deuda" data-id="' + x.id + '">💳 ' + esc(x.nombre) + '</button>').join('') +
+    '<button type="button" class="chip' + (form.deuda === 'otra' ? ' activo' : '') + '" data-accion="fin-deuda" data-id="otra">Otra cosa</button></div>' +
+    (d ? '<p class="nota-corta">Primero paga el interés del mes (' + pesos(Math.round(Math.max(0, d.saldo) * ((d.tasa || 0) / 100))) + ', eso es gasto); lo demás baja el saldo de ' + pesos(d.saldo) + (d.metodo ? '. Las compras con la tarjeta ya se contaron como gasto.' : ' y no cuenta como gasto.') + '</p>'
+      : form.deuda === 'otra' ? '<p class="nota-corta">Se guarda como gasto entero y no baja ningún saldo.</p>' : '<p class="aviso">Elige la deuda: si no, todo el pago cuenta como gasto y el saldo no baja.</p>');
+}
 // Se pueden corregir gastos, ingresos y aportes; las cuotas de deudas y los retiros se borran y se registran de nuevo
 const editable = (m) => ['gasto', 'ingreso', 'ahorro', 'transferencia'].includes(m.tipo) && !m.deuda;
 function filaMovimiento(m) {
@@ -51,7 +66,7 @@ function filaMovimiento(m) {
     : m.tipo === 'cobro' ? { icono: '🤝', nombre: 'Me pagaron' } : m.tipo === 'presto' ? { icono: '🤝', nombre: 'Presté' }
     : m.tipo === 'transferencia' ? { icono: '🔄', nombre: 'Transferencia' } : subDe(f(), m.categoria, m.sub) || cat(m.tipo, m.categoria);
   const signo = m.tipo === 'transferencia' ? '' : ['ingreso', 'retiro', 'cobro'].includes(m.tipo) ? '+ ' : '− ';
-  const detalle = [m.sub && cat(m.tipo, m.categoria).nombre, m.nota, m.tipo === 'transferencia' ? 'De ' + metodo(m.metodo).nombre + ' a ' + metodo(m.destino).nombre : metodo(m.metodo).nombre, (m.tipo === 'pago-tarjeta' || m.tipo === 'cobro') && m.interes ? 'intereses ' + pesos(m.interes) : ''].filter(Boolean).join(' · ');
+  const detalle = [m.sub && cat(m.tipo, m.categoria).nombre, m.nota, m.tipo === 'transferencia' ? 'De ' + metodo(m.metodo).nombre + ' a ' + metodo(m.destino).nombre : metodo(m.metodo).nombre, (m.tipo === 'pago-tarjeta' || m.tipo === 'cobro' || m.deuda) && m.interes ? 'intereses ' + pesos(m.interes) : '', m.tipo === 'gasto' && m.deuda && m.abono ? 'abono ' + pesos(m.abono) : ''].filter(Boolean).join(' · ');
   return '<li class="mov t-' + m.tipo + (editable(m) ? ' editable" data-accion="fin-editar-mov" data-id="' + m.id + '" title="Tocar para corregir' : '') + '"><span class="mov-ic">' + c.icono + '</span><span class="mov-txt"><b>' + esc(c.nombre) + '</b><small>' +
     esc(detalle) + '</small></span><span class="mov-monto">' + signo + pesos(m.monto) + '</span>' +
     '<button type="button" class="icono borrar" data-accion="fin-borrar-mov" data-id="' + m.id + '" aria-label="Borrar movimiento">✕</button></li>';
@@ -129,6 +144,7 @@ function vistaRegistrar() {
       '<p class="titulo-campo">¿En qué? <small>(opcional)</small></p><div class="chips envolver">' +
       subs.map((x) => '<button type="button" class="chip' + (x.id === form.sub ? ' activo' : '') + '" data-accion="fin-sub" data-id="' + esc(x.id) + '">' + x.icono + ' ' + esc(x.nombre) + '</button>').join('') +
       '<button type="button" class="chip" data-accion="fin-sub-nueva">＋ Otra</button></div></div>' : '') +
+    elegirDeuda() +
     pistaPresupuesto(r) +
     '<div class="chips metodos">' + metodos.map((m) => '<button type="button" class="chip' + (m.id === form.metodo ? ' activo' : '') + '" data-accion="fin-metodo" data-id="' + m.id + '">' + m.icono + ' ' + esc(m.nombre) + '</button>').join('') + '</div>') +
     (tarjeta ? '<p class="nota-corta">💳 Suma al saldo de <b>' + esc(tarjeta.nombre) + '</b> (' + pesos(Math.max(0, tarjeta.saldo)) + ' hoy).</p>' : '') +
@@ -154,6 +170,18 @@ function resumenCategorias(r) {
 }
 
 // ---------- Mes ----------
+// Gastos anotados a mano en "Cuotas y deudas": decir de cuál deuda fueron (o dejarlos como gasto)
+function avisoPagosSinDeuda(mes) {
+  const movs = pagosSinDeuda(f(), mes), ds = f().deudas;
+  if (!movs.length) return '';
+  const total = movs.reduce((s, m) => s + m.monto, 0);
+  return '<section class="tarjeta aviso-deudas"><h2>⚠ Revisa ' + pesos(total) + ' en Cuotas y deudas</h2>' +
+    '<p class="nota-corta">Están anotados como gasto entero y no bajaron ninguna deuda. Si fueron pagos de una deuda, di de cuál: solo el interés queda como gasto y el saldo baja. Si pagaste la tarjeta, sus compras ya se contaron: así no se cuentan dos veces.</p>' +
+    (ds.length ? '' : '<p class="aviso">No tienes deudas anotadas. Agrégalas en <a href="#finanzas/deudas" data-accion="fin-pestana" data-p="deudas">💳 Deudas</a> con el saldo de antes de estos pagos.</p>') +
+    '<ul class="pagos-revisar">' + movs.sort((a, b) => b.monto - a.monto).map((m) => '<li><div class="fila-resumen"><span>' + fechaCorta(m.fecha) + (m.nota ? ' · ' + esc(m.nota) : '') + ' <small>' + esc(metodo(m.metodo).nombre) + '</small></span><b>' + pesos(m.monto) + '</b></div>' +
+      '<div class="chips envolver">' + ds.map((d) => '<button type="button" class="chip" data-accion="fin-convertir" data-id="' + m.id + '" data-deuda="' + d.id + '">💳 ' + esc(d.nombre) + '</button>').join('') +
+      '<button type="button" class="chip" data-accion="fin-no-es-deuda" data-id="' + m.id + '">Es un gasto, déjalo</button></div></li>').join('') + '</ul></section>';
+}
 function vistaMes() {
   const mes = mesVista || mesDe(iso()), r = resumenMes(f(), mes), ing = r.ingresos;
   const antes = resumenMes(f(), mesDe(sumarMeses(mes + '-01', -1)));
@@ -176,7 +204,10 @@ function vistaMes() {
     '<div class="fila-resumen"><span>Tasa de ahorro</span><b class="' + (r.tasaAhorro >= 0.2 ? 'verde' : r.tasaAhorro > 0 ? 'amarillo' : 'rojo') + '">' + pct(r.tasaAhorro) + '</b></div>' +
     (r.proyeccion ? '<p class="nota-corta">A este ritmo terminarías el mes gastando <b>' + pesos(r.proyeccion) + '</b>' + (base ? ' (' + pct(r.proyeccion / base) + ' de lo que entra)' : '') +
       (r.pendientes ? '. Faltan ' + pesos(r.pendientes) + ' de pagos fijos y cuotas' : '') + '.</p>' : '') +
+    (r.balance < 0 ? '<p class="aviso">Salió ' + pesos(-r.balance) + ' más de lo que entró este mes. Esa plata vino de algún lado: si fue de tus ahorros, anótalo con "Sacar" en 🐷 Ahorro; si fue un préstamo o un avance, agrégalo en 💳 Deudas. Mientras no esté anotado, la tasa de ahorro se ve mejor de lo que es.</p>' : '') +
+    (r.abonoDeudas ? '<p class="nota-corta">🏦 Bajaste ' + pesos(r.abonoDeudas) + ' de tus deudas: no es gasto (cuenta en el 20 %), pero sí sale de lo disponible.</p>' : '') +
     (r.pagosTarjeta ? '<p class="nota-corta">💳 Abonaste ' + pesos(r.pagosTarjeta) + ' a tarjetas: no cuenta como gasto porque las compras ya se contaron.</p>' : '') + '</section>' +
+    avisoPagosSinDeuda(mes) +
     (base ? '<section class="tarjeta"><h2>Regla 50 / 30 / 20</h2>' + (esperado ? '<p class="nota-corta">Cuenta el ingreso fijo que aún no llega.</p>' : '') + reglas.map(([k, t, v, obj, tope]) => {
       const p = v / base, mal = k === 'ahorro' ? p < obj : p > obj;
       return '<div class="fila-resumen"><span>' + t + ' <small>(' + tope + ' ' + obj * 100 + ' %)</small></span><span><b class="' + (mal ? 'rojo' : 'verde') + '">' + pct(p) + '</b> · ' + pesos(v) + '</span></div>' + barra(p / obj, mal ? 'excedido' : '');
@@ -470,7 +501,7 @@ const enfocarMonto = () => { if (matchMedia('(min-width: 900px)').matches) setTi
 const datoPrestamo = (k, id) => (document.querySelector('[data-cobro-' + k + '="' + id + '"]') || { value: '' }).value.trim();
 // Tras elegir o cambiar la categoría, que quede a la vista lo que sigue (en el celular la cuadrícula es larga)
 const verElegida = () => setTimeout(() => document.querySelector('.subcats, .fin-buscar')?.scrollIntoView({ block: 'nearest' }), 30);
-const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, categoria: null, sub: null, editando: null });
+const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, categoria: null, sub: null, editando: null, deuda: null });
 
 registrar({
   'abrir-finanzas'({ p }) { pestana = p; },
@@ -486,7 +517,7 @@ registrar({
     toast('Monto ' + pesos(v) + ': elige categoría y guarda');
   },
   'fin-tipo'({ tipo }) { form.tipo = tipo; form.categoria = null; form.sub = null; repintar(); },
-  'fin-cat'({ id }) { if (form.categoria !== id) form.sub = null; form.categoria = id || null; repintar(); verElegida(); },
+  'fin-cat'({ id }) { if (form.categoria !== id) { form.sub = null; form.deuda = null; } form.categoria = id || null; repintar(); verElegida(); },
   'fin-sub'({ id }) { form.sub = form.sub === id ? null : id; repintar(); },
   'fin-elegir'({ cat: c, sub }) { form.categoria = c; form.sub = sub || null; repintar(); verElegida(); },
   'fin-destino'({ id }) { form.destino = id; repintar(); },
@@ -513,6 +544,19 @@ registrar({
     toast('✓ ' + m.nombre + ' vale ' + pesos(monto));
   },
   'fin-metodo'({ id }) { form.metodo = id; repintar(); },
+  'fin-deuda'({ id }) { form.deuda = id; repintar(); },
+  // Pagos ya anotados como gasto en "Cuotas y deudas": pasarlos a su deuda o dejarlos como gasto
+  'fin-convertir'({ id, deuda }) {
+    const m = f().movimientos.find((x) => x.id === id), d = f().deudas.find((x) => x.id === deuda);
+    if (!m || !d || !confirm('¿Los ' + pesos(m.monto) + ' del ' + fechaCorta(m.fecha) + ' fueron un pago a ' + d.nombre + '?\nEl saldo baja de ' + pesos(d.saldo) + ' y solo el interés cuenta como gasto. Si ya bajaste el saldo a mano, corrígelo después en 💳 Deudas.')) return;
+    const p = convertirEnPagoDeuda(f(), id, deuda);
+    listo();
+    toast('✓ ' + d.nombre + ': saldo ' + pesos(d.saldo) + (p.interes ? ' · ' + pesos(p.interes) + ' de interés' : ''));
+  },
+  'fin-no-es-deuda'({ id }) {
+    const m = f().movimientos.find((x) => x.id === id);
+    if (m) { m.noEsDeuda = true; guardar(); }
+  },
   'fin-filtro-cat'({ id }, el, ev) { if (ev) ev.preventDefault(); filtroCat = id && id !== filtroCat ? id : null; repintar(); },
   'fin-form'({ k }, el) { form[k] = el.value; },
   'fin-mes'({ n }) { mesVista = mesDe(sumarMeses((mesVista || mesDe(iso())) + '-01', Number(n))); if (mesVista >= mesDe(iso())) mesVista = null; repintar(); },
@@ -528,6 +572,14 @@ registrar({
     const nombre = transf ? 'De ' + metodo(form.metodo).nombre + ' a ' + metodo(form.destino).nombre
       : form.tipo === 'ahorro' ? (f().metas.find((m) => m.id === form.categoria) || {}).nombre : (subDe(f(), form.categoria, form.sub) || cat(form.tipo, form.categoria)).nombre;
     const editando = form.editando;
+    const deuda = !editando && form.tipo === 'gasto' && form.categoria === 'deudas' && deudasAbiertas().find((d) => d.id === form.deuda);
+    if (deuda) {
+      const m = pagoDeuda(f(), deuda, monto, base.fecha, { metodo: base.metodo, ...(base.nota ? { nota: base.nota } : {}), ...(form.sub ? { sub: form.sub } : {}) });
+      limpiar();
+      listo();
+      toast('✓ Pago a ' + deuda.nombre + (m.interes ? ' · ' + pesos(m.interes) + ' de interés' : '') + ' · saldo ' + pesos(deuda.saldo));
+      return;
+    }
     // Mismo monto, misma categoría y mismo día: puede que ya lo hayas anotado
     const igual = !editando && posibleDuplicado(f(), datos);
     if (igual && !confirm('Ya anotaste ' + pesos(monto) + ' en ' + nombre + ' ese día. ¿Guardar otro igual?')) return;

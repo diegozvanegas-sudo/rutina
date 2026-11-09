@@ -4,7 +4,7 @@ import { e, avanceMetas, habitosDe, mananaCompleta, fraccionManana, planDieta, c
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 import { resumenSemana, progresoMes } from './gym.js';
 import { pesos as pesosCorporales, tendencia } from './dieta.js';
-import { resumenMes, mesDe, pesos } from './finanzas.js';
+import { resumenMes, mesDe, pesos, gastoDe } from './finanzas.js';
 import { promedioSueno, partidos } from './registro.js';
 import { visibles } from './orden.js';
 
@@ -93,7 +93,7 @@ export function revisionSemanal(hoy = iso()) {
   }
   // Gasto de la semana
   if (e().finanzas) {
-    const gasto = (fs) => e().finanzas.movimientos.filter((m) => m.tipo === 'gasto' && fs.includes(m.fecha)).reduce((s, m) => s + m.monto, 0);
+    const gasto = (fs) => e().finanzas.movimientos.filter((m) => m.tipo === 'gasto' && fs.includes(m.fecha)).reduce((s, m) => s + gastoDe(m), 0);
     const gEsta = gasto(esta), gAntes = gasto(antes);
     if (gEsta || gAntes) {
       frases.push({ icono: '💰', ir: '#finanzas/mes', texto: 'Gastaste ' + pesos(gEsta) + ' esta semana' + (gAntes ? ' (' + (gEsta >= gAntes ? '+' : '−') + Math.abs(Math.round(((gEsta - gAntes) / gAntes) * 100)) + ' % vs. la anterior)' : '') + '.' });

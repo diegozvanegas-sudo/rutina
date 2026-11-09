@@ -28,7 +28,10 @@ export function leerMonto(texto) {
 
 // ---------- Movimientos ----------
 // Lo que un movimiento cuenta como gasto: el pago de una tarjeta vinculada solo cuenta los intereses (las compras ya se contaron)
-export const gastoDe = (m) => (m.tipo === 'gasto' ? m.monto : m.tipo === 'pago-tarjeta' ? m.interes || 0 : 0);
+// La cuota de un préstamo solo cuenta el interés: el abono baja lo que debes (no es gasto, como el ahorro)
+export const gastoDe = (m) => (m.tipo === 'gasto' ? (m.deuda ? m.interes || 0 : m.monto) : m.tipo === 'pago-tarjeta' ? m.interes || 0 : 0);
+// Lo que una cuota de préstamo bajó la deuda (no la tarjeta: sus compras ya se contaron como gasto)
+export const abonoDe = (m) => (m.tipo === 'gasto' && m.deuda ? m.monto - (m.interes || 0) : 0);
 // Deuda vinculada a un método de pago (la tarjeta de crédito con la que se compra)
 export const tarjetaDe = (fin, metodoId) => fin.deudas.find((d) => d.metodo && d.metodo === metodoId) || null;
 export const esCredito = (fin, metodoId) => metodoId === 'credito' || !!tarjetaDe(fin, metodoId);
@@ -76,12 +79,21 @@ export function cambiarMovimiento(fin, id, cambios) {
   return m;
 }
 // Cuota de una deuda: primero paga el interés del mes y lo demás baja el saldo
-export function pagoDeuda(fin, d, monto = d.cuota, hoy = iso()) {
+export function pagoDeuda(fin, d, monto = d.cuota, hoy = iso(), extra = {}) {
   const saldo = Math.max(0, d.saldo || 0), interes = Math.min(monto, Math.round(saldo * ((d.tasa || 0) / 100)));
   const abono = Math.min(saldo, Math.max(0, monto - interes));
   // Tarjeta vinculada: las compras ya se contaron como gasto, así que el pago solo suma los intereses
   const tipo = d.metodo ? 'pago-tarjeta' : 'gasto';
-  return agregarMovimiento(fin, { tipo, monto, interes, abono, categoria: 'deudas', metodo: 'transferencia', nota: 'Cuota ' + d.nombre, fijo: 'deuda:' + d.id, deuda: d.id }, hoy);
+  return agregarMovimiento(fin, { tipo, monto, interes, abono, categoria: 'deudas', metodo: 'transferencia', nota: 'Cuota ' + d.nombre, fijo: 'deuda:' + d.id, ...extra, deuda: d.id }, hoy);
+}
+// Gastos anotados a mano en "Cuotas y deudas" sin decir de cuál deuda: cuentan enteros como gasto y no bajan ningún saldo
+export const pagosSinDeuda = (fin, mes) => fin.movimientos.filter((m) => m.tipo === 'gasto' && m.categoria === 'deudas' && !m.deuda && !m.noEsDeuda && mesDe(m.fecha) === mes);
+// Pasa uno de esos gastos a pago de la deuda elegida: misma fecha, monto, cuenta y nota; el saldo baja por el abono
+export function convertirEnPagoDeuda(fin, movId, deudaId) {
+  const m = fin.movimientos.find((x) => x.id === movId), d = fin.deudas.find((x) => x.id === deudaId);
+  if (!m || !d) return null;
+  quitarMovimiento(fin, movId);
+  return pagoDeuda(fin, d, m.monto, m.fecha, { metodo: m.metodo, ...(m.nota ? { nota: m.nota } : {}), ...(m.sub ? { sub: m.sub } : {}) });
 }
 
 // ---------- Plata prestada (me deben) ----------
@@ -105,7 +117,7 @@ export function prestarMas(fin, p, monto, hoy = iso(), nota = '') {
 export function resumenMes(fin, mes, hoy = iso()) {
   const movs = fin.movimientos.filter((m) => mesDe(m.fecha) === mes);
   const grupo = Object.fromEntries(fin.categorias.gasto.map((c) => [c.id, c.grupo]));
-  const r = { ingresos: 0, gastos: 0, ahorro: 0, gastosFijos: 0, pagosTarjeta: 0, porCategoria: {}, porSub: {}, porMetodo: {}, porGrupo: { necesidad: 0, deseo: 0 }, movs };
+  const r = { ingresos: 0, gastos: 0, ahorro: 0, gastosFijos: 0, pagosTarjeta: 0, abonoDeudas: 0, porCategoria: {}, porSub: {}, porMetodo: {}, porGrupo: { necesidad: 0, deseo: 0 }, movs };
   for (const m of movs) {
     if (m.tipo === 'ingreso') { r.ingresos += m.monto; continue; }
     if (m.tipo === 'cobro') { r.ingresos += m.interes || 0; continue; } // de lo que te pagan, solo el interés es ingreso
@@ -114,6 +126,7 @@ export function resumenMes(fin, mes, hoy = iso()) {
     else {
       const g = gastoDe(m);
       if (m.tipo === 'pago-tarjeta') r.pagosTarjeta += m.monto - g;
+      r.abonoDeudas += abonoDe(m);
       if (!g) continue;
       r.gastos += g;
       if (m.fijo) r.gastosFijos += g;
@@ -125,7 +138,7 @@ export function resumenMes(fin, mes, hoy = iso()) {
     }
     r.porMetodo[m.metodo] = (r.porMetodo[m.metodo] || 0) + m.monto;
   }
-  r.balance = r.ingresos - r.gastos - r.ahorro;
+  r.balance = r.ingresos - r.gastos - r.ahorro - r.abonoDeudas;
   // Lo que no se gastó (incluye lo que se pasó a ahorro) sobre lo que entró
   r.tasaAhorro = r.ingresos ? (r.ingresos - r.gastos) / r.ingresos : null;
   r.ingresoEsperado = r.ingresos;
@@ -137,10 +150,15 @@ export function resumenMes(fin, mes, hoy = iso()) {
       if (f.tipo === 'ingreso') r.ingresoEsperado += f.monto || 0;
       else r.pendientes += f.monto || 0;
     }
-    for (const d of fin.deudas) if (d.saldo > 0 && d.dia && !d.metodo && estadoDeuda(fin, d, hoy).estado !== 'pagado') r.pendientes += d.cuota || 0;
+    // Las cuotas que faltan suman enteras a lo que falta pagar, pero a la proyección del gasto solo su interés
+    let interesPendiente = 0;
+    for (const d of fin.deudas) if (d.saldo > 0 && d.dia && !d.metodo && estadoDeuda(fin, d, hoy).estado !== 'pagado') {
+      r.pendientes += d.cuota || 0;
+      interesPendiente += Math.min(d.cuota || 0, Math.round(d.saldo * ((d.tasa || 0) / 100))) - (d.cuota || 0);
+    }
     // A este ritmo: los pagos fijos completos más el gasto del día a día llevado a todo el mes
     const pasados = Number(hoy.slice(8, 10)), variable = r.gastos - r.gastosFijos;
-    r.proyeccion = r.gastosFijos + r.pendientes + (variable / pasados) * diasDelMes(mes);
+    r.proyeccion = r.gastosFijos + r.pendientes + interesPendiente + (variable / pasados) * diasDelMes(mes);
   }
   return r;
 }
@@ -150,7 +168,8 @@ export function gastoPromedio(fin, hoy = iso(), meses = 3) {
   const totales = [];
   for (let i = 1; i <= 12 && totales.length < meses; i++) {
     const mes = mesDe(sumarMeses(hoy.slice(0, 8) + '01', -i));
-    const g = fin.movimientos.filter((m) => mesDe(m.fecha) === mes).reduce((s, m) => s + gastoDe(m), 0);
+    // El fondo de emergencia debe cubrir las cuotas completas de los préstamos, no solo su interés
+    const g = fin.movimientos.filter((m) => mesDe(m.fecha) === mes).reduce((s, m) => s + gastoDe(m) + abonoDe(m), 0);
     if (g > 0) totales.push(g);
   }
   if (!totales.length) {

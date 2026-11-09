@@ -891,3 +891,8 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .calc-lista li span { min-width: 0; }
 .calc-sub { margin-top: 14px; }
 @media (min-width: 900px) { .calc-rejilla { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; align-items: start; } .calc-rejilla > .calc { grid-row: span 3; } }
+
+/* Finanzas · pagos en Cuotas y deudas sin deuda */
+.aviso-deudas { border-color: var(--amarillo); }
+.pagos-revisar { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 10px; }
+.pagos-revisar li { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 6px; }

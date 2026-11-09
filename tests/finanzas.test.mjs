@@ -4,7 +4,7 @@ import { FINANZAS, PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../src/dato
 import {
   leerMonto, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, mesesParaPagar, sumarMeses,
   estadoRecordatorio, proximoRecordatorio, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
-  planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar, cobroPrestamo, prestarMas, interesPrestamo, estadoCobro,
+  planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar, cobroPrestamo, prestarMas, interesPrestamo, estadoCobro, pagosSinDeuda, convertirEnPagoDeuda,
 } from '../src/finanzas.js';
 
 const mov = (fecha, tipo, monto, extra = {}) => ({ id: fecha + tipo + monto, fecha, tipo, monto, metodo: 'efectivo', ...extra });
@@ -107,12 +107,29 @@ test('tarjeta vinculada: la compra sube el saldo y el pago no se cuenta dos vece
   assert.equal(fin.deudas[0].saldo, 0);
 });
 
-test('préstamo sin tarjeta: la cuota cuenta entera como gasto y baja el saldo por el abono', () => {
+test('préstamo sin tarjeta: de la cuota solo el interés es gasto; el abono baja el saldo y sale de lo disponible', () => {
   const fin = FINANZAS(), d = { id: 'moto', nombre: 'Moto', saldo: 1000000, tasa: 2, cuota: 100000, dia: 5 };
   fin.deudas.push(d);
+  fin.movimientos.push(mov('2026-10-01', 'ingreso', 1000000, { categoria: 'salario' }));
   const m = pagoDeuda(fin, d, undefined, '2026-10-05');
   assert.deepEqual([m.tipo, m.interes, m.abono, d.saldo], ['gasto', 20000, 80000, 920000]);
-  assert.equal(resumenMes(fin, '2026-10', '2026-10-06').gastos, 100000);
+  const r = resumenMes(fin, '2026-10', '2026-10-06');
+  assert.deepEqual([r.gastos, r.abonoDeudas, r.balance, r.porCategoria.deudas], [20000, 80000, 900000, 20000]);
+  assert.equal(r.tasaAhorro, 0.98); // bajar la deuda cuenta como no gastado
+});
+
+test('gastos a mano en "Cuotas y deudas": se encuentran y se pasan a pago de la deuda', () => {
+  const fin = FINANZAS(), d = { id: 'moto', nombre: 'Moto', saldo: 1000000, tasa: 2, cuota: 100000, dia: 5 };
+  fin.deudas.push(d);
+  const a = agregarMovimiento(fin, { tipo: 'gasto', monto: 300000, categoria: 'deudas', metodo: 'debito', nota: 'abono moto' }, '2026-10-08');
+  agregarMovimiento(fin, { tipo: 'gasto', monto: 50000, categoria: 'deudas', noEsDeuda: true }, '2026-10-08');
+  agregarMovimiento(fin, { tipo: 'gasto', monto: 40000, categoria: 'mercado' }, '2026-10-08');
+  assert.deepEqual(pagosSinDeuda(fin, '2026-10').map((m) => m.id), [a.id]);
+  const p = convertirEnPagoDeuda(fin, a.id, 'moto');
+  assert.deepEqual([p.fecha, p.metodo, p.nota, p.interes, p.abono, d.saldo], ['2026-10-08', 'debito', 'abono moto', 20000, 280000, 720000]);
+  assert.equal(fin.movimientos.some((m) => m.id === a.id), false);
+  assert.equal(pagosSinDeuda(fin, '2026-10').length, 0);
+  assert.equal(resumenMes(fin, '2026-10', '2026-10-31').gastos, 20000 + 50000 + 40000);
 });
 
 test('proyección: los pagos fijos no se multiplican por los días del mes', () => {

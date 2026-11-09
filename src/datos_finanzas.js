@@ -50,7 +50,7 @@ const SUBS = {
   celular: '📱 Plan del celular|📶 Recargas|🌐 Internet|📺 Televisión|☎️ Teléfono fijo',
   deudas: '💳 Tarjeta de crédito|📉 Intereses|🏦 Libre inversión|🏍️ Crédito de vehículo|🏡 Hipoteca|🤝 Préstamo personal|👨‍👩‍👧 Deuda familiar|🏧 Cuota de manejo|💸 Comisiones bancarias|🛡️ Seguro de la deuda',
   educacion: '🎓 Universidad|📝 Matrícula|💻 Curso virtual|🏫 Curso presencial|📜 Certificación|📚 Libros|🎧 Audiolibros|🎤 Seminario|🎓 Diplomado|🗣️ Idiomas|✏️ Papelería|📖 Material de estudio',
-  comida: '🍽️ Restaurante|🛵 Domicilio|🍔 Comida rápida|☕ Cafetería|🍿 Snacks|🍬 Dulces|💼 Almuerzo de trabajo',
+  comida: '🍽️ Restaurante|🛵 Domicilio|🍔 Comida rápida|☕ Cafetería|🍿 Snacks|🍬 Dulces|💼 Almuerzo de trabajo|🥐 Desayuno|🍛 Almuerzo|🌙 Cena|🍎 Frutas|🧃 Jugos y bebidas|⚡ Bebidas energéticas|🥖 Panadería|🍦 Helados y postres|🍗 Asados y pollo|🍕 Pizza|🌭 Comida callejera',
   gym: '🏋️ Mensualidad|🧑‍🏫 Entrenador|🥤 Proteína|⚡ Creatina|🔥 Preentreno|💊 Vitaminas y suplementos|👟 Ropa y calzado deportivo|🥊 Accesorios del gym|🏆 Competencias|⚽ Cancha y fútbol|🏊 Natación|🚴 Ciclismo|🏃 Running|💆 Masaje deportivo',
   ocio: '🎬 Cine|🎵 Conciertos|🎟️ Eventos|🍻 Bares|🪩 Discoteca|🚶 Salidas|🎲 Juegos|🎮 Videojuegos|🎨 Hobbies',
   ropa: '👕 Camisetas|👖 Pantalones y jeans|👔 Camisas|🧥 Chaquetas|🩲 Ropa interior|🧦 Medias|👞 Zapatos|👟 Tenis|🩴 Sandalias|⌚ Relojes|🕶️ Gafas|👜 Bolsos y carteras|💍 Joyas y accesorios|🧵 Arreglos|🧺 Lavandería',

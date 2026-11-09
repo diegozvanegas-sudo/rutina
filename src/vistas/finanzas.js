@@ -6,7 +6,7 @@ import {
   mesDe, sumarMeses, pesos, leerMonto, gastoDe, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, estadoDeuda, planPago, planMeta,
   agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, tarjetaDe, saldoCuenta, patrimonio, anotarPatrimonio,
   deseosDelMes, fijosPorRevisar, DIAS_REVISION, interesPrestamo, estadoCobro, interesesCobrados, cobroPrestamo, prestarMas,
-  subsDe, subDe, buscarCategorias, frecuentes, posibleDuplicado, valorMeta, pagosSinDeuda, convertirEnPagoDeuda,
+  subsDe, subDe, buscarCategorias, frecuentes, notasFrecuentes, posibleDuplicado, valorMeta, pagosSinDeuda, convertirEnPagoDeuda,
 } from '../finanzas.js';
 import { PLANTILLAS_META, slug } from '../datos_finanzas.js';
 import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
@@ -44,6 +44,15 @@ const borrar = (lista, i, nombre) => '<span class="ed-controles">' + subirBajar(
 export function nuevoMovimiento(m) { agregarMovimiento(f(), m); }
 
 // ---------- Registrar ----------
+// Lo que más anotas en la categoría elegida: un toque pone la nota, la subcategoría y (si falta) el monto de la última vez
+function notasDeCategoria() {
+  if (form.editando) return '';
+  const notas = notasFrecuentes(f(), form.tipo, form.categoria);
+  if (!notas.length) return '';
+  return '<p class="titulo-campo">Lo que más anotas aquí</p><div class="chips envolver">' + notas.map((x) =>
+    '<button type="button" class="chip chip-nota' + (form.nota.trim().toLowerCase() === x.nota.toLowerCase() ? ' activo' : '') + '" data-accion="fin-nota" data-nota="' + esc(x.nota) + '" data-sub="' + esc(x.sub || '') + '" data-monto="' + x.monto + '">' +
+    (x.sub ? subDe(f(), form.categoria, x.sub).icono + ' ' : '') + esc(x.nota) + ' <small>' + pesos(x.monto) + '</small></button>').join('') + '</div>';
+}
 // En "Cuotas y deudas": ¿a cuál deuda va? Así solo el interés cuenta como gasto y el saldo baja
 const deudasAbiertas = () => f().deudas.filter((d) => d.saldo > 0);
 function elegirDeuda() {
@@ -143,7 +152,7 @@ function vistaRegistrar() {
     (conSubs() && form.categoria ? '<div class="subcats"><button type="button" class="cat-elegida" data-accion="fin-cat" data-id=""><span>' + cat(form.tipo, form.categoria).icono + '</span><b>' + esc(cat(form.tipo, form.categoria).nombre) + '</b><small>Cambiar</small></button>' +
       '<p class="titulo-campo">¿En qué? <small>(opcional)</small></p><div class="chips envolver">' +
       subs.map((x) => '<button type="button" class="chip' + (x.id === form.sub ? ' activo' : '') + '" data-accion="fin-sub" data-id="' + esc(x.id) + '">' + x.icono + ' ' + esc(x.nombre) + '</button>').join('') +
-      '<button type="button" class="chip" data-accion="fin-sub-nueva">＋ Otra</button></div></div>' : '') +
+      '<button type="button" class="chip" data-accion="fin-sub-nueva">＋ Otra</button></div>' + notasDeCategoria() + '</div>' : '') +
     elegirDeuda() +
     pistaPresupuesto(r) +
     '<div class="chips metodos">' + metodos.map((m) => '<button type="button" class="chip' + (m.id === form.metodo ? ' activo' : '') + '" data-accion="fin-metodo" data-id="' + m.id + '">' + m.icono + ' ' + esc(m.nombre) + '</button>').join('') + '</div>') +
@@ -545,6 +554,14 @@ registrar({
   },
   'fin-metodo'({ id }) { form.metodo = id; repintar(); },
   'fin-deuda'({ id }) { form.deuda = id; repintar(); },
+  'fin-nota'({ nota, sub, monto }) {
+    form.nota = nota;
+    if (sub) form.sub = sub;
+    const campo = document.getElementById('fin-monto');
+    if (!leerMonto(campo ? campo.value : form.monto)) form.monto = miles(Number(monto));
+    else if (campo) form.monto = campo.value;
+    repintar();
+  },
   // Pagos ya anotados como gasto en "Cuotas y deudas": pasarlos a su deuda o dejarlos como gasto
   'fin-convertir'({ id, deuda }) {
     const m = f().movimientos.find((x) => x.id === id), d = f().deudas.find((x) => x.id === deuda);

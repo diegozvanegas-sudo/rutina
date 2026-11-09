@@ -83,3 +83,26 @@ test('inversión: el valor anotado más lo que se aporta después entra al patri
   assert.equal(aportado(fin, 'cdt'), 1100000);
   assert.equal(patrimonio(fin).ahorro, 1150000);
 });
+
+test('Comida fuera: subcategorías nuevas sin ids repetidos y las de antes intactas', async () => {
+  const { SUBCATEGORIAS } = await import('../src/datos_finanzas.js');
+  const ids = SUBCATEGORIAS.comida.map((x) => x.id);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(ids.slice(0, 7), ['restaurante', 'domicilio', 'comida-rapida', 'cafeteria', 'snacks', 'dulces', 'almuerzo-de-trabajo']);
+  for (const id of ['frutas', 'jugos-y-bebidas', 'bebidas-energeticas', 'desayuno', 'almuerzo']) assert.ok(ids.includes(id), id);
+});
+
+test('lo que más anotas en una categoría: por nota, con su subcategoría y el último monto', async () => {
+  const { FINANZAS } = await import('../src/datos_finanzas.js');
+  const { agregarMovimiento, notasFrecuentes } = await import('../src/finanzas.js');
+  const fin = FINANZAS();
+  const g = (fecha, monto, nota, sub) => agregarMovimiento(fin, { tipo: 'gasto', monto, categoria: 'comida', nota, ...(sub ? { sub } : {}) }, fecha);
+  g('2026-11-01', 4000, 'Mango'); g('2026-11-04', 5000, 'mango ', 'frutas'); g('2026-11-09', 5000, 'Mango', 'frutas');
+  g('2026-11-02', 41000, 'La negra'); g('2026-11-06', 38000, 'La negra');
+  g('2026-11-05', 16000, 'Carne de cerdo');
+  g('2026-06-01', 3000, 'Vive cien'); g('2026-06-02', 3000, 'Vive cien'); // hace más de 90 días
+  assert.deepEqual(notasFrecuentes(fin, 'gasto', 'comida', '2026-11-09'), [
+    { nota: 'Mango', n: 3, monto: 5000, sub: 'frutas' },
+    { nota: 'La negra', n: 2, monto: 38000, sub: null },
+  ]);
+});

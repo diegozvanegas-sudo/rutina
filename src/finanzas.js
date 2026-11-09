@@ -422,6 +422,20 @@ export function frecuentes(fin, tipo, hoy = iso(), max = 6) {
     return { categoria, sub: sub || null };
   });
 }
+// Dentro de una categoría: las notas que más repites en los últimos 90 días ("Mango", "La negra"), con su subcategoría y el último monto
+export function notasFrecuentes(fin, tipo, categoria, hoy = iso(), max = 8) {
+  const desde = sumarDias(hoy, -90), grupos = new Map();
+  for (const m of [...fin.movimientos].sort((a, b) => a.fecha.localeCompare(b.fecha))) {
+    const nota = String(m.nota || '').trim();
+    if (m.tipo !== tipo || m.categoria !== categoria || m.fecha < desde || !nota || m.deuda) continue;
+    const k = llanoDe(nota), g = grupos.get(k) || { nota, n: 0, subs: {} };
+    g.n++; g.monto = m.monto; g.nota = nota;
+    if (m.sub) g.subs[m.sub] = (g.subs[m.sub] || 0) + 1;
+    grupos.set(k, g);
+  }
+  return [...grupos.values()].filter((g) => g.n >= 2).sort((a, b) => b.n - a.n).slice(0, max)
+    .map(({ nota, n, monto, subs }) => ({ nota, n, monto, sub: Object.entries(subs).sort((a, b) => b[1] - a[1])[0]?.[0] || null }));
+}
 // ¿Ya anotaste lo mismo ese día? (mismo tipo, monto, categoría y fecha)
 export function posibleDuplicado(fin, m) {
   return fin.movimientos.find((x) => x.tipo === m.tipo && x.monto === Math.round(m.monto) && x.fecha === m.fecha && (x.categoria || null) === (m.categoria || null)

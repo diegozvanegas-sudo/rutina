@@ -5,7 +5,7 @@ import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, CATEGORIAS_NUEVAS_V2 } from './datos_finanzas.js';
 import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, LUGARES_RESTO } from './datos_lugares.js';
-import { tipoDeDia, totalPlan, macrosPorKg, objetivo, recalcular, quitarComidasRepetidas } from './dieta.js';
+import { tipoDeDia, tocaRecarga, totalPlan, macrosPorKg, objetivo, recalcular, quitarComidasRepetidas } from './dieta.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
 import { visibles } from './orden.js';
@@ -419,9 +419,14 @@ export const hayFutbol = (fecha = iso()) => (e().config.futbol || []).includes(d
 
 // ---------- Dieta ----------
 // Plan que toca por el día: partido → fútbol, pierna → inferior, resto → superior, sin entreno → descanso o recarga si mañana hay partido
+// Desde el 1 nov 2026 la recarga es cada dos semanas (antes era todo descanso antes de partido: esos días no cambian)
+const RECARGA_DESDE = '2026-11-01';
+const diaDeRutina = (fecha) => { const n = diaSemana(fecha); return e().rutina.find((x) => x.diaSemana === n); };
+const candidataRecarga = (f) => !diaDeRutina(f) && !hayFutbol(f) && hayFutbol(sumarDias(f, 1));
 export function tipoDietaAuto(fecha = iso()) {
-  const n = diaSemana(fecha);
-  return tipoDeDia(e().rutina.find((x) => x.diaSemana === n), hayFutbol(fecha), hayFutbol(sumarDias(fecha, 1)));
+  const futbolManana = hayFutbol(sumarDias(fecha, 1)) && (fecha < RECARGA_DESDE
+    || tocaRecarga(fecha, { desde: RECARGA_DESDE, candidata: candidataRecarga, manual: (f) => (e().dias[f] || {}).dieta }));
+  return tipoDeDia(diaDeRutina(fecha), hayFutbol(fecha), futbolManana);
 }
 // Plan del día: el elegido a mano ese día o el que toca
 export function tipoDieta(fecha = iso()) {

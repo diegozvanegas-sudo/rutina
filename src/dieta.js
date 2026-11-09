@@ -1,4 +1,5 @@
 // Reglas de la dieta (sin pantalla, para poder probarlas): macros, totales, plan del día y recálculo por peso.
+import { sumarDias } from './fechas.js';
 
 const cero = () => ({ p: 0, g: 0, c: 0, kcal: 0 });
 const sumar = (a, b) => ({ p: a.p + b.p, g: a.g + b.g, c: a.c + b.c, kcal: a.kcal + b.kcal });
@@ -43,6 +44,20 @@ export function tipoDeDia(diaRutina, futbol = false, futbolManana = false) {
   // El plan elegido para ese día en Editar manda
   if (diaRutina.dieta) return diaRutina.dieta;
   return diaRutina.calentamiento === 'pierna' ? 'inferior' : 'superior';
+}
+
+// Recarga cada dos semanas: un descanso antes de partido toca recarga solo si pasaron 14 días o más desde la última.
+// Se cuenta desde `desde`. Un día puesto a mano en recarga también cuenta y reinicia la cuenta; un día que tocaba recarga
+// pero cambiaste a mano a otro plan no cuenta (la recarga pasa al siguiente descanso antes de partido).
+// candidata(f): ¿es descanso con partido mañana? · manual(f): plan elegido a mano ese día o nada
+export const CADA_RECARGA = 14;
+export function tocaRecarga(fecha, { desde, candidata, manual = () => null, cada = CADA_RECARGA }) {
+  let ultima = null;
+  for (let f = desde; f <= fecha; f = sumarDias(f, 1)) {
+    const m = manual(f);
+    if (m === 'recarga' || (!m && candidata(f) && (!ultima || diasEntre(ultima, f) >= cada))) ultima = f;
+  }
+  return ultima === fecha;
 }
 
 // Objetivo del plan con un peso: proteína, carbohidratos y grasa por kg; las kcal salen de los macros (4 · P + 4 · C + 9 · G).

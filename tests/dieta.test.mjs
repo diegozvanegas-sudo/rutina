@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from '../src/datos_dieta.js';
-import { totalPlan, totalComida, tipoDeDia, objetivo, recalcular, pesos, tendencia, sugerenciaPeso, revisionDieta, ajusteCarbos, cambioCintura, medidasDe, promedioSenal, fuerzaDelMes } from '../src/dieta.js';
+import { totalPlan, totalComida, tipoDeDia, tocaRecarga, objetivo, recalcular, pesos, tendencia, sugerenciaPeso, revisionDieta, ajusteCarbos, cambioCintura, medidasDe, promedioSenal, fuerzaDelMes } from '../src/dieta.js';
 
 const kcal = (tipo) => Math.round(totalPlan(PLANES[tipo], ALIMENTOS).kcal);
 const prot = (tipo) => Math.round(totalPlan(PLANES[tipo], ALIMENTOS).p);
@@ -158,4 +158,24 @@ test('ajuste de carbos: mueve los carbos sin bajar la proteína, y protege parti
   assert.equal(baja.carbKg.futbol, dt.config.carbKg.futbol);
   assert.ok(baja.carbKg.descanso >= 0.8);
   assert.equal(dt.planes.inferior.comidas[0].items[0].cant, PLANES.inferior.comidas[0].items[0].cant);
+});
+
+test('recarga cada dos semanas: jueves antes del partido del viernes, uno sí y otro no', () => {
+  const jueves = (f) => new Date(f + 'T12:00').getDay() === 4; // descanso con partido el viernes
+  const toca = (f, manual) => tocaRecarga(f, { desde: '2026-11-01', candidata: jueves, manual });
+  assert.equal(toca('2026-11-05'), true);   // primera
+  assert.equal(toca('2026-11-12'), false);  // 7 días: descanso normal
+  assert.equal(toca('2026-11-19'), true);   // 14 días
+  assert.equal(toca('2026-11-26'), false);
+  assert.equal(toca('2026-12-03'), true);
+  assert.equal(toca('2026-11-06'), false);  // viernes: no es candidato
+  // Si el jueves 5 lo cambiaste a mano a otro plan, la recarga pasa al 12 y de ahí cada 14
+  const cambiado = (f) => (f === '2026-11-05' ? 'descanso' : null);
+  assert.equal(toca('2026-11-12', cambiado), true);
+  assert.equal(toca('2026-11-19', cambiado), false);
+  assert.equal(toca('2026-11-26', cambiado), true);
+  // Una recarga puesta a mano reinicia la cuenta
+  const amano = (f) => (f === '2026-11-14' ? 'recarga' : null);
+  assert.equal(toca('2026-11-19', amano), false);
+  assert.equal(toca('2026-12-03', amano), true);
 });

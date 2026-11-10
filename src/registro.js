@@ -57,6 +57,16 @@ export const AVISOS = {
 export const HORAS_AVISOS = { pastilla: '06:00', partido: '20:00', dormir: '22:30', revision: '19:00' };
 const aHora = (min) => { const m = ((min % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 const horaAviso = (a, horas) => aHora(minutos(horas[a.hora] || HORAS_AVISOS[a.hora]) - (a.menos || 0));
+// Hora fija de acostarse: la del aviso "Prepararte para dormir" + 30 min (el aviso dice "en 30 minutos a dormir")
+export function horaCama(config) {
+  const horas = { ...HORAS_AVISOS, ...((config.avisos || {}).horas || {}) };
+  return aHora((minutos(horas.dormir) ?? minutos(HORAS_AVISOS.dormir)) + 30);
+}
+// Minutos después de la hora fija (negativo = antes). Pasada la medianoche también cuenta como tarde
+export function minutosTarde(acoste, cama) {
+  const a = minutos(acoste), c = minutos(cama);
+  return a == null || c == null ? null : ((a - c + 1440 + 720) % 1440) - 720;
+}
 
 // Avisos que tocan una fecha: [{ id, hora, icono, texto }] ordenados por hora
 export function avisosDelDia(config, fecha = iso()) {

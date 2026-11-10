@@ -897,3 +897,9 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .pagos-revisar { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 10px; }
 .pagos-revisar li { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 6px; }
 .chip-nota.activo small { color: inherit; opacity: .75; }
+
+/* Cierre de la noche: hora de acostarse y prioridades de mañana; Primera hora: prioridades de hoy */
+.cierre-extra { margin: 10px 0; }
+.cierre-cama { margin: 0 0 8px; }
+.prioridades-hoy { margin-bottom: 10px; }
+.prioridades-hoy textarea, .cierre-extra textarea { width: 100%; box-sizing: border-box; }

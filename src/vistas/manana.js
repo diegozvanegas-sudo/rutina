@@ -1,5 +1,5 @@
 // "Primera hora": checklist en orden; cada toque guarda la hora
-import { e, guardar, dia, racha, habitosDe, hechosManana, fraccionManana, alternarCrono, segundosCrono, textoHabito, ponerTextoHabito, pastillaDe } from '../estado.js';
+import { e, guardar, dia, racha, habitosDe, hechosManana, fraccionManana, alternarCrono, segundosCrono, textoHabito, ponerTextoHabito, pastillaDe, mananaCorta, prioridadesDe } from '../estado.js';
 import { iso, hora, reloj } from '../fechas.js';
 import { esc, barra, tip, registrar, toast } from '../ui.js';
 import { iniciar } from '../temporizador.js';
@@ -45,14 +45,25 @@ export function listaManana(fecha = iso()) {
   const d = dia(fecha);
   if (!e().habitos.length) return '<p class="nota-corta">Aún no tienes hábitos de mañana. Agrega el primero aquí abajo.</p>' + agregarManana();
   if (!habitosDe(fecha).length) return '<p class="nota-corta">Hoy no tienes hábitos programados. Día libre 🙌</p>' + agregarManana();
-  return '<ol class="habitos">' + habitosDe(fecha).map((h, i) => {
-    const reg = d.habitos[h.id];
+  const corta = mananaCorta(fecha);
+  return avisoCorta(corta) + prioridadesHoy(fecha) + '<ol class="habitos">' + habitosDe(fecha).map((h, i) => {
+    const reg = d.habitos[h.id], partido = !reg && corta && esCaminata(h);
     return '<li class="habito' + (reg ? ' hecho' : '') + '"' + tip(reg && h.detalle ? h.nombre + '\n' + h.detalle : '') + '>' +
       '<button type="button" class="check" data-accion="marcar" data-id="' + h.id + '" aria-pressed="' + !!reg + '" aria-label="' + esc(h.nombre) + '">' + (reg ? '✓' : i + 1) + '</button>' +
       '<div class="info"><div class="nombre">' + esc(h.nombre) + '</div>' +
-      '<div class="detalle">' + (reg ? (reg.minimo ? '🌱 Versión mínima a las ' : 'Hecho a las ') + hora(reg.ts) : esc(h.detalle || '')) + '</div>' + extra(h, d, fecha) + (!reg && h.minimo ? '<button type="button" class="boton-suave habito-minimo" data-accion="marcar-minimo" data-id="' + h.id + '">🌱 Hoy solo el mínimo: ' + esc(h.minimo) + '</button>' : '') + '</div></li>';
+      '<div class="detalle">' + (reg ? (reg.minimo ? '🌱 Versión mínima a las ' : 'Hecho a las ') + hora(reg.ts) : esc(h.detalle || '')) + '</div>' + extra(h, d, fecha) + (partido ? '<button type="button" class="boton-suave habito-minimo" data-accion="marcar-minimo" data-id="' + h.id + '">⚽ Versión partido: 20 min suaves</button>' : '') + (!partido && !reg && h.minimo ? '<button type="button" class="boton-suave habito-minimo" data-accion="marcar-minimo" data-id="' + h.id + '">🌱 Hoy solo el mínimo: ' + esc(h.minimo) + '</button>' : '') + '</div></li>';
   }).join('') + '</ol>' + agregarManana();
 }
+
+// Día del partido y el siguiente: la caminata se acorta para llegar fresco y recuperar
+const esCaminata = (h) => h.tipo === 'cronometro' && /camin/i.test(h.nombre);
+function avisoCorta(corta) {
+  if (corta === 'hoy') return '<p class="aviso">⚽ Hoy juegas: con 20 min suaves de caminata basta, llega fresco al partido.</p>';
+  if (corta === 'ayer') return '<p class="aviso">⚽ Ayer jugaste: hoy va la versión corta. Lo que no se negocia: pastilla, desayuno, estirar y tus 3 prioridades. La caminata con 20 min suaves basta.</p>';
+  return '';
+}
+// Las 3 prioridades de hoy (se escriben la noche anterior en el Cierre de la noche; aquí se ven y se corrigen)
+const prioridadesHoy = (fecha) => '<label class="campo prioridades-hoy">🎯 Mis 3 prioridades de hoy<textarea rows="3" data-cambio="prioridades" data-f="' + fecha + '" placeholder="1. …&#10;2. …&#10;3. …">' + esc(prioridadesDe(fecha)) + '</textarea></label>';
 
 // Agregar un hábito al final de la lista sin salir de la tarjeta; detalle, tiempos y orden se cambian en Editar
 function agregarManana() {
@@ -102,6 +113,7 @@ registrar({
     const h = e().habitos.find((x) => x.id === id);
     if (h) { ponerTextoHabito(dia(), h, el.value.trim()); guardar(false); }
   },
+  prioridades({ f }, el) { dia(f).prioridades = el.value.trim(); guardar(false); },
   'manana-tipo'(ds, el) { tipoNuevo = el.value; },
   'manana-nuevo'(ds, el) {
     const nombre = el.value.trim();

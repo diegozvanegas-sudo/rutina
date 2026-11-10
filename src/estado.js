@@ -416,6 +416,10 @@ export function avanceMetas(fecha = iso()) {
 
 // ---------- Fútbol ----------
 export const hayFutbol = (fecha = iso()) => (e().config.futbol || []).includes(diaSemana(fecha));
+// Mañana en versión corta: el día del partido ('hoy') y el día siguiente ('ayer'); null si no toca
+export const mananaCorta = (fecha = iso()) => (hayFutbol(fecha) ? 'hoy' : hayFutbol(sumarDias(fecha, -1)) ? 'ayer' : null);
+// Las 3 prioridades de un día: se escriben la noche anterior en el Cierre de la noche (dias[fecha].prioridades)
+export const prioridadesDe = (fecha = iso()) => (e().dias[fecha] || {}).prioridades || '';
 
 // ---------- Dieta ----------
 // Plan que toca por el día: partido → fútbol, pierna → inferior, resto → superior, sin entreno → descanso o recarga si mañana hay partido

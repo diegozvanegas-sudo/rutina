@@ -1,7 +1,8 @@
 // Sesiones guiadas (calentamiento, estiramiento, rodilla): un ejercicio a la vez con cuenta regresiva.
 // Las de tipo checklist (antes de salir, maletín del partido) no tienen tiempo: cada punto se marca con ✓.
-import { e, dia, guardar, repintar } from '../estado.js';
-import { reloj, iso } from '../fechas.js';
+import { e, dia, guardar, repintar, hayFutbol, prioridadesDe } from '../estado.js';
+import { reloj, iso, sumarDias } from '../fechas.js';
+import { horaCama, minutosTarde } from '../registro.js';
 import { esc, registrar, pitido, barra, toast } from '../ui.js';
 import { figuraPaso, videoPaso } from '../figuras.js';
 
@@ -27,12 +28,21 @@ function puntosChecklist(s) {
 export const HORA_CIERRE = 19;
 export function tarjetaCierreHoy(ahora = new Date()) {
   const s = e().sesiones.find((x) => x.id === 'cierre-noche');
-  return s && ahora.getHours() >= HORA_CIERRE ? tarjetaChecklist(s, '🌙 ') : '';
+  return s && ahora.getHours() >= HORA_CIERRE ? tarjetaChecklist(s, '🌙 ', extraCierre(iso(ahora))) : '';
 }
-function tarjetaChecklist(s, icono = '') {
+// Arriba del cierre: la hora fija de acostarse, la noche de partido y las 3 prioridades de mañana
+function extraCierre(hoy) {
+  const cama = horaCama(e().config), acoste = ((e().dias[hoy] || {}).sueno || {}).acoste, tarde = minutosTarde(acoste, cama), manana = sumarDias(hoy, 1);
+  return '<div class="cierre-extra"><p class="cierre-cama">🛏️ A la cama a las <b>' + cama + '</b>' +
+    (acoste ? '<small> · anoche ' + esc(acoste) + (tarde > 10 ? ', ' + tarde + ' min tarde' : ' ✓') + '</small>' : '') +
+    ' <a class="nota-corta" href="#ajustes">cambiar</a></p>' +
+    (hayFutbol(hoy) ? '<p class="aviso">⚽ Noche de partido: al llegar, ducha, cena de recuperación y cero pantallas. Mañana va la versión corta.</p>' : '') +
+    '<label class="campo">🎯 Mis 3 prioridades de mañana<textarea rows="3" data-cambio="prioridades" data-f="' + manana + '" placeholder="1. …&#10;2. …&#10;3. …">' + esc(prioridadesDe(manana)) + '</textarea></label></div>';
+}
+function tarjetaChecklist(s, icono = '', extra = '') {
   const a = avanceChecklist(s, marcasDe(s.id));
   return '<section class="tarjeta sesion"><div class="fila-resumen"><b>' + icono + esc(s.nombre) + '</b><span class="' + (a.completa ? 'verde' : '') + '">' + (a.completa ? '✓ Lista' : a.hechos + ' / ' + a.total + ' hoy') + '</span></div>' +
-    barra(a.total ? a.hechos / a.total : 0) + (s.pasos.length ? puntosChecklist(s) : '<p class="nota-corta">Sin puntos todavía: agrégalos en ✏️ Editar → Sesiones.</p>') +
+    barra(a.total ? a.hechos / a.total : 0) + extra + (s.pasos.length ? puntosChecklist(s) : '<p class="nota-corta">Sin puntos todavía: agrégalos en ✏️ Editar → Sesiones.</p>') +
     (a.hechos ? '<button type="button" class="boton secundario ancho" data-accion="check-limpiar" data-sesion="' + esc(s.id) + '">↺ Desmarcar todo</button>' : '') + '</section>';
 }
 

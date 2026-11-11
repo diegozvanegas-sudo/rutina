@@ -2,6 +2,7 @@
 import { lunesDe, sumarDias, fechaCorta } from './fechas.js';
 import { metaSesion, ultimoRegistro, resumenSemana, varianteActual, nombreConVariante } from './gym.js';
 import { entregarImagen } from './imagen.js';
+import { juegaEl } from './futbol.js';
 
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const OK = '#3dd68c', AMARILLO = '#f5c542', AZUL = '#5aa9ff', VIOLETA = '#b48cff', ROJO = '#ff6b6b';
@@ -31,7 +32,7 @@ export function resumenRutina(sem, estado) {
         calentamiento: d.calentamiento ? nombres([cal, ...extras]) : [], ejercicios: d.ejercicios.map(ejercicio),
       };
     });
-    const futbol = (cfg.futbol || []).includes(n);
+    const futbol = juegaEl(cfg, sumarDias(lunes, n - 1));
     dias.push({
       nombre: DIAS[n], fecha: fechaCorta(sumarDias(lunes, n - 1)), entrenos, futbol,
       sesiones: futbol ? nombres(cfg.sesionesPartido) : entrenos.length ? [] : nombres(cfg.sesionesDescanso),

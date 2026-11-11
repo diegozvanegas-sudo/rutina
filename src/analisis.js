@@ -6,6 +6,7 @@ import { historial, estancamiento, metaSesion, registrosDeFila, repsDe, resumenS
 import { disposicion, cargaFutbol, textoCarga, proteinaSemana, queTeHaceRendir } from './entrenador.js';
 import { pesos, tendencia } from './dieta.js';
 import { promedioSueno, partidos } from './registro.js';
+import { pausaEn } from './futbol.js';
 
 const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO');
 const serie = (p) => formatoPeso(p.peso) + ' ' + p.unidad + ' × ' + p.reps;
@@ -50,7 +51,9 @@ export function contexto(fecha, est = e()) {
   const juegos = partidos(est).filter((p) => p.fecha <= fecha && p.fecha > sumarDias(fecha, -14));
   if (juegos.length) lineas.push('Fútbol, últimos 14 días: ' + juegos.map((p) => fechaCorta(p.fecha) + ' ' + (p.minutos || '?') + ' min, esfuerzo ' + (p.rpe || '?') + '/10' + ((p.molestias || []).length ? ', molestia: ' + p.molestias.join(', ').toLowerCase() : '')).join(' · '));
   const futbol = (est.config.futbol || []).map((n) => ['', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'][n]);
-  if (futbol.length) lineas.push('Juega fútbol los ' + futbol.join(' y '));
+  const pausa = pausaEn(est.config, fecha);
+  if (pausa) lineas.push('Fútbol en pausa desde el ' + fechaCorta(pausa.desde) + (pausa.hasta ? ', vuelve el ' + fechaCorta(pausa.hasta) : ', sin fecha de regreso') + ': por ahora no está jugando');
+  else if (futbol.length) lineas.push('Juega fútbol los ' + futbol.join(' y '));
   for (const x of queTeHaceRendir(fecha).factores) if (x.texto) lineas.push('Qué le hace rendir: ' + x.texto);
   return lineas;
 }

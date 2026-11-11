@@ -2,6 +2,7 @@
 // sueño, partidos de fútbol, cierre de la semana con su foco y los avisos del día (y su archivo de calendario).
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 import { resumenSemana } from './gym.js';
+import { juegaEl, futbolEnPausa } from './futbol.js';
 
 // ---------- Sueño: dias[fecha].sueno = { acoste: 'HH:MM', levante: 'HH:MM', calidad: 1-5 } (fecha = la mañana en que te levantas) ----------
 const minutos = (t) => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
@@ -71,7 +72,7 @@ export function minutosTarde(acoste, cama) {
 // Avisos que tocan una fecha: [{ id, hora, icono, texto }] ordenados por hora
 export function avisosDelDia(config, fecha = iso()) {
   const c = config.avisos || {}, horas = { ...HORAS_AVISOS, ...(c.horas || {}) }, apagados = c.apagados || {};
-  const futbol = (config.futbol || []).includes(diaSemana(fecha));
+  const futbol = juegaEl(config, fecha);
   return Object.entries(AVISOS).filter(([id, a]) => !apagados[id] && (!a.futbol || futbol) && (!a.dia || a.dia === diaSemana(fecha)))
     .map(([id, a]) => ({ id, hora: horaAviso(a, horas), icono: a.icono, texto: a.texto })).sort((x, y) => x.hora.localeCompare(y.hora));
 }
@@ -85,7 +86,8 @@ export function avisosPendientes(config, ahora = new Date(), mostrados = {}) {
 const DIAS_ICS = ['', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
 export function calendarioIcs(config, desde = iso()) {
   const c = config.avisos || {}, horas = { ...HORAS_AVISOS, ...(c.horas || {}) }, apagados = c.apagados || {};
-  const futbol = (config.futbol || []).filter((n) => n >= 1 && n <= 7);
+  // En pausa no se exportan las alarmas del partido (al volver a jugar, se descarga de nuevo)
+  const futbol = futbolEnPausa(config, desde) ? [] : (config.futbol || []).filter((n) => n >= 1 && n <= 7);
   const lineas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Rutina//Avisos//ES', 'CALSCALE:GREGORIAN'];
   for (const [id, a] of Object.entries(AVISOS)) {
     if (apagados[id] || (a.futbol && !futbol.length)) continue;

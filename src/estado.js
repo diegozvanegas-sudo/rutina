@@ -1,6 +1,7 @@
 // Todo se guarda en el celular (localStorage) en un objeto por usuario ("rutina_v1:<id>"). Funciona sin internet; se puede
 // exportar/importar en Ajustes. Sin nube configurada se usa "rutina_v1".
 import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS, FUTBOL } from './datos_iniciales.js';
+import { juegaEl } from './futbol.js';
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, CATEGORIAS_NUEVAS_V2 } from './datos_finanzas.js';
@@ -416,7 +417,8 @@ export function avanceMetas(fecha = iso()) {
 }
 
 // ---------- Fútbol ----------
-export const hayFutbol = (fecha = iso()) => (e().config.futbol || []).includes(diaSemana(fecha));
+// Partido ese día: día de fútbol y sin pausa (⏸ en Editar o en Hoy; src/futbol.js)
+export const hayFutbol = (fecha = iso()) => juegaEl(e().config, fecha);
 // Mañana en versión corta: el día del partido ('hoy') y el día siguiente ('ayer'); null si no toca
 export const mananaCorta = (fecha = iso()) => (hayFutbol(fecha) ? 'hoy' : hayFutbol(sumarDias(fecha, -1)) ? 'ayer' : null);
 // Las 3 prioridades de un día: se escriben la noche anterior en el Cierre de la noche (dias[fecha].prioridades)

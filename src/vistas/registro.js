@@ -6,6 +6,7 @@ import { horasSueno, promedioSueno, MOLESTIAS, hayPartido, semanaObjetivo, focoD
 import { rango } from '../progreso.js';
 import { libro } from '../libros/index.js';
 import { esc, registrar, toast } from '../ui.js';
+import { pausaEn, pausarFutbol, reanudarFutbol } from '../futbol.js';
 
 const f1 = (n) => String(n).replace('.', ',');
 const puntos = (n, valor, accion, datos, etiqueta) => '<div class="escala" role="group" aria-label="' + esc(etiqueta) + '">' +
@@ -45,8 +46,36 @@ export function tarjetaPartido(fecha) {
     }).join('') + '</div>' +
     '<label class="campo">Nota<input type="text" data-cambio="partido" ' + datos + ' data-k="nota" value="' + esc(p.nota || '') + '" placeholder="Ej.: gol, cancha mojada, me faltó aire…"></label>' +
     ((p.molestias || []).length ? '<p class="aviso">Con molestias: hoy haz la sesión de rodilla o estira suave, y si el dolor sigue en 2-3 días o es punzante, consulta a un fisioterapeuta.</p>' : '') +
+    (hecho ? '' : '<button type="button" class="enlace" data-accion="futbol-pausar">⏸ No estoy jugando por estos días</button>') +
     '</section>';
 }
+
+// ⏸ Pausa del fútbol: en Editar → Rutina y desde la tarjeta del partido. Si el partido de ayer no se anotó, la pausa
+// empieza ayer (no se jugó) y deja de preguntarlo
+export function tarjetaPausaFutbol() {
+  const c = e().config, pausa = pausaEn(c, iso());
+  if (!(c.futbol || []).length && !pausa) return '';
+  if (!pausa) return '<button type="button" class="boton secundario" data-accion="futbol-pausar">⏸ Pausar el fútbol (lesión, viaje…)</button>';
+  return '<div class="futbol-pausa"><p class="aviso">⏸ <b>Fútbol en pausa</b> desde el ' + fechaCorta(pausa.desde) + (pausa.hasta ? ' · vuelves el ' + fechaCorta(pausa.hasta) : '') +
+    '. Mientras tanto no sale el partido en Hoy, la comida sigue el plan normal y no hay avisos del partido. Tus días de fútbol quedan guardados.</p>' +
+    '<div class="dos"><label class="campo">Vuelvo a jugar el (opcional)<input type="date" data-cambio="futbol-vuelvo" min="' + sumarDias(iso(), 1) + '" value="' + esc(pausa.hasta || '') + '"></label>' +
+    '<button type="button" class="boton primario" data-accion="futbol-reanudar">▶ Volví a jugar</button></div></div>';
+}
+registrar({
+  'futbol-pausar'() {
+    const c = e().config, hoy = iso(), ayer = sumarDias(hoy, -1), d = e().dias[ayer], antes = JSON.parse(JSON.stringify(c.futbolPausas || []));
+    pausarFutbol(c, hayFutbol(ayer) && !(d && hayPartido(d.partido)) ? ayer : hoy);
+    guardar();
+    toast('⏸ Fútbol en pausa. Cuando vuelvas: Editar → Rutina → Volví a jugar', () => { c.futbolPausas = antes; guardar(); });
+  },
+  'futbol-reanudar'() { reanudarFutbol(e().config, iso()); guardar(); toast('⚽ ¡De vuelta a la cancha!'); },
+  'futbol-vuelvo'(ds, el) {
+    const p = pausaEn(e().config, iso());
+    if (!p) return;
+    if (el.value && el.value > iso()) p.hasta = el.value; else delete p.hasta;
+    guardar();
+  },
+});
 
 // ---------- Foco de la semana (en Hoy) ----------
 export function tarjetaFoco(hoy = iso()) {

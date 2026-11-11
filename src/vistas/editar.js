@@ -8,6 +8,7 @@ import { figuraPaso, OPCIONES_FIGURA, videoValido } from '../figuras.js';
 import { CATALOGO, FIJAS, SECCION_TARJETA, enOrden, oculto, mover as moverOrden, alternar, restablecer } from '../orden.js';
 import { ve } from '../permisos.js';
 import { extrasCalentamiento } from './gym.js';
+import { tarjetaPausaFutbol } from './registro.js';
 import { tieneVariantes, varianteDe, registrosDeFila } from '../gym.js';
 
 let pestana = 'rutina', diaEd = null, sesionEd = null;
@@ -124,6 +125,7 @@ function editorRutina() {
     '<button type="button" class="chip" data-accion="ed-agregar" data-lista="rutina">＋ Día</button></nav>' +
     '<section class="tarjeta"><b>⚽ Días de fútbol</b><p class="nota-corta">Ese día el plan de comida es "Fútbol" y en Hoy aparece el partido.</p><nav class="chips">' +
     DIAS.slice(1).map((t, n) => '<button type="button" class="chip' + ((e().config.futbol || []).includes(n + 1) ? ' activo' : '') + '" data-accion="futbol-dia" data-n="' + (n + 1) + '">' + t + '</button>').join('') + '</nav>' +
+    tarjetaPausaFutbol() +
     elegirSesiones('Sesiones del partido', 'config.sesionesPartido', e().config.sesionesPartido) +
     elegirSesiones('Sesiones de los días de descanso', 'config.sesionesDescanso', e().config.sesionesDescanso) + '</section>' +
     (repetidos.length ? '<p class="aviso">⚠ Hay dos días asignados al mismo día de la semana: se usa el primero.</p>' : '') +

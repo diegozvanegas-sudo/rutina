@@ -2,7 +2,7 @@
 // (sesión, historial, recuperación, fútbol, dieta) para pegar en Claude como si fuera un entrenador experto.
 import { e } from './estado.js';
 import { iso, sumarDias, lunesDe, fechaCorta } from './fechas.js';
-import { historial, estancamiento, metaSesion, registrosDeFila, repsDe, resumenSemana, formatoPeso, progresoMes } from './gym.js';
+import { historial, estancamiento, metaSesion, registrosDeFila, repsDe, resumenSemana, formatoPeso, progresoMes, varianteEn, nombreConVariante } from './gym.js';
 import { disposicion, cargaFutbol, textoCarga, proteinaSemana, queTeHaceRendir } from './entrenador.js';
 import { pesos, tendencia } from './dieta.js';
 import { promedioSueno, partidos } from './registro.js';
@@ -16,8 +16,8 @@ export const fechaDelDia = (d, sem) => sumarDias(lunesDe(sem), (Number(d.diaSema
 export function resumenEjercicios(d, sem, est = e()) {
   const regs = est.semanas[sem] || {};
   return d.ejercicios.map((ej) => {
-    const fila = ej.filas[0], reg = fila ? registrosDeFila(regs, fila).at(-1) : null;
-    const hist = historial(est.semanas, est.rutina, ej, 0, sem), hoy = hist.find((p) => p.semana === sem), antes = hist.filter((p) => p.semana !== sem);
+    const fila = ej.filas[0], reg = fila ? registrosDeFila(regs, fila).at(-1) : null, v = varianteEn(ej, regs);
+    const hist = historial(est.semanas, est.rutina, ej, 0, sem, v), hoy = hist.find((p) => p.semana === sem), antes = hist.filter((p) => p.semana !== sem);
     const previo = antes.at(-1), mejorAntes = antes.length ? Math.max(...antes.map((p) => p.rm)) : null, parado = estancamiento(hist);
     const hechas = ej.filas.reduce((s, f) => s + Math.min(registrosDeFila(regs, f).reduce((n, r) => n + repsDe(r.reps).length, 0), f.series), 0);
     const plan = ej.filas.reduce((s, f) => s + f.series, 0);
@@ -26,7 +26,7 @@ export function resumenEjercicios(d, sem, est = e()) {
     else if (hoy && hoy.rm > mejorAntes + 0.05) estado = 'record';
     else if (hoy && previo) estado = hoy.rm > previo.rm + 0.05 ? 'sube' : hoy.rm < previo.rm - 0.05 ? 'baja' : parado && parado.estancado ? 'estancado' : 'igual';
     const meta = fila && reg ? metaSesion(fila, reg) : null;
-    return { nombre: ej.nombre, musculo: ej.musculo, estado, hoy, previo, hechas, plan, rir: reg ? reg.rir : null, semanasParado: parado ? parado.semanas : 0,
+    return { nombre: nombreConVariante(ej, v), musculo: ej.musculo, estado, hoy, previo, hechas, plan, rir: reg ? reg.rir : null, semanasParado: parado ? parado.semanas : 0,
       meta: meta ? meta.texto : '', cambio: hoy && previo ? (hoy.rm - previo.rm) / previo.rm : null, hist: hist.slice(-6) };
   });
 }

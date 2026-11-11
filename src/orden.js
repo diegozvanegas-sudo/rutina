@@ -4,7 +4,7 @@
 
 export const SECCIONES = {
   hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
-  dieta: ['🥗', 'Dieta'], finanzas: ['💰', 'Finanzas'], recordatorios: ['🔔', 'Recordatorios'], lugares: ['🗺️', 'Lugares'], gym: ['🏋️', 'Gym'],
+  dieta: ['🥗', 'Dieta'], finanzas: ['💰', 'Finanzas'], compras: ['🛒', 'Compras'], recordatorios: ['🔔', 'Recordatorios'], lugares: ['🗺️', 'Lugares'], gym: ['🏋️', 'Gym'],
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
 export const TARJETAS_HOY = {

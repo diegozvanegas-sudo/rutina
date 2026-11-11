@@ -8,6 +8,7 @@ import { figuraPaso, OPCIONES_FIGURA, videoValido } from '../figuras.js';
 import { CATALOGO, FIJAS, SECCION_TARJETA, enOrden, oculto, mover as moverOrden, alternar, restablecer } from '../orden.js';
 import { ve } from '../permisos.js';
 import { extrasCalentamiento } from './gym.js';
+import { tieneVariantes, varianteDe, registrosDeFila } from '../gym.js';
 
 let pestana = 'rutina', diaEd = null, sesionEd = null;
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -144,6 +145,9 @@ function editorRutina() {
           '<div class="dos">' + campo('Nota', r + '.nota', ej.nota, ' placeholder="Técnica, máquina, agarre…"') +
           (rutina.length > 1 ? '<label class="campo">Mover a otro día<select data-cambio="ed-mover-dia" data-dia="' + i + '" data-j="' + j + '"><option value="">—</option>' +
             rutina.map((x, k) => (k === i ? '' : '<option value="' + k + '">' + esc(x.nombre) + '</option>')).join('') + '</select></label>' : '') + '</div>' +
+          (tieneVariantes(ej) ? '<div class="ed-variantes"><b>⇄ Variantes</b><p class="nota-corta">Cada una lleva su propio historial. Lo anotado antes de crearlas quedó en la primera. Se agregan desde la tarjeta del Gym.</p>' +
+            ej.variantes.map((v, k) => '<div class="ed-variante"><input type="text" data-cambio="ed-variante" data-ruta="' + r + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="Nombre de la variante ' + (k + 1) + '">' +
+              '<button type="button" class="icono" data-accion="ed-variante-quitar" data-ruta="' + r + '" data-k="' + k + '" aria-label="Quitar ' + esc(v) + '">✕</button></div>').join('') + '</div>' : '') +
           (d.id !== 'core' && d.ejercicios[j + 1] ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.biserie"' + (ej.biserie ? ' checked' : '') + '> 🔁 En biserie con el siguiente (' + esc(d.ejercicios[j + 1].nombre) + ')</label>' : '') +
           '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></div></section>';
       }).join('') +
@@ -265,7 +269,34 @@ function nuevo(listaRuta) {
   return null;
 }
 
+// Variantes: los ejercicios con el mismo nombre (pierna A y B) las comparten
+const mismosEj = (nombre) => e().rutina.flatMap((d) => d.ejercicios).filter((x) => x.nombre === nombre);
+const registrosDe = (ejs) => Object.values(e().semanas || {}).flatMap((regs) => ejs.flatMap((x) => x.filas.flatMap((f) => registrosDeFila(regs, f).map((r) => ({ r, x })))));
+
 registrar({
+  // Renombrar una variante: sus registros se van con el nombre nuevo
+  'ed-variante'({ ruta, k }, el) {
+    const ej = obtener(ruta), i = Number(k), viejo = ej.variantes[i], nuevo = el.value.trim();
+    if (!nuevo || nuevo === viejo) { repintar(); return; }
+    if (ej.variantes.some((v, n) => n !== i && v.toLowerCase() === nuevo.toLowerCase())) { toast('Ya hay una variante "' + nuevo + '"'); repintar(); return; }
+    const ejs = mismosEj(ej.nombre);
+    for (const { r } of registrosDe(ejs)) if (r.variante === viejo) r.variante = nuevo;
+    for (const x of ejs) { x.variantes = x.variantes.map((v) => (v === viejo ? nuevo : v)); if (x.variante === viejo) x.variante = nuevo; }
+    guardar();
+  },
+  // Quitar una variante sin registros (con registros se pierde su historial: primero se pasan a otra desde el Gym)
+  'ed-variante-quitar'({ ruta, k }) {
+    const ej = obtener(ruta), v = ej.variantes[Number(k)], ejs = mismosEj(ej.nombre);
+    const usados = registrosDe(ejs).filter(({ r, x }) => varianteDe(r, x) === v && (String(r.reps || '').trim() || String(r.peso || '').trim())).length;
+    if (usados) { toast('"' + v + '" tiene ' + usados + (usados === 1 ? ' registro' : ' registros') + '. Cámbialos a otra variante en el Gym antes de quitarla.'); return; }
+    if (!confirm('¿Quitar la variante "' + v + '"?')) return;
+    for (const x of ejs) {
+      x.variantes = x.variantes.filter((y) => y !== v);
+      if (x.variante === v) delete x.variante;
+      if (x.variantes.length < 2) { delete x.variantes; delete x.variante; }
+    }
+    guardar();
+  },
   'ed-pestana'({ p }) { pestana = p; itemAbierto = null; repintar(); },
   'ed-abrir'({ r }) { itemAbierto = itemAbierto === r ? null : r; repintar(); },
   'ed-habito-dia'({ i, n }) {

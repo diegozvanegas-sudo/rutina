@@ -21,6 +21,7 @@ import { vistaLibros } from './vistas/libros.js';
 import { vistaEstudiar } from './vistas/estudiar.js';
 import { vistaCalendario } from './vistas/calendario.js';
 import { vistaLugares } from './vistas/lugares.js';
+import { vistaCompras } from './vistas/compras.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
@@ -36,7 +37,7 @@ iniciarHoja();
 iniciarAvisos();
 
 const PANTALLAS = {
-  hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, finanzas: vistaFinanzas,
+  hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, finanzas: vistaFinanzas, compras: vistaCompras,
   recordatorios: vistaRecordatorios, lugares: vistaLugares, gym: vistaGym, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
@@ -241,6 +242,8 @@ document.addEventListener('keydown', (ev) => {
   const serie = ev.target.dataset.serie;
   if (serie) { ev.preventDefault(); const b = ev.target.parentNode.querySelector('[data-accion="serie"]'); if (b) b.click(); return; }
   if (ev.target.id === 'nube-clave') { ev.preventDefault(); ejecutar('nube-entrar', ev.target, ev); return; }
+  // data-enter: Enter toca ese botón (agregar a la lista de compras sin soltar el teclado)
+  if (ev.target.dataset.enter) { ev.preventDefault(); const b = document.querySelector('[data-accion="' + ev.target.dataset.enter + '"]'); if (b) b.click(); return; }
   ev.target.blur();
 });
 

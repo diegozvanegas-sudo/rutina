@@ -903,3 +903,27 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .cierre-cama { margin: 0 0 8px; }
 .prioridades-hoy { margin-bottom: 10px; }
 .prioridades-hoy textarea, .cierre-extra textarea { width: 100%; box-sizing: border-box; }
+
+/* Variantes de un ejercicio (paralelas o máquina, predicador o barra Z): cada una con su historial */
+.variantes { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.variante-nueva { font-size: 13px; color: var(--muted, inherit); margin: 0 0 6px; display: inline-block; }
+.ed-variantes { margin: 8px 0; }
+.ed-variante { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.ed-variante input { flex: 1; min-width: 0; }
+
+/* 🛒 Compras */
+.chips-compra { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+.compra-cat { margin: 14px 0 4px; font-size: 15px; }
+.compra-cat small { font-weight: 400; }
+.compras { list-style: none; margin: 0; padding: 0; }
+.compra { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.compra:last-child { border-bottom: 0; }
+.compra-check { flex: none; width: 32px; height: 32px; margin-top: 2px; border-radius: 50%; border: 2px solid var(--muted); background: none; color: var(--brand-ink); font-weight: 700; cursor: pointer; }
+.compra.hecha .compra-check { background: var(--brand); border-color: var(--brand); }
+.compra-texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; padding-top: 6px; }
+.compra.hecha .compra-texto b { text-decoration: line-through; opacity: .6; }
+.compra-consejo { color: var(--amarillo); }
+.compra.editando { display: block; }
+.compra-editar { width: 100%; }
+.compra-total { margin-bottom: 4px; }
+.compra-hechos > summary { cursor: pointer; font-weight: 600; }

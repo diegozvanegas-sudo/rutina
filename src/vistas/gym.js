@@ -3,7 +3,8 @@ import { e, guardar, repintar, semanaActual, abrirSemana, semanaQuitable, quitar
 import { iso, semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana, reloj } from '../fechas.js';
 export { semanaActual };
 import { CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso,
-  PIERNAS, historial, records, ultimaSubida, estancamiento, consejoEstancado, progresoMes, seriesRaras, registrosRaros, metaSesion, consejoRir, gruposDia, enBiserie, nombresBiserie } from '../gym.js';
+  PIERNAS, historial, records, ultimaSubida, estancamiento, consejoEstancado, progresoMes, seriesRaras, registrosRaros, metaSesion, consejoRir, gruposDia, enBiserie, nombresBiserie,
+  tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante, lineasFuerza } from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../entrenador.js';
@@ -35,6 +36,26 @@ function buscarFila(clave) {
   for (const d of e().rutina) for (const ej of d.ejercicios) for (const f of ej.filas) if (f.id === id) return { d, ej, f };
   return null;
 }
+// Variante de un registro: la de la tarjeta en esa semana (core: clave con "@día")
+const sufijoDe = (clave) => (clave.includes('@') ? clave.slice(clave.indexOf('@')) : '');
+const filtroEn = (ej, sem, sufijo = '') => (tieneVariantes(ej) ? { ej, v: varianteEn(ej, registros(sem), sufijo) } : null);
+// Los ejercicios con el mismo nombre (pierna A y B) comparten variantes
+const mismos = (nombre) => e().rutina.flatMap((d) => d.ejercicios).filter((x) => x.nombre === nombre);
+// Al anotar, el registro queda con la variante elegida
+function marcarVariante(clave, sem = semanaVista) {
+  const info = buscarFila(clave);
+  if (!info || !tieneVariantes(info.ej)) return;
+  const v = varianteEn(info.ej, registros(sem), sufijoDe(clave));
+  (registros(sem)[clave] ??= {}).variante = v;
+}
+// Botones para elegir con qué variante se hace hoy (o con cuál se hizo esa semana)
+function chipsVariante(ej, sem, sufijo = '') {
+  if (!tieneVariantes(ej)) return '<button type="button" class="enlace variante-nueva" data-accion="gym-variante-nueva" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '">⇄ Hoy lo hago de otra forma</button>';
+  const v = varianteEn(ej, registros(sem), sufijo);
+  return '<div class="variantes" role="group" aria-label="Variante de ' + esc(ej.nombre) + '">' + ej.variantes.map((x) =>
+    '<button type="button" class="chip mini' + (x === v ? ' activo' : '') + '" aria-pressed="' + (x === v) + '" data-accion="gym-variante" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '" data-v="' + esc(x) + '">' + esc(x) + '</button>').join('') +
+    '<button type="button" class="chip mini" data-accion="gym-variante-nueva" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '" aria-label="Agregar variante">＋</button></div>';
+}
 function textoRegistro(r) {
   if (!r) return '—';
   const p = numero(r.peso);
@@ -54,10 +75,10 @@ function partidosSemana() {
 }
 const consejo = (ej, semanas) => consejoEstancado(semanas, { pierna: PIERNAS.includes(ej.musculo), partidosSemana: partidosSemana() });
 // La última reserva anotada en la fila i del ejercicio (hasta esa semana)
-function rirReciente(ej, i, sem) {
+function rirReciente(ej, i, sem, v = varianteActual(ej)) {
   const f = ej.filas[i];
   for (let s = sem; f && s >= 1; s--) {
-    const r = registrosDeFila(e().semanas[s], f).reverse().find((x) => x.rir != null);
+    const r = registrosDeFila(e().semanas[s], f).reverse().find((x) => x.rir != null && (v == null || varianteDe(x, ej) === v));
     if (r) return r.rir;
   }
   return null;
@@ -76,21 +97,21 @@ function avisosRaros(f, sem, clave, reg, ult) {
   }).join('');
 }
 
-function lineaFuerza(ej, i, sem) {
-  const hist = historial(e().semanas, e().rutina, ej, i, sem);
+function lineaFuerza(ej, i, sem, v = varianteActual(ej)) {
+  const hist = historial(e().semanas, e().rutina, ej, i, sem, v);
   if (!hist.length) return '';
   const u = hist[0].unidad, rec = records(hist).find((p) => p.semana === sem && sem > 0);
   const sub = ultimaSubida(hist), est = estancamiento(hist.filter((p) => p.semana < sem));
   if (rec) return '<div class="record">🏆 Récord: 1RM estimado <b>' + rm(rec.rm) + ' ' + u + '</b> (antes ' + rm(rec.antes) + ')</div>';
   if (est && est.estancado) return '<div class="progresion estancado">⏸ ' + est.semanas + ' semanas sin superar <b>' + formatoPeso(est.mejor.peso) + ' ' + u + ' × ' + est.mejor.reps + '</b>' +
-    '<small>' + esc(consejoRir(rirReciente(ej, i, sem), true) || consejo(ej, est.semanas)) + '</small></div>';
+    '<small>' + esc(consejoRir(rirReciente(ej, i, sem, v), true) || consejo(ej, est.semanas)) + '</small></div>';
   if (sub) return '<div class="progresion">📈 Última subida: ' + formatoPeso(sub.de) + ' → <b>' + formatoPeso(sub.a) + ' ' + u + '</b> · ' + cuando(sub.semana, sem) + '</div>';
   return hist.length >= 2 ? '<div class="progresion">Aún no has subido el peso: llega al tope de reps en todas las series para subir.</div>' : '';
 }
 
 // abierto: sin el desplegable (en la tarjeta de Fuerza, donde ya se eligió el ejercicio)
-function historialEj(ej, sem, abierto = false) {
-  const hist = historial(e().semanas, e().rutina, ej, 0, sem);
+function historialEj(ej, sem, abierto = false, v = varianteActual(ej)) {
+  const hist = historial(e().semanas, e().rutina, ej, 0, sem, v);
   if (hist.length < 2) return '';
   const u = hist[0].unidad, recs = new Set(records(hist).map((p) => p.semana));
   const etiqueta = (p) => (p.semana ? 'S' + p.semana : 'Antes');
@@ -99,29 +120,27 @@ function historialEj(ej, sem, abierto = false) {
   const cuerpo = '<p class="nota-corta">1RM estimado de la mejor serie, semana a semana: así 60 × 10 y 65 × 7 se pueden comparar.</p>' +
     linea(puntos, { formato: rm, margenEje: 1 }) +
     tablaDatos(['Semana', 'Peso', 'Reps', '1RM est.', ''], hist.slice().reverse().map((p) => [etiqueta(p), formatoPeso(p.peso) + ' ' + u, p.reps, rm(p.rm), recs.has(p.semana) ? '🏆' : '']));
-  return abierto ? cuerpo : '<details class="nota historial-ej"><summary>📈 Historial</summary>' + cuerpo + '</details>';
+  return abierto ? cuerpo : '<details class="nota historial-ej"><summary>📈 Historial' + (v ? ' · ' + esc(v) : '') + '</summary>' + cuerpo + '</details>';
 }
 
 // Últimas 4 semanas: en qué subiste, qué está quieto y tus últimos récords (Gym → Resumen y Progreso)
 export function tarjetaFuerza(hasta = semanaActual()) {
   const lista = progresoMes(e().semanas, e().rutina, hasta);
   const suben = lista.filter((x) => x.cambio > 0.005), quietos = lista.filter((x) => x.est && x.est.estancado);
-  const vistos = new Set(), recs = [];
-  for (const d of e().rutina) for (const ej of d.ejercicios) {
-    if (vistos.has(ej.nombre)) continue;
-    vistos.add(ej.nombre);
-    for (const p of records(historial(e().semanas, e().rutina, ej, 0, hasta))) if (p.semana > 0) recs.push({ ...p, nombre: ej.nombre });
+  const recs = [];
+  for (const { ej, v, nombre } of lineasFuerza(e().rutina)) {
+    for (const p of records(historial(e().semanas, e().rutina, ej, 0, hasta, v))) if (p.semana > 0) recs.push({ ...p, nombre });
   }
   recs.sort((a, b) => b.semana - a.semana);
   const raros = revisarRaros(hasta), proximo = hasta === semanaActual() ? proximoEntreno() : '';
   if (!lista.length && !recs.length) return raros + proximo + '<p class="nota-corta">Cuando tengas el mismo ejercicio anotado en 2 semanas vas a ver aquí en qué estás mejorando.</p>';
   const fila = (x) => '<li><span>' + esc(x.nombre) + '<small>' + formatoPeso(x.de.peso) + ' × ' + x.de.reps + ' → ' + formatoPeso(x.a.peso) + ' × ' + x.a.reps + ' ' + x.a.unidad + '</small></span>' +
     '<b class="' + (x.cambio > 0.005 ? 'sube' : x.cambio < -0.005 ? 'baja' : '') + '">' + porcentaje(x.cambio) + '</b></li>';
-  const ejDe = (nombre) => e().rutina.flatMap((d) => d.ejercicios).find((x) => x.nombre === nombre);
+  const lineaDe = (nombre) => lineasFuerza(e().rutina).find((x) => x.nombre === nombre);
   return raros + proximo + '<h3>📈 Mejoraste (4 semanas)</h3>' +
     (suben.length ? '<ul class="fuerza-lista">' + suben.slice(0, 5).map(fila).join('') + '</ul>' : '<p class="nota-corta">Ningún ejercicio subió su 1RM estimado en estas 4 semanas.</p>') +
     (quietos.length ? '<h3>⏸ Estancados (3+ semanas sin superar tu mejor marca)</h3><ul class="fuerza-lista">' + quietos.slice(0, 5).map((x) =>
-      '<li><span>' + esc(x.nombre) + '<small>' + esc(consejoRir(rirReciente(ejDe(x.nombre), 0, hasta), true) || consejo(x, x.est.semanas)) + '</small></span><b class="baja">' + x.est.semanas + ' sem</b></li>').join('') + '</ul>' : '') +
+      '<li><span>' + esc(x.nombre) + '<small>' + esc(consejoRir(rirReciente(lineaDe(x.nombre).ej, 0, hasta, x.variante), true) || consejo(x, x.est.semanas)) + '</small></span><b class="baja">' + x.est.semanas + ' sem</b></li>').join('') + '</ul>' : '') +
     (recs.length ? '<h3>🏆 Últimos récords</h3><ul class="fuerza-lista">' + recs.slice(0, 6).map((p) =>
       '<li><span>' + esc(p.nombre) + '<small>' + formatoPeso(p.peso) + ' ' + p.unidad + ' × ' + p.reps + ' · semana ' + p.semana + '</small></span><b>' + rm(p.rm) + '</b></li>').join('') + '</ul>' : '') +
     fuerzaRelativa(lista) + queRindes() + graficoEjercicio(hasta) +
@@ -133,8 +152,8 @@ function revisarRaros(hasta) {
   const raros = registrosRaros(e().semanas, e().rutina, hasta - 3, hasta);
   if (!raros.length) return '';
   return '<h3>⚠️ Revisa estos registros</h3><p class="nota-corta">Se salen de tu esquema. Si quedaron incompletos, no cuentan en la comparación.</p>' +
-    '<div class="raros">' + raros.slice(0, 8).map((x) => '<div class="raro-ej"><b>' + esc(x.ej.nombre) + '</b> <small>semana ' + x.semana + ' · ' + esc(textoRegistro(x.reg)) + '</small>' +
-      avisosRaros(x.fila, x.semana, x.clave, x.reg, ultimoRegistro(e().semanas, x.fila, x.semana)) + '</div>').join('') + '</div>';
+    '<div class="raros">' + raros.slice(0, 8).map((x) => '<div class="raro-ej"><b>' + esc(nombreConVariante(x.ej, varianteDe(x.reg, x.ej))) + '</b> <small>semana ' + x.semana + ' · ' + esc(textoRegistro(x.reg)) + '</small>' +
+      avisosRaros(x.fila, x.semana, x.clave, x.reg, ultimoRegistro(e().semanas, x.fila, x.semana, { ej: x.ej, v: varianteDe(x.reg, x.ej) })) + '</div>').join('') + '</div>';
 }
 
 // Próximo día de gym (hoy si toca) con la meta de cada ejercicio (también en "Tu entrenador hoy")
@@ -144,10 +163,10 @@ export function proximoEntreno(max = Infinity) {
     const f = sumarDias(hoy, k), d = e().rutina.find((x) => x.id !== 'core' && x.diaSemana === diaSemana(f));
     if (!d) continue;
     const sem = semanaActual() + (k && diaSemana(f) < diaSemana(hoy) ? 1 : 0);
-    const metas = d.ejercicios.map((ej) => ({ ej, m: metaSesion(ej.filas[0], ultimoRegistro(e().semanas, ej.filas[0], sem)) })).filter((x) => x.m);
+    const metas = d.ejercicios.map((ej) => ({ ej, m: metaSesion(ej.filas[0], ultimoRegistro(e().semanas, ej.filas[0], sem, { ej, v: varianteActual(ej) })) })).filter((x) => x.m);
     if (!metas.length) return '';
     return '<h3>🎯 Tu próximo entreno: ' + esc(d.nombre) + ' <small>' + (k === 0 ? 'hoy' : k === 1 ? 'mañana' : DIAS_CORTOS[d.diaSemana].toLowerCase()) + '</small></h3>' +
-      '<ul class="fuerza-lista">' + metas.slice(0, max).map(({ ej, m }) => '<li><span>' + esc(ej.nombre) + '<small>' + esc(m.motivo) + '</small></span><b class="' + (m.sube ? 'sube' : '') + '">' + esc(m.texto) + (m.sube ? ' ⬆' : '') + '</b></li>').join('') + '</ul>' +
+      '<ul class="fuerza-lista">' + metas.slice(0, max).map(({ ej, m }) => '<li><span>' + esc(nombreConVariante(ej, varianteActual(ej))) + '<small>' + esc(m.motivo) + '</small></span><b class="' + (m.sube ? 'sube' : '') + '">' + esc(m.texto) + (m.sube ? ' ⬆' : '') + '</b></li>').join('') + '</ul>' +
       (metas.length > max ? '<button type="button" class="enlace" data-accion="ir-dia" data-dia="' + d.id + '">Ver las ' + metas.length + ' metas en el Gym →</button>' : '');
   }
   return '';
@@ -181,19 +200,18 @@ function queRindes() {
 
 // Un ejercicio a la vez: su 1RM estimado semana a semana
 function graficoEjercicio(hasta) {
-  const nombres = [...new Set(e().rutina.flatMap((d) => d.ejercicios))].filter((ej) => historial(e().semanas, e().rutina, ej, 0, hasta).length >= 2)
-    .filter((ej, i, xs) => xs.findIndex((y) => y.nombre === ej.nombre) === i);
+  const nombres = lineasFuerza(e().rutina).filter((x) => historial(e().semanas, e().rutina, x.ej, 0, hasta, x.v).length >= 2);
   if (!nombres.length) return '';
-  const ej = nombres.find((x) => x.nombre === fuerzaEj) || nombres[0];
+  const sel = nombres.find((x) => x.nombre === fuerzaEj) || nombres[0];
   return '<h3>📉 Un ejercicio en el tiempo</h3><label class="campo">Ejercicio<select data-cambio="fuerza-ej">' +
-    nombres.map((x) => '<option' + (x.nombre === ej.nombre ? ' selected' : '') + '>' + esc(x.nombre) + '</option>').join('') + '</select></label>' +
-    historialEj(ej, hasta, true);
+    nombres.map((x) => '<option' + (x.nombre === sel.nombre ? ' selected' : '') + '>' + esc(x.nombre) + '</option>').join('') + '</select></label>' +
+    historialEj(sel.ej, hasta, true, sel.v);
 }
 
 // sinRapida: en una biserie las series se anotan por ronda (los dos ejercicios juntos), no una por una
 function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
-  const reg = registros(sem)[clave] || {}, est = estadoFila(f, reg);
-  const ult = ultimoRegistro(e().semanas, f, sem), sug = sugerencia(f, ult), meta = metaSesion(f, ult);
+  const reg = registros(sem)[clave] || {}, est = estadoFila(f, reg), filtro = ej && filtroEn(ej, sem, sufijoDe(clave));
+  const ult = ultimoRegistro(e().semanas, f, sem, filtro), sug = sugerencia(f, ult), meta = metaSesion(f, ult);
   const unidad = reg.unidad || (ult && ult.unidad) || 'kg';
   const rir = (v) => '<button type="button" class="chip mini' + (reg.rir === v ? ' activo' : '') + '" data-accion="gym-rir" data-fila="' + clave + '" data-v="' + v + '" aria-pressed="' + (reg.rir === v) + '">' + (v === 4 ? '4+' : v) + '</button>';
   return '<div class="fila-ej c-' + est.color + '">' +
@@ -205,7 +223,7 @@ function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
     '<div class="ultimo">Último: <b>' + textoRegistro(ult) + '</b>' +
     (sug ? ' · Hoy: <b class="' + (sug.sube ? 'sugerido-sube' : '') + '">' + esc(sug.texto) + (sug.sube ? ' ⬆' : '') + '</b>' : '') + '</div>' +
     (meta ? '<div class="meta-sesion">🎯 Meta: <b>' + esc(meta.texto) + '</b><small>' + esc(meta.motivo) + '</small></div>' : '') +
-    (ej ? lineaFuerza(ej, i, sem) : '') + avisosRaros(f, sem, clave, reg, ult) +
+    (ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null) : '') + avisosRaros(f, sem, clave, reg, ult) +
     '<div class="entradas">' +
     '<input class="peso" type="text" inputmode="decimal" data-cambio="peso" data-fila="' + clave + '" value="' + esc(reg.peso || '') + '" placeholder="' + esc(sug ? formatoPeso(sug.peso) : 'Peso') + '" aria-label="Peso">' +
     '<select data-cambio="unidad" data-fila="' + clave + '" aria-label="Unidad"><option' + (unidad === 'kg' ? ' selected' : '') + '>kg</option><option' + (unidad === 'discos' ? ' selected' : '') + '>discos</option></select>' +
@@ -233,8 +251,9 @@ function ejercicio(ej, sem, sufijo = '') {
   const d = e().rutina.find((x) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre), es = !sufijo && ej.id === actualId;
   return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + '</header>' +
     (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
+    chipsVariante(ej, sem, sufijo) +
     ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i)).join('') +
-    historialEj(ej, sem) +
+    historialEj(ej, sem, false, varianteEn(ej, registros(sem), sufijo)) +
     '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details>' +
     '</article>';
 }
@@ -251,7 +270,7 @@ function biserie(a, b, sem) {
   const plan = Math.max(ea.plan, eb.plan), ronda = Math.min(ea.hechas, eb.hechas) + 1;
   const descanso = Math.max(...[fa, fb, a.filas[0], b.filas[0]].filter(Boolean).map((f) => f.descanso));
   const parte = (ej, letra) => '<div class="bis-ej"><h4><span class="bis-letra">' + letra + '</span>' + esc(ej.nombre) + ' <small>' + esc(ej.musculo) + '</small></h4>' +
-    ej.filas.map((f, i) => fila(f, sem, f.id, ej, i, true)).join('') + historialEj(ej, sem) +
+    chipsVariante(ej, sem) + ej.filas.map((f, i) => fila(f, sem, f.id, ej, i, true)).join('') + historialEj(ej, sem, false, varianteEn(ej, registros(sem))) +
     '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details></div>';
   // Cada campo va a la fila pendiente de su ejercicio; si ese ya terminó, no aparece
   const campo = (f, ej, letra) => (f ? '<label class="campo">' + letra + ' · ' + esc(ej.nombre) + (ej.filas.length > 1 ? ' (' + f.tipo + ' ' + esc(f.esquema) + ')' : '') +
@@ -269,7 +288,7 @@ function biserie(a, b, sem) {
 function pesoPlaneado(d, sem) {
   const f = d.ejercicios[0] && d.ejercicios[0].filas[0];
   if (!f) return null;
-  const reg = registros(sem)[f.id], ult = ultimoRegistro(e().semanas, f, sem), sug = sugerencia(f, ult);
+  const reg = registros(sem)[f.id], ult = ultimoRegistro(e().semanas, f, sem, filtroEn(d.ejercicios[0], sem)), sug = sugerencia(f, ult);
   const peso = numero(reg && reg.peso) ?? (sug && sug.peso);
   return peso ? { peso, unidad: (reg && reg.unidad) || (sug && sug.unidad) || 'kg', nombre: d.ejercicios[0].nombre } : null;
 }
@@ -328,7 +347,7 @@ export function textoDia(d, sem, estado = e()) {
     const datos = reps.length ? (peso ? peso + ' ' + unidad + ' × ' : '') + reps.join(' · ') : '—';
     return '  ' + (f.tipo === 'Series' ? '' : f.tipo + ' ') + f.esquema + ': ' + datos + marca;
   };
-  const bloque = (ej, sufijo = '') => ej.nombre + ' · ' + ej.musculo + '\n' + ej.filas.map((f) => lineaFila(f, f.id + sufijo)).join('\n');
+  const bloque = (ej, sufijo = '') => nombreConVariante(ej, varianteEn(ej, regs, sufijo)) + ' · ' + ej.musculo + '\n' + ej.filas.map((f) => lineaFila(f, f.id + sufijo)).join('\n');
   const r = resumenSemana([d], regs), lineas = [
     '🏋️ ' + (d.diaSemana ? DIAS_CORTOS[d.diaSemana] + ' · ' : '') + d.nombre + ' — Semana ' + sem + ' (' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + ')',
     'Series: ' + r.hechas + '/' + r.plan, '', ...d.ejercicios.map((ej) => bloque(ej)),
@@ -398,10 +417,10 @@ function tarjetaCore(d, sem) {
 }
 
 // Línea simple con el peso de la primera fila de cada ejercicio, semana a semana
-function grafico(f, hasta) {
+function grafico(f, hasta, filtro = null) {
   const puntos = [];
   for (let s = 1; s <= hasta; s++) {
-    const p = registrosDeFila(e().semanas[s], f).map((r) => numero(r.peso)).find((n) => n != null);
+    const p = registrosDeFila(e().semanas[s], f).filter((r) => !filtro || varianteDe(r, filtro.ej) === filtro.v).map((r) => numero(r.peso)).find((n) => n != null);
     if (p != null) puntos.push([s, p]);
   }
   if (!puntos.length) return '<span class="nota-corta">sin datos</span>';
@@ -439,8 +458,8 @@ function vistaResumen(sem) {
   return '<button type="button" class="boton primario ancho boton-rutina" data-accion="gym-imagen-rutina">🖼️ Crear imagen de mi rutina semanal</button>' +
     '<section class="tarjeta">' + tarjetaSemana(sem, true) + '</section>' +
     '<section class="tarjeta fuerza"><h2>💪 Fuerza</h2>' + tarjetaFuerza(sem) + '</section>' +
-    '<section class="tarjeta"><h2>Progreso de peso</h2><div class="progreso">' + e().rutina.flatMap((d) => d.ejercicios.map((ej) =>
-      '<div class="progreso-fila"><span>' + esc(ej.nombre) + '<small>' + esc(d.nombre) + ' · ' + ej.filas[0].tipo + '</small></span>' + grafico(ej.filas[0], sem) + '</div>')).join('') + '</div></section>';
+    '<section class="tarjeta"><h2>Progreso de peso</h2><div class="progreso">' + e().rutina.flatMap((d) => d.ejercicios.flatMap((ej) => (tieneVariantes(ej) ? ej.variantes : [null]).map((v) =>
+      '<div class="progreso-fila"><span>' + esc(nombreConVariante(ej, v)) + '<small>' + esc(d.nombre) + ' · ' + ej.filas[0].tipo + '</small></span>' + grafico(ej.filas[0], sem, v ? { ej, v } : null) + '</div>'))).join('') + '</div></section>';
 }
 
 export function vistaGym() {
@@ -462,21 +481,36 @@ export function vistaGym() {
 }
 
 function cambiarReps(id, texto) {
-  const info = buscarFila(id), reg = (registros(semanaVista)[id] ??= {}), i = info.ej.filas.indexOf(info.f);
-  const esRecord = () => records(historial(e().semanas, e().rutina, info.ej, i, semanaVista)).some((p) => p.semana === semanaVista);
+  marcarVariante(id);
+  const info = buscarFila(id), reg = (registros(semanaVista)[id] ??= {}), i = info.ej.filas.indexOf(info.f), filtro = filtroEn(info.ej, semanaVista, sufijoDe(id));
+  const esRecord = () => records(historial(e().semanas, e().rutina, info.ej, i, semanaVista, filtro ? filtro.v : null)).some((p) => p.semana === semanaVista);
   const antes = repsDe(reg.reps).length, eraRecord = esRecord();
   reg.reps = texto.replace(/\s+/g, ' ').trim(); // siempre texto
   const ahora = repsDe(reg.reps).length;
-  if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista); reg.unidad = (u && u.unidad) || 'kg'; }
+  if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista, filtro); reg.unidad = (u && u.unidad) || 'kg'; }
   // Descanso automático al sumar una serie (si aún faltan). En una biserie lo arranca la ronda, después de los dos
   if (ahora > antes) {
     ultimoEj = info.ej.id;
     if (!avanceEj(info.ej, semanaVista).fila) enfocar = true; // terminó: pasa al siguiente
   }
   if (ahora > antes && ahora < info.f.series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
-  if (ahora > antes && !eraRecord && esRecord()) toast('🏆 ¡Récord en ' + info.ej.nombre + '! Tu mejor 1RM estimado');
+  if (ahora > antes && !eraRecord && esRecord()) toast('🏆 ¡Récord en ' + nombreConVariante(info.ej, filtro && filtro.v) + '! Tu mejor 1RM estimado');
   else if (ahora >= info.f.series && ahora > antes) toast(estadoFila(info.f, reg).color === 'sube' ? '⬆ ¡Tope del rango! Sube peso la próxima semana' : '✓ ' + info.ej.nombre + ' completo');
   guardar();
+}
+
+function elegirVariante(id, v, sufijo = '') {
+  const ej = e().rutina.flatMap((d) => d.ejercicios).find((x) => x.id === id);
+  if (!ej || !tieneVariantes(ej) || !ej.variantes.includes(v)) return;
+  const regs = registros(semanaVista), antes = varianteEn(ej, regs, sufijo);
+  if (semanaVista === semanaActual()) for (const x of mismos(ej.nombre)) x.variante = v;
+  let movidos = 0;
+  for (const f of ej.filas) {
+    const r = regs[f.id + sufijo];
+    if (r && (r.variante || r.reps || r.peso)) { if (repsDe(r.reps).length && antes !== v) movidos++; r.variante = v; }
+  }
+  guardar();
+  if (movidos) toast('Lo anotado en la semana ' + semanaVista + ' quedó como ' + v);
 }
 
 registrar({
@@ -559,11 +593,25 @@ registrar({
   },
   // Reps en reserva de la última serie (tocar el mismo número lo quita)
   'gym-rir'({ fila: id, v }) {
+    marcarVariante(id);
     const reg = (registros(semanaVista)[id] ??= {}), n = Number(v);
     if (reg.rir === n) delete reg.rir; else reg.rir = n;
     guardar();
   },
   'fuerza-ej'(ds, el) { fuerzaEj = el.value; repintar(); },
+  // Elegir la variante: en la semana actual también queda para la próxima vez; lo ya anotado esa semana pasa a esa variante
+  'gym-variante'({ ej: id, v, sufijo = '' }) { elegirVariante(id, v, sufijo); },
+  'gym-variante-nueva'({ ej: id, sufijo = '' }) {
+    const ej = e().rutina.flatMap((d) => d.ejercicios).find((x) => x.id === id);
+    if (!ej) return;
+    const nombre = (prompt('¿Cómo se llama la otra forma de hacer "' + ej.nombre + '"?\n\nEj.: Paralelas, Barra Z, Máquina, Mancuernas.\nCada una lleva su propio historial, meta y peso sugerido.') || '').trim();
+    if (!nombre) return;
+    const lista = tieneVariantes(ej) ? ej.variantes : [ej.nombre];
+    if (lista.some((x) => x.toLowerCase() === nombre.toLowerCase())) { toast('Ya existe "' + nombre + '"'); return; }
+    // Lo anotado antes queda en la primera (el nombre del ejercicio)
+    for (const x of mismos(ej.nombre)) x.variantes = [...lista, nombre];
+    elegirVariante(id, nombre, sufijo);
+  },
   // Ronda de la biserie: suma la serie de A1 y la de A2 (las que tengan reps) y arranca un solo descanso
   'gym-ronda'({ a, b }, el) {
     const ejs = [a, b].map((id) => e().rutina.flatMap((d) => d.ejercicios).find((x) => x.id === id));
@@ -577,7 +625,7 @@ registrar({
       if (!f || !valido(valores[k])) return;
       const reg = (registros(semanaVista)[f.id] ??= {});
       if (!reg.peso) {
-        const sug = sugerencia(f, ultimoRegistro(e().semanas, f, semanaVista));
+        const sug = sugerencia(f, ultimoRegistro(e().semanas, f, semanaVista, filtroEn(ejs[k], semanaVista)));
         if (sug) reg.peso = String(sug.peso);
       }
       cambiarReps(f.id, ((reg.reps || '') + ' ' + valores[k]).trim());
@@ -601,8 +649,8 @@ registrar({
     for (const d of e().rutina) for (const ej of d.ejercicios) if (ej.id === id) delete ej.biserie;
     guardar();
   },
-  peso({ fila: id }, el) { (registros(semanaVista)[id] ??= {}).peso = el.value.trim(); guardar(); },
-  unidad({ fila: id }, el) { (registros(semanaVista)[id] ??= {}).unidad = el.value; guardar(); },
+  peso({ fila: id }, el) { marcarVariante(id); (registros(semanaVista)[id] ??= {}).peso = el.value.trim(); guardar(); },
+  unidad({ fila: id }, el) { marcarVariante(id); (registros(semanaVista)[id] ??= {}).unidad = el.value; guardar(); },
   reps({ fila: id }, el) { cambiarReps(id, el.value); },
   serie({ fila: id }, el) {
     const campo = el.parentNode.querySelector('[data-serie]'), n = campo.value.trim();
@@ -611,7 +659,7 @@ registrar({
     const reg = registros(semanaVista)[id] || {};
     if (!reg.peso) {
       // Sin peso escrito: se usa el sugerido para no tener que escribirlo en cada serie
-      const info = buscarFila(id), sug = sugerencia(info.f, ultimoRegistro(e().semanas, info.f, semanaVista));
+      const info = buscarFila(id), sug = sugerencia(info.f, ultimoRegistro(e().semanas, info.f, semanaVista, filtroEn(info.ej, semanaVista, sufijoDe(id))));
       if (sug) (registros(semanaVista)[id] ??= {}).peso = String(sug.peso);
     }
     cambiarReps(id, ((reg.reps || '') + ' ' + n).trim());

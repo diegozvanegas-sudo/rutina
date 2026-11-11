@@ -1,6 +1,6 @@
 // La rutina de la semana como imagen (PNG): cada día con sus ejercicios, series y meta de peso, fútbol, descanso, core y balance por músculo
 import { lunesDe, sumarDias, fechaCorta } from './fechas.js';
-import { metaSesion, ultimoRegistro, resumenSemana } from './gym.js';
+import { metaSesion, ultimoRegistro, resumenSemana, varianteActual, nombreConVariante } from './gym.js';
 import { entregarImagen } from './imagen.js';
 
 const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -14,9 +14,9 @@ export function resumenRutina(sem, estado) {
   const nombres = (ids) => (ids || []).map(nombreSesion).filter(Boolean);
   const serieDe = (ej) => ej.filas.reduce((s, f) => s + f.series, 0);
   const ejercicio = (ej) => {
-    const meta = ej.filas[0] ? metaSesion(ej.filas[0], ultimoRegistro(estado.semanas, ej.filas[0], sem)) : null;
+    const v = varianteActual(ej), meta = ej.filas[0] ? metaSesion(ej.filas[0], ultimoRegistro(estado.semanas, ej.filas[0], sem, { ej, v })) : null;
     return {
-      nombre: ej.nombre, musculo: ej.musculo, series: serieDe(ej), biserie: !!ej.biserie,
+      nombre: nombreConVariante(ej, v), musculo: ej.musculo, series: serieDe(ej), biserie: !!ej.biserie,
       esquema: ej.filas.map((f) => (f.tipo === 'Series' ? '' : f.tipo + ' ') + f.esquema).join(' · '),
       meta: meta ? meta.texto : '', sube: !!(meta && meta.sube),
     };

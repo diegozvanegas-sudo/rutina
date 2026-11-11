@@ -159,6 +159,22 @@ export const SESIONES = [
     ],
   },
   {
+    // Cadera, columna y piernas, de sentado a de pie y de vuelta al piso. Relajado: nunca forzar, respirar profundo
+    id: 'estiramiento-completo', nombre: 'Estiramiento completo (cadera y columna)', tipo: 'estiramiento', pasos: [
+      t('Rotación de la columna', 'Columna', 30, 'Sentado, una pierna estirada y la otra cruzada por encima. Gira el tronco hacia la rodilla doblada, mano atrás en el piso. Crece al inhalar, gira un poco más al exhalar.', true),
+      t('Postura de la mariposa', 'Aductores', 45, 'Sentado, plantas de los pies juntas y rodillas abiertas. Toma los pies e inclínate adelante con la espalda larga. No empujes las rodillas.'),
+      t('Estiramiento cobra', 'Abdomen', 30, 'Boca abajo, manos bajo los hombros. Estira los brazos y sube el pecho dejando la cadera en el piso. Hombros lejos de las orejas.'),
+      t('Perro mirando hacia abajo', 'Isquios', 40, 'Manos y pies en el piso, cadera arriba formando una V invertida. Lleva los talones hacia el piso y el pecho hacia los muslos. Puedes doblar un poco las rodillas.'),
+      t('Zancada profunda', 'Cadera', 35, 'Un pie adelante con la rodilla sobre el tobillo, la rodilla de atrás en el piso. Baja la cadera adelante con el tronco erguido.', true),
+      t('Media espagat', 'Isquios', 35, 'Desde la zancada, lleva la cadera atrás sobre la rodilla de atrás y estira la pierna de adelante con la punta del pie arriba. Inclínate con la espalda recta.', true),
+      t('Zancada ascendente', 'Flexor de cadera', 30, 'Zancada con la rodilla de atrás en el piso y los brazos estirados arriba. Aprieta el glúteo de atrás y crece hacia el techo.', true),
+      t('Agachamiento profundo', 'Cadera', 40, 'Sentadilla hasta abajo, talones en el piso y manos juntas al pecho. Usa los codos para abrir las rodillas. Si los talones se levantan, pon algo debajo.'),
+      t('Postura del camello', 'Abdomen', 30, 'De rodillas, manos en la espalda baja. Lleva la cadera adelante y arquea la espalda; si llegas, apoya las manos en los talones. Sube despacio.'),
+      t('Postura de la paloma', 'Glúteo', 45, 'Pierna de adelante doblada en el piso y la de atrás estirada. Cadera derecha hacia el piso; inclínate adelante sobre la pierna doblada.', true),
+      t('Postura del niño', 'Espalda baja', 45, 'Rodillas abiertas, glúteos a los talones, brazos adelante. Respira lento y suelta todo.'),
+    ],
+  },
+  {
     id: 'calentamiento-torso', nombre: 'Calentamiento torso', tipo: 'calentamiento', pasos: [
       t('Cardio suave', 'General', 300, 'Cinta o elíptica a ritmo cómodo.'),
       t('Círculos de brazos', 'Hombro', 30, 'Pequeños a grandes, adelante y atrás.'),

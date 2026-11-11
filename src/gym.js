@@ -42,13 +42,53 @@ export function registrosDeFila(registros, fila) {
 }
 const conDatos = (r) => r && (repsDe(r.reps).length || String(r.peso || '').trim());
 
-// Último registro de una fila antes de la semana indicada (la semana que se cerró pasa a ser "el último")
-export function ultimoRegistro(semanas, fila, semana) {
+// ---------- Variantes: el mismo ejercicio hecho de otra forma (paralelas o máquina, predicador o barra Z) ----------
+// ej.variantes: nombres; la primera es la principal. ej.variante: la que se está usando.
+// Cada registro guarda la suya en reg.variante; los que no la tienen (anotados antes) son de la principal.
+// El historial, el último registro, la meta y el estancamiento se calculan solo con la misma variante.
+export const tieneVariantes = (ej) => !!(ej && Array.isArray(ej.variantes) && ej.variantes.length > 1);
+export const varianteDe = (reg, ej) => (tieneVariantes(ej) ? (reg && ej.variantes.includes(reg.variante) ? reg.variante : ej.variantes[0]) : null);
+// La que se está usando ahora (para la próxima vez)
+export const varianteActual = (ej) => (tieneVariantes(ej) ? (ej.variantes.includes(ej.variante) ? ej.variante : ej.variantes[0]) : null);
+// La de una semana: la del primer registro con datos; si no hay nada anotado, la que se está usando
+export function varianteEn(ej, regs, sufijo = '') {
+  if (!tieneVariantes(ej)) return null;
+  for (const f of ej.filas) {
+    const r = regs && regs[f.id + sufijo];
+    if (r && (r.variante || conDatos(r))) return varianteDe(r, ej);
+  }
+  return varianteActual(ej);
+}
+// "Predicador" + "Barra Z" -> "Predicador · Barra Z"; si la variante ya dice el ejercicio, solo la variante
+export function nombreConVariante(ej, v) {
+  if (!v) return ej.nombre;
+  return v.toLowerCase().includes(ej.nombre.toLowerCase()) ? v : ej.nombre + ' · ' + v;
+}
+// Cada ejercicio (por nombre) y cada una de sus variantes, una vez
+export function lineasFuerza(rutina) {
+  const vistos = new Set(), out = [];
+  for (const d of rutina) for (const ej of d.ejercicios) {
+    for (const v of tieneVariantes(ej) ? ej.variantes : [null]) {
+      const k = ej.nombre + '|' + (v || '');
+      if (vistos.has(k)) continue;
+      vistos.add(k);
+      out.push({ ej, v, nombre: nombreConVariante(ej, v) });
+    }
+  }
+  return out;
+}
+
+// Último registro de una fila antes de la semana indicada (la semana que se cerró pasa a ser "el último").
+// filtro { ej, v }: solo los de esa variante del ejercicio (sin filtro, todos)
+export function ultimoRegistro(semanas, fila, semana, filtro = null) {
+  const sirve = (r) => !filtro || !tieneVariantes(filtro.ej) || filtro.v == null || varianteDe(r, filtro.ej) === filtro.v;
   const previas = Object.keys(semanas || {}).map(Number).filter((n) => n < semana).sort((a, b) => b - a);
   for (const n of previas) {
-    const reg = registrosDeFila(semanas[n], fila).filter(conDatos).pop();
+    const reg = registrosDeFila(semanas[n], fila).filter(conDatos).filter(sirve).pop();
     if (reg) return { ...reg, semana: n };
   }
+  // El de la hoja es de antes de las variantes: cuenta para la principal
+  if (filtro && tieneVariantes(filtro.ej) && filtro.v != null && filtro.v !== filtro.ej.variantes[0]) return null;
   return fila.ultimo && (fila.ultimo.reps || fila.ultimo.peso) ? { ...fila.ultimo, semana: null } : null;
 }
 
@@ -143,13 +183,17 @@ const mayorRM = (xs) => xs.filter(Boolean).sort((a, b) => b.rm - a.rm)[0];
 
 // Semana a semana, la mejor serie de la fila i del ejercicio. Junta el mismo ejercicio de todos los días (pierna A y B).
 // La semana 0 es el "último" que venía de la hoja. Solo la unidad más reciente: kg y discos no se comparan.
-export function historial(semanas, rutina, ej, i = 0, hasta = Infinity) {
-  const filas = rutina.flatMap((d) => d.ejercicios.filter((x) => x.nombre === ej.nombre).map((x) => x.filas[i])).filter(Boolean);
+// v: la variante (por defecto la que se está usando); un ejercicio sin variantes junta todo, como siempre
+export function historial(semanas, rutina, ej, i = 0, hasta = Infinity, v = varianteActual(ej)) {
+  const pares = rutina.flatMap((d) => d.ejercicios.filter((x) => x.nombre === ej.nombre).map((x) => ({ f: x.filas[i], x }))).filter((p) => p.f);
+  const filas = pares.map((p) => p.f);
   if (!filas.length || filas[0].unidad === 's') return [];
-  const puntos = [], base = mayorRM(filas.map((f) => f.ultimo && mejorSerie(f.ultimo)));
+  const sirve = (r, x) => v == null || !tieneVariantes(x) || varianteDe(r, x) === v;
+  const principal = (x) => v == null || !tieneVariantes(x) || v === x.variantes[0];
+  const puntos = [], base = mayorRM(pares.filter((p) => principal(p.x)).map((p) => p.f.ultimo && mejorSerie(p.f.ultimo)));
   if (base) puntos.push({ semana: 0, ...base });
   for (const n of Object.keys(semanas || {}).map(Number).filter((n) => n <= hasta).sort((a, b) => a - b)) {
-    const mejor = mayorRM(filas.flatMap((f) => registrosDeFila(semanas[n], f)).map(mejorSerie));
+    const mejor = mayorRM(pares.flatMap((p) => registrosDeFila(semanas[n], p.f).filter((r) => sirve(r, p.x))).map(mejorSerie));
     if (mejor) puntos.push({ semana: n, ...mejor });
   }
   const u = puntos.length && puntos[puntos.length - 1].unidad;
@@ -224,7 +268,7 @@ export function registrosRaros(semanas, rutina, desde, hasta) {
     const regs = semanas[n] || {};
     for (const d of rutina) for (const ej of d.ejercicios) for (const f of ej.filas) {
       for (const clave of Object.keys(regs).filter((k) => k === f.id || k.startsWith(f.id + '@'))) {
-        const raras = seriesRaras(f, regs[clave], ultimoRegistro(semanas, f, n)).filter((x) => x.estado === 'pendiente');
+        const raras = seriesRaras(f, regs[clave], ultimoRegistro(semanas, f, n, { ej, v: varianteDe(regs[clave], ej) })).filter((x) => x.estado === 'pendiente');
         if (raras.length) out.push({ semana: n, clave, ej, fila: f, reg: regs[clave], raras });
       }
     }
@@ -249,16 +293,15 @@ export function metaSesion(fila, ultimo) {
 }
 
 // Últimas 4 semanas por ejercicio (fila principal): el registro más reciente contra el de hace unas 4 semanas
+// Cada variante va aparte ("Press plano · Paralelas"): no se comparan entre sí
 export function progresoMes(semanas, rutina, hasta, ventana = 4) {
-  const vistos = new Set(), out = [];
-  for (const d of rutina) for (const ej of d.ejercicios) {
-    if (vistos.has(ej.nombre)) continue;
-    vistos.add(ej.nombre);
-    const hist = historial(semanas, rutina, ej, 0, hasta), corte = hasta - ventana;
+  const out = [];
+  for (const { ej, v, nombre } of lineasFuerza(rutina)) {
+    const hist = historial(semanas, rutina, ej, 0, hasta, v), corte = hasta - ventana;
     const dentro = hist.filter((p) => p.semana > corte && p.semana > 0), antes = hist.filter((p) => p.semana <= corte || p.semana === 0);
     const fin = dentro[dentro.length - 1], inicio = antes.length ? antes[antes.length - 1] : dentro[0];
     if (!fin || !inicio || inicio === fin) continue;
-    out.push({ nombre: ej.nombre, musculo: ej.musculo, de: inicio, a: fin, cambio: (fin.rm - inicio.rm) / inicio.rm, est: estancamiento(hist) });
+    out.push({ nombre, variante: v, musculo: ej.musculo, de: inicio, a: fin, cambio: (fin.rm - inicio.rm) / inicio.rm, est: estancamiento(hist) });
   }
   return out.sort((a, b) => b.cambio - a.cambio);
 }

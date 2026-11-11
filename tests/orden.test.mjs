@@ -27,3 +27,14 @@ test('colocar respeta lo escondido, y restablecer vuelve a como venía', () => {
   restablecer(c, 'menu');
   assert.deepEqual(enOrden(c, 'menu'), antes);
 });
+
+test('una sección nueva aparece debajo de su vecina en un menú ya ordenado, no al final', () => {
+  const c = { orden: { menu: ['hoy', 'manana', 'finanzas', 'dieta', 'gym', 'editar', 'ajustes'] } };
+  const ids = enOrden(c, 'menu');
+  assert.equal(ids[ids.indexOf('finanzas') + 1], 'compras');
+  assert.equal(new Set(ids).size, ids.length);
+  // Si la moviste a otro lado, se respeta
+  const c2 = { orden: { menu: ['compras', 'hoy', 'finanzas'] } };
+  assert.equal(enOrden(c2, 'menu')[0], 'compras');
+  assert.equal(enOrden(c2, 'menu').filter((x) => x === 'compras').length, 1);
+});

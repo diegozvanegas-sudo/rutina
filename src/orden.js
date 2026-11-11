@@ -1,6 +1,6 @@
 // Orden y visibilidad que elige cada usuario (Editar > Pantallas): secciones del menú, tarjetas de Hoy y metas del día.
 // Se guarda en config.orden[tipo] (ids en orden) y config.ocultos[tipo] (ids escondidos). Lo que agregue una versión nueva
-// de la app y aún no esté en la lista del usuario aparece al final, visible.
+// de la app y aún no esté en la lista del usuario aparece al final, visible (o debajo de su vecina, ver DESPUES).
 
 export const SECCIONES = {
   hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
@@ -22,12 +22,19 @@ export const FIJAS = { menu: ['hoy', 'editar', 'ajustes'], hoy: [], metas: [] };
 // Ids que cambiaron de nombre: 📚 Libros pasó a ser un área de 🎓 Estudiar, y su tarjeta de Hoy es la del estudio.
 // Se traducen al leer, así quien la tenía movida o escondida la sigue viendo igual
 const ANTES = { menu: { libros: 'estudiar' }, hoy: { libros: 'estudio' }, metas: {} };
+// Secciones nuevas que en un menú ya ordenado van debajo de su vecina y no al final (donde no se ven)
+const DESPUES = { menu: { compras: 'finanzas' }, hoy: {}, metas: {} };
 const lista = (config, que, tipo) => ((config && config[que] && config[que][tipo]) || []).map((id) => ANTES[tipo][id] || id);
 
 // Todos los ids del tipo en el orden del usuario
 export function enOrden(config, tipo) {
   const todos = Object.keys(CATALOGO[tipo]), propio = lista(config, 'orden', tipo).filter((id) => todos.includes(id));
-  return [...new Set([...propio, ...todos])];
+  const salida = [...new Set([...propio, ...todos.filter((id) => !propio.includes(id) && !(DESPUES[tipo][id] && propio.includes(DESPUES[tipo][id])))])];
+  // Lo nuevo con vecina va justo debajo de ella, también en un menú ya ordenado
+  for (const [id, vecina] of Object.entries(DESPUES[tipo])) {
+    if (todos.includes(id) && !salida.includes(id)) salida.splice(salida.indexOf(vecina) + 1, 0, id);
+  }
+  return salida;
 }
 export const oculto = (config, tipo, id) => !FIJAS[tipo].includes(id) && lista(config, 'ocultos', tipo).includes(id);
 export const visibles = (config, tipo) => enOrden(config, tipo).filter((id) => !oculto(config, tipo, id));

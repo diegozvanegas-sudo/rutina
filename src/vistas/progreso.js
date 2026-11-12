@@ -12,6 +12,7 @@ import { horasSueno, partidos, energiaSegunPierna } from '../registro.js';
 import { cierreSemana } from './registro.js';
 import { tarjetaFuerza } from './gym.js';
 import { tableroMejora, revisionDomingo, tarjetaQueFunciona, historialExperimentos } from './mejora.js';
+import { tarjetaRetos } from './retos.js';
 
 let dias = 30;
 const LETRA = ['', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
@@ -166,7 +167,7 @@ function revision() {
 export function vistaProgreso() {
   return '<div class="cab-vista"><h1>Progreso</h1><div class="chips filtro" role="group" aria-label="Rango">' + [7, 30, 90].map((n) =>
     '<button type="button" class="chip' + (n === dias ? ' activo' : '') + '" data-accion="prog-dias" data-n="' + n + '">' + n + ' días</button>').join('') + '</div></div>' +
-    indicadores() + tableroMejora() + revision() + tarjetaQueFunciona() + historialExperimentos() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoSueno() + graficoFutbol() + graficoGym() + tarjeta('💪 Fuerza', '<div class="fuerza">' + tarjetaFuerza() + '</div>', '1RM estimado del top set: compara peso y reps en un solo número.', '#gym/resumen') + graficoCardio() + graficoMetas() + graficoPlata() + '</div>';
+    indicadores() + tableroMejora() + revision() + tarjetaQueFunciona() + historialExperimentos() + tarjetaRetos() + '<div class="tablero-graficos">' + constancia() + puntajes() + graficoPeso() + graficoSueno() + graficoFutbol() + graficoGym() + tarjeta('💪 Fuerza', '<div class="fuerza">' + tarjetaFuerza() + '</div>', '1RM estimado del top set: compara peso y reps en un solo número.', '#gym/resumen') + graficoCardio() + graficoMetas() + graficoPlata() + '</div>';
 }
 
 registrar({ 'prog-dias'({ n }) { dias = Number(n); repintar(); } });

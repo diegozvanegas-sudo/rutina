@@ -5,6 +5,8 @@ import { esc, barra, tip, pct, botonSesion, registrar } from '../ui.js';
 import { TARJETAS_HOY } from '../orden.js';
 import { habitosDe, hechosManana, comidasDelDia, planDieta } from '../estado.js';
 import { tarjetaExperimento } from './mejora.js';
+import { tarjetaRetoHoy } from './retos.js';
+import { retoActivo, estadoRacha } from '../retos.js';
 import { experimentoActivo, estadoExperimento } from '../mejora.js';
 import { visibles, SECCION_TARJETA } from '../orden.js';
 import { ve } from '../permisos.js';
@@ -83,6 +85,7 @@ function bienvenida() {
 // Cada tarjeta del tablero; el orden y cuáles se ven los elige el usuario (Editar > Pantallas)
 const TARJETAS = {
   experimento: () => tarjetaExperimento(),
+  retos: () => tarjetaRetoHoy(),
   entrenador: () => entrenador(),
   foco: () => tarjetaFoco(),
   estudio: () => tarjetaEstudioHoy(),
@@ -119,6 +122,8 @@ function pendienteHoy() {
   const sup = ve('seccion', 'suplementos') && pendienteSuplementos();
   if (sup) fichas.push(['💊', sup[0] + '/' + sup[1], '#suplementos', sup[0] >= sup[1]]);
   if (x && !estadoExperimento(x).termino) fichas.push(['🧪', estadoExperimento(x).hoyListo ? 'Hecho' : 'Pendiente', '#hoy', estadoExperimento(x).hoyListo]);
+  const reto = retoActivo();
+  if (reto) fichas.push(['🔥', estadoRacha(reto).hoyListo ? 'Hecho' : 'Pendiente', '#hoy', estadoRacha(reto).hoyListo]);
   return fichas.length ? '<nav class="pendiente-hoy" aria-label="Lo de hoy">' + fichas.map(([i, t, ir, ok]) => '<a href="' + ir + '" class="' + (ok ? 'ok' : '') + '"><span aria-hidden="true">' + i + '</span> ' + esc(t) + '</a>').join('') + '</nav>' : '';
 }
 
@@ -153,7 +158,7 @@ function altoAprox(k) {
   if (k === 'metas') return 100 + 44 * avanceMetas().activas.length;
   if (k === 'gym') return diaDeHoy() ? 700 : 220;
   if (k === 'suplementos') return 110 + 64 * (pendienteSuplementos() || [0, 1])[1];
-  return { dieta: 260, semana: 220, suenoPeso: 170, estandares: 160, plata: 110, cierre: 200 }[k] || 180;
+  return { retos: 230, dieta: 260, semana: 220, suenoPeso: 170, estandares: 160, plata: 110, cierre: 200 }[k] || 180;
 }
 function repartir(ids, n) {
   const cols = Array.from({ length: n }, () => []), alto = Array(n).fill(0);

@@ -75,6 +75,8 @@ export const IDEAS_POR_TEMA = {
     'Hago lo difícil cuando no tengo ganas',
     'No negocio conmigo mismo',
     'Reviso el día antes de dormir',
+    'Cumplo cada día una promesa que me hago',
+    'Hago algo que mi yo de hace un año admiraría',
   ],
 };
 export const IDEAS_ESTANDARES = Object.values(IDEAS_POR_TEMA).flat();

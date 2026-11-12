@@ -947,3 +947,15 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .sup-fila > span { display: grid; gap: 2px; flex: 1 1 14em; min-width: 0; }
 .sup-fila small { color: var(--muted); }
 .chips-dias { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+/* 🔥 Retos (vistas/retos.js): lista por tema en Progreso y el reto activo en Hoy */
+.retos, .reto-hoy, .reto-activo { display: grid; gap: 8px; }
+.retos h2, .reto-hoy h2, .reto-activo p { margin: 0; }
+.reto-activo { padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.reto-activo .barra { margin: 0; background: var(--line); }
+.reto-tema > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; gap: 6px; }
+.reto-tema > summary small { color: var(--muted); font-weight: 400; }
+.lista-retos li { gap: 6px; }
+.lista-retos li.hecho > b { color: var(--muted); }
+.lista-retos .boton { justify-self: start; }
+.reto-ojo { font-size: 13px; }

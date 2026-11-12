@@ -189,6 +189,30 @@ export const POSES = {
     { h: [70, 116], n: [84, 76], m1: [52, 108], m2: [48, 110], p1: [78, PISO], p2: [74, PISO] },
     { h: [104, 70], n: [112, 30], m1: [134, 22], m2: [130, 24], p1: [114, 100], p2: [104, 104] },
     { h: [126, 112], n: [140, 72], m1: [104, 96], m2: [160, 92], p1: [134, PISO], p2: [104, 120], t2: -60 }], dur: 1.3 },
+  // Tobillo (sesión 'tobillo')
+  'pantorrilla con rodilla doblada': { poses: [
+    { h: [96, 92], n: [100, 50], m1: [132, 70], m2: [130, 72], p1: [100, 140], p2: [97, 140], t1: 115, t2: 115 },
+    { h: [96, 82], n: [100, 40], m1: [132, 62], m2: [130, 64], p1: [100, 128], p2: [97, 128], t1: 35, t2: 35 }], escalon: [94, 135, 40], dur: 1.8 },
+  'eversion con banda': { poses: [con(SENTADO, { t1: 70 }), con(SENTADO, { t1: 120 })], resalta: ['p1'], dur: 1.4 },
+  'inversion con banda': { poses: [con(SENTADO, { t1: 120 }), con(SENTADO, { t1: 70 })], resalta: ['p1'], dur: 1.4 },
+  'caminar en talones': { poses: [
+    con(DE_PIE, { p1: [112, PISO], p2: [92, PISO], t1: 145, t2: 145, m1: [110, 94], m2: [92, 94] }),
+    con(DE_PIE, { p1: [92, PISO], p2: [112, PISO], t1: 145, t2: 145, m1: [92, 94], m2: [110, 94] })], dur: 0.8 },
+  'equilibrio con alcance en estrella': { poses: [
+    con(DE_PIE, { h: [98, 100], n: [102, 58], p2: [146, 146], m1: [130, 84], m2: [72, 84] }),
+    con(DE_PIE, { h: [100, 96], n: [100, 54], p2: [106, 128], m1: [128, 80], m2: [72, 80] }),
+    con(DE_PIE, { h: [104, 100], n: [98, 58], p2: [54, 146], m1: [130, 84], m2: [72, 84] })], dur: 2 },
+  'saltitos a un pie': { poses: [con(DE_PIE, { p2: [106, 122] }), con(DE_PIE, { h: [100, 82], n: [100, 40], p1: [103, 142], p2: [106, 114], t1: 60 })], dur: 0.35 },
+  // Hombro y codo (sesión 'hombro-codo')
+  'rotacion interna con banda': { poses: [
+    con(FRENTE, { m1: [126, 76], m2: [66, 82] }), con(FRENTE, { m1: [82, 78], m2: [66, 82], s: { m1: 1 } })], anclaje: [176, 76] },
+  'y-t-w boca abajo': { poses: [
+    con(ACOSTADO, { m1: [24, 126], m2: [22, 130] }), con(ACOSTADO, { m1: [60, 116], m2: [58, 120] }), con(ACOSTADO, { m1: [70, 124], m2: [68, 128] })], resalta: ['m1', 'm2'], dur: 1.6 },
+  'deslizamientos en la pared': { poses: [
+    con(DE_PIE, { m1: [128, 66], m2: [126, 68], s: { m1: 1, m2: 1 } }), con(DE_PIE, { m1: [128, 24], m2: [126, 26] })], pared: 134, dur: 1.6 },
+  'extension excentrica de muneca': { poses: [con(SENTADO, { m1: [132, 112] }), con(SENTADO, { m1: [132, 124] })], resalta: ['m1'], dur: 3 },
+  'curl de muneca': { poses: [con(SENTADO, { m1: [132, 124] }), con(SENTADO, { m1: [132, 112] })], resalta: ['m1'], dur: 1.4 },
+  'pronacion y supinacion con martillo': { poses: [con(SENTADO, { m1: [130, 104], s: { m1: 1 } }), con(SENTADO, { m1: [128, 100], s: { m1: 1 } })], resalta: ['m1'], dur: 1.6 },
   'equilibrio a una pierna': { poses: [
     con(DE_PIE, { p2: [106, 122], m1: [130, 80], m2: [70, 80] }),
     con(DE_PIE, { h: [101, 90], n: [98, 48], p2: [108, 122], m1: [128, 76], m2: [72, 84] })], dur: 1.6 },

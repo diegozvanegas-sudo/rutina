@@ -56,7 +56,7 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2', 'dietaEnergiaV1', 'dietaProgresoV1'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2', 'dietaEnergiaV1', 'dietaProgresoV1', 'fortalecimientoV1'];
 // 2 nov 2026: la carne con la grasa que dan sus calorías, plan de recarga antes del partido y más arroz el día de fútbol.
 // Los carbos y la grasa por kg se vuelven a tomar de los planes, para que recalcular no los deshaga
 function dietaEnergia(est) {
@@ -117,6 +117,24 @@ const nuevo = () => ({ ...inicial(), ...Object.fromEntries(MIGRACIONES.map((k) =
 
 let estado = null, oyentes = [];
 
+// 12 nov 2026: tobillo los días de pierna y hombro y codo los de torso, empuje y tirón. Los días cuyo calentamiento ya
+// se editó (d.extras) los reciben (el tobillo después de la rodilla, hombro y codo antes del lazo); después se pueden quitar
+function fortalecimiento(est) {
+  if (est.fortalecimientoV1) return;
+  for (const id of ['tobillo', 'hombro-codo']) {
+    const s = SESIONES.find((x) => x.id === id);
+    if (!est.sesiones.some((x) => x.id === id)) est.sesiones.push(copia(s));
+  }
+  for (const d of est.rutina || []) {
+    if (!Array.isArray(d.extras) || !d.calentamiento) continue;
+    const id = d.calentamiento === 'pierna' ? 'tobillo' : 'hombro-codo';
+    if (d.extras.includes(id)) continue;
+    const i = d.extras.indexOf(id === 'tobillo' ? 'rodilla' : 'lazo');
+    d.extras.splice(i < 0 ? d.extras.length : id === 'tobillo' ? i + 1 : i, 0, id);
+  }
+  est.fortalecimientoV1 = true;
+  est.cambio = Date.now();
+}
 const leerClave = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (err) { return null; } };
 
 export function cargar() {
@@ -156,6 +174,7 @@ export function cargar() {
   quitarRepetidos(estado);
   dietaEnergia(estado);
   dietaProgreso(estado);
+  fortalecimiento(estado);
   const c = estado.config, n = CONFIG_NUEVA();
   for (const k of Object.keys(n)) c[k] ??= n[k];
   ponerSemana1(c.semana1);
@@ -305,6 +324,7 @@ export function reemplazar(datos) {
   quitarRepetidos(estado);
   dietaEnergia(estado);
   dietaProgreso(estado);
+  fortalecimiento(estado);
   for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
   ponerSemana1(estado.config.semana1);
   escribir();

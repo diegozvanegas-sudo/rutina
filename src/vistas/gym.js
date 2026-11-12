@@ -297,7 +297,7 @@ function pesoPlaneado(d, sem) {
 // "pierna" abre "calentamiento-pierna"; también vale el id de cualquier sesión
 export const sesionCalentamiento = (d) => (e().sesiones.some((s) => s.id === 'calentamiento-' + d.calentamiento) ? 'calentamiento-' + d.calentamiento : d.calentamiento);
 // Sesiones extra junto al calentamiento: las elegidas en Editar, o las de siempre si el día nunca se editó
-export const extrasCalentamiento = (d) => d.extras || (d.calentamiento === 'pierna' ? ['prevencion-futbol', 'rodilla', 'lazo'] : ['lazo']);
+export const extrasCalentamiento = (d) => d.extras || (d.calentamiento === 'pierna' ? ['prevencion-futbol', 'rodilla', 'tobillo', 'lazo'] : ['hombro-codo', 'lazo']);
 
 export function tarjetaCalentamiento(d, sem = semanaActual()) {
   if (!d.calentamiento) return '';

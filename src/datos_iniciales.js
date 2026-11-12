@@ -233,6 +233,29 @@ export const SESIONES = [
     ],
   },
   {
+    // Tobillo del futbolista: sóleo, peroneos (los que frenan el esguince) y equilibrio. Los días de pierna, junto a la rodilla
+    id: 'tobillo', nombre: 'Fortalecimiento de tobillo', tipo: 'fortalecimiento', pasos: [
+      r('Pantorrilla con rodilla doblada', 'Sóleo', 3, '15', 'En un escalón con las rodillas un poco dobladas todo el tiempo: baja el talón completo y sube hasta la punta. Es el músculo que aguanta los cambios de ritmo.'),
+      r('Eversión con banda', 'Peroneos', 2, '15', 'Sentado, banda alrededor del antepié y anclada hacia adentro. Lleva el pie hacia afuera sin girar la rodilla y vuelve lento. Protege del esguince más común.', true),
+      r('Inversión con banda', 'Tibial posterior', 2, '15', 'Igual que la anterior, con la banda anclada hacia afuera: lleva el pie hacia adentro y vuelve lento.', true),
+      t('Caminar en talones', 'Tibial', 30, 'Puntas de los pies arriba, pasos cortos solo sobre los talones. Si arde al frente de la pierna, va bien.'),
+      r('Equilibrio con alcance en estrella', 'Tobillo', 2, '6', 'En una pierna, con la rodilla un poco doblada, estira la otra lo más lejos que puedas adelante, al lado y atrás, tocando el piso apenas. La rodilla de apoyo no se va hacia adentro.', true),
+      { ...t('Saltitos a un pie', 'Tobillo', 20, 'Saltos cortos y rápidos en la punta del pie, casi sin doblar la rodilla. Cae suave y en silencio.', true), series: 2, descanso: 30 },
+    ],
+  },
+  {
+    // Hombro y codo: manguito rotador, escápulas y antebrazo (codo de tenista y de golfista). Los días de torso, empuje y tirón
+    id: 'hombro-codo', nombre: 'Fortalecimiento de hombro y codo', tipo: 'fortalecimiento', pasos: [
+      r('Rotación externa con banda', 'Manguito rotador', 3, '15', 'Codo pegado al cuerpo y doblado a 90°, con una toalla entre el codo y las costillas. Gira el antebrazo hacia afuera y vuelve lento.', true),
+      r('Rotación interna con banda', 'Manguito rotador', 2, '15', 'La banda anclada hacia afuera: codo pegado, lleva el antebrazo hacia el ombligo y vuelve lento.', true),
+      r('Y-T-W boca abajo', 'Escápulas', 2, '8', 'Boca abajo, pulgares arriba. Sube los brazos en Y, luego en T y luego en W, juntando las escápulas. Sin peso o con 1 kg.'),
+      r('Deslizamientos en la pared', 'Serrato', 2, '10', 'De frente a la pared, antebrazos apoyados. Deslízalos hacia arriba empujando la pared y separando las escápulas; baja lento.'),
+      r('Extensión excéntrica de muñeca', 'Antebrazo', 3, '15', 'Antebrazo sobre el muslo, palma abajo, mancuerna liviana. Súbela con ayuda de la otra mano y bájala sola en 3 segundos. Previene el codo de tenista.', true),
+      r('Curl de muñeca', 'Antebrazo', 2, '15', 'Antebrazo sobre el muslo, palma arriba: sube y baja solo la muñeca. Cuida la cara interna del codo.', true),
+      r('Pronación y supinación con martillo', 'Codo', 2, '12', 'Codo doblado y pegado, toma un martillo o una mancuerna por un extremo y gira la palma arriba y abajo despacio.', true),
+    ],
+  },
+  {
     // Tobillo reactivo, ritmo de pies y resistencia, de bajo impacto. 3 veces por semana: lun, mar y jue
     id: 'lazo', nombre: 'Saltar lazo', tipo: 'calentamiento', pasos: [
       { ...t('Lazo dos pies', 'Pantorrilla', 30, 'Saltos bajitos en la punta del pie, muñecas giran el lazo y los codos quedan pegados.'), series: 2, descanso: 30 },

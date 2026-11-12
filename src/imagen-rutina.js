@@ -26,7 +26,7 @@ export function resumenRutina(sem, estado) {
   for (let n = 1; n <= 7; n++) {
     const entrenos = rutina.filter((d) => d.id !== 'core' && d.diaSemana === n).map((d) => {
       const cal = sesiones.some((s) => s.id === 'calentamiento-' + d.calentamiento) ? 'calentamiento-' + d.calentamiento : d.calentamiento;
-      const extras = d.extras || (d.calentamiento === 'pierna' ? ['prevencion-futbol', 'rodilla', 'lazo'] : ['lazo']);
+      const extras = d.extras || (d.calentamiento === 'pierna' ? ['prevencion-futbol', 'rodilla', 'tobillo', 'lazo'] : ['hombro-codo', 'lazo']);
       return {
         nombre: d.nombre, series: d.ejercicios.reduce((s, ej) => s + serieDe(ej), 0), cardio: d.cardio || '',
         calentamiento: d.calentamiento ? nombres([cal, ...extras]) : [], ejercicios: d.ejercicios.map(ejercicio),

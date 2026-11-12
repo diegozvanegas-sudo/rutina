@@ -56,6 +56,14 @@ export function combinarEstado(base, local, remoto, ganaLocal) {
   return r;
 }
 
+// Red de seguridad: los datos de este equipo no son los últimos que se subieron (sin contar la hora del cambio ni el orden
+// de las llaves). Atrapa lo que se cambió sin pasar por guardar(), para que igual llegue a la nube
+export function difiereDeLaNube(datos, base) {
+  if (!base) return false;
+  const sinCambio = ({ cambio, ...resto }) => resto;
+  return !igual(sinCambio(datos), sinCambio(base));
+}
+
 // Arregla lo que dejó el orden de las llaves: listas sin id que quedaron repetidas enteras (A B A B) y registros con fecha idénticos
 export function limpiarRepetidos(x) {
   if (esObjeto(x)) { for (const v of Object.values(x)) limpiarRepetidos(v); return x; }

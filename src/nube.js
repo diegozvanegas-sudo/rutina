@@ -2,7 +2,7 @@
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
 import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual } from './estado.js';
-import { combinarEstado } from './combinar.js';
+import { combinarEstado, difiereDeLaNube } from './combinar.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -120,6 +120,18 @@ export async function restaurarCopia(id) {
   await traerDeNube();
 }
 
+// Red de seguridad: si algo cambió aquí sin pasar por guardar() (y por eso no quedó marcado), se marca y se sube.
+// Devuelve true si encontró algo
+export function revisarSinSubir() {
+  if (!nube.usuario || nube.proteccion || corriendo) return false;
+  const local = e();
+  if (!local.nube || local.nube.usuario !== nube.usuario.id || local.cambio > local.nube.base) return false; // ya está por subir
+  if (!difiereDeLaNube(datosParaNube(), leerBase())) return false;
+  marcarCambio(Math.max(Date.now(), local.nube.base + 1));
+  programar();
+  return true;
+}
+
 // Después de cada cambio, se sube a los pocos segundos (agrupa varios toques seguidos)
 function programar() {
   if (!nube.usuario) return;
@@ -153,6 +165,12 @@ export async function salir() {
   await supabase.auth.signOut();
 }
 
+// Al salir de la app (cambiar de app, apagar la pantalla, cerrar la pestaña) lo pendiente se sube ya, sin esperar los 3 s
+function subirYa() {
+  revisarSinSubir();
+  if (nube.estado === 'pendiente') { clearTimeout(espera); sincronizar(true); }
+}
+
 export function iniciarNube() {
   if (!supabase) return;
   supabase.auth.onAuthStateChange((evento, sesion) => {
@@ -173,10 +191,15 @@ export function iniciarNube() {
   // Al salir (cambiar de app, apagar la pantalla) lo pendiente se sube ya, sin esperar los 3 s
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') { sincronizar(); cargarPermisos(); }
-    else if (nube.estado === 'pendiente') { clearTimeout(espera); sincronizar(true); }
+    else subirYa();
   });
+  window.addEventListener('pagehide', subirYa);
   // Con la app abierta también: cada 20 s se baja lo que otro equipo haya subido (los cambios de aquí se suben solos a los 3 s)
-  setInterval(() => { if (document.visibilityState === 'visible' && !corriendo && nube.estado !== 'pendiente') sincronizar(true); }, 20000);
+  // y se revisa que no haya quedado nada cambiado sin subir
+  setInterval(() => {
+    if (document.visibilityState !== 'visible' || corriendo || revisarSinSubir() || nube.estado === 'pendiente') return;
+    sincronizar(true);
+  }, 20000);
 }
 
 export function textoNube() {

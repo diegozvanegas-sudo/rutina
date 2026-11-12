@@ -15,6 +15,7 @@ import { esc, barra, tip, registrar, toast, copiarTexto, botonSesion } from '../
 import { iniciar } from '../temporizador.js';
 import { compartirImagen } from '../imagen.js';
 import { compartirRutina } from '../imagen-rutina.js';
+import { vistaPlan12, vistaCasa } from './plan12.js';
 
 let semanaVista = null, diaVista = null, editandoObjetivos = false, fuerzaEj = null;
 // Ejercicio en el que vas: el último donde anotaste una serie (si le faltan) o el primero con series pendientes.
@@ -476,8 +477,10 @@ export function vistaGym() {
       (semanaVista === actual && semanaQuitable() === actual ? '<button type="button" class="boton secundario" data-accion="semana-quitar">Quitar semana ' + actual + '</button>' : '') + '</div>' +
     '<nav class="chips" aria-label="Día">' + diasEnOrden().map((x) => '<button type="button" class="chip' + (x.id === diaVista ? ' activo' : '') + '" data-accion="ir-dia" data-dia="' + x.id + '">' +
       (x.diaSemana ? DIAS_CORTOS[x.diaSemana] + ' · ' : '') + esc(x.nombre) + '</button>').join('') +
-    '<button type="button" class="chip' + (diaVista === 'resumen' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="resumen">📊 Resumen</button></nav>' +
-    (d ? vistaDia(d, semanaVista) : vistaResumen(semanaVista));
+    '<button type="button" class="chip' + (diaVista === 'resumen' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="resumen">📊 Resumen</button>' +
+    '<button type="button" class="chip' + (diaVista === 'plan12' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="plan12">📆 12 semanas</button>' +
+    '<button type="button" class="chip' + (diaVista === 'casa' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="casa">🏠 En casa</button></nav>' +
+    (diaVista === 'plan12' ? vistaPlan12() : diaVista === 'casa' ? vistaCasa() : d ? vistaDia(d, semanaVista) : vistaResumen(semanaVista));
 }
 
 function cambiarReps(id, texto) {

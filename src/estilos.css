@@ -959,3 +959,32 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .lista-retos li.hecho > b { color: var(--muted); }
 .lista-retos .boton { justify-self: start; }
 .reto-ojo { font-size: 13px; }
+
+/* 📆 Plan de 12 semanas y 🏠 En casa (vistas/plan12.js) */
+.plan12, .casa, .plan-dieta { display: grid; gap: 10px; }
+.plan12 h2, .casa h2, .plan-dieta h2, .plan12 h3, .fase-hoy p, .plan-dieta p, .casa p { margin: 0; }
+.plan12 .barra { margin: 0; }
+.lista-plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.lista-plan li { display: grid; gap: 2px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); }
+.semanas-plan { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; }
+.semanas-plan li { position: relative; display: grid; place-items: center; height: 34px; border-radius: 8px; font-size: 13px; font-weight: 700; color: var(--muted); border: 1px solid var(--line); }
+.semanas-plan li small { position: absolute; top: -8px; right: -4px; font-size: 10px; }
+.semanas-plan li.pasada { background: var(--surface-2); }
+.semanas-plan li.actual { border-color: var(--brand); color: var(--ink); box-shadow: inset 0 0 0 1px var(--brand); }
+.semanas-plan li.fase-descarga { border-style: dashed; }
+.fase-hoy { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.fase-hoy small { color: var(--muted); }
+.prueba-plan > summary, .fijo-plan > summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.prueba-plan { display: grid; gap: 8px; }
+.fijo-plan ul { margin: 0 0 8px; padding-left: 20px; display: grid; gap: 4px; }
+.tabla-scroll { overflow-x: auto; }
+.tabla-plan { border-collapse: collapse; width: 100%; font-size: 14px; }
+.tabla-plan th, .tabla-plan td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.tabla-plan td { font-variant-numeric: tabular-nums; }
+.lista-casa { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lista-casa li { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.lista-casa .campo { margin: 0; }
+.dos-num { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dos-num > div { display: grid; align-content: space-between; gap: 2px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); }
+.dos-num small { color: var(--muted); }
+.dos-num b { font-size: 20px; font-variant-numeric: tabular-nums; }

@@ -8,6 +8,7 @@ import { horasSueno, partidos, hayPartido } from './registro.js';
 import { totalPlan, pesos, tendencia } from './dieta.js';
 import { puntajeDia } from './progreso.js';
 import { visibles } from './orden.js';
+import { casaHecha } from './plan12.js';
 
 const f1 = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
 const f2 = (n) => n.toFixed(2).replace('.', ',');
@@ -159,11 +160,11 @@ export function unicoMejorar(fecha = iso()) {
 }
 
 // ---------- Constancia del gym (para el calendario) ----------
-// hecho: al menos una serie anotada ese día · falto: ya pasó sin nada · pendiente: hoy o más adelante · null: no toca gym
+// hecho: al menos una serie anotada ese día (en el gym o en casa, ver plan12.js) · falto: ya pasó sin nada · pendiente: hoy o más adelante · null: no toca gym
 export function estadoGym(fecha, hoy = iso()) {
   const d = diaGym(fecha), sem = semanaDe(fecha);
   if (!d || sem < 1) return null;
-  if (resumenSemana([d], e().semanas[sem] || {}).hechas > 0) return 'hecho';
+  if (resumenSemana([d], e().semanas[sem] || {}).hechas > 0 || casaHecha(fecha)) return 'hecho';
   return fecha < hoy ? 'falto' : 'pendiente';
 }
 // Entrenos seguidos sin faltar (hoy cuenta si ya se hizo) y lo del mes hasta hoy

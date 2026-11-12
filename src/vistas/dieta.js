@@ -6,6 +6,7 @@ import { proteinaSemana } from '../entrenador.js';
 import { barras } from '../graficos.js';
 import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, revisionDieta, ajusteCarbos, medidasDe } from '../dieta.js';
 import { esc, barra, tip, registrar, toast, miles, subirBajar } from '../ui.js';
+import { tarjetaPlanDieta } from './plan12.js';
 
 let pestana = 'hoy', planVista = null;
 const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', recarga: '🍚 Recarga', descanso: '😌 Descanso' };
@@ -181,7 +182,7 @@ export function vistaDieta() {
   const tabs = { hoy: '🍽 Hoy', planes: '📋 Planes', peso: '⚖️ Peso', alimentos: '🥚 Alimentos' };
   return '<h1>Dieta</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="dieta-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    (pestana === 'planes' ? vistaPlanes() : pestana === 'peso' ? vistaPeso() : pestana === 'alimentos' ? vistaAlimentos() : vistaHoyDieta());
+    (pestana === 'planes' ? vistaPlanes() : pestana === 'peso' ? vistaPeso() + tarjetaPlanDieta() : pestana === 'alimentos' ? vistaAlimentos() : vistaHoyDieta());
 }
 
 function resumenCambio(tipo, r) {

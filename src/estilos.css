@@ -929,3 +929,21 @@ textarea.texto-copia { width: 100%; font: 13px/1.4 ui-monospace, monospace; }
 .compra-editar { width: 100%; }
 .compra-total { margin-bottom: 4px; }
 .compra-hechos > summary { cursor: pointer; font-weight: 600; }
+
+/* 💊 Suplementos (vistas/suplementos.js): la lista del día usa los mismos botones de los hábitos */
+.suplementos .check { font-size: 22px; }
+.aviso-sup { color: var(--amarillo); }
+.aviso-sup .boton-suave { min-height: 36px; padding: 4px 8px; color: var(--ink); }
+.constancia-sup { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.constancia-sup li { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.puntos-sup { display: flex; gap: 6px; flex-wrap: wrap; }
+.punto-sup { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; border: 1px solid var(--line); color: var(--muted); }
+.punto-sup.p-si { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.punto-sup.p-no { border-color: var(--rojo); color: var(--rojo); }
+.punto-sup.p-hoy { border-style: dashed; color: var(--ink); }
+.punto-sup.p-nada { opacity: .35; }
+.sup-lista { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.sup-fila { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.sup-fila > span { display: grid; gap: 2px; flex: 1 1 14em; min-width: 0; }
+.sup-fila small { color: var(--muted); }
+.chips-dias { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }

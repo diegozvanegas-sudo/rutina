@@ -22,6 +22,7 @@ import { tarjetaEstandares } from './vida.js';
 import { tarjetaSuenoPeso, tarjetaPartido, fechaPartidoPendiente, tarjetaFoco } from './registro.js';
 import { tarjetaPlataHoy } from './finanzas.js';
 import { tarjetaCierreHoy } from './sesiones.js';
+import { tarjetaSuplementosHoy, pendienteSuplementos } from './suplementos.js';
 
 function saludo() {
   const h = new Date().getHours();
@@ -97,6 +98,7 @@ const TARJETAS = {
   estandares: () => tarjetaEstandares(),
   dieta: () => '<section class="tarjeta col-dieta"><div class="fila-resumen"><h2>🥗 Comidas</h2><a href="#dieta" class="nota-corta">Ver plan →</a></div>' + tarjetaComidasHoy(true) + '</section>',
   plata: () => tarjetaPlataHoy(),
+  suplementos: () => tarjetaSuplementosHoy(),
   cierre: () => tarjetaCierreHoy(),
   semana: () => '<section class="tarjeta col-semana"><h2>📅 Semana</h2>' + tarjetaSemana() + '</section>',
 };
@@ -114,6 +116,8 @@ function pendienteHoy() {
   if (hs) fichas.push(['☀️', hechosManana() + '/' + hs, '#manana', hechosManana() >= hs]);
   if (m.activas.length) fichas.push(['🎯', pct(m.total), '#metas', m.total >= 1]);
   if (plan) fichas.push(['🥗', comidasDelDia().n + '/' + plan, '#dieta', comidasDelDia().n >= plan]);
+  const sup = ve('seccion', 'suplementos') && pendienteSuplementos();
+  if (sup) fichas.push(['💊', sup[0] + '/' + sup[1], '#suplementos', sup[0] >= sup[1]]);
   if (x && !estadoExperimento(x).termino) fichas.push(['🧪', estadoExperimento(x).hoyListo ? 'Hecho' : 'Pendiente', '#hoy', estadoExperimento(x).hoyListo]);
   return fichas.length ? '<nav class="pendiente-hoy" aria-label="Lo de hoy">' + fichas.map(([i, t, ir, ok]) => '<a href="' + ir + '" class="' + (ok ? 'ok' : '') + '"><span aria-hidden="true">' + i + '</span> ' + esc(t) + '</a>').join('') + '</nav>' : '';
 }
@@ -148,6 +152,7 @@ function altoAprox(k) {
   if (k === 'manana') return 110 + 64 * e().habitos.length;
   if (k === 'metas') return 100 + 44 * avanceMetas().activas.length;
   if (k === 'gym') return diaDeHoy() ? 700 : 220;
+  if (k === 'suplementos') return 110 + 64 * (pendienteSuplementos() || [0, 1])[1];
   return { dieta: 260, semana: 220, suenoPeso: 170, estandares: 160, plata: 110, cierre: 200 }[k] || 180;
 }
 function repartir(ids, n) {

@@ -21,15 +21,66 @@ as $$
   select e.datos, e.version from rutina.estado e where e.usuario = auth.uid();
 $$;
 
+-- Historial: copias anteriores del estado, para volver atrás si un equipo sube algo malo (11 nov 2026 se perdió todo
+-- por una subida casi vacía). Se guarda una cada 10 minutos de uso, y siempre antes de una subida que quite datos.
+create table if not exists rutina.historial (
+  id       bigint generated always as identity primary key,
+  usuario  uuid not null references auth.users(id) on delete cascade,
+  datos    jsonb not null,
+  version  bigint not null,
+  guardado timestamptz not null default now(),
+  motivo   text not null default 'automatica'
+);
+create index if not exists historial_usuario on rutina.historial (usuario, guardado desc);
+alter table rutina.historial enable row level security;
+
+-- Cuánto hay anotado: días y registros del gym (lo que no se puede volver a sacar de la app)
+create or replace function rutina.cuanto(d jsonb)
+returns int
+language sql immutable set search_path = ''
+as $$
+  select (select count(*) from jsonb_object_keys(coalesce(d->'dias', '{}'::jsonb)))::int
+       + coalesce((select sum((select count(*) from jsonb_object_keys(s.value)))
+                   from jsonb_each(coalesce(d->'semanas', '{}'::jsonb)) s where jsonb_typeof(s.value) = 'object'), 0)::int;
+$$;
+
+-- Copia lo que hay ahora en la nube al historial; deja las últimas 60 y una por día de los últimos 90 días
+create or replace function rutina.respaldar(p_usuario uuid, p_motivo text)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  insert into rutina.historial (usuario, datos, version, motivo)
+    select e.usuario, e.datos, e.version, p_motivo from rutina.estado e where e.usuario = p_usuario;
+  delete from rutina.historial h where h.usuario = p_usuario
+    and h.id not in (select x.id from rutina.historial x where x.usuario = p_usuario order by x.guardado desc limit 60)
+    and h.id not in (select distinct on (x.guardado::date) x.id from rutina.historial x
+                     where x.usuario = p_usuario and x.guardado > now() - interval '90 days' order by x.guardado::date, x.guardado desc);
+end;
+$$;
+
 -- Guarda solo si lo que llega es igual o más nuevo que lo de la nube; devuelve la versión que quedó.
 -- Si devuelve una versión mayor a la enviada, otro equipo guardó algo más reciente: la app la descarga.
+-- Protección: no deja subir algo que borre más de la mitad de lo anotado (días + registros del gym). Para eso está
+-- rutina_restaurar o, si de verdad se quiere empezar de cero, borrar la fila a mano.
 create or replace function public.rutina_guardar(p_datos jsonb, p_version bigint)
 returns bigint
 language plpgsql security definer set search_path = ''
 as $$
-declare v bigint;
+declare v bigint; antes int; ahora int; ultima timestamptz;
 begin
   if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
+  select rutina.cuanto(e.datos), e.version into antes, v from rutina.estado e where e.usuario = auth.uid();
+  if antes is not null and v <= p_version then
+    ahora := rutina.cuanto(p_datos);
+    if antes >= 6 and ahora * 2 < antes then
+      raise exception 'Protección: esta subida borraría % de % registros de la nube. No se subió; la nube sigue igual.', antes - ahora, antes;
+    end if;
+    select max(h.guardado) into ultima from rutina.historial h where h.usuario = auth.uid();
+    if ahora < antes then perform rutina.respaldar(auth.uid(), 'quita datos');
+    elsif ultima is null or ultima < now() - interval '10 minutes' then perform rutina.respaldar(auth.uid(), 'automatica');
+    end if;
+  end if;
   insert into rutina.estado (usuario, datos, version) values (auth.uid(), p_datos, p_version)
   on conflict (usuario) do update set datos = excluded.datos, version = excluded.version, actualizado = now()
     where rutina.estado.version <= excluded.version;
@@ -37,6 +88,41 @@ begin
   return v;
 end;
 $$;
+
+-- Copias guardadas del usuario (las más nuevas primero), con cuánto tenía cada una
+create or replace function public.rutina_historial()
+returns table (id bigint, guardado timestamptz, motivo text, dias int, registros int)
+language sql stable security definer set search_path = ''
+as $$
+  select h.id, h.guardado, h.motivo,
+         (select count(*) from jsonb_object_keys(coalesce(h.datos->'dias', '{}'::jsonb)))::int,
+         rutina.cuanto(h.datos) - (select count(*) from jsonb_object_keys(coalesce(h.datos->'dias', '{}'::jsonb)))::int
+  from rutina.historial h where h.usuario = auth.uid() order by h.guardado desc;
+$$;
+
+-- Vuelve a una copia: lo de ahora pasa al historial y la copia queda como lo más nuevo (los equipos la bajan solos)
+create or replace function public.rutina_restaurar(p_id bigint)
+returns bigint
+language plpgsql security definer set search_path = ''
+as $$
+declare d jsonb; v bigint;
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  select h.datos into d from rutina.historial h where h.id = p_id and h.usuario = auth.uid();
+  if d is null then raise exception 'Esa copia no existe'; end if;
+  perform rutina.respaldar(auth.uid(), 'antes de restaurar');
+  select greatest((extract(epoch from now()) * 1000)::bigint, coalesce(max(e.version), 0) + 1) into v from rutina.estado e where e.usuario = auth.uid();
+  update rutina.estado set datos = jsonb_set(d, '{cambio}', to_jsonb(v)), version = v, actualizado = now() where usuario = auth.uid();
+  return v;
+end;
+$$;
+
+revoke all on function rutina.cuanto(jsonb) from public;
+revoke all on function rutina.respaldar(uuid, text) from public, anon, authenticated;
+revoke execute on function public.rutina_historial() from public, anon;
+revoke execute on function public.rutina_restaurar(bigint) from public, anon;
+grant execute on function public.rutina_historial() to authenticated;
+grant execute on function public.rutina_restaurar(bigint) to authenticated;
 
 revoke execute on function public.rutina_leer() from public, anon;
 revoke execute on function public.rutina_guardar(jsonb, bigint) from public, anon;

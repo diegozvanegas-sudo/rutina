@@ -1,7 +1,7 @@
 // Copia en la nube (Supabase, esquema "rutina" del proyecto de microrrutas). El celular sigue siendo lo principal:
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
-import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio } from './estado.js';
+import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual } from './estado.js';
 import { combinarEstado } from './combinar.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos } from './permisos.js';
 
@@ -11,20 +11,31 @@ const supabase = configurada ? createClient(url, llave, { auth: { persistSession
 
 // estado: sin-sesion · sincronizando · al-dia · pendiente · sin-conexion · error
 // lista: ya se sabe si hay sesión guardada (al abrir, Supabase la lee un instante después)
-export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '', lista: !configurada };
+// proteccion: la nube no dejó subir porque se iban a borrar más de la mitad de los registros (supabase/esquema.sql)
+export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '', lista: !configurada, proteccion: false };
 function poner(estado, error = '') { nube.estado = estado; nube.error = error; repintar(); }
 
 let corriendo = null, otraVez = false, espera = null;
+
+// La cuenta con la que empezó la sincronización. Si mientras se espera a la nube se cambia de cuenta (Salir y entrar con
+// otra), lo que llega no se mezcla con los datos de la otra cuenta: se corta y la siguiente vuelta empieza de nuevo
+const cuentaDe = () => (nube.usuario ? nube.usuario.id + '|' + claveActual() : null);
+class CambioDeCuenta extends Error {}
+const seguir = (cuenta) => { if (cuentaDe() !== cuenta) throw new CambioDeCuenta('Cambió la cuenta'); };
 
 export async function sincronizar(silencio = false) {
   if (!supabase || !nube.usuario) return;
   if (corriendo) { otraVez = true; return corriendo; }
   if (!navigator.onLine) { poner('sin-conexion'); return; }
+  // Mientras la nube no deje subir, no se insiste cada 20 s: se espera a que se elija qué hacer en Ajustes
+  if (nube.proteccion) return;
   corriendo = (async () => {
     if (!silencio) poner('sincronizando');
+    const cuenta = cuentaDe();
     try {
       const { data, error } = await supabase.rpc('rutina_leer');
       if (error) throw error;
+      seguir(cuenta);
       const remoto = data && data[0];
       const local = e(), base = local.nube && local.nube.usuario === nube.usuario.id ? local.nube.base : null;
       const cambioRemoto = remoto ? Number(remoto.version) : 0;
@@ -37,13 +48,16 @@ export async function sincronizar(silencio = false) {
         guardarAntes(aqui);
         reemplazar(combinarEstado(leerBase(), aqui, remoto.datos, (local.cambio || 0) > cambioRemoto));
         marcarCambio(Math.max(Date.now(), cambioRemoto + 1));
-        await subir(e());
+        await subir(e(), cuenta);
       } else if (cambiosAlla) bajar(remoto);
-      else if (cambiosAqui || !remoto) await subir(local);
+      else if (cambiosAqui || !remoto) await subir(local, cuenta);
       nube.ultima = Date.now();
       if (!silencio || nube.estado !== 'al-dia') poner('al-dia');
     } catch (err) {
-      poner(navigator.onLine ? 'error' : 'sin-conexion', err.message || String(err));
+      if (err instanceof CambioDeCuenta) return;
+      const msg = err.message || String(err);
+      if (/^Protecci/.test(msg)) nube.proteccion = true;
+      poner(navigator.onLine ? 'error' : 'sin-conexion', msg);
     }
   })();
   try { await corriendo; } finally {
@@ -61,11 +75,13 @@ function bajar(remoto) {
   marcarNube({ usuario: nube.usuario.id, base: Number(remoto.version) });
   guardarBase(remoto.datos);
 }
-async function subir(local) {
+async function subir(local, cuenta) {
+  seguir(cuenta);
   const cambio = local.cambio || Date.now();
   const datos = datosParaNube();
   const { data, error } = await supabase.rpc('rutina_guardar', { p_datos: datos, p_version: cambio });
   if (error) throw error;
+  seguir(cuenta);
   if (Number(data) > cambio) {
     // Otro equipo guardó algo más nuevo justo antes: otra vuelta para combinarlo
     otraVez = true;
@@ -73,6 +89,35 @@ async function subir(local) {
   }
   marcarNube({ usuario: nube.usuario.id, base: cambio });
   guardarBase(datos);
+}
+
+// ---------- Protección e historial (☁️ Nube en Ajustes) ----------
+// Lo de este equipo queda en ":antes" antes de cambiarlo por lo de la nube
+async function traerDeNube() {
+  const cuenta = cuentaDe();
+  const { data, error } = await supabase.rpc('rutina_leer');
+  if (error) throw new Error(error.message);
+  seguir(cuenta);
+  if (!data || !data[0]) throw new Error('La nube no tiene datos de esta cuenta');
+  guardarAntes(datosParaNube());
+  bajar(data[0]);
+  nube.proteccion = false;
+  nube.ultima = Date.now();
+  poner('al-dia');
+}
+// La protección frenó una subida: se deja lo de la nube y se descarta lo de este equipo
+export async function usarLoDeLaNube() {
+  if (!supabase || !nube.usuario) throw new Error('Inicia sesión en la nube');
+  clearTimeout(espera);
+  await traerDeNube();
+}
+// Copias que guarda la nube (las más nuevas primero): { id, guardado, motivo, dias, registros }
+export const copiasNube = () => llamar('rutina_historial');
+// Vuelve a una copia en la nube y en este equipo; los demás equipos la bajan solos al sincronizar
+export async function restaurarCopia(id) {
+  await llamar('rutina_restaurar', { p_id: id });
+  clearTimeout(espera);
+  await traerDeNube();
 }
 
 // Después de cada cambio, se sube a los pocos segundos (agrupa varios toques seguidos)
@@ -114,6 +159,7 @@ export function iniciarNube() {
     const antes = nube.usuario && nube.usuario.id;
     nube.usuario = sesion ? { id: sesion.user.id, correo: sesion.user.email } : null;
     nube.lista = true;
+    if ((nube.usuario && nube.usuario.id) !== antes) nube.proteccion = false;
     if (!nube.usuario) { nube.ultima = null; quitarPermisos(); esperarUsuario(); poner('sin-sesion'); return; }
     // Cada usuario con sus propios datos (y sus permisos) en este equipo
     if (antes !== nube.usuario.id) { nube.ultima = null; usarUsuario(nube.usuario.id); permisosGuardados(nube.usuario.id); }

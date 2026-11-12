@@ -2,7 +2,7 @@
 import { e, guardar, repintar, exportar, importar, reiniciar, avanceMetas, semanaActual } from '../estado.js';
 import { csvGym, csvDias } from '../csv.js';
 import { iso, hora, fechaLarga, lunesDeFecha, ponerSemana1 } from '../fechas.js';
-import { nube, configurada, entrar, salir, sincronizar, textoNube } from '../nube.js';
+import { nube, configurada, entrar, salir, sincronizar, textoNube, usarLoDeLaNube, copiasNube, restaurarCopia } from '../nube.js';
 import { hoja, hojaLista, enviarSemana } from '../hoja.js';
 import { AVISOS, HORAS_AVISOS, avisosDelDia, calendarioIcs } from '../registro.js';
 import { soportados, avisosActivos, activarAvisos, desactivarAvisos } from '../avisos.js';
@@ -66,8 +66,26 @@ function seccionNube() {
   return '<section class="tarjeta"><h2>☁️ Nube</h2><p>' + esc(nube.usuario.correo) + '</p>' +
     '<p class="estado-nube n-' + nube.estado + '">' + textoNube() + (nube.ultima ? ' · ' + hora(nube.ultima) : '') + '</p>' +
     (nube.error ? '<p class="aviso">' + esc(nube.error) + '</p>' : '') +
+    (nube.proteccion ? '<p class="nota-corta">Lo de este equipo tiene muchos menos datos que la nube. Si no los borraste a propósito, quédate con lo de la nube.</p>' +
+      '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="nube-usar">⬇ Usar lo de la nube</button></div>' : '') +
     '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="nube-sync">↻ Sincronizar ahora</button>' +
-    '<button type="button" class="boton secundario" data-accion="nube-salir">Salir</button></div>' + seccionHuella() + '</section>';
+    '<button type="button" class="boton secundario" data-accion="nube-salir">Salir</button></div>' + seccionCopias() + seccionHuella() + '</section>';
+}
+
+// Copias que guarda la nube (una cada 10 minutos de uso y antes de cualquier subida que quite datos)
+let copias = null, cargandoCopias = false;
+const fechaCopia = (t) => { const d = new Date(t); return fechaLarga(iso(d)) + ' · ' + hora(d.getTime()); };
+function seccionCopias() {
+  let lista = '';
+  if (copias) {
+    lista = copias.length ? '<ul class="lista-pesos copias-nube">' + copias.slice(0, 30).map((c) =>
+      '<li><span>' + esc(fechaCopia(c.guardado)) + ' · ' + c.dias + ' días · ' + c.registros + ' registros gym</span> ' +
+      '<button type="button" class="boton secundario" data-accion="nube-restaurar" data-id="' + c.id + '">Restaurar</button></li>').join('') + '</ul>'
+      : '<p class="nota-corta">Aún no hay copias.</p>';
+  }
+  return '<h2>🕘 Copias en la nube</h2><p class="nota-corta">La nube guarda versiones anteriores de tus datos. Si algo se borra, vuelve a una de ellas.</p>' +
+    lista + '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="nube-copias"' + (cargandoCopias ? ' disabled' : '') + '>' +
+    (copias ? '↻ Actualizar copias' : 'Ver copias') + '</button></div>';
 }
 
 // Lo propio de cada usuario: cómo saludarlo y desde cuándo cuentan las semanas del gym
@@ -141,6 +159,20 @@ registrar({
   },
   'huella-quitar'() { if (confirm('¿Quitar el bloqueo con huella en este equipo?')) { quitarHuella(); repintar(); } },
   'nube-sync'() { sincronizar(); },
+  async 'nube-usar'() {
+    if (!confirm('¿Cambiar lo de este equipo por lo de la nube? Lo de aquí queda en una copia interna por si acaso.')) return;
+    try { await usarLoDeLaNube(); toast('☁️ Listo: tienes lo de la nube'); } catch (err) { toast(err.message); }
+  },
+  async 'nube-copias'() {
+    cargandoCopias = true; repintar();
+    try { copias = await copiasNube(); } catch (err) { toast('No se pudieron ver las copias: ' + err.message); }
+    cargandoCopias = false; repintar();
+  },
+  async 'nube-restaurar'({ id }) {
+    const c = (copias || []).find((x) => String(x.id) === String(id));
+    if (!c || !confirm('¿Volver a la copia del ' + fechaCopia(c.guardado) + ' (' + c.dias + ' días)? Lo de ahora queda guardado como otra copia.')) return;
+    try { await restaurarCopia(c.id); copias = null; toast('🕘 Copia restaurada'); } catch (err) { toast('No se pudo restaurar: ' + err.message); }
+  },
   'aviso-hora'({ k }, el) { if (el.value) { ((e().config.avisos ??= {}).horas ??= {})[k] = el.value; guardar(); } },
   'aviso-activo'({ id }, el) { const a = ((e().config.avisos ??= {}).apagados ??= {}); if (el.checked) delete a[id]; else a[id] = true; guardar(); },
   'aviso-calendario'() { descargar(calendarioIcs(e().config), 'text/calendar;charset=utf-8', 'rutina-avisos.ics'); toast('📅 Abre el archivo para agregarlo a tu calendario'); },
@@ -177,6 +209,8 @@ registrar({
     archivo.text().then((t) => { importar(t); toast('Copia importada'); }).catch((err) => alert(err.message));
   },
   reiniciar() {
-    if (confirm('¿Borrar todos los registros, hábitos y metas de este celular? No se puede deshacer.') && confirm('¿Seguro? Exporta antes una copia si la quieres.')) reiniciar();
+    // Con nube, esto también se subiría: la nube lo frena si borra más de la mitad (y deja una copia en 🕘 Copias)
+    const aviso = nube.usuario ? ' Se borran de este equipo; la nube conserva tus datos y no deja borrarlos de golpe (podrás volver a bajarlos).' : ' No se puede deshacer.';
+    if (confirm('¿Borrar todos los registros, hábitos y metas?' + aviso) && confirm('¿Seguro? Exporta antes una copia si la quieres.')) reiniciar();
   },
 });

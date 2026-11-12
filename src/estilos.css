@@ -387,6 +387,8 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .linea-meta { stroke: var(--brand); stroke-dasharray: 4 4; stroke-width: 1.5; }
 .lista-pesos { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; }
 .lista-pesos li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.copias-nube li { align-items: center; gap: 8px; flex-wrap: wrap; }
+.copias-nube li span { flex: 1 1 12em; min-width: 0; }
 @media (max-width: 480px) {
   .item { grid-template-columns: 1fr 100px 40px; }
   .item-kcal { grid-column: 1 / 3; text-align: left; display: flex; gap: 8px; }

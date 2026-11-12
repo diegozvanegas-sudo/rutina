@@ -84,7 +84,8 @@ export function avisosPendientes(config, ahora = new Date(), mostrados = {}) {
 
 // Archivo .ics con eventos que se repiten y alarma: el calendario del celular avisa aunque la app esté cerrada
 const DIAS_ICS = ['', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
-export function calendarioIcs(config, desde = iso()) {
+// otros: más avisos con su hora fija, como los de 💊 Suplementos: { id, hora 'HH:MM', icono, nombre, texto, dias (1-7) o null = todos }
+export function calendarioIcs(config, desde = iso(), otros = []) {
   const c = config.avisos || {}, horas = { ...HORAS_AVISOS, ...(c.horas || {}) }, apagados = c.apagados || {};
   // En pausa no se exportan las alarmas del partido (al volver a jugar, se descarga de nuevo)
   const futbol = futbolEnPausa(config, desde) ? [] : (config.futbol || []).filter((n) => n >= 1 && n <= 7);
@@ -101,6 +102,18 @@ export function calendarioIcs(config, desde = iso()) {
       'RRULE:FREQ=' + (dias ? 'WEEKLY;BYDAY=' + dias.map((n) => DIAS_ICS[n]).join(',') : 'DAILY'),
       'SUMMARY:' + a.icono + ' ' + a.nombre.replace(/ \(.*\)$/, ''), 'DESCRIPTION:' + a.texto.replace(/,/g, '\\,'),
       'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + a.nombre.replace(/,/g, '\\,'), 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
+  }
+  const ics = (t) => String(t || '').replace(/[\\;,]/g, (x) => '\\' + x).replace(/\n/g, '\\n');
+  for (const o of otros || []) {
+    if (!/^\d{2}:\d{2}$/.test(o.hora || '') || (o.dias && !o.dias.length)) continue;
+    let inicio = desde;
+    if (o.dias) while (!o.dias.includes(diaSemana(inicio))) inicio = sumarDias(inicio, 1);
+    const [hh, mm] = o.hora.split(':');
+    lineas.push('BEGIN:VEVENT', 'UID:rutina-' + o.id + '@rutina', 'DTSTAMP:' + inicio.replace(/-/g, '') + 'T000000Z',
+      'DTSTART:' + inicio.replace(/-/g, '') + 'T' + hh + mm + '00', 'DURATION:PT10M',
+      'RRULE:FREQ=' + (o.dias ? 'WEEKLY;BYDAY=' + o.dias.map((n) => DIAS_ICS[n]).join(',') : 'DAILY'),
+      'SUMMARY:' + ics(o.icono + ' ' + o.nombre), 'DESCRIPTION:' + ics(o.texto),
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + ics(o.icono + ' ' + o.nombre), 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
   }
   lineas.push('END:VCALENDAR');
   return lineas.join('\r\n') + '\r\n';

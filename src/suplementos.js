@@ -1,6 +1,7 @@
 // 💊 Suplementos: qué tomas (creatina, proteína, omega…), cuándo, y lo que tomaste cada día.
 // Lista en estado.suplementos = { lista: [sup] }
-// sup: { id, nombre, emoji, dosis, momento, dias: [1..7] (vacío = todos), soloEntreno, quedan (tomas que quedan o null), nota, activo }
+// sup: { id, nombre, emoji, dosis, momento, dias: [1..7] (vacío = todos), soloEntreno, quedan (tomas que quedan o null), nota, activo,
+//        hora: 'HH:MM' del aviso en el calendario del celular (y de ahí al reloj), o vacío sin aviso }
 // Lo tomado va con el día, como los hábitos: dias[fecha].suplementos = { id: { ts, dosis } }
 
 export const MOMENTOS = [
@@ -12,7 +13,7 @@ const ORDEN_MOMENTO = Object.fromEntries(MOMENTOS.map(([id], i) => [id, i]));
 
 // Para agregar de un toque; todo se puede cambiar después
 export const PLANTILLAS = [
-  { nombre: 'Creatina', emoji: '⚡', dosis: '5 g', momento: 'cualquiera', nota: 'Todos los días, también los de descanso: lo que sirve es tomarla seguido. No necesita fase de carga.' },
+  { nombre: 'Creatina', emoji: '⚡', dosis: '5 g', momento: 'cualquiera', hora: '10:00', nota: 'Todos los días, también los de descanso: lo que sirve es tomarla seguido. No necesita fase de carga.' },
   { nombre: 'Proteína whey', emoji: '🥤', dosis: '1 scoop (30 g)', momento: 'post', nota: 'Cuenta para la proteína del día.' },
   { nombre: 'Omega 3', emoji: '🐟', dosis: '1-2 cápsulas', momento: 'comida' },
   { nombre: 'Vitamina D3', emoji: '☀️', dosis: '1 cápsula', momento: 'comida', nota: 'Mejor con una comida que tenga grasa.' },
@@ -87,6 +88,22 @@ export function constancia(sup, dias, fechas, info) {
     if (tomado(dias, f, sup.id)) tomados++;
   }
   return { tocaban, tomados, parte: tocaban ? tomados / tocaban : null };
+}
+
+// Avisos del calendario (registro.js → calendarioIcs): uno por suplemento con hora, solo los días que toca.
+// diasEntreno: días de la semana con gym o partido (para los de "solo días de entreno")
+export function avisosSuplementos(lista, diasEntreno = []) {
+  const out = [];
+  for (const s of lista || []) {
+    if (s.activo === false || !/^\d{2}:\d{2}$/.test(s.hora || '')) continue;
+    let dias = s.dias && s.dias.length ? [...s.dias].sort() : null;
+    if (s.soloEntreno) dias = (dias || [1, 2, 3, 4, 5, 6, 7]).filter((n) => diasEntreno.includes(n));
+    if (dias && !dias.length) continue;
+    const nombre = s.nombre + (s.dosis ? ' · ' + s.dosis : '');
+    out.push({ id: 'sup-' + s.id, hora: s.hora, icono: s.emoji || '💊', nombre, dias: dias && dias.length === 7 ? null : dias,
+      texto: 'Toma ' + nombre + '.' + (s.nota ? ' ' + s.nota : '') + ' Márcalo en Rutina → 💊 Suplementos.' });
+  }
+  return out;
 }
 
 // Se está acabando: quedan 7 tomas o menos

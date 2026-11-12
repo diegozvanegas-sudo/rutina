@@ -8,6 +8,7 @@ import { AVISOS, HORAS_AVISOS, avisosDelDia, calendarioIcs } from '../registro.j
 import { soportados, avisosActivos, activarAvisos, desactivarAvisos } from '../avisos.js';
 import { bloqueo, huellaActiva, activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
 import { esc, registrar, toast } from '../ui.js';
+import { avisosDeSuplementos } from './suplementos.js';
 
 // La meta de calorías la pone el plan de Dieta de cada día
 const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)', pantalla: 'Pantalla máxima (min)' };
@@ -109,6 +110,7 @@ function seccionAvisos() {
       '<label class="campo">' + t + '<input type="time" data-cambio="aviso-hora" data-k="' + k + '" value="' + esc(horas[k]) + '"></label>').join('') + '</div>' +
     Object.entries(AVISOS).map(([id, a]) => '<label class="interruptor"><input type="checkbox" data-cambio="aviso-activo" data-id="' + id + '"' + (apagados[id] ? '' : ' checked') + '> ' + a.icono + ' ' + esc(a.nombre) + '</label>').join('') +
     '<p class="nota-corta">Hoy: ' + (hoy.length ? hoy.map((a) => a.hora + ' ' + a.icono).join(' · ') : 'ningún aviso') + '</p>' +
+    (avisosDeSuplementos().length ? '<p class="nota-corta">💊 Suplementos en el calendario: ' + avisosDeSuplementos().map((a) => esc(a.hora + ' ' + a.nombre)).join(' · ') + ' (cámbialos en <a href="#suplementos">💊 Suplementos</a>).</p>' : '') +
     '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="aviso-calendario">📅 Agregar al calendario</button>' +
     (soportados() ? (avisosActivos() ? '<button type="button" class="boton secundario" data-accion="aviso-desactivar">🔕 Quitar avisos de la app</button>'
       : '<button type="button" class="boton secundario" data-accion="aviso-activar">🔔 Activar avisos de la app</button>') : '') + '</div>' +
@@ -175,7 +177,7 @@ registrar({
   },
   'aviso-hora'({ k }, el) { if (el.value) { ((e().config.avisos ??= {}).horas ??= {})[k] = el.value; guardar(); } },
   'aviso-activo'({ id }, el) { const a = ((e().config.avisos ??= {}).apagados ??= {}); if (el.checked) delete a[id]; else a[id] = true; guardar(); },
-  'aviso-calendario'() { descargar(calendarioIcs(e().config), 'text/calendar;charset=utf-8', 'rutina-avisos.ics'); toast('📅 Abre el archivo para agregarlo a tu calendario'); },
+  'aviso-calendario'() { descargar(calendarioIcs(e().config, iso(), avisosDeSuplementos()),'text/calendar;charset=utf-8', 'rutina-avisos.ics'); toast('📅 Abre el archivo para agregarlo a tu calendario'); },
   async 'aviso-activar'() { try { await activarAvisos(); toast('🔔 Avisos activados en este equipo'); } catch (err) { toast(err.message); } repintar(); },
   'aviso-desactivar'() { desactivarAvisos(); repintar(); },
   async 'nube-salir'() { if (confirm('¿Cerrar la sesión? Los datos siguen en este celular, pero para volver a usar la app tendrás que entrar de nuevo.')) await salir(); },

@@ -2,8 +2,25 @@
 import { e, dia, guardar, repintar, hayFutbol } from '../estado.js';
 import { iso, sumarDias, diaSemana, hora } from '../fechas.js';
 import { esc, registrar, toast } from '../ui.js';
-import { MOMENTOS, NOMBRE_MOMENTO, PLANTILLAS, avisoPastilla, mismoNombre, deHoy, tomado, marcar, racha, constancia, seAcaba } from '../suplementos.js';
+import { MOMENTOS, NOMBRE_MOMENTO, PLANTILLAS, avisoPastilla, mismoNombre, deHoy, tomado, marcar, racha, constancia, seAcaba, avisosSuplementos } from '../suplementos.js';
 import { adivinarCategoria, pendientes, claveCompra } from '../compras.js';
+import { calendarioIcs } from '../registro.js';
+import { futbolEnPausa } from '../futbol.js';
+
+// Días de la semana con gym o partido (para los avisos de "solo días de entreno")
+function diasEntreno() {
+  const c = e().config, futbol = futbolEnPausa(c, iso()) ? [] : c.futbol || [];
+  return [...new Set([...e().rutina.map((d) => d.diaSemana), ...futbol])].filter((n) => n >= 1 && n <= 7);
+}
+// Los avisos de los suplementos, para el calendario de Ajustes y el botón de aquí
+export const avisosDeSuplementos = () => avisosSuplementos(datos().lista, diasEntreno());
+function descargarCalendario() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([calendarioIcs(e().config, iso(), avisosDeSuplementos())], { type: 'text/calendar;charset=utf-8' }));
+  a.download = 'rutina-avisos.ics';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
 
 let cual = 'hoy', editando = null;
 const datos = () => (e().suplementos ??= { lista: [] });
@@ -72,7 +89,7 @@ function seccionConstancia() {
 function fila(s) {
   const titulo = esc((s.emoji || '💊') + ' ' + s.nombre) + (s.activo === false ? ' <small>(en pausa)</small>' : '');
   if (editando !== s.id) {
-    const extra = [s.dosis, NOMBRE_MOMENTO[s.momento], s.dias && s.dias.length ? s.dias.map((n) => DIAS_CORTOS[n - 1]).join(' ') : 'todos los días', s.soloEntreno && 'solo días de entreno', s.quedan != null && 'quedan ' + s.quedan].filter(Boolean).map(esc).join(' · ');
+    const extra = [s.dosis, NOMBRE_MOMENTO[s.momento], s.hora && '⏰ ' + s.hora, s.dias && s.dias.length ? s.dias.map((n) => DIAS_CORTOS[n - 1]).join(' ') : 'todos los días', s.soloEntreno && 'solo días de entreno', s.quedan != null && 'quedan ' + s.quedan].filter(Boolean).map(esc).join(' · ');
     return '<li class="sup-fila"><span><b>' + titulo + '</b><small>' + extra + '</small>' + (s.nota ? '<small>' + esc(s.nota) + '</small>' : '') + '</span>' +
       '<button type="button" class="boton secundario" data-accion="sup-editar" data-id="' + s.id + '">✏️ Editar</button></li>';
   }
@@ -81,6 +98,7 @@ function fila(s) {
     '<div class="dos">' + campo('nombre', 'Nombre') + campo('emoji', 'Ícono', 'text', ' maxlength="4"') + '</div>' +
     '<div class="dos">' + campo('dosis', 'Dosis') +
     '<label class="campo">Cuándo<select data-cambio="sup-campo" data-id="' + s.id + '" data-k="momento">' + opciones(MOMENTOS, s.momento || 'cualquiera') + '</select></label></div>' +
+    '<div class="dos">' + campo('hora', '⏰ Aviso en el calendario y el reloj (opcional)', 'time') + '</div>' +
     '<p class="nota-corta">Días (sin marcar ninguno: todos)</p><div class="chips-dias">' + DIAS_CORTOS.map((d, i) =>
       '<button type="button" class="chip mini' + ((s.dias || []).includes(i + 1) ? ' activo' : '') + '" data-accion="sup-dia" data-id="' + s.id + '" data-n="' + (i + 1) + '" aria-pressed="' + (s.dias || []).includes(i + 1) + '">' + d + '</button>').join('') + '</div>' +
     '<label class="interruptor"><input type="checkbox" data-cambio="sup-entreno" data-id="' + s.id + '"' + (s.soloEntreno ? ' checked' : '') + '> Solo los días de gym o de partido</label>' +
@@ -97,7 +115,19 @@ function seccionLista() {
     (faltan.length ? '<p class="nota-corta">Agregar de un toque:</p><div class="chips-compra">' + faltan.map(([p, i]) =>
       '<button type="button" class="chip mini" data-accion="sup-plantilla" data-i="' + i + '">＋ ' + esc(p.emoji + ' ' + p.nombre) + '</button>').join('') + '</div>' : '') +
     '<div class="agregar-habito"><input type="text" id="sup-nuevo" autocomplete="off" data-enter="sup-agregar" placeholder="＋ Otro suplemento (Enter para agregar)" aria-label="Nuevo suplemento">' +
-    '<button type="button" class="boton secundario" data-accion="sup-agregar">Agregar</button></div></section>';
+    '<button type="button" class="boton secundario" data-accion="sup-agregar">Agregar</button></div></section>' + seccionAvisos();
+}
+
+// Los avisos llegan al reloj por el calendario del celular: suena aunque la app esté cerrada
+function seccionAvisos() {
+  const av = avisosDeSuplementos();
+  if (!datos().lista.length) return '';
+  return '<section class="tarjeta"><h2>⏰ Avisos en el reloj</h2>' +
+    (av.length ? '<p class="nota-corta">' + av.map((a) => esc(a.hora + ' ' + a.icono + ' ' + a.nombre)).join(' · ') + '</p>'
+      : '<p class="nota-corta">Ningún suplemento tiene hora de aviso. Ponle una en ✏️ Editar.</p>') +
+    '<p class="nota-corta">Toca el botón, abre el archivo y elige "Agregar todo". El calendario del celular avisa a esa hora y el reloj muestra el aviso, aunque la app esté cerrada. ' +
+    'Si cambias una hora, vuelve a agregarlo (si queda repetido, borra el evento viejo del calendario).</p>' +
+    '<button type="button" class="boton primario" data-accion="sup-calendario"' + (av.length ? '' : ' disabled') + '>📅 Agregar al calendario</button></section>';
 }
 
 export function vistaSuplementos() {
@@ -130,6 +160,7 @@ registrar({
     if (quedo && s.quedan === 0) toast('📦 Se acabó ' + s.nombre + ': agrégalo a Compras');
   },
   'sup-cual'({ k }) { cual = k; repintar(); },
+  'sup-calendario'() { descargarCalendario(); toast('📅 Abre el archivo y elige "Agregar todo"'); },
   'sup-plantilla'({ i }) {
     const p = PLANTILLAS[Number(i)];
     if (p && agregar({ ...p })) { guardar(); toast('＋ ' + p.nombre); }

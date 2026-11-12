@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tocaEl, deHoy, marcar, tomado, racha, constancia, avisoPastilla, seAcaba, PLANTILLAS } from '../src/suplementos.js';
+import { tocaEl, deHoy, marcar, tomado, racha, constancia, avisoPastilla, seAcaba, PLANTILLAS, avisosSuplementos } from '../src/suplementos.js';
+import { calendarioIcs } from '../src/registro.js';
 import { enOrden } from '../src/orden.js';
 
 const creatina = () => ({ id: 'cr', nombre: 'Creatina', dosis: '5 g', momento: 'cualquiera', dias: [], soloEntreno: false, quedan: null, activo: true });
@@ -78,4 +79,41 @@ test('menú ya ordenado: Suplementos aparece debajo de Dieta; en Hoy, debajo de 
   const m = enOrden(config, 'menu'), h = enOrden(config, 'hoy');
   assert.equal(m[m.indexOf('dieta') + 1], 'suplementos');
   assert.equal(h[h.indexOf('dieta') + 1], 'suplementos');
+});
+
+test('la creatina de un toque trae aviso a las 10:00 todos los días', () => {
+  const av = avisosSuplementos([{ ...creatina(), ...PLANTILLAS[0], id: 'cr' }]);
+  assert.equal(av.length, 1);
+  assert.equal(av[0].hora, '10:00');
+  assert.equal(av[0].dias, null);
+  assert.match(av[0].nombre, /Creatina · 5 g/);
+});
+
+test('avisos: sin hora o en pausa no suenan; días elegidos y solo entreno', () => {
+  const l = [
+    { ...creatina(), id: 'a', hora: '' },
+    { ...creatina(), id: 'b', hora: '08:00', activo: false },
+    { ...creatina(), id: 'c', hora: '21:00', dias: [3, 1] },
+    { ...creatina(), id: 'd', hora: '17:00', soloEntreno: true },
+    { ...creatina(), id: 'e', hora: '17:00', soloEntreno: true, dias: [4] },
+  ];
+  const av = avisosSuplementos(l, [1, 2, 3, 5, 6]);
+  assert.deepEqual(av.map((a) => a.id), ['sup-c', 'sup-d']);
+  assert.deepEqual(av[0].dias, [1, 3]);
+  assert.deepEqual(av[1].dias, [1, 2, 3, 5, 6]);
+});
+
+test('el calendario lleva la alarma de la creatina a las 10:00, diaria, y no cambia lo demás', () => {
+  const config = { futbol: [3, 5], avisos: { apagados: {} } };
+  const sin = calendarioIcs(config, '2026-11-12');
+  const con = calendarioIcs(config, '2026-11-12', avisosSuplementos([{ ...creatina(), ...PLANTILLAS[0], id: 'cr' }]));
+  assert.ok(con.startsWith(sin.replace('END:VCALENDAR\r\n', '')));
+  const ev = con.slice(con.indexOf('UID:rutina-sup-cr@rutina'));
+  assert.match(ev, /DTSTART:20261112T100000/);
+  assert.match(ev, /RRULE:FREQ=DAILY/);
+  assert.match(ev, /SUMMARY:⚡ Creatina · 5 g/);
+  assert.match(ev, /BEGIN:VALARM[\s\S]*TRIGGER:PT0M/);
+  // las comas y puntos y coma van escapados para que el calendario no corte el texto
+  const desc = ev.split('BEGIN:VALARM')[0].match(/DESCRIPTION:([^\r]*)/)[1];
+  assert.ok(!/(^|[^\\])[,;]/.test(desc), desc);
 });

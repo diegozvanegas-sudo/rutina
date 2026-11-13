@@ -25,6 +25,15 @@ const muestraCoach = '<figure class="pr-muestra" aria-label="Ejemplo del tablero
     '<div class="pr-m-cliente"><span class="pr-m-avatar" aria-hidden="true">' + n[0] + '</span><span><b>' + n + '</b><small>' + s + '</small></span><span class="pr-m-estado ' + c + '">' + e + '</span></div>').join('') +
   '<div class="pr-m-barras" aria-hidden="true">' + [62, 80, 74, 92, 88].map((h, i) => '<span style="--h:' + h + '%"><i>S' + (i + 1) + '</i></span>').join('') + '</div></div></figure>';
 
+// Muestra del progreso (lo que ve quien entrena en Progreso y en el Gym)
+const muestraProgreso = '<figure class="pr-muestra pr-muestra-extra" aria-label="Ejemplo de la pantalla de progreso"><figcaption>Así ves cómo mejoras</figcaption>' +
+  '<div class="pr-pantalla"><div class="pr-m-cab"><b>Fuerza: sentadilla</b><span>ejemplo</span></div>' +
+  '<svg class="pr-m-linea" viewBox="0 0 240 90" role="img" aria-label="Línea que sube semana a semana"><defs><linearGradient id="prg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3dd68c" stop-opacity=".35"/><stop offset="1" stop-color="#3dd68c" stop-opacity="0"/></linearGradient></defs>' +
+  '<path d="M4 76 L48 68 L92 62 L136 50 L180 40 L236 22 L236 88 L4 88 Z" fill="url(#prg)"/><polyline points="4,76 48,68 92,62 136,50 180,40 236,22" fill="none" stroke="#3dd68c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '<circle cx="236" cy="22" r="5" fill="#3dd68c"/></svg>' +
+  '<div class="pr-m-datos"><div><small>Peso (7 días)</small><b>▼ 0,6 kg</b></div><div><small>Récords del mes</small><b>3 🏆</b></div><div><small>Sueño</small><b>7,4 h</b></div></div>' +
+  '<p class="pr-m-meta">⬆ <b>Toca subir peso</b> <span>en press plano la próxima semana</span></p></div></figure>';
+
 export function presentacion() {
   const wa = CONTACTO_WHATSAPP ? 'https://wa.me/' + CONTACTO_WHATSAPP + '?text=' + encodeURIComponent('Hola, quiero información de la app Rutina') : '';
   return '<div class="pr">' +
@@ -35,7 +44,7 @@ export function presentacion() {
         '<a class="boton secundario pr-cta" href="#como-funciona">Ver cómo funciona ↓</a></div>' +
       '<ul class="pr-sellos"><li>📶 Funciona sin internet</li><li>📱 Celular y computador</li><li>🔒 Tus datos son tuyos</li></ul></section>' +
 
-    '<div class="pr-muestras">' + muestraGym + muestraCoach + '</div>' +
+    '<div class="pr-muestras">' + muestraGym + muestraCoach + muestraProgreso + '</div>' +
 
     '<section class="pr-bloque pr-verde"><p class="pr-kicker">Para quien entrena</p><h2>Todo tu entreno, sin papel ni hojas de cálculo</h2><ul class="pr-lista">' +
       punto('⏱️', 'Anota cada serie en segundos', 'Top set y back-off, descanso automático, reps en reserva y tu meta de hoy en cada ejercicio.') +
@@ -53,7 +62,7 @@ export function presentacion() {
       punto('👥', 'Todo a la vista', 'Quién está activo, quién te debe y en qué semana del ciclo va cada uno.') +
     '</ul></section>' +
 
-    '<section class="pr-bloque" id="como-funciona"><p class="pr-kicker">Cómo funciona</p><h2>Tres pasos, cada semana</h2><ol class="pr-pasos">' +
+    '<section class="pr-bloque pr-pasosb" id="como-funciona"><p class="pr-kicker">Cómo funciona</p><h2>Tres pasos, cada semana</h2><ol class="pr-pasos">' +
       '<li><b>Tu entrenador te arma el plan</b><small>Rutina, ciclo y comidas pensados para ti.</small></li>' +
       '<li><b>Lo usas cada día</b><small>Entrenas, anotas y mandas tu check-in desde el celular.</small></li>' +
       '<li><b>Él ve tu avance y lo ajusta</b><small>Sin mensajes perdidos ni planes en papel.</small></li>' +
@@ -61,7 +70,7 @@ export function presentacion() {
 
     '<section class="pr-bloque pr-privacidad"><span class="pr-candado" aria-hidden="true">🔒</span><div><h2>Tus datos son tuyos</h2><p>Cada persona ve solo lo suyo. Tu entrenador (y el administrador de la app) ve únicamente el resumen de avance que aceptas compartir, nunca el resto de tus datos, y puedes dejar de compartir cuando quieras.</p></div></section>' +
 
-    '<section class="pr-bloque"><p class="pr-kicker">Y además</p><p class="pr-chips"><span>☀️ Hábitos de la mañana</span><span>🎯 Metas del día</span><span>💊 Suplementos</span><span>🔔 Recordatorios</span><span>💰 Finanzas</span><span>🎓 Cursos sin internet</span></p></section>' +
+    '<section class="pr-bloque pr-ademas"><p class="pr-kicker">Y además</p><p class="pr-chips"><span>☀️ Hábitos de la mañana</span><span>🎯 Metas del día</span><span>💊 Suplementos</span><span>🔔 Recordatorios</span><span>💰 Finanzas</span><span>🎓 Cursos sin internet</span></p></section>' +
 
     '<section class="pr-final"><h2>¿Listo para entrenar con un plan?</h2>' +
       (wa ? '<p>Escríbenos y te contamos cómo empezar, como persona o como entrenador.</p><a class="boton pr-cta pr-cta-claro" href="' + esc(wa) + '" target="_blank" rel="noopener">💬 Escribir por WhatsApp</a>'

@@ -109,7 +109,10 @@ function lateral() {
       '<button type="button" class="boton-suave barra-organizar" data-accion="barra-organizar">✋ Organizar menú</button>') +
     (b.resumen === false ? '<button type="button" class="boton-suave ocultable" data-accion="barra-resumen" aria-expanded="false">▸ Resumen</button>' : '<button type="button" class="boton-suave ocultable" data-accion="barra-resumen" aria-expanded="true">▾ Resumen</button>') +
     (b.resumen === false ? '' : resumenLateral(total, m, r)) +
-    '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || textoNube()) + '">☁️ <span class="ocultable">' + textoNube() + '</span></a>';
+    '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || textoNube()) + '">☁️ <span class="ocultable">' + textoNube() + '</span></a>' +
+    // Con sesión: quién está adentro y Salir, siempre a la vista (en el celular, al abrir ☰)
+    (nube.usuario ? '<div class="cuenta-lateral"><span class="ocultable" title="' + esc(nube.usuario.correo) + '">👤 ' + esc(nube.usuario.correo) + '</span>' +
+      '<button type="button" class="boton-suave salir-lateral" data-accion="nube-salir" title="Cerrar sesión" aria-label="Cerrar sesión de ' + esc(nube.usuario.correo) + '">↪ <span class="ocultable">Salir</span></button></div>' : '');
 }
 
 function resumenLateral(total, m, r) {

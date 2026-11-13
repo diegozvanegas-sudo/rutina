@@ -43,6 +43,9 @@ try {
   ok((await sql(CLI, `select rol from rutina.perfiles where usuario = $1`, [CLI])).error, '(el perfil no se lee desde la API)');
   const rol = (await db.query(`select rol from rutina.perfiles where usuario = $1`, [CLI])).rows[0].rol;
   ok(rol === 'cliente', 'quien era estudiante queda con el rol cliente');
+  const reglas = (await sql(CLI, 'select public.rutina_mis_permisos()')).reglas;
+  ok(reglas.some((x) => x.tipo === 'seccion' && x.id === 'clientes' && x.visible === false), 'el cliente no ve la sección Clientes (cada quien ve lo suyo)');
+  ok(!(await sql(ENT, 'select public.rutina_mis_permisos()')).reglas.some((x) => x.id === 'clientes'), 'el entrenador sí la ve');
   ok(/otra persona/.test((await sql(OTRO, `select public.rutina_cliente_aceptar($1)`, [inv.codigo])).error || ''), 'otra persona no puede usar un código ya aceptado');
   // El cliente recibe el plan
   const planes = await sql(CLI, `select public.rutina_cliente_planes()`);

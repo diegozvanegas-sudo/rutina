@@ -327,6 +327,12 @@ grant execute on function public.rutina_admin_borrar_rol(text) to authenticated;
 --   · le comparte un resumen de su avance (series por semana, peso, fuerza y check-ins)  → resumen
 -- Nadie lee el estado completo de otro (rutina.estado no se toca aquí): solo lo que cada uno decide mandar.
 insert into rutina.roles (id, nombre) values ('entrenador', 'Entrenador'), ('cliente', 'Cliente') on conflict (id) do nothing;
+-- Cada quien ve lo suyo: la sección 👥 Clientes (los clientes de un entrenador) es solo del admin y de los entrenadores.
+-- Es una regla de partida: si el admin la cambia en Administrar, aquí no se vuelve a poner (on conflict do nothing)
+insert into rutina.permisos (tipo, elemento, rol, visible)
+select 'seccion', 'clientes', r, false from unnest(array['cliente', 'estudiante', 'familia']) r
+where exists (select 1 from rutina.roles x where x.id = r)
+on conflict (tipo, elemento, rol) where rol is not null do nothing;
 
 create table if not exists rutina.asignaciones (
   id                  uuid primary key default gen_random_uuid(),

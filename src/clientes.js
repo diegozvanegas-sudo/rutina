@@ -196,8 +196,8 @@ const h = (t) => String(t ?? '').replace(/[&<>"]/g, (x) => ({ '&': '&amp;', '<':
 export function htmlPlan(c, dieta, hoy = iso()) {
   const o = OBJETIVOS_CLIENTE[c.objetivo], partes = ['<header><h1>Plan de ' + h(c.nombre) + '</h1><p>' + [o ? o[0] : '', c.peso ? String(c.peso).replace('.', ',') + ' kg' : '', fechaCorta(hoy)].filter(Boolean).join(' · ') + '</p></header>'];
   if (c.ciclo) {
-    partes.push('<h2>📆 Ciclo de ' + semanasCiclo(c.ciclo) + ' semanas · desde el ' + fechaCorta(c.ciclo.inicio) + '</h2><table><tr><th>Fase</th><th>Semanas</th><th>Reps en reserva</th><th>Objetivo</th></tr>' +
-      c.ciclo.fases.map((x, i, a) => { const d = a.slice(0, i).reduce((t, y) => t + Number(y.semanas), 0) + 1; return '<tr><td><b>' + h(x.nombre) + '</b></td><td>' + d + (x.semanas > 1 ? '–' + (d + Number(x.semanas) - 1) : '') + '</td><td>' + h(x.rir) + '</td><td>' + h(x.objetivo) + '</td></tr>'; }).join('') + '</table>');
+    partes.push('<h2>📆 Ciclo de ' + semanasCiclo(c.ciclo) + ' semanas · desde el ' + fechaCorta(c.ciclo.inicio) + '</h2><table><tr><th>Fase</th><th>Semanas</th><th>Reps en reserva</th><th>Reps</th><th>Objetivo</th></tr>' +
+      c.ciclo.fases.map((x, i, a) => { const d = a.slice(0, i).reduce((t, y) => t + Number(y.semanas), 0) + 1; return '<tr><td><b>' + h(x.nombre) + '</b></td><td>' + d + (x.semanas > 1 ? '–' + (d + Number(x.semanas) - 1) : '') + '</td><td>' + h(x.rir) + '</td><td>' + h(x.reps || '') + '</td><td>' + h(x.objetivo) + '</td></tr>'; }).join('') + '</table>');
   }
   const dias = c.rutina.filter((d) => d.ejercicios.length).sort((a, b) => (a.diaSemana || 9) - (b.diaSemana || 9));
   if (dias.length) partes.push('<h2>🏋️ Rutina</h2>' + dias.map((d) => '<section class="dia"><h3>' + (d.diaSemana ? DIAS[d.diaSemana] + ' · ' : '') + h(d.nombre) + '</h3><table><tr><th>#</th><th>Ejercicio</th><th>Series × reps</th><th>Descanso</th></tr>' +

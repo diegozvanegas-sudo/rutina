@@ -16,6 +16,8 @@ import { linea } from '../graficos.js';
 import { nuevoMovimiento } from './finanzas.js';
 import { configurada, nube, llamar } from '../nube.js';
 import { planParaPublicar, checkinsNuevos } from '../coach.js';
+import { cicloExperto, elegirTipo, tipoElegido } from './ciclo-cliente.js';
+import { fasesDeTipo, colorFase, volumenFase, TIPOS_CICLO } from '../ciclo.js';
 
 let abierto = null, pestana = 'datos', diaCl = 0, planCl = null, copiarDias = null, copiarPlanes = null;
 const lista = () => (e().clientes ??= []);
@@ -113,23 +115,27 @@ function cobro(c, k) {
 
 // ---------- 📆 Ciclo: macrociclo → mesociclos (fases) → semanas ----------
 function ciclo(c, k) {
-  if (!c.ciclo) return '<section class="tarjeta"><h2>📆 Ciclo de entrenamiento</h2><p class="nota-corta">Un macrociclo de 12 semanas con las fases de tu plan: base (técnica y punto de partida), progresión (más peso o reps cada semana), descarga (la mitad de las series) e intensificación (última serie cerca del fallo). Después cambias las semanas y los objetivos de cada fase.</p>' +
+  if (!c.ciclo) return '<section class="tarjeta"><h2>📆 Ciclo de entrenamiento</h2><p class="nota-corta">Un macrociclo de 12 semanas por fases: cada fase sube la carga poco a poco y una descarga deja que el cuerpo asimile lo trabajado. Elige el tipo según su objetivo; después cambias las semanas, las reps y las series de cada fase.</p>' +
+    elegirTipo(k) +
     '<label class="campo">Empieza el (lunes)<input type="date" id="cl-ciclo-inicio" value="' + (() => { const d = new Date(); const n = (8 - (d.getDay() || 7)) % 7; d.setDate(d.getDate() + n); return iso(d); })() + '"></label>' +
-    '<button type="button" class="boton primario" data-accion="cl-ciclo-crear">📆 Crear el ciclo de 12 semanas</button></section>';
+    '<button type="button" class="boton primario" data-accion="cl-ciclo-crear">📆 Crear el ciclo ' + TIPOS_CICLO[tipoElegido()].nombre + '</button></section>';
   const r = 'clientes.' + k + '.ciclo', t = tablaCiclo(c.ciclo), w = semanaDeCiclo(c.ciclo);
   return '<section class="tarjeta"><h2>📆 Ciclo de ' + semanasCiclo(c.ciclo) + ' semanas</h2>' +
     '<p class="nota-corta">' + (w && w.n ? 'Va en la <b>semana ' + w.n + '</b>: fase <b>' + esc(w.fase.nombre) + '</b> (reps en reserva ' + esc(w.fase.rir) + '). ' + esc(w.fase.objetivo) : w && w.antes ? 'Empieza el ' + fechaCorta(c.ciclo.inicio) + ' (en ' + w.faltan + ' días).' : w && w.terminado ? '✓ Terminó. Haz la valoración final y arma el siguiente ciclo.' : '') + '</p>' +
     '<label class="campo">Empieza el<input type="date" data-cambio="ed" data-ruta="' + r + '.inicio" value="' + esc(c.ciclo.inicio) + '"></label>' +
-    '<div class="cl-semanas" role="list" aria-label="Semanas del ciclo">' + t.map((x) => '<span role="listitem" class="cl-sem f' + (x.k % 4) + (x.actual ? ' actual' : x.pasada ? ' pasada' : '') + '" title="Semana ' + x.n + ': ' + esc(x.fase.nombre) + ', ' + fechaCorta(x.desde) + ' – ' + fechaCorta(x.hasta) + (x.revision ? ' · revisión' : '') + '">' + x.n + (x.revision ? '<i aria-hidden="true">•</i>' : '') + '</span>').join('') + '</div>' +
+    '<div class="cl-semanas" role="list" aria-label="Semanas del ciclo">' + t.map((x) => '<span role="listitem" class="cl-sem f' + colorFase(c.ciclo.fases, x.k) + (x.actual ? ' actual' : x.pasada ? ' pasada' : '') + '" title="Semana ' + x.n + ': ' + esc(x.fase.nombre) + ', ' + fechaCorta(x.desde) + ' – ' + fechaCorta(x.hasta) + (x.revision ? ' · revisión' : '') + '">' + x.n + (x.revision ? '<i aria-hidden="true">•</i>' : '') + '</span>').join('') + '</div>' +
     '<p class="nota-corta">• = semana de revisión (la primera y la última de cada fase): pide valoración y check-in.</p></section>' +
     '<h2 class="titulo-grupo">Fases (mesociclos)</h2><div class="ed-lista" data-orden-lista="' + r + '.fases">' + c.ciclo.fases.map((x, i) =>
-      '<section class="tarjeta ed-item cl-fase f' + (i % 4) + '" data-orden-i="' + i + '"><div class="cl-fase-cab"><button type="button" class="asa-orden" aria-label="Arrastrar ' + esc(x.nombre) + '">⠿</button>' +
+      '<section class="tarjeta ed-item cl-fase f' + colorFase(c.ciclo.fases, i) + '" data-orden-i="' + i + '"><div class="cl-fase-cab"><button type="button" class="asa-orden" aria-label="Arrastrar ' + esc(x.nombre) + '">⠿</button>' +
       '<input type="text" class="ed-ej-nombre" data-cambio="ed" data-ruta="' + r + '.fases.' + i + '.nombre" value="' + esc(x.nombre) + '" aria-label="Nombre de la fase">' +
       '<label class="cl-mini">Semanas<input type="text" inputmode="numeric" data-cambio="cl-fase-semanas" data-i="' + i + '" value="' + x.semanas + '" aria-label="Semanas de ' + esc(x.nombre) + '"></label>' +
       '<label class="cl-mini">RIR<input type="text" data-cambio="ed" data-ruta="' + r + '.fases.' + i + '.rir" value="' + esc(x.rir) + '" aria-label="Reps en reserva de ' + esc(x.nombre) + '"></label>' +
       '<button type="button" class="icono borrar" data-accion="cl-fase-borrar" data-i="' + i + '" aria-label="Borrar la fase ' + esc(x.nombre) + '">🗑</button></div>' +
+      '<div class="cl-fase-extra"><label class="cl-mini">Reps<input type="text" data-cambio="ed" data-ruta="' + r + '.fases.' + i + '.reps" value="' + esc(x.reps || '') + '" placeholder="Ej.: 8-12" aria-label="Reps de ' + esc(x.nombre) + '"></label>' +
+      '<label class="cl-mini">Series (% de su rutina)<input type="text" inputmode="numeric" data-cambio="ed" data-tipo="num" data-ruta="' + r + '.fases.' + i + '.volumen" value="' + volumenFase(x) + '" aria-label="Series de ' + esc(x.nombre) + ' en % de su rutina"></label></div>' +
       '<textarea rows="2" data-cambio="ed" data-ruta="' + r + '.fases.' + i + '.objetivo" aria-label="Objetivo de ' + esc(x.nombre) + '">' + esc(x.objetivo || '') + '</textarea></section>').join('') + '</div>' +
-    '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="cl-fase-nueva">＋ Fase</button><button type="button" class="boton secundario rec-borrar" data-accion="cl-ciclo-borrar">Quitar el ciclo</button></div>';
+    '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="cl-fase-nueva">＋ Fase</button><button type="button" class="boton secundario rec-borrar" data-accion="cl-ciclo-borrar">Quitar el ciclo</button></div>' +
+    cicloExperto(c, k);
 }
 
 // ---------- 📈 Seguimiento: check-ins y valoraciones ----------
@@ -319,7 +325,7 @@ registrar({
     guardar();
   },
   // Ciclo
-  'cl-ciclo-crear'() { const campo = document.getElementById('cl-ciclo-inicio'); cliente().ciclo = nuevoCiclo(campo && campo.value ? campo.value : undefined); guardar(); toast('📆 Ciclo de 12 semanas listo: ajusta las fases'); },
+  'cl-ciclo-crear'() { const campo = document.getElementById('cl-ciclo-inicio'); const ciclo = nuevoCiclo(campo && campo.value ? campo.value : undefined); ciclo.fases = fasesDeTipo(tipoElegido()); cliente().ciclo = ciclo; guardar(); toast('📆 Ciclo ' + TIPOS_CICLO[tipoElegido()].nombre + ' listo: mira el gráfico y ajusta las fases'); },
   'cl-ciclo-borrar'() {
     const c = cliente(), antes = c.ciclo;
     if (!confirm('¿Quitar el ciclo de ' + c.nombre + '?')) return;

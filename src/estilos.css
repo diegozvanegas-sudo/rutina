@@ -419,6 +419,53 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
   .cl-fase-cab .borrar { grid-area: borrar; }
   .cl-agregar { grid-template-columns: 1fr; }
 }
+.cl-fase-extra { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
+/* 📆 Ciclo del cliente: tipos, gráfico en el tiempo, tiempo y series por músculo (vistas/ciclo-cliente.js) */
+.cc-tipos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 8px; margin: 8px 0 12px; }
+.cc-tipo { display: grid; gap: 3px; text-align: left; padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; min-height: 44px; }
+.cc-tipo small { color: var(--muted); font-size: 13px; }
+.cc-tipo span { color: var(--muted); font-size: 11px; }
+.cc-tipo:hover { border-color: var(--brand); }
+.cc-tipo.activo { border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 1px var(--brand) inset; }
+.cg-lectura { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+.cg { --f0: #3b82f6; --f1: var(--brand); --f2: #a78bfa; --f3: var(--amarillo); display: grid; gap: 4px; }
+.cg-fases, .cg-semanas { display: grid; gap: 2px; }
+.cg-fases span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; font-weight: 700; padding: 3px 4px; border-radius: 6px; text-align: center; color: var(--ink); background: color-mix(in srgb, var(--fc) 22%, transparent); border-bottom: 2px solid var(--fc); }
+.cg .f0 { --fc: var(--f0); } .cg .f1 { --fc: var(--f1); } .cg .f2 { --fc: var(--f2); } .cg .f3 { --fc: var(--f3); }
+.cg-plot { position: relative; height: clamp(170px, 26vw, 260px); border-bottom: 1px solid var(--line); background: repeating-linear-gradient(to top, transparent 0 24.5%, color-mix(in srgb, var(--line) 60%, transparent) 24.5% 25%); }
+.cg-plot svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cg-barra { fill: var(--fc); opacity: .55; }
+.cg-barra.pasada { opacity: .3; }
+.cg-rendimiento { fill: none; stroke: var(--verde); stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.cg-fatiga { fill: none; stroke: var(--rojo); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.cg-fatiga-area { fill: var(--rojo); opacity: .08; }
+.cg-hoy { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--ink); opacity: .8; }
+.cg-hoy i { position: absolute; top: -2px; left: 4px; font-style: normal; font-size: 11px; font-weight: 700; background: var(--ink); color: var(--bg); padding: 0 5px; border-radius: 6px; }
+.cg-super { position: absolute; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 800; color: var(--brand-ink); background: var(--verde); padding: 2px 8px; border-radius: 999px; box-shadow: 0 2px 10px rgba(0, 0, 0, .35); }
+.cg-energia { position: absolute; width: 9px; height: 9px; margin: 0 0 -4px -4px; border-radius: 50%; background: var(--amarillo); border: 2px solid var(--bg); }
+.cg-semanas span { text-align: center; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cg-semanas span.actual { color: var(--ink); font-weight: 800; }
+.cg-leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; list-style: none; margin: 10px 0 4px; padding: 0; font-size: 12px; color: var(--muted); }
+.cg-leyenda li { display: flex; align-items: center; gap: 6px; }
+.cg-leyenda i { display: inline-block; width: 16px; }
+.cg-l-barra { height: 10px; border-radius: 2px; background: linear-gradient(90deg, #3b82f6, var(--brand), #a78bfa); opacity: .7; }
+.cg-l-rend { height: 3px; background: var(--verde); border-radius: 2px; }
+.cg-l-fat { border-top: 2px dashed var(--rojo); }
+.cg-l-energia { width: 9px !important; height: 9px; border-radius: 50%; background: var(--amarillo); }
+.cg-explica { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+.cc-barras { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 8px; }
+.cc-fila { display: grid; grid-template-columns: minmax(70px, 30%) minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 14px; }
+.cc-nombre { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.cc-fila b { font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: right; }
+.cc-fila b small { color: var(--muted); font-weight: 400; font-size: 11px; }
+.cc-pista { position: relative; height: 12px; border-radius: 6px; background: var(--surface-2); }
+.cc-lleno { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; background: var(--azul); }
+.cc-fila.ok .cc-lleno { background: var(--verde); }
+.cc-fila.bajo .cc-lleno { background: var(--amarillo); }
+.cc-fila.alto .cc-lleno { background: var(--rojo); }
+.cc-rango { position: absolute; top: -3px; bottom: -3px; border-radius: 4px; border: 1px solid var(--verde); background: color-mix(in srgb, var(--verde) 14%, transparent); }
+.cc-limite { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px solid var(--ink); }
+.cc-l-limite { display: inline-block; width: 0; height: 12px; border-left: 2px solid var(--ink); vertical-align: middle; margin-right: 4px; }
 /* PDF del plan: solo se imprime el plan */
 #imprimir { display: none; }
 @media print {
@@ -449,6 +496,27 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
   .rec-fila.sug .sug-botones { padding-top: 6px; }
   .pb .dos:has(textarea) { grid-template-columns: 1fr; }
 }
+/* Finanzas → Plan B → Módulo 3 (despertar creativo) */
+.cr-pasos { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+.cr-pasos li.ok { color: var(--verde); }
+.cr-sub { display: flex; align-items: center; gap: 8px; margin: 18px 0 6px; font-size: 16px; color: #f472b6; }
+.cr-sub span { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, #f472b6 18%, transparent); }
+.cr-reto { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; margin: 8px 0; }
+.cr-dia { display: grid; gap: 8px; align-content: start; padding: 10px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.cr-dia.hecho { border-color: var(--verde); background: color-mix(in srgb, var(--verde) 10%, var(--surface-2)); }
+.cr-dia-cab { display: flex; justify-content: space-between; align-items: center; }
+.cr-dia-cab small { color: var(--verde); font-weight: 700; }
+.cr-ideas { gap: 4px; }
+.cr-ideas .chip { white-space: normal; text-align: left; height: auto; max-width: 100%; line-height: 1.3; }
+.cr-chips { margin: 4px 0 10px; }
+.cr-chips span { padding: 6px 12px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 14px; }
+.cr-siete { margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
+.cr-siete.corriendo { background: var(--amarillo); color: #2b2100; }
+.cr-soluciones { display: grid; gap: 6px; margin: 6px 0; }
+.cr-sol { display: grid; grid-template-columns: 30px minmax(0, 1fr) 44px; gap: 6px; align-items: center; }
+.cr-sol.elegida input { border-color: var(--amarillo); }
+.cr-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); font-weight: 700; font-size: 13px; }
+.cr-estrella { font-size: 20px; }
 /* Finanzas → Plan B → Módulo 2 (liderazgo) */
 .lid-lista { display: grid; gap: 4px; margin: 8px 0; }
 .lid-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }

@@ -321,6 +321,177 @@ grant execute on function public.rutina_admin_permiso(text, text, text, uuid, bo
 grant execute on function public.rutina_admin_guardar_rol(text, text) to authenticated;
 grant execute on function public.rutina_admin_borrar_rol(text) to authenticated;
 
+-- ---------- Entrenador y clientes (👥 Clientes ↔ 🧑‍🏫 Mi entrenador) ----------
+-- El entrenador invita con un código; quien lo acepta pasa a ser su cliente y, desde ese momento y hasta que lo corte:
+--   · recibe el plan que el entrenador publica (rutina, comidas y ciclo)  → plan
+--   · le comparte un resumen de su avance (series por semana, peso, fuerza y check-ins)  → resumen
+-- Nadie lee el estado completo de otro (rutina.estado no se toca aquí): solo lo que cada uno decide mandar.
+insert into rutina.roles (id, nombre) values ('entrenador', 'Entrenador'), ('cliente', 'Cliente') on conflict (id) do nothing;
+
+create table if not exists rutina.asignaciones (
+  id                  uuid primary key default gen_random_uuid(),
+  entrenador          uuid not null references auth.users(id) on delete cascade,
+  cliente_local       text not null,                 -- id del cliente en los datos del entrenador (estado.clientes)
+  codigo              text not null unique,
+  cliente             uuid references auth.users(id) on delete set null,
+  estado              text not null default 'invitado' check (estado in ('invitado', 'activo', 'terminado')),
+  plan                jsonb,
+  plan_version        bigint,
+  resumen             jsonb,
+  resumen_actualizado timestamptz,
+  creado              timestamptz not null default now(),
+  aceptado            timestamptz,
+  terminado           timestamptz
+);
+create unique index if not exists asignacion_viva on rutina.asignaciones (entrenador, cliente_local) where estado <> 'terminado';
+create index if not exists asignaciones_cliente on rutina.asignaciones (cliente) where estado = 'activo';
+alter table rutina.asignaciones enable row level security;
+
+-- Pueden invitar el admin y quien tenga el rol entrenador
+create or replace function rutina.puede_entrenar()
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select exists (select 1 from rutina.perfiles p where p.usuario = auth.uid() and p.rol in ('admin', 'entrenador'));
+$$;
+
+-- Invitar (o volver a ver el código de) un cliente. Devuelve { codigo, estado }
+create or replace function public.rutina_coach_invitar(p_local text)
+returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare r rutina.asignaciones; c text;
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  if not rutina.puede_entrenar() then raise exception 'Para invitar clientes necesitas el rol de entrenador'; end if;
+  if coalesce(trim(p_local), '') = '' then raise exception 'Falta el cliente'; end if;
+  select * into r from rutina.asignaciones a where a.entrenador = auth.uid() and a.cliente_local = p_local and a.estado <> 'terminado';
+  if r.id is null then
+    loop
+      c := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+      exit when not exists (select 1 from rutina.asignaciones a where a.codigo = c);
+    end loop;
+    insert into rutina.asignaciones (entrenador, cliente_local, codigo) values (auth.uid(), p_local, c) returning * into r;
+  end if;
+  return jsonb_build_object('codigo', r.codigo, 'estado', r.estado);
+end;
+$$;
+
+-- Publicar el plan del cliente (lo recibe en su app). Devuelve la versión publicada
+create or replace function public.rutina_coach_publicar(p_local text, p_plan jsonb)
+returns bigint
+language plpgsql security definer set search_path = ''
+as $$
+declare v bigint := (extract(epoch from now()) * 1000)::bigint; n int;
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  if jsonb_typeof(p_plan) is distinct from 'object' then raise exception 'El plan no es válido'; end if;
+  if octet_length(p_plan::text) > 500000 then raise exception 'El plan es demasiado grande'; end if;
+  update rutina.asignaciones a set plan = p_plan, plan_version = v
+    where a.entrenador = auth.uid() and a.cliente_local = p_local and a.estado <> 'terminado';
+  get diagnostics n = row_count;
+  if n = 0 then raise exception 'Primero invita a este cliente a la app'; end if;
+  return v;
+end;
+$$;
+
+-- Los clientes del entrenador con su estado y lo que cada uno le comparte (el correo, solo de quien aceptó)
+create or replace function public.rutina_coach_clientes()
+returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'local', a.cliente_local, 'codigo', a.codigo, 'estado', a.estado, 'correo', case when a.estado = 'activo' then u.email end,
+    'aceptado', a.aceptado, 'plan_version', a.plan_version, 'resumen', a.resumen, 'resumen_actualizado', a.resumen_actualizado) order by a.creado), '[]'::jsonb)
+  from rutina.asignaciones a left join auth.users u on u.id = a.cliente
+  where a.entrenador = auth.uid() and a.estado <> 'terminado';
+$$;
+
+-- El entrenador termina la relación (o cancela una invitación que nadie usó)
+create or replace function public.rutina_coach_terminar(p_local text)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  update rutina.asignaciones a set estado = 'terminado', terminado = now()
+    where a.entrenador = auth.uid() and a.cliente_local = p_local and a.estado <> 'terminado';
+end;
+$$;
+
+-- El cliente acepta un código: desde ahora recibe el plan y comparte su resumen. Quien era "estudiante" pasa a "cliente"
+create or replace function public.rutina_cliente_aceptar(p_codigo text)
+returns jsonb
+language plpgsql security definer set search_path = ''
+as $$
+declare r rutina.asignaciones; correo text;
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  select * into r from rutina.asignaciones a where a.codigo = upper(trim(p_codigo));
+  if r.id is null or r.estado = 'terminado' then raise exception 'Ese código no existe o ya no sirve. Pídele uno nuevo a tu entrenador.'; end if;
+  if r.entrenador = auth.uid() then raise exception 'Ese código es tuyo: mándaselo a tu cliente'; end if;
+  if r.estado = 'activo' and r.cliente is distinct from auth.uid() then raise exception 'Ese código ya lo usó otra persona'; end if;
+  update rutina.asignaciones set cliente = auth.uid(), estado = 'activo', aceptado = coalesce(aceptado, now()) where id = r.id;
+  insert into rutina.perfiles (usuario, rol) values (auth.uid(), 'cliente') on conflict (usuario) do update set rol = 'cliente' where rutina.perfiles.rol = 'estudiante';
+  select u.email into correo from auth.users u where u.id = r.entrenador;
+  return jsonb_build_object('id', r.id, 'entrenador', correo);
+end;
+$$;
+
+-- Lo que el cliente recibe de sus entrenadores: el plan publicado
+create or replace function public.rutina_cliente_planes()
+returns jsonb
+language sql stable security definer set search_path = ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'entrenador', u.email, 'aceptado', a.aceptado, 'plan', a.plan, 'plan_version', a.plan_version) order by a.aceptado), '[]'::jsonb)
+  from rutina.asignaciones a join auth.users u on u.id = a.entrenador
+  where a.cliente = auth.uid() and a.estado = 'activo';
+$$;
+
+-- El cliente manda su resumen (a todos sus entrenadores activos)
+create or replace function public.rutina_cliente_compartir(p_resumen jsonb)
+returns int
+language plpgsql security definer set search_path = ''
+as $$
+declare n int;
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  if jsonb_typeof(p_resumen) is distinct from 'object' or octet_length(p_resumen::text) > 200000 then raise exception 'El resumen no es válido'; end if;
+  update rutina.asignaciones a set resumen = p_resumen, resumen_actualizado = now() where a.cliente = auth.uid() and a.estado = 'activo';
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+
+-- El cliente deja de compartir con un entrenador (y deja de recibir su plan)
+create or replace function public.rutina_cliente_salir(p_id uuid)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  update rutina.asignaciones a set estado = 'terminado', terminado = now(), resumen = null where a.id = p_id and a.cliente = auth.uid();
+end;
+$$;
+
+revoke execute on function rutina.puede_entrenar() from public, anon, authenticated;
+revoke execute on function public.rutina_coach_invitar(text) from public, anon;
+revoke execute on function public.rutina_coach_publicar(text, jsonb) from public, anon;
+revoke execute on function public.rutina_coach_clientes() from public, anon;
+revoke execute on function public.rutina_coach_terminar(text) from public, anon;
+revoke execute on function public.rutina_cliente_aceptar(text) from public, anon;
+revoke execute on function public.rutina_cliente_planes() from public, anon;
+revoke execute on function public.rutina_cliente_compartir(jsonb) from public, anon;
+revoke execute on function public.rutina_cliente_salir(uuid) from public, anon;
+grant execute on function public.rutina_coach_invitar(text) to authenticated;
+grant execute on function public.rutina_coach_publicar(text, jsonb) to authenticated;
+grant execute on function public.rutina_coach_clientes() to authenticated;
+grant execute on function public.rutina_coach_terminar(text) to authenticated;
+grant execute on function public.rutina_cliente_aceptar(text) to authenticated;
+grant execute on function public.rutina_cliente_planes() to authenticated;
+grant execute on function public.rutina_cliente_compartir(jsonb) to authenticated;
+grant execute on function public.rutina_cliente_salir(uuid) to authenticated;
+
 -- Que la API vea las funciones nuevas sin esperar
 notify pgrst, 'reload schema';
 

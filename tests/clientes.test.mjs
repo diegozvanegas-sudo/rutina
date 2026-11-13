@@ -75,3 +75,75 @@ test('clientes: la sección sale en el menú, también en uno ya ordenado', () =
   const ids = enOrden({ orden: { menu: guardado } }, 'menu');
   assert.equal(ids[ids.indexOf('suplementos') + 1], 'clientes');
 });
+
+import { estadoCobro, resumenNegocio, nuevoCiclo, semanasCiclo, tablaCiclo, semanaDeCiclo, preguntasCheckin, comparacionValoraciones, pesosCliente, plantillaDe, clienteDePlantilla, htmlPlan } from '../src/clientes.js';
+
+test('clientes: estado del cobro (mensual, quincenal, único, pausa) y el tablero del negocio', () => {
+  const c = nuevoCliente('Ana');
+  assert.equal(estadoCobro(c, '2026-11-13').estado, 'sin-plan');
+  c.cobro = { precio: 150000, cada: 'mes', inicio: '2026-11-10', pagos: [] };
+  assert.equal(estadoCobro(c, '2026-11-13').estado, 'vencido'); // nunca ha pagado y ya pasó el primer cobro
+  assert.equal(estadoCobro(c, '2026-11-10').estado, 'pronto'); // el día del primer cobro aún no está vencido
+  c.cobro.pagos.push({ fecha: '2026-11-10', monto: 150000 });
+  let s = estadoCobro(c, '2026-11-13');
+  assert.deepEqual([s.estado, s.proximo, s.faltan], ['al-dia', '2026-12-10', 27]);
+  assert.equal(estadoCobro(c, '2026-12-06').estado, 'pronto');
+  assert.equal(estadoCobro(c, '2026-12-11').estado, 'vencido');
+  c.cobro.pausa = true;
+  assert.equal(estadoCobro(c, '2026-12-11').estado, 'pausa');
+  const q = { ...nuevoCliente('Q'), cobro: { precio: 80000, cada: 'quincena', inicio: '2026-11-01', pagos: [{ fecha: '2026-11-01', monto: 80000 }] } };
+  assert.equal(estadoCobro(q, '2026-11-13').proximo, '2026-11-16');
+  const u = { ...nuevoCliente('U'), cobro: { precio: 300000, cada: 'unico', inicio: '2026-11-01', pagos: [{ fecha: '2026-11-02', monto: 300000 }] } };
+  assert.equal(estadoCobro(u, '2027-03-01').estado, 'al-dia');
+  c.cobro.pausa = false;
+  const r = resumenNegocio([c, q, u, nuevoCliente('Sin plan')], '2026-11-13');
+  assert.equal(r.clientes, 4);
+  assert.equal(r.activos, 3);
+  assert.equal(r.cobradoMes, 530000);
+  assert.equal(r.pronto, 1); // la quincena vence el 16 (en 3 días)
+  assert.equal(r.porCobrar, 80000);
+  assert.equal(resumenNegocio([c, q], '2026-11-14').porCobrar, 80000); // la quincena vence en 2 días
+});
+
+test('clientes: el ciclo de 12 semanas con fases, semana actual y revisiones', () => {
+  const ci = nuevoCiclo('2026-11-16');
+  assert.equal(semanasCiclo(ci), 12);
+  assert.deepEqual(ci.fases.map((x) => x.nombre + ' ' + x.semanas), ['Base 4', 'Progresión 4', 'Descarga 1', 'Intensificación 3']);
+  const t = tablaCiclo(ci, '2026-12-01');
+  assert.equal(t.length, 12);
+  assert.equal(t[2].actual, true); // 30 nov – 6 dic es la semana 3
+  assert.deepEqual(t.filter((x) => x.revision).map((x) => x.n), [1, 4, 8, 9, 12]);
+  assert.equal(semanaDeCiclo(ci, '2026-12-01').fase.nombre, 'Base');
+  assert.equal(semanaDeCiclo(ci, '2027-01-12').fase.nombre, 'Descarga');
+  assert.deepEqual(semanaDeCiclo(ci, '2026-11-13'), { antes: true, faltan: 3 });
+  assert.equal(semanaDeCiclo(ci, '2027-03-01').terminado, true);
+  ci.fases[0].semanas = 2; // al cambiar las semanas, todo se recorre
+  assert.equal(semanasCiclo(ci), 10);
+  assert.equal(semanaDeCiclo(ci, '2026-12-01').fase.nombre, 'Progresión');
+});
+
+test('clientes: check-in, valoraciones, peso y plantillas', () => {
+  const c = nuevoCliente('Juan Pérez');
+  c.ciclo = nuevoCiclo('2026-11-09');
+  const t = preguntasCheckin(c, '2026-11-13');
+  assert.match(t, /^Hola Juan 👋 Check-in de la semana 1 \(Base\)/);
+  assert.match(t, /1\. ⚖️/);
+  c.valoraciones = [{ fecha: '2026-11-01', peso: 80, cintura: 90, sentadilla: 100 }, { fecha: '2026-12-01', peso: 77.5, cintura: 86, sentadilla: 110, brazo: 35 }];
+  assert.deepEqual(comparacionValoraciones(c.valoraciones).map((x) => [x.k, x.cambio]), [['peso', -2.5], ['cintura', -4], ['sentadilla', 10]]);
+  c.checkins = [{ fecha: '2026-11-15', peso: 79 }, { fecha: '2026-11-22' }];
+  assert.deepEqual(pesosCliente(c).map((x) => x.peso), [80, 79, 77.5]);
+  // Plantilla: lleva rutina, comidas y fases; el cliente nuevo empieza su ciclo el próximo lunes, sin pagos ni check-ins
+  c.rutina = copiarRutina(RUTINA, [RUTINA[0].id]);
+  const pl = plantillaDe(c, 'Hipertrofia');
+  const n = clienteDePlantilla(pl, 'Ana', '2026-11-13');
+  assert.equal(n.nombre, 'Ana');
+  assert.equal(n.rutina[0].ejercicios.length, c.rutina[0].ejercicios.length);
+  assert.notEqual(n.rutina[0].id, c.rutina[0].id);
+  assert.equal(n.ciclo.inicio, '2026-11-16');
+  assert.equal(n.checkins, undefined);
+  // El PDF escapa lo que escribiste
+  c.nota = '<script>x</script>';
+  const html = htmlPlan(c, { alimentos: [], planes: {} }, '2026-11-13');
+  assert.ok(html.includes('&lt;script&gt;') && !html.includes('<script>'));
+  assert.match(html, /Ciclo de 12 semanas/);
+});

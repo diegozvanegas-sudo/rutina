@@ -24,6 +24,7 @@ import { vistaLugares } from './vistas/lugares.js';
 import { vistaCompras } from './vistas/compras.js';
 import { vistaSuplementos } from './vistas/suplementos.js';
 import { vistaClientes } from './vistas/clientes.js';
+import { vistaEntrenador, tieneEntrenador } from './vistas/entrenador.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
@@ -40,7 +41,7 @@ iniciarAvisos();
 
 const PANTALLAS = {
   hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, suplementos: vistaSuplementos, finanzas: vistaFinanzas, compras: vistaCompras,
-  recordatorios: vistaRecordatorios, lugares: vistaLugares, gym: vistaGym, clientes: vistaClientes, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
+  recordatorios: vistaRecordatorios, lugares: vistaLugares, gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
@@ -63,7 +64,8 @@ function abrirPestana() {
 
 function enlaces() {
   const avisos = alertas().length;
-  const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k)).concat(permitida('administrar') ? ['administrar'] : []);
+  // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
+  const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || actual() === 'entrenador')).concat(permitida('administrar') ? ['administrar'] : []);
   return ids.map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
     '<a href="#' + k + '" title="' + nombre + '"' + (k === (DENTRO[actual()] || actual()) ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span class="ocultable">' + nombre + '</span>' +
     (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');

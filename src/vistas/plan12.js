@@ -8,6 +8,8 @@ import { pesos, tendencia } from '../dieta.js';
 
 const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO');
 let tipoVista = null; // día de la versión en casa que se está viendo
+// En lista: queda abierto el ejercicio que toca (el primero sin reps anotadas); los demás, un renglón. manualCasa: lo abierto o cerrado a mano
+let manualCasa = {}, enfocarCasa = null;
 
 // ---------- 📆 12 semanas ----------
 function empezar() {
@@ -73,13 +75,20 @@ export function vistaCasa(fecha = iso()) {
     ejerciciosCasa(fecha, tipo) + '</section>';
 }
 function ejerciciosCasa(fecha, tipo) {
-  const ses = sesionCasa(fecha), dia = CASA[tipo];
+  const ses = sesionCasa(fecha), dia = CASA[tipo], toca = (dia.ejercicios.find((x) => !ses[x.id]) || {}).id;
+  if (enfocarCasa) { const id = enfocarCasa; enfocarCasa = null; setTimeout(() => { const c = document.querySelector('[data-cambio=casa-reps][data-id="' + id + '"]'); if (c) { c.focus({ preventScroll: true }); c.scrollIntoView({ block: 'nearest' }); } }, 60); }
   return '<ol class="lista-casa">' + dia.ejercicios.map((x) => {
     const n = nivelDe(x), ult = ultimoCasa(x.id, fecha), reps = ses[x.id] || '', sube = tocaSubir(x, reps) || (!reps && ult && tocaSubir(x, ult.reps));
-    return '<li><div class="fila-resumen"><b>' + esc(x.nombre) + '</b><span>' + x.series + ' × ' + esc(x.reps) + '</span></div>' +
+    const abierto = x.id in manualCasa ? manualCasa[x.id] : x.id === toca;
+    const fila = '<button type="button" class="casa-fila" data-accion="casa-abrir" data-id="' + x.id + '" aria-expanded="' + abierto + '">' +
+      '<span class="casa-txt"><b>' + esc(x.nombre) + '</b><small>' + esc((n + 1) + '. ' + x.escalera[n]) + (reps ? '' : ult ? ' · la vez pasada ' + esc(ult.reps) : '') + '</small></span>' +
+      '<span class="casa-dato' + (reps ? ' hecho' : '') + '">' + (reps ? '✓ ' + esc(reps) : x.series + ' × ' + esc(x.reps)) + '</span>' +
+      '<span class="casa-flecha" aria-hidden="true">' + (abierto ? '▾' : '▸') + '</span></button>';
+    if (!abierto) return '<li class="casa-ej plegado' + (reps ? ' hecho' : '') + (sube && n < x.escalera.length - 1 ? ' sube' : '') + '" data-ancla="casa-' + x.id + '">' + fila + '</li>';
+    return '<li class="casa-ej' + (x.id === toca ? ' actual' : '') + '" data-ancla="casa-' + x.id + '">' + fila +
       '<label class="campo">Variante<select data-cambio="casa-nivel" data-id="' + x.id + '">' + x.escalera.map((v, i) => '<option value="' + i + '"' + (i === n ? ' selected' : '') + '>' + (i + 1) + '. ' + esc(v) + '</option>').join('') + '</select></label>' +
       (x.nota ? '<p class="nota-corta">' + esc(x.nota) + '</p>' : '') +
-      '<label class="campo">Reps de cada serie<input type="text" inputmode="numeric" autocomplete="off" data-cambio="casa-reps" data-id="' + x.id + '" value="' + esc(reps) + '" placeholder="' + esc(ult ? ult.reps : 'Ej.: 10 9 8') + '"></label>' +
+      '<label class="campo">Reps de cada serie<input type="text" data-solo="reps" autocomplete="off" enterkeyhint="done" data-cambio="casa-reps" data-id="' + x.id + '" value="' + esc(reps) + '" placeholder="' + esc(ult ? ult.reps : 'Ej.: 10 9 8') + '"></label>' +
       (ult ? '<p class="nota-corta">La vez pasada (' + fechaCorta(ult.fecha) + '): ' + esc(ult.reps) + '</p>' : '') +
       (sube && n < x.escalera.length - 1 ? '<p class="aviso-sup">⬆️ Llegaste al tope en todas las series: la próxima, «' + esc(x.escalera[n + 1]) + '».</p>' : '') + '</li>';
   }).join('') + '</ol>' +
@@ -130,11 +139,18 @@ registrar({
     guardar();
     toast('📝 Revisión de la semana ' + x.semana + ' guardada');
   },
-  'casa-tipo'({ t }) { tipoVista = t; repintar(); },
+  'casa-tipo'({ t }) { tipoVista = t; manualCasa = {}; repintar(); },
+  'casa-abrir'({ id }) { const el = document.querySelector('[data-accion=casa-abrir][data-id="' + id + '"]'); manualCasa[id] = !(el && el.getAttribute('aria-expanded') === 'true'); repintar(); },
   'casa-reps'({ id }, el) {
     const p = plan12(), hoy = iso(), ses = ((p.casa ??= {})[hoy] ??= {}), tipo = tipoVista || ses.tipo || tipoCasaDe(hoy) || 'torso';
     const v = el.value.replace(/\s+/g, ' ').trim();
-    if (v) { ses[id] = v; ses.tipo = tipo; ses['v:' + id] = nivelDe(CASA[tipo].ejercicios.find((x) => x.id === id) || { escalera: [''] }, p); }
+    if (v) {
+      ses[id] = v; ses.tipo = tipo; ses['v:' + id] = nivelDe(CASA[tipo].ejercicios.find((x) => x.id === id) || { escalera: [''] }, p);
+      // Anotado: se cierra y se abre el siguiente que falta, con el cursor listo
+      delete manualCasa[id];
+      const sig = CASA[tipo].ejercicios.find((x) => !ses[x.id]);
+      if (sig) { delete manualCasa[sig.id]; enfocarCasa = sig.id; }
+    }
     else { delete ses[id]; delete ses['v:' + id]; }
     if (!casaHecha(hoy, p)) delete p.casa[hoy];
     guardar();

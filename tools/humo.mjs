@@ -1,7 +1,7 @@
 // Prueba de humo de las pantallas: abre cada sección en computador y en celular y falla si alguna queda vacía,
 // se sale de la pantalla hacia los lados o deja errores en la consola. No reemplaza probar a mano lo que se cambió.
 //   npm run humo
-const SECCIONES = ['hoy', 'calendario', 'progreso', 'manana', 'metas', 'estudiar', 'libros', 'dieta', 'suplementos', 'finanzas', 'compras', 'recordatorios', 'lugares', 'gym', 'clientes', 'sesiones', 'editar', 'ajustes'];
+const SECCIONES = ['hoy', 'calendario', 'progreso', 'manana', 'metas', 'estudiar', 'libros', 'dieta', 'suplementos', 'finanzas', 'compras', 'recordatorios', 'lugares', 'gym', 'clientes', 'entrenador', 'sesiones', 'editar', 'ajustes'];
 // Pestañas dentro de una sección (se abren con su botón)
 const PESTANAS = { finanzas: ['fin-pestana', ['registrar', 'calcular', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'esperas', 'planb']], editar: ['ed-pestana', ['rutina', 'habitos', 'sesiones', 'pantallas']] };
 

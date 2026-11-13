@@ -6,7 +6,7 @@ import { configurada, llamar, cargarPermisos } from '../nube.js';
 import { esAdmin, catalogo, tiposCatalogo, TIPOS, SIEMPRE, reglaDe, permisosDe, ponerVerComo } from '../permisos.js';
 
 let datos = null, cargando = false, error = '', pestana = 'usuarios';
-const PESTANAS = { usuarios: '👥 Usuarios', porUsuario: '🔐 Permisos por usuario', permisos: '🏷️ Permisos por rol', roles: '🏷️ Roles', ver: '👁 Ver como' };
+const PESTANAS = { usuarios: '👥 Usuarios', entrenadores: '🧑‍🏫 Entrenadores', porUsuario: '🔐 Permisos por usuario', permisos: '🏷️ Permisos por rol', roles: '🏷️ Roles', ver: '👁 Ver como' };
 
 async function cargar() {
   cargando = true; error = ''; repintar();
@@ -96,6 +96,28 @@ function verComo() {
     datos.usuarios.filter((u) => u.rol !== 'admin').map((u) => '<option value="u:' + u.id + '">' + esc(u.correo) + '</option>').join('') + '</optgroup></select></label></section>';
 }
 
+// 🧑‍🏫 Entrenadores: quién es cliente de quién (sin planes ni avance: eso solo lo ve cada entrenador)
+let entrenadores = null, cargandoEnt = false, errorEnt = '';
+async function cargarEntrenadores() {
+  cargandoEnt = true; errorEnt = ''; repintar();
+  try { entrenadores = await llamar('rutina_admin_entrenadores'); } catch (err) { errorEnt = err.message; }
+  cargandoEnt = false; repintar();
+}
+const ESTADO_ASIG = { activo: ['al-dia', 'Activo'], invitado: ['pronto', 'Invitado'] };
+function vistaEntrenadores() {
+  if (entrenadores == null && !cargandoEnt && !errorEnt) queueMicrotask(cargarEntrenadores);
+  if (errorEnt) return '<section class="tarjeta"><p class="aviso">No se pudo cargar: ' + esc(errorEnt) + '</p><button type="button" class="boton primario" data-accion="adm-entrenadores">Reintentar</button></section>';
+  if (entrenadores == null) return '<p class="nota-corta">Cargando…</p>';
+  const total = entrenadores.reduce((t, x) => t + x.clientes.filter((c) => c.estado === 'activo').length, 0);
+  return '<section class="tarjeta"><h2>🧑‍🏫 Entrenadores y sus clientes</h2><p class="nota-corta">' + entrenadores.length + (entrenadores.length === 1 ? ' entrenador' : ' entrenadores') + ' · ' + total + (total === 1 ? ' cliente activo' : ' clientes activos') +
+    '. Aquí solo ves quién es cliente de quién: el plan y el avance de cada cliente los ve solo su entrenador. Para que alguien pueda invitar clientes, dale el rol «Entrenador» en 👥 Usuarios.</p>' +
+    '<button type="button" class="boton secundario" data-accion="adm-entrenadores">↻ Actualizar</button></section>' +
+    entrenadores.map((x) => '<section class="tarjeta"><div class="fila-resumen"><b>' + esc(x.entrenador) + '</b><span class="estado e-programado">' + esc(nombreRol(x.rol)) + '</span></div>' +
+      (x.clientes.length ? '<ul class="lista-pesos">' + x.clientes.map((c) => { const [clase, t] = ESTADO_ASIG[c.estado] || ['programado', c.estado];
+        return '<li><span>' + (c.correo ? esc(c.correo) : '<i>sin aceptar aún</i>') + '<small> · ' + (c.aceptado ? 'desde el ' + cuando(c.aceptado) : 'invitado el ' + cuando(c.creado)) + '</small></span><span class="estado e-' + clase + '">' + t + '</span></li>'; }).join('') + '</ul>'
+        : '<p class="nota-corta">Sin clientes todavía.</p>') + '</section>').join('');
+}
+
 export function vistaAdministrar() {
   const titulo = '<div class="cab-vista"><h1>Administrar</h1>' + (datos ? '<button type="button" class="boton secundario" data-accion="adm-recargar">↻ Actualizar</button>' : '') + '</div>';
   if (!configurada && !datos) return titulo + '<section class="tarjeta"><p>Administrar necesita la nube (Supabase): sin ella cada quien ve toda la app.</p></section>';
@@ -107,7 +129,7 @@ export function vistaAdministrar() {
   if (!datos) return titulo + '<p class="nota-corta">Cargando…</p>';
   return titulo + '<nav class="chips pestanas">' + Object.entries(PESTANAS).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="adm-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    { usuarios, porUsuario, permisos, roles, ver: verComo }[pestana]();
+    { usuarios, entrenadores: vistaEntrenadores, porUsuario, permisos, roles, ver: verComo }[pestana]();
 }
 
 // Banner mientras el admin mira la app como otro
@@ -118,7 +140,8 @@ const idDe = (nombre) => nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLower
 
 registrar({
   'adm-pestana'({ p }) { pestana = p; repintar(); },
-  'adm-recargar'() { cargar(); },
+  'adm-recargar'() { cargar(); entrenadores = null; },
+  'adm-entrenadores'() { cargarEntrenadores(); },
   'adm-rol'({ u }, el) { cambiar('rutina_admin_rol', { p_usuario: u, p_rol: el.value }, 'Rol cambiado a ' + nombreRol(el.value)); },
   // Excepción de un usuario: "" quita la regla, "1" ver, "0" no ver
   'adm-regla'({ tipo, id, u }, el) {

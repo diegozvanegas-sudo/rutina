@@ -54,6 +54,14 @@ try {
   ok(mis.length === 1 && mis[0].correo === 'cliente@prueba.local' && mis[0].resumen.semanas[0].hechas === 20, 'el entrenador ve el correo y el resumen de su cliente');
   ok((await sql(OTRO, `select public.rutina_coach_clientes()`)).length === 0, 'otro usuario no ve clientes ajenos');
   ok(/no es válido/.test((await sql(CLI, `select public.rutina_cliente_compartir('[1]'::jsonb)`)).error || ''), 'un resumen que no es un objeto se rechaza');
+  // El administrador ve quién es cliente de quién, sin planes ni avance; los demás no
+  await db.query(`update rutina.perfiles set rol = 'admin' where usuario = $1`, [OTRO]);
+  const vista = await sql(OTRO, `select public.rutina_admin_entrenadores()`);
+  const fila = (vista || []).find((x) => x.entrenador === 'entrenador@prueba.local');
+  ok(fila && fila.clientes.length === 1 && fila.clientes[0].correo === 'cliente@prueba.local' && fila.clientes[0].estado === 'activo', 'el administrador ve que cliente@ es cliente activo de entrenador@');
+  ok(fila && !('resumen' in fila.clientes[0]) && !('plan' in fila.clientes[0]), 'y no ve su plan ni su avance');
+  ok(/Solo el administrador/.test((await sql(ENT, `select public.rutina_admin_entrenadores()`)).error || ''), 'un entrenador no puede ver la lista de todos');
+  await db.query(`update rutina.perfiles set rol = 'estudiante' where usuario = $1`, [OTRO]);
   // Nadie toca el estado completo de otro
   ok((await sql(ENT, `select count(*) from rutina.estado`)).error, 'el entrenador no puede leer los datos completos del cliente');
   // El cliente se sale: el entrenador deja de ver su resumen

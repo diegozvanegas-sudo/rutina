@@ -237,15 +237,44 @@ PLANTILLAS_RECORDATORIO.splice(PLANTILLAS_RECORDATORIO.length - 1, 0,
   { nombre: 'Revisar el botiquín', icono: '🩹', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'salud', grupo: 'casa', nota: 'Lo vencido a la basura; repón vendas, analgésicos y lo del fútbol (hielo en gel, venda elástica).' },
 );
 
-// Sugerencias para empezar (Recordatorios → 💡 Posibles para agregar): el nombre de la plantilla y para qué te sirve
+// Más plantillas pensadas como sugerencia (también salen en el catálogo); van antes de "Otro"
+PLANTILLAS_RECORDATORIO.splice(PLANTILLAS_RECORDATORIO.length - 1, 0,
+  { nombre: 'Dejar lista la comida de mañana', icono: '🍱', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 1, diario: true, categoria: 'mercado', grupo: 'casa', nota: 'Así no terminas comprando algo en la calle: guarda en recipientes lo del plan de Dieta.' },
+  { nombre: 'Revisar la agenda de mañana', icono: '🗓️', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 1, diario: true, categoria: 'otros', grupo: 'personal', nota: 'Un minuto en la noche: qué toca, a qué hora y qué llevar.' },
+  { nombre: 'Revisión de la semana (domingo)', icono: '🧭', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'otros', grupo: 'personal', nota: 'En 📈 Progreso: qué salió bien, qué no y el foco de la semana que viene.' },
+  { nombre: 'Cocinar en lote', icono: '🍲', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'mercado', grupo: 'casa', nota: 'Proteína y arroz para 3-4 días: el plan de comida se cumple solo.' },
+  { nombre: 'Planear los entrenos de la semana', icono: '📋', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'gym', grupo: 'deporte', nota: 'Mira los días de fútbol y acomoda la pierna lejos del partido.' },
+  { nombre: 'Revisar las cuentas del banco', icono: '🏦', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'otros', grupo: 'digital', nota: 'Que lo de Finanzas cuadre con lo que dice el banco y Nequi.' },
+  { nombre: 'Limpiar el casco por dentro', icono: '🪖', vehiculo: 'moto', cadaKm: 0, cadaMeses: 0, cadaDias: 15, grupo: 'moto', nota: 'El acolchado se lava a mano con jabón suave; déjalo secar a la sombra.' },
+  { nombre: 'Fotos de progreso', icono: '📸', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'gym', grupo: 'salud', nota: 'Frente, lado y espalda, con la misma luz y la misma hora: el espejo engaña, las fotos no.' },
+  { nombre: 'Revisar el presupuesto del mes', icono: '🎯', vehiculo: '', cadaKm: 0, cadaMeses: 1, categoria: 'otros', grupo: 'digital', nota: 'Finanzas → Presupuesto: ajusta las categorías que se pasaron.' },
+  { nombre: 'Vender o regalar lo que no uso', icono: '📦', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'otros', grupo: 'casa', nota: 'Lo que no usaste en un año: véndelo (plata extra) o regálalo.' },
+  { nombre: 'Limpiar el filtro del aire acondicionado', icono: '🌀', vehiculo: '', cadaKm: 0, cadaMeses: 3, categoria: 'vivienda', grupo: 'casa' },
+  { nombre: 'Afilar los cuchillos', icono: '🔪', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'otros', grupo: 'casa' },
+  { nombre: 'Prima de servicios', icono: '💼', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'otros', grupo: 'papeles', nota: 'Se paga a más tardar el 30 de junio y el 20 de diciembre: decide antes qué parte va a ahorro o a deudas.' },
+  { nombre: 'Actualizar beneficiarios', icono: '👨‍👩‍👧', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'otros', grupo: 'papeles', nota: 'Seguros, cesantías, pensión y cuentas: que estén las personas correctas.' },
+  { nombre: 'Kit de carretera de la moto', icono: '🧰', vehiculo: 'moto', cadaKm: 0, cadaMeses: 12, grupo: 'moto', nota: 'Herramienta básica, parche de llanta, linterna, chaleco reflectivo y botiquín.' },
+  { nombre: 'Refuerzo de la vacuna del tétano', icono: '💉', vehiculo: '', cadaKm: 0, cadaMeses: 120, categoria: 'salud', grupo: 'salud', nota: 'Cada 10 años, o antes si te haces una herida sucia. Pon en Editar los meses que te faltan.' },
+);
+
+// Sugerencias (Recordatorios → 💡 Posibles para agregar): el nombre de la plantilla, por cada cuánto toca
 export const SUGERIDOS = {
-  dia: ['Anotar los gastos del día', 'Maleta del gym lista'],
-  semana: ['Planear el mercado de la semana', 'Revisar los gastos de la semana', 'Lavar la ropa del gym y del fútbol', 'Cambiar sábanas', 'Presión de llantas', 'Lavar la moto'],
-  mes: ['Pasar a ahorro al recibir el pago', 'Pagar la tarjeta de crédito', 'Revisar el extracto del banco', 'Comprar suplementos', 'Medirse y pesarse', 'Copia de seguridad', 'Limpiar la nevera'],
-  meses: ['Control de tiroides (TSH)', 'Odontólogo', 'Revisar suscripciones', 'Filtro de agua', 'Cambiar contraseñas', 'Revisar centrales de riesgo', 'Guayos / tenis', 'Revisar el botiquín', 'Limpieza profunda'],
-  anio: ['SOAT', 'Revisión técnico-mecánica', 'Impuesto del vehículo', 'Chequeo médico', 'Exámenes de sangre', 'Declaración de renta', 'Revisar las cesantías', 'Revisar las metas del año', 'Líquido de frenos', 'Revisar batería'],
+  dia: ['Anotar los gastos del día', 'Maleta del gym lista', 'Dejar lista la comida de mañana', 'Revisar la agenda de mañana'],
+  semana: ['Planear el mercado de la semana', 'Cocinar en lote', 'Planear los entrenos de la semana', 'Revisión de la semana (domingo)', 'Revisar los gastos de la semana', 'Revisar las cuentas del banco',
+    'Lavar la ropa del gym y del fútbol', 'Cambiar sábanas', 'Lavar toallas', 'Limpiar el baño', 'Llamar a la familia', 'Regar las plantas', 'Presión de llantas', 'Lavar la moto', 'Limpiar el casco por dentro', 'Cambiar esponjas', 'Cortar las uñas'],
+  mes: ['Pasar a ahorro al recibir el pago', 'Pagar la tarjeta de crédito', 'Revisar el extracto del banco', 'Revisar el presupuesto del mes', 'Servicios públicos', 'Internet y TV', 'Plan del celular', 'Arriendo', 'Administración',
+    'Seguridad social', 'Cuota de crédito', 'Cuota de la moto', 'Medicina prepagada', 'Mensualidad del gym', 'Cancha / liga', 'Comprar suplementos', 'Reclamar la fórmula médica', 'Medirse y pesarse', 'Fotos de progreso',
+    'Revisar metas', 'Copia de seguridad', 'Limpiar la nevera', 'Cuchillas de afeitar', 'Motilada', 'Revisar luces y pito', 'Masaje / fisioterapia', 'Pipeta de gas'],
+  meses: ['Control de tiroides (TSH)', 'Odontólogo', 'Revisar suscripciones', 'Filtro de agua', 'Cambiar contraseñas', 'Revisar centrales de riesgo', 'Guayos / tenis', 'Medias y canilleras', 'Revisar el botiquín',
+    'Limpieza profunda', 'Cepillo de dientes', 'Limpiar la lavadora', 'Limpiar el filtro del aire acondicionado', 'Fumigar', 'Limpiar el computador', 'Actualizar el celular', 'Organizar las fotos', 'Actualizar la hoja de vida',
+    'Consultar comparendos', 'Planear vacaciones', 'Vender o regalar lo que no uso', 'Afilar los cuchillos', 'Prima de servicios', 'Abono a capital de la hipoteca'],
+  anio: ['SOAT', 'Revisión técnico-mecánica', 'Impuesto del vehículo', 'Licencia de conducción', 'Chequeo médico', 'Exámenes de sangre', 'Optómetra', 'Limpieza dental', 'Dermatólogo', 'Vacuna de la influenza', 'Tomar la tensión',
+    'Declaración de renta', 'Certificados y extractos', 'Actualizar el RUT', 'Revisar las cesantías', 'Actualizar beneficiarios', 'Seguro / póliza', 'Seguro de hogar', 'Impuesto predial', 'Revisar las metas del año',
+    'Líquido de frenos', 'Revisar batería', 'Revisar suspensión', 'Kit de carretera de la moto', 'Mantenimiento del calentador', 'Guantes y straps del gym', 'Camiseta y pantaloneta', 'Zapatos', 'Ropa interior y medias',
+    'Inscripción a torneo', 'Pagar dominio o página web', 'Pasaporte', 'Refuerzo de la vacuna del tétano', 'Impermeable y guantes', 'Cambiar almohada', 'Refrigerante', 'Cambiar casco'],
+  km: ['Lubricar cadena', 'Tensionar cadena', 'Cambio de aceite', 'Mantenimiento general', 'Guayas (clutch y acelerador)', 'Aceite de transmisión', 'Filtro de aire', 'Bujía', 'Pastillas de freno', 'Llantas', 'Filtro de gasolina', 'Kit de arrastre (cadena)'],
 };
-export const TITULOS_SUGERIDOS = { dia: 'Cada día', semana: 'Cada semana', mes: 'Cada mes', meses: 'Cada pocos meses', anio: 'Cada año' };
+export const TITULOS_SUGERIDOS = { dia: 'Cada día', semana: 'Cada semana', mes: 'Cada mes', meses: 'Cada pocos meses', anio: 'Cada año o más', km: '🏍️ Por kilómetros' };
 
 export const GRUPOS_PLANTILLA = { pagos: '💳 Pagos', moto: '🏍️ Moto', papeles: '📄 Papeles', salud: '🩺 Salud', deporte: '⚽ Deporte', casa: '🏠 Casa', digital: '💻 Digital y dinero', personal: '🧍 Personal', mascota: '🐾 Mascota' };
 

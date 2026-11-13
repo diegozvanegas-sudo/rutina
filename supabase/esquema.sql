@@ -474,6 +474,25 @@ begin
 end;
 $$;
 
+-- Para el administrador: cada entrenador con sus clientes (quién es cliente de quién y si está activo). Sin planes ni avance
+create or replace function public.rutina_admin_entrenadores()
+returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  perform rutina.solo_admin();
+  return coalesce((
+    select jsonb_agg(jsonb_build_object('entrenador', u.email, 'rol', p.rol, 'clientes', coalesce((
+      select jsonb_agg(jsonb_build_object('correo', c.email, 'estado', a.estado, 'creado', a.creado, 'aceptado', a.aceptado) order by a.creado)
+      from rutina.asignaciones a left join auth.users c on c.id = a.cliente
+      where a.entrenador = p.usuario and a.estado <> 'terminado'), '[]'::jsonb)) order by u.email)
+    from rutina.perfiles p join auth.users u on u.id = p.usuario
+    where p.rol in ('admin', 'entrenador') or exists (select 1 from rutina.asignaciones a where a.entrenador = p.usuario and a.estado <> 'terminado')), '[]'::jsonb);
+end;
+$$;
+revoke execute on function public.rutina_admin_entrenadores() from public, anon;
+grant execute on function public.rutina_admin_entrenadores() to authenticated;
+
 revoke execute on function rutina.puede_entrenar() from public, anon, authenticated;
 revoke execute on function public.rutina_coach_invitar(text) from public, anon;
 revoke execute on function public.rutina_coach_publicar(text, jsonb) from public, anon;

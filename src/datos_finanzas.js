@@ -222,6 +222,31 @@ export const PLANTILLAS_RECORDATORIO = [
   { nombre: 'Comida de la mascota', icono: '🦴', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'mascotas', grupo: 'mascota' },
   { nombre: 'Otro', icono: '🔔', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 30, categoria: 'otros', grupo: 'personal' },
 ];
+// Plantillas nuevas pensadas como sugerencia (también salen en el catálogo de "Agregar recordatorio"); van antes de "Otro", que sigue al final
+PLANTILLAS_RECORDATORIO.splice(PLANTILLAS_RECORDATORIO.length - 1, 0,
+  { nombre: 'Anotar los gastos del día', icono: '🧾', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 1, diario: true, categoria: 'otros', grupo: 'digital', nota: 'Dos minutos en la noche: lo que no se anota el mismo día se olvida.' },
+  { nombre: 'Maleta del gym lista', icono: '🎒', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 1, diario: true, categoria: 'gym', grupo: 'deporte', nota: 'La noche antes: ropa, toalla, agua, creatina y audífonos.' },
+  { nombre: 'Planear el mercado de la semana', icono: '🛒', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'mercado', grupo: 'casa', nota: 'Mira el plan de Dieta y arma la lista en Compras.' },
+  { nombre: 'Revisar los gastos de la semana', icono: '💰', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'otros', grupo: 'digital', nota: 'Finanzas → Mes: ¿vas dentro del presupuesto?' },
+  { nombre: 'Lavar la ropa del gym y del fútbol', icono: '🧺', vehiculo: '', cadaKm: 0, cadaMeses: 0, cadaDias: 7, categoria: 'otros', grupo: 'deporte' },
+  { nombre: 'Pasar a ahorro al recibir el pago', icono: '🐷', vehiculo: '', cadaKm: 0, cadaMeses: 1, categoria: 'otros', grupo: 'pagos', nota: 'Primero te pagas a ti: muévelo a Finanzas → Ahorro el mismo día que entra el sueldo.' },
+  { nombre: 'Pagar la tarjeta de crédito', icono: '💳', vehiculo: '', cadaKm: 0, cadaMeses: 1, categoria: 'deudas', grupo: 'pagos', nota: 'Pon en Editar el día fijo de pago. Pagar el total evita intereses.' },
+  { nombre: 'Revisar el extracto del banco', icono: '🏦', vehiculo: '', cadaKm: 0, cadaMeses: 1, categoria: 'otros', grupo: 'digital', nota: 'Cobros que no reconoces, cuotas de manejo y seguros que no pediste.' },
+  { nombre: 'Control de tiroides (TSH)', icono: '🦋', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'salud', grupo: 'salud', nota: 'Por la levotiroxina. Ajusta cada cuánto según lo que diga tu médico.' },
+  { nombre: 'Revisar las metas del año', icono: '🎯', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'otros', grupo: 'personal', nota: 'Qué cumpliste, qué no y qué quieres para el próximo año (Metas y Progreso).' },
+  { nombre: 'Revisar el botiquín', icono: '🩹', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'salud', grupo: 'casa', nota: 'Lo vencido a la basura; repón vendas, analgésicos y lo del fútbol (hielo en gel, venda elástica).' },
+);
+
+// Sugerencias para empezar (Recordatorios → 💡 Posibles para agregar): el nombre de la plantilla y para qué te sirve
+export const SUGERIDOS = {
+  dia: ['Anotar los gastos del día', 'Maleta del gym lista'],
+  semana: ['Planear el mercado de la semana', 'Revisar los gastos de la semana', 'Lavar la ropa del gym y del fútbol', 'Cambiar sábanas', 'Presión de llantas', 'Lavar la moto'],
+  mes: ['Pasar a ahorro al recibir el pago', 'Pagar la tarjeta de crédito', 'Revisar el extracto del banco', 'Comprar suplementos', 'Medirse y pesarse', 'Copia de seguridad', 'Limpiar la nevera'],
+  meses: ['Control de tiroides (TSH)', 'Odontólogo', 'Revisar suscripciones', 'Filtro de agua', 'Cambiar contraseñas', 'Revisar centrales de riesgo', 'Guayos / tenis', 'Revisar el botiquín', 'Limpieza profunda'],
+  anio: ['SOAT', 'Revisión técnico-mecánica', 'Impuesto del vehículo', 'Chequeo médico', 'Exámenes de sangre', 'Declaración de renta', 'Revisar las cesantías', 'Revisar las metas del año', 'Líquido de frenos', 'Revisar batería'],
+};
+export const TITULOS_SUGERIDOS = { dia: 'Cada día', semana: 'Cada semana', mes: 'Cada mes', meses: 'Cada pocos meses', anio: 'Cada año' };
+
 export const GRUPOS_PLANTILLA = { pagos: '💳 Pagos', moto: '🏍️ Moto', papeles: '📄 Papeles', salud: '🩺 Salud', deporte: '⚽ Deporte', casa: '🏠 Casa', digital: '💻 Digital y dinero', personal: '🧍 Personal', mascota: '🐾 Mascota' };
 
 export const RECORDATORIOS = () => ({

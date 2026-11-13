@@ -4,7 +4,7 @@ import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta, fechaLarga, diasEntre } from '../fechas.js';
 import { ordenarEventos, eventosCerca, cuandoFalta, AVISAR_DIAS } from '../eventos.js';
 import { estadoRecordatorio, proximoRecordatorio, tocaYa, recordatoriosAutomaticos, ritmoKm, kmActual, pesos, leerMonto } from '../finanzas.js';
-import { PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../datos_finanzas.js';
+import { PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA, SUGERIDOS, TITULOS_SUGERIDOS } from '../datos_finanzas.js';
 import { esc, barra, tip, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
 import { seccionCirculo } from './vida.js';
@@ -125,6 +125,32 @@ function fila(x, i) {
       (que === 'hecho' ? panelHecho(x, actual) : que === 'historial' && x.hechos.length ? panelHistorial(x) : que === 'editar' ? panelEditar(x, i) : '') + '</div>' : '') + '</section>';
 }
 
+// ---------- 💡 Posibles para agregar: ideas por frecuencia; ＋ lo agrega (y lo deja abierto en Editar), ✕ lo descarta ----------
+let sugVista = null;
+const llano = (t) => String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+function sugeridos() {
+  const tengo = new Set(r().lista.map((x) => llano(x.nombre))), fuera = new Set((r().descartados || []).map(llano));
+  const grupos = Object.fromEntries(Object.entries(SUGERIDOS).map(([g, nombres]) => [g, nombres
+    .map((n) => PLANTILLAS_RECORDATORIO.findIndex((p) => p.nombre === n)).filter((k) => k >= 0)
+    .filter((k) => !tengo.has(llano(PLANTILLAS_RECORDATORIO[k].nombre)) && !fuera.has(llano(PLANTILLAS_RECORDATORIO[k].nombre)))]));
+  const total = Object.values(grupos).reduce((s, x) => s + x.length, 0), ocultos = (r().descartados || []).length;
+  if (!total && !ocultos) return '';
+  if (!sugVista || !grupos[sugVista] || !grupos[sugVista].length) sugVista = Object.keys(grupos).find((g) => grupos[g].length) || 'semana';
+  return '<section class="tarjeta sugeridos"><h2>💡 Posibles para agregar (' + total + ')</h2>' +
+    '<p class="nota-corta">Ideas para el día a día. ＋ lo agrega a tus recordatorios y lo deja abierto para ajustarlo; ✕ si no te sirve.</p>' +
+    '<div class="chips" role="group" aria-label="Cada cuánto">' + Object.entries(TITULOS_SUGERIDOS).filter(([g]) => grupos[g].length).map(([g, t]) =>
+      '<button type="button" class="chip' + (g === sugVista ? ' activo' : '') + '" data-accion="rec-sug-vista" data-v="' + g + '" aria-pressed="' + (g === sugVista) + '">' + t + ' (' + grupos[g].length + ')</button>').join('') + '</div>' +
+    '<div class="lista-rec">' + (grupos[sugVista] || []).map((k) => {
+      const p = PLANTILLAS_RECORDATORIO[k];
+      return '<div class="rec-fila sug"><div class="rec-linea"><div class="rec-abrir rec-info"><span class="rec-ic" aria-hidden="true">' + p.icono + '</span>' +
+        '<b class="rec-nombre">' + esc(p.nombre) + '</b><span class="estado e-programado">' + esc((p.diario ? 'Todos los días' : regla(p)).replace(/ \(lo que pase primero\)/, '')) + '</span>' +
+        '<span class="rec-cuando">' + esc(p.nota || '') + '</span></div>' +
+        '<span class="sug-botones"><button type="button" class="boton primario rec-ok" data-accion="rec-agregar" data-k="' + k + '" aria-label="Agregar ' + esc(p.nombre) + '"><span aria-hidden="true">＋</span><span class="rec-ok-txt">Agregar</span></button>' +
+        '<button type="button" class="icono sug-quitar" data-accion="rec-sug-quitar" data-n="' + esc(p.nombre) + '" aria-label="No me sirve: ' + esc(p.nombre) + '">✕</button></span></div></div>';
+    }).join('') + '</div>' +
+    (ocultos ? '<button type="button" class="enlace" data-accion="rec-sug-volver">Ver otra vez los ' + ocultos + ' que descartaste</button>' : '') + '</section>';
+}
+
 // ---------- Eventos ----------
 const ESTADO_EVENTO = { hoy: ['pronto', 'Hoy'], pronto: ['pronto', ''], programado: ['programado', ''], 'por-confirmar': ['sin-dato', 'Por confirmar'] };
 const buscar = (x) => 'https://www.google.com/search?q=' + encodeURIComponent(x.nombre + ' fecha');
@@ -233,6 +259,7 @@ export function vistaRecordatorios() {
       [['pendiente', 'De hoy'], ['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día'], ['programado', 'Programados']].filter(([k]) => cuenta(k)).map(([k, t]) =>
         '<button type="button" class="chip' + (filtroEstado === k ? ' activo' : '') + '" data-accion="rec-filtro" data-v="' + k + '">' + t + ' (' + cuenta(k) + ')</button>').join('') + '</div>' : '') +
     (lista.length ? '<div class="lista-rec">' + visibles.map(({ x, i }) => fila(x, i)).join('') + '</div>' : '<section class="tarjeta"><p class="nota-corta">Aún no tienes recordatorios. Toca ＋ Agregar y escoge uno.</p></section>') +
+    sugeridos() +
     seccionEventos() +
     (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2><div class="lista-rec">' + auto.map((a) =>
       '<section class="rec-fila rec-e-' + a.estado + '"><div class="rec-linea"><div class="rec-abrir rec-info">' +
@@ -336,6 +363,14 @@ registrar({
     repintar();
   },
   'rec-filtro'({ v }) { filtroEstado = v; repintar(); },
+  'rec-sug-vista'({ v }) { sugVista = v; repintar(); },
+  'rec-sug-quitar'({ n }) {
+    const lista = (r().descartados ??= []);
+    if (!lista.includes(n)) lista.push(n);
+    guardar();
+    toast('Listo: ya no sale «' + n + '»', () => { r().descartados = r().descartados.filter((x) => x !== n); guardar(); });
+  },
+  'rec-sug-volver'() { delete r().descartados; guardar(); },
   'rec-abrir-agregar'() {
     agregarAbierto = true;
     const caja = document.getElementById('rec-agregar');

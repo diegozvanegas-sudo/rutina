@@ -254,11 +254,11 @@ function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
         (sug ? ' · Hoy: <b class="' + (sug.sube ? 'sugerido-sube' : '') + '">' + esc(sug.texto) + (sug.sube ? ' ⬆' : '') + '</b>' : '') + '</div>') +
     (ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null, !!meta) : '') + avisosRaros(f, sem, clave, reg, ult) +
     '<div class="entradas">' +
-    '<input class="peso" type="text" inputmode="decimal" data-cambio="peso" data-fila="' + clave + '" value="' + esc(reg.peso || '') + '" placeholder="' + esc(sug ? formatoPeso(sug.peso) : 'Peso') + '" aria-label="Peso">' +
+    '<input class="peso" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-sig="[data-serie]" data-cambio="peso" data-fila="' + clave + '" value="' + esc(reg.peso || '') + '" placeholder="' + esc(sug ? formatoPeso(sug.peso) : 'Peso') + '" aria-label="Peso">' +
     '<select data-cambio="unidad" data-fila="' + clave + '" aria-label="Unidad"><option' + (unidad === 'kg' ? ' selected' : '') + '>kg</option><option' + (unidad === 'discos' ? ' selected' : '') + '>discos</option></select>' +
-    '<input class="reps" type="text" data-cambio="reps" data-fila="' + clave + '" value="' + esc(reg.reps || '') + '" placeholder="Reps: 10 9 8" aria-label="Repeticiones de cada serie, separadas por espacio" autocomplete="off">' +
+    '<input class="reps" type="text" data-solo="reps" enterkeyhint="done" data-cambio="reps" data-fila="' + clave + '" value="' + esc(reg.reps || '') + '" placeholder="Reps: 10 9 8" aria-label="Repeticiones de cada serie, separadas por espacio" autocomplete="off">' +
     '</div>' +
-    (est.hechas < est.plan && !sinRapida ? '<div class="serie-rapida" data-ancla="serie-' + esc(clave) + '"><input type="text" inputmode="numeric" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
+    (est.hechas < est.plan && !sinRapida ? '<div class="serie-rapida" data-ancla="serie-' + esc(clave) + '"><input type="text" inputmode="numeric" enterkeyhint="send" autocomplete="off" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
       '<button type="button" class="boton primario" data-accion="serie" data-fila="' + clave + '">＋ Serie ' + (est.hechas + 1) + ' y descanso</button></div>' : '') +
     (est.hechas && f.unidad !== 's' ? '<div class="rir" role="group" aria-label="¿Cuántas reps te quedaban en la última serie?" title="¿Cuántas reps te quedaban en la última serie?"><span>Te quedaban:</span><span class="raro-botones">' + [0, 1, 2, 3, 4].map(rir).join('') + '</span></div>' : '') +
     '</div>';
@@ -716,7 +716,7 @@ registrar({
   unidad({ fila: id }, el) { marcarVariante(id); (registros(semanaVista)[id] ??= {}).unidad = el.value; guardar(); },
   reps({ fila: id }, el) { cambiarReps(id, el.value); },
   serie({ fila: id }, el) {
-    const campo = el.parentNode.querySelector('[data-serie]'), n = campo.value.trim();
+    const campo = el.parentNode.querySelector('[data-serie]'), n = campo.value.trim(), conTeclado = document.activeElement === campo;
     if (!/^\d+([.,]\d+)?$/.test(n)) { toast('Escribe las reps de la serie'); campo.focus(); return; }
     campo.value = '';
     const reg = registros(semanaVista)[id] || {};
@@ -725,7 +725,14 @@ registrar({
       const info = buscarFila(id), sug = sugerencia(info.f, ultimoRegistro(e().semanas, info.f, semanaVista, filtroEn(info.ej, semanaVista, sufijoDe(id))));
       if (sug) (registros(semanaVista)[id] ??= {}).peso = String(sug.peso);
     }
+    const ejId = buscarFila(id).ej.id;
     cambiarReps(id, ((reg.reps || '') + ' ' + n).trim());
+    // Si la fila se terminó, el campo desaparece: el foco pasa a la siguiente serie del mismo ejercicio (si no hay, main.js lleva al siguiente)
+    if (conTeclado) setTimeout(() => {
+      if (document.activeElement && document.activeElement.matches('[data-serie]')) return;
+      const tarjeta = [...document.querySelectorAll('[data-ancla^="ej-"]')].find((t) => t.dataset.ancla === 'ej-' + ejId), sig = tarjeta && tarjeta.querySelector('[data-serie]');
+      if (sig) { sig.focus({ preventScroll: true }); sig.scrollIntoView({ block: 'nearest' }); }
+    }, 80);
   },
   nota({ ej: id }, el) {
     for (const d of e().rutina) for (const ej of d.ejercicios) if (ej.id === id) ej.nota = el.value.trim();

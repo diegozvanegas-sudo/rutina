@@ -312,6 +312,31 @@ document.addEventListener('input', (ev) => {
   for (let n = 0; pos < nuevo.length && n < digitosAntes; pos++) if (/\d/.test(nuevo[pos])) n++;
   el.setSelectionRange(pos, pos);
 });
+// Solo números donde van números (campos de texto con teclado numérico; los de dinero tienen su propio formato).
+// numeric: solo dígitos · decimal: dígitos, coma, punto y espacios (un drop set "91 59 72") · data-solo="reps": "10 9 8"
+const PERMITIDO = { numeric: /[^\d]/g, decimal: /[^\d.,\s]/g, reps: /[^\d.,\s]/g };
+document.addEventListener('input', (ev) => {
+  const el = ev.target;
+  if (!el.matches || el.type !== 'text' || el.matches('[data-pesos]')) return;
+  const regla = PERMITIDO[el.dataset.solo || el.inputMode];
+  if (!regla) return;
+  const v = el.value, limpio = v.replace(regla, '');
+  if (limpio === v) return;
+  const cursor = (el.selectionStart ?? v.length) - (v.length - limpio.length);
+  el.value = limpio;
+  try { el.setSelectionRange(Math.max(0, cursor), Math.max(0, cursor)); } catch (err) {}
+});
+// Enter en el celular ("Ir" o "Siguiente") pasa al siguiente campo de la misma tarjeta, como Tab; en el último se cierra el teclado.
+// data-sig: a dónde salta (selector dentro de la misma fila o tarjeta), para cuando lo siguiente no es lo de al lado
+const campoSiguiente = (el) => {
+  const sig = el.dataset.sig && el.closest('.fila-ej, .tarjeta, section');
+  if (sig) { const x = sig.querySelector(el.dataset.sig); if (x) return x; }
+  const caja = el.closest('.fila-ej, .ed-ej, .tarjeta, section, form, details');
+  if (!caja) return null;
+  const todos = [...caja.querySelectorAll('input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=date]):not([type=time]):not([readonly]):not([disabled]), textarea:not([readonly])')]
+    .filter((x) => x.offsetParent !== null);
+  return todos[todos.indexOf(el) + 1] || null;
+};
 // "Enter"/"Ir" en el teclado del celular guarda el campo
 document.addEventListener('keydown', (ev) => {
   if (ev.key !== 'Enter' || ev.target.tagName !== 'INPUT') return;
@@ -320,6 +345,8 @@ document.addEventListener('keydown', (ev) => {
   if (ev.target.id === 'nube-clave') { ev.preventDefault(); ejecutar('nube-entrar', ev.target, ev); return; }
   // data-enter: Enter toca ese botón (agregar a la lista de compras sin soltar el teclado)
   if (ev.target.dataset.enter) { ev.preventDefault(); const b = document.querySelector('[data-accion="' + ev.target.dataset.enter + '"]'); if (b) b.click(); return; }
+  const sig = campoSiguiente(ev.target);
+  if (sig) { ev.preventDefault(); sig.focus({ preventScroll: true }); sig.scrollIntoView({ block: 'nearest' }); if (sig.select && sig.value) sig.select(); return; }
   ev.target.blur();
 });
 
@@ -343,11 +370,67 @@ registrar({
 
 // Arrastre con eventos de puntero: funciona con mouse y con el dedo (el de HTML5 no sirve en el celular)
 document.addEventListener('pointerdown', (ev) => {
-  const asa = ev.target.closest && ev.target.closest('.asa-fila, .asa-barra');
+  const asa = ev.target.closest && ev.target.closest('.asa-fila, .asa-barra, .asa-orden');
   if (!asa) return;
   ev.preventDefault();
   if (asa.classList.contains('asa-barra')) arrastrarAncho(ev);
+  else if (asa.classList.contains('asa-orden')) arrastrarOrden(ev, asa.closest('[data-orden-i], [data-orden-id]'));
   else arrastrarFila(ev, asa.closest('.fila-menu'));
+});
+// Cualquier lista de Editar: el contenedor lleva data-orden-lista="rutina.0.ejercicios" (o data-orden-tipo="hoy" para las pantallas)
+// y cada elemento data-orden-i (su posición) o data-orden-id. Se arrastra del asa ⠿; cerca del borde de la pantalla, se desplaza sola
+function arrastrarOrden(ev, item) {
+  if (!item) return;
+  const caja = item.parentNode, hermanos = () => [...caja.children].filter((x) => x !== item && (x.dataset.ordenI != null || x.dataset.ordenId != null));
+  let y = ev.clientY, antes = item.nextElementSibling;
+  // Se compara el centro del renglón que se arrastra (no el dedo): en el celular el asa queda arriba de un renglón de dos líneas
+  const r0 = item.getBoundingClientRect(), desfase = r0.top + r0.height / 2 - ev.clientY;
+  const ubicar = () => {
+    const centro = y + desfase;
+    const sig = hermanos().find((x) => { const r = x.getBoundingClientRect(); return centro < r.top + r.height / 2; });
+    // Lo que no es de la lista (el renglón de agregar, notas) se queda al final
+    const fin = hermanos().pop();
+    const destino = sig || (fin ? fin.nextElementSibling : null);
+    if (destino !== item.nextElementSibling && destino !== item) caja.insertBefore(item, destino);
+  };
+  const borde = setInterval(() => {
+    const paso = y < 90 ? -14 : y > innerHeight - 90 ? 14 : 0;
+    if (paso) { scrollBy(0, paso); ubicar(); }
+  }, 16);
+  item.classList.add('orden-moviendo');
+  arrastrar(ev, (m) => { y = m.clientY; ubicar(); }, () => {
+    clearInterval(borde);
+    item.classList.remove('orden-moviendo');
+    if (item.nextElementSibling === antes) return; // no se movió
+    soltarOrden(caja, item);
+  });
+}
+function soltarOrden(caja, item) {
+  if (caja.dataset.ordenLista) {
+    const orden = [...caja.children].filter((x) => x.dataset.ordenI != null).map((x) => x.dataset.ordenI);
+    ejecutar('ed-ordenar', { dataset: { lista: caja.dataset.ordenLista, orden: orden.join(',') } });
+  } else if (caja.dataset.ordenTipo) {
+    const sig = item.nextElementSibling;
+    ejecutar('orden-colocar', { dataset: { tipo: caja.dataset.ordenTipo, id: item.dataset.ordenId, antes: sig && sig.dataset.ordenId != null ? sig.dataset.ordenId : '' } });
+  }
+}
+// Con teclado: flechas arriba y abajo sobre el asa
+document.addEventListener('keydown', (ev) => {
+  if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.target.matches || !ev.target.matches('.asa-orden')) return;
+  const item = ev.target.closest('[data-orden-i], [data-orden-id]'), caja = item && item.parentNode;
+  if (!caja) return;
+  ev.preventDefault();
+  const lista = [...caja.children].filter((x) => x.dataset.ordenI != null || x.dataset.ordenId != null), k = lista.indexOf(item), otro = lista[k + (ev.key === 'ArrowUp' ? -1 : 1)];
+  if (!otro) return;
+  caja.insertBefore(item, ev.key === 'ArrowUp' ? otro : otro.nextElementSibling);
+  const clave = item.dataset.ordenI != null ? 'ordenI' : 'ordenId', valor = item.dataset[clave];
+  soltarOrden(caja, item);
+  // Después de repintar, el foco vuelve al asa del mismo elemento (ya en su posición nueva)
+  setTimeout(() => {
+    const nueva = clave === 'ordenId' ? document.querySelector('[data-orden-id="' + valor + '"] .asa-orden')
+      : document.querySelectorAll('[data-orden-lista="' + caja.dataset.ordenLista + '"] > [data-orden-i] .asa-orden')[k + (ev.key === 'ArrowUp' ? -1 : 1)];
+    if (nueva) nueva.focus({ preventScroll: true });
+  }, 30);
 });
 function arrastrar(ev, alMover, alSoltar) {
   const fin = () => {

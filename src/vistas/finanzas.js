@@ -13,6 +13,7 @@ import { barrasAgrupadas, linea, tablaDatos } from '../graficos.js';
 import { esc, barra, registrar, toast, subirBajar, miles } from '../ui.js';
 import { vistaEsperas } from './vida.js';
 import { vistaCalculadora, valorCalculadora } from './calculadora.js';
+import { vistaDesempleo } from './desempleo.js';
 
 let pestana = 'registrar', mesVista = null, filtroCat = null;
 const form = { tipo: 'gasto', categoria: null, sub: null, metodo: null, destino: null, monto: '', nota: '', fecha: null, editando: null, deuda: null };
@@ -434,10 +435,10 @@ function vistaPrestamos() {
 }
 
 export function vistaFinanzas() {
-  const tabs = { registrar: '➕ Registrar', calcular: '🧮 Calcular', mes: '📊 Mes', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h' };
+  const tabs = { registrar: '➕ Registrar', calcular: '🧮 Calcular', mes: '📊 Mes', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h', planb: '🛟 Plan B' };
   return '<h1>Finanzas</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="fin-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    ({ mes: vistaMes, resumen: vistaResumen, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas, prestamos: vistaPrestamos, esperas: vistaEsperas, calcular: vistaCalculadora }[pestana] || vistaRegistrar)();
+    ({ mes: vistaMes, resumen: vistaResumen, presupuesto: vistaPresupuesto, fijos: vistaFijos, ahorro: vistaAhorro, deudas: vistaDeudas, prestamos: vistaPrestamos, esperas: vistaEsperas, calcular: vistaCalculadora, planb: vistaDesempleo }[pestana] || vistaRegistrar)();
 }
 
 // ---------- Hoy: lo que queda para deseos ----------

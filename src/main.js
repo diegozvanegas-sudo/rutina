@@ -31,6 +31,7 @@ import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
 import { vistaAdministrar, bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
+import { vistaVentas } from './vistas/ventas.js';
 
 registerSW({ immediate: true });
 // Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
@@ -47,13 +48,16 @@ const PANTALLAS = {
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
 // Administrar no está en el catálogo (ni se ordena ni se esconde): solo la ve el admin
 VISTAS.administrar = ['🛡️', 'Administrar', vistaAdministrar];
+// 💼 Ventas (vender los PDF): igual que Administrar, solo el admin y nunca en la vista previa de otro rol
+VISTAS.ventas = ['💼', 'Ventas', vistaVentas];
+const SOLO_ADMIN = ['administrar', 'ventas'];
 // 📚 Libros es un área de 🎓 Estudiar: no sale en el menú, pero sus enlaces (#libros/fenix) siguen funcionando
 VISTAS.libros = ['📚', 'Libros', vistaLibros];
 const DENTRO = { libros: 'estudiar' };
 const $ = (id) => document.getElementById(id);
 // "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta".
 // Lo que el admin escondió no se abre ni por enlace: se va a Hoy
-const permitida = (v) => (v === 'administrar' ? esAdmin() && !viendoComo() : v === 'libros' ? veRuta([['seccion', 'estudiar'], ['area', 'libros']]) : ve('seccion', v));
+const permitida = (v) => (SOLO_ADMIN.includes(v) ? esAdmin() && !viendoComo() : v === 'libros' ? veRuta([['seccion', 'estudiar'], ['area', 'libros']]) : ve('seccion', v));
 const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] && permitida(v) ? v : 'hoy'; };
 function abrirPestana() {
   const [v, sub] = location.hash.slice(1).split('/');
@@ -65,7 +69,7 @@ function abrirPestana() {
 function enlaces() {
   const avisos = alertas().length;
   // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
-  const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || actual() === 'entrenador')).concat(permitida('administrar') ? ['administrar'] : []);
+  const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || actual() === 'entrenador')).concat(SOLO_ADMIN.filter(permitida));
   return ids.map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
     '<a href="#' + k + '" title="' + nombre + '"' + (k === (DENTRO[actual()] || actual()) ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span class="ocultable">' + nombre + '</span>' +
     (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');

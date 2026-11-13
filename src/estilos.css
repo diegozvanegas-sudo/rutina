@@ -517,6 +517,64 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .cr-sol.elegida input { border-color: var(--amarillo); }
 .cr-num { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-2); font-weight: 700; font-size: 13px; }
 .cr-estrella { font-size: 20px; }
+/* 💼 Ventas (solo el superadmin) */
+.vt-producto h2 small { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); vertical-align: middle; }
+.vt-estado.listo { color: var(--azul); } .vt-estado.venta { color: var(--verde); }
+.vt-falta { color: var(--amarillo); }
+.vt-marco { margin: 10px auto; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: #0f1316; max-width: 100%; }
+.vt-marco.cel { width: 390px; } .vt-marco.pc { width: 100%; }
+.vt-marco iframe { display: block; width: 100%; height: min(78vh, 760px); border: 0; background: #0f1316; }
+.vt-papel { margin-top: 12px; padding: clamp(16px, 4vw, 40px); border-radius: 10px; background: #fff; color: #111; font: 15px/1.5 system-ui, sans-serif; max-height: 80vh; overflow: auto; }
+.vt-papel h1 { font-size: 26px; margin: 0; color: #111; } .vt-papel h2 { font-size: 19px; margin: 22px 0 8px; color: #0d6b45; } .vt-papel h3 { font-size: 16px; margin: 14px 0 6px; color: #111; }
+.vt-papel table { width: 100%; border-collapse: collapse; margin: 6px 0; font-size: 13px; display: block; overflow-x: auto; }
+.vt-papel th, .vt-papel td { border-bottom: 1px solid #ddd; padding: 5px 6px; text-align: left; vertical-align: top; }
+.vt-papel th { background: #f1f5f3; }
+.vt-papel small { color: #555; }
+/* Finanzas → Plan B → Módulo 4 (innovación) */
+.in-tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px; margin: 8px 0 12px; }
+.in-tipos > div { display: grid; gap: 4px; padding: 10px; border-radius: 12px; background: var(--surface-2); }
+.in-tipos small { color: var(--muted); font-size: 13px; }
+.in-problemas, .in-entrevistas, .in-ideas { display: grid; gap: 8px; margin: 8px 0; }
+.in-problema, .in-idea { display: grid; gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.in-problema.elegido, .in-idea.elegida { border-color: var(--amarillo); box-shadow: 0 0 0 1px var(--amarillo) inset; }
+.in-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; }
+.in-criterio { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
+.in-criterio small { color: var(--muted); font-size: 13px; }
+.in-pie { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.in-scamper { display: grid; gap: 6px; margin: 6px 0 12px; }
+.in-scamper small { display: block; color: var(--muted); font-size: 12px; }
+.in-letra { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: #f472b6; color: #2a0a1a; font-size: 13px; margin-right: 4px; }
+.in-matriz { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.in-eje { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; }
+.in-eje small { min-width: 58px; }
+.in-eje .chip { min-width: 52px; justify-content: center; padding-inline: 10px; }
+.in-q { font-size: 13px; padding: 3px 8px; border-radius: 999px; background: var(--surface); color: var(--ink); }
+.in-q.ya { color: var(--verde); } .in-q.plan { color: var(--azul); } .in-q.rapida { color: var(--amarillo); } .in-q.no { color: var(--muted); }
+.in-tablero { display: grid; grid-template-columns: 22px 1fr 1fr; grid-template-rows: auto auto auto; gap: 6px; margin: 12px 0 4px; }
+.in-eje-y { grid-column: 1; grid-row: 1 / 3; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: 12px; color: var(--muted); }
+.in-eje-x { grid-column: 2 / 4; text-align: right; font-size: 12px; color: var(--muted); }
+.in-caja { display: flex; flex-wrap: wrap; align-content: start; gap: 4px; min-height: 76px; padding: 8px; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--line); }
+.in-caja small { width: 100%; font-weight: 700; font-size: 12px; }
+.in-caja span { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface); }
+.in-caja span.elegida { outline: 1px solid var(--amarillo); }
+.in-caja.ya { border-color: var(--verde); } .in-caja.ya small { color: var(--verde); }
+.in-caja.plan small { color: var(--azul); } .in-caja.rapida small { color: var(--amarillo); } .in-caja.no { opacity: .7; }
+.in-frase { margin: 10px 0 0; padding: 12px 14px; border-left: 4px solid var(--brand); border-radius: 8px; background: var(--brand-soft); font-size: 16px; line-height: 1.45; }
+.in-tres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.in-tres .campo { font-size: 13px; }
+.in-resultado p { margin: 0; }
+/* Finanzas → Plan B → Módulo 5 (pitch) */
+.pi-bloque { display: grid; gap: 4px; margin: 8px 0; }
+.pi-cab { display: flex; justify-content: space-between; align-items: baseline; }
+.pi-cab small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.pi-bloque .enlace { justify-self: start; text-align: left; font-size: 13px; }
+.pi-medidor { margin-top: 10px; }
+.pi-pista { height: 12px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.pi-pista span { display: block; height: 100%; background: var(--verde); border-radius: 999px; }
+.pi-pista span.largo { background: var(--rojo); }
+.pi-completo { white-space: pre-wrap; line-height: 1.5; }
+.pi-reloj { font-variant-numeric: tabular-nums; margin-bottom: 8px; }
+.pi-reloj.corriendo { background: var(--amarillo); color: #2b2100; }
 /* Finanzas → Plan B → Módulo 2 (liderazgo) */
 .lid-lista { display: grid; gap: 4px; margin: 8px 0; }
 .lid-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }

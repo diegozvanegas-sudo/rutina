@@ -10,6 +10,8 @@ import { planDe, diaPlan, colchon, avanceBusqueda, diarioEmociones, RECURSOS, IN
   CARACTERISTICAS, PLAZOS, liderDe, analisisLider, venceAccion, cambiosLider, textoLider } from '../desempleo.js';
 import { copiarTexto } from '../ui.js';
 import { vistaCreativo } from './creativo.js';
+import { vistaInnovacion } from './innovacion.js';
+import { vistaPitch } from './pitch.js';
 
 const plan = () => planDe(e().finanzas);
 const meses = (n) => { if (n == null) return '—'; if (n === Infinity) return 'sin límite'; const r = Math.round(n * 10) / 10; return r.toLocaleString('es-CO') + (r === 1 ? ' mes' : ' meses'); };
@@ -192,11 +194,13 @@ function liderazgo() {
       '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="pb-lider-enviar">📤 Compartir con alguien de confianza</button><button type="button" class="boton secundario" data-accion="pb-lider-copiar">📋 Copiar texto</button></div>');
 }
 
-// Plan B tiene tres módulos de la guía de Comfama; arriba se elige cuál ver
+// Plan B tiene cinco módulos de la ruta de Comfama; arriba se elige cuál ver
 let modulo = 'desempleo';
 export function vistaDesempleo() {
-  const chips = '<nav class="chips" aria-label="Módulo">' + [['desempleo', '🛟 Módulo 1 · Afrontar el desempleo'], ['lider', '🧭 Módulo 2 · Liderazgo emergente'], ['creativo', '💡 Módulo 3 · Despertar creativo']].map(([k, t]) =>
+  const chips = '<nav class="chips" aria-label="Módulo">' + [['desempleo', '🛟 Módulo 1 · Afrontar el desempleo'], ['lider', '🧭 Módulo 2 · Liderazgo emergente'], ['creativo', '💡 Módulo 3 · Despertar creativo'], ['innovacion', '🚀 Módulo 4 · Innovación'], ['pitch', '🎤 Módulo 5 · Pitch']].map(([k, t]) =>
     '<button type="button" class="chip' + (k === modulo ? ' activo' : '') + '" data-accion="pb-modulo" data-v="' + k + '" aria-pressed="' + (k === modulo) + '">' + t + '</button>').join('') + '</nav>';
+  if (modulo === 'innovacion') return chips + vistaInnovacion() + '<p class="nota-corta centro">Inspirado en la ruta de trabajo autónomo de Comfama (módulo 4), con ejercicios propios.</p>';
+  if (modulo === 'pitch') return chips + vistaPitch() + '<p class="nota-corta centro">Inspirado en la ruta de trabajo autónomo de Comfama (módulo 5), con ejercicios propios.</p>';
   if (modulo === 'creativo') return chips + vistaCreativo() + '<p class="nota-corta centro">Basado en la guía de Comfama: Trabajo autónomo, módulo 3.</p>';
   if (modulo === 'lider') return chips + liderazgo() + '<p class="nota-corta centro">Basado en la guía de Comfama: Trabajo autónomo, módulo 2.</p>';
   const c = colchon(e().finanzas), b = avanceBusqueda(plan());

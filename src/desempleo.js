@@ -8,7 +8,7 @@
 //   red: { linkedin: true, ... }               lo hecho de la red de apoyo
 //   textos: { fortalezas, transferibles, mejora, alternativas, tengo, oportunidades }
 //   dias: { 'AAAA-MM-DD': { siento, emociones: [], gratitud, hojas, contactos, bloques: {} } }
-import { iso, sumarDias, diaSemana } from './fechas.js';
+import { iso, sumarDias, diaSemana, fechaCorta } from './fechas.js';
 import { mesDe, sumarMeses, gastoDe, abonoDe, patrimonio } from './finanzas.js';
 
 export const RECURSOS = [
@@ -27,6 +27,67 @@ export const RED = [
   ['familia', 'Identifiqué 2 o 3 personas de confianza para hablar'], ['linkedin', 'LinkedIn al día (foto, titular, experiencia)'],
   ['asociacion', 'Me uní a una asociación o grupo del sector'], ['evento', 'Fui a un evento de networking este mes'], ['excompaneros', 'Avisé a excompañeros y amigos que estoy buscando'],
 ];
+
+// ---------- Módulo 2: Liderazgo emergente (guía de Comfama, trabajo autónomo) ----------
+// Se guarda en desempleo.lider: { notas: { recursivo: 4, … }, fecha, anterior: { notas, fecha }, textos: {…}, acciones: [{ id, area, accion, plazo, recursos, creado, hecho }] }
+export const CARACTERISTICAS = [
+  ['recursivo', 'Recursivo', '¿Qué tan bien utilizo los recursos disponibles para resolver problemas?'],
+  ['creativo', 'Creativo', '¿Genero ideas originales o busco soluciones fuera de lo común?'],
+  ['frustracion', 'Alta tolerancia a la frustración', '¿Qué tan bien manejo los contratiempos en mi vida diaria?'],
+  ['apasionado', 'Apasionado', '¿Demuestro entusiasmo genuino por mis proyectos o causas?'],
+  ['logro', 'Orientado al logro', '¿Fijo metas claras y trabajo con determinación para alcanzarlas?'],
+  ['servicio', 'Orientado al servicio', '¿Priorizo las necesidades de los demás?'],
+  ['riesgos', 'Tomador de riesgos', '¿Asumo desafíos calculados?'],
+  ['agil', 'Mentalidad ágil', '¿Me adapto fácilmente al cambio?'],
+  ['retos', 'Solucionador de retos', '¿Enfrento problemas complejos con enfoques efectivos?'],
+  ['autodesarrollo', 'Autodesarrollo (actualizado)', '¿Invierto tiempo en aprender y mejorar mis habilidades?'],
+  ['influencia', 'Con impacto e influencia', '¿Logro inspirar o movilizar a otros con mis acciones o ideas?'],
+  ['situacional', 'Liderazgo situacional', '¿Adapto mi estilo de liderazgo según las necesidades del contexto y las personas?'],
+  ['holistico', 'Pensamiento holístico', '¿Considero todos los factores relevantes antes de tomar una decisión?'],
+];
+export const PLAZOS = [[1, '1 mes'], [3, '3 meses'], [6, '6 meses']];
+const nombreCar = (k) => (CARACTERISTICAS.find((c) => c[0] === k) || [k, k])[1];
+
+export function liderDe(p) {
+  const l = (p.lider ??= {});
+  l.notas ??= {}; l.textos ??= {}; l.acciones ??= [];
+  return l;
+}
+// Tus 3 mayores fortalezas y tus 3 principales áreas de mejora (en empate, el orden de la tabla). Solo con todo calificado
+export function analisisLider(notas) {
+  const con = CARACTERISTICAS.filter(([k]) => notas[k] >= 1).map(([k, nombre], i) => ({ k, nombre, n: notas[k], i }));
+  const promedio = con.length ? Math.round((con.reduce((s, x) => s + x.n, 0) / con.length) * 10) / 10 : null;
+  const completo = con.length === CARACTERISTICAS.length;
+  const fuertes = completo ? [...con].sort((a, b) => b.n - a.n || a.i - b.i).slice(0, 3) : [];
+  const mejora = completo ? [...con].sort((a, b) => a.n - b.n || a.i - b.i).slice(0, 3) : [];
+  return { respondidas: con.length, total: CARACTERISTICAS.length, completo, promedio, fuertes, mejora };
+}
+// Cuándo vence una acción del plan
+export const venceAccion = (a) => sumarMeses(iso(new Date(a.creado || Date.now())), a.plazo || 1);
+// Cambio frente a la evaluación anterior (para ver si mejoraste al repetirla)
+export function cambiosLider(l) {
+  if (!l.anterior) return [];
+  return CARACTERISTICAS.map(([k, nombre]) => ({ k, nombre, antes: l.anterior.notas[k], ahora: l.notas[k] }))
+    .filter((x) => x.antes >= 1 && x.ahora >= 1 && x.antes !== x.ahora);
+}
+// Todo el módulo en texto, para compartirlo con alguien de confianza (el último consejo de la guía)
+export function textoLider(l) {
+  const a = analisisLider(l.notas), L = ['*Liderazgo emergente: mi autoevaluación*' + (l.fecha ? ' (' + fechaCorta(l.fecha) + ')' : '')];
+  L.push('', ...CARACTERISTICAS.filter(([k]) => l.notas[k]).map(([k, nombre]) => nombre + ': ' + l.notas[k] + '/5'));
+  if (a.promedio != null) L.push('Promedio: ' + String(a.promedio).replace('.', ',') + '/5');
+  if (a.completo) L.push('', '💪 Fortalezas: ' + a.fuertes.map((x) => x.nombre).join(', '), '📈 Por mejorar: ' + a.mejora.map((x) => x.nombre).join(', '));
+  const t = l.textos;
+  if (t.fortalezas) L.push('', '*Cómo aprovecho mis fortalezas*', t.fortalezas);
+  if (t.mejora) L.push('', '*Por qué importan mis áreas de mejora*', t.mejora);
+  if (t.relacion) L.push('', '*Cómo se relacionan*', t.relacion);
+  if (l.acciones.length) {
+    L.push('', '*Plan de acción*');
+    for (const x of l.acciones) L.push((x.hecho ? '✅ ' : '• ') + nombreCar(x.area) + ': ' + (x.accion || '—') + ' (' + (x.plazo || 1) + (x.plazo > 1 ? ' meses' : ' mes') + (x.recursos ? ' · ' + x.recursos : '') + ')');
+  }
+  const r = [['aprendido', 'Qué aprendí de mí'], ['aplicar', 'Cómo lo voy a aplicar'], ['compromisos', 'Mis compromisos']].filter(([k]) => t[k]);
+  if (r.length) { L.push('', '*Reflexión final*'); for (const [k, titulo] of r) L.push(titulo + ': ' + t[k]); }
+  return L.join('\n');
+}
 
 // El plan guardado, con lo que falte (se crea la primera vez que se abre)
 export function planDe(fin) {

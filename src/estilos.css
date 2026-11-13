@@ -271,6 +271,30 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
   .rec-fila.sug .sug-botones { padding-top: 6px; }
   .pb .dos:has(textarea) { grid-template-columns: 1fr; }
 }
+/* Finanzas → Plan B → Módulo 2 (liderazgo) */
+.lid-lista { display: grid; gap: 4px; margin: 8px 0; }
+.lid-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.lid-txt { display: grid; gap: 2px; min-width: 0; }
+.lid-txt small { color: var(--muted); font-size: 13px; }
+.lid-notas { display: flex; gap: 4px; }
+.lid-notas .chip { min-width: 40px; min-height: 40px; padding: 0; justify-content: center; text-align: center; font-variant-numeric: tabular-nums; }
+.lid-patrones { display: grid; gap: 4px; margin: 6px 0 10px; }
+.lid-patrones p { margin: 0; }
+.lid-acciones { display: grid; gap: 10px; margin: 8px 0; }
+.lid-accion { display: grid; gap: 6px; padding: 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+.lid-accion.hecha { border-color: var(--brand); }
+.lid-accion-cab { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: end; }
+.lid-hecho { width: auto; min-height: 48px; }
+.lid-plazo { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.lid-plazo small { margin-left: auto; }
+.pb-check.lid-hecho.hecho > span:last-child { text-decoration: none; color: var(--brand); font-weight: 700; }
+@media (max-width: 640px) {
+  .lid-fila { grid-template-columns: 1fr; }
+  .lid-notas .chip { flex: 1; }
+  .lid-accion-cab { grid-template-columns: minmax(0, 1fr) auto; }
+  .lid-accion-cab .campo { grid-column: 1 / -1; }
+  .lid-hecho { justify-self: start; }
+}
 /* Finanzas → Plan B */
 .pb-n { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-right: 2px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); font-size: 14px; vertical-align: middle; }
 .pb-punto { margin: 8px 0; font-size: 15px; color: var(--muted); }

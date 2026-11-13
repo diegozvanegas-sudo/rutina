@@ -25,6 +25,8 @@ export default async (p) => {
         await p.ev(`document.querySelector('[data-accion=${PESTANAS[s][0]}][data-p=${t}]').click()`);
         await p.dormir(250);
         await revisar(donde, s + '/' + t);
+        // Plan B tiene un segundo módulo (liderazgo)
+        if (t === 'planb') { await p.ev(`document.querySelector('[data-accion=pb-modulo][data-v=lider]').click()`); await p.dormir(250); await revisar(donde, 'finanzas/planb/liderazgo'); await p.ev(`document.querySelector('[data-accion=pb-modulo][data-v=desempleo]').click()`); }
       }
     }
     // Gym por dentro: un día de entreno (con una serie anotada y el historial abierto) y las pestañas

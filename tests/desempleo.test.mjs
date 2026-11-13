@@ -75,3 +75,40 @@ test('plan B: diario de emociones, lo más nuevo primero y sin días vacíos', (
   diaPlan(p, '2026-11-20').siento = 'futuro';
   assert.deepEqual(diarioEmociones(p, '2026-11-13').map((x) => x.fecha), ['2026-11-12', '2026-11-10']);
 });
+
+import { CARACTERISTICAS, liderDe, analisisLider, cambiosLider, textoLider, venceAccion } from '../src/desempleo.js';
+
+test('liderazgo: fortalezas y áreas de mejora salen solo con las 13 calificadas, y los empates siguen el orden de la tabla', () => {
+  const notas = {};
+  CARACTERISTICAS.slice(0, 12).forEach(([k], i) => { notas[k] = (i % 5) + 1; });
+  let a = analisisLider(notas);
+  assert.equal(a.respondidas, 12);
+  assert.equal(a.completo, false);
+  assert.deepEqual(a.fuertes, []);
+  notas.holistico = 5;
+  a = analisisLider(notas);
+  assert.equal(a.completo, true);
+  // 5: apasionado (i=4), riesgos? i%5: recursivo1 creativo2 frustracion3 apasionado4 logro5 servicio1 riesgos2 agil3 retos4 autodesarrollo5 influencia1 situacional2 holistico5
+  assert.deepEqual(a.fuertes.map((x) => x.k), ['logro', 'autodesarrollo', 'holistico']);
+  assert.deepEqual(a.mejora.map((x) => x.k), ['recursivo', 'servicio', 'influencia']);
+  assert.equal(a.promedio, Math.round(((1 + 2 + 3 + 4 + 5) * 2 + 1 + 2 + 5) / 13 * 10) / 10);
+});
+
+test('liderazgo: comparar con la evaluación anterior, plazos y el texto para compartir', () => {
+  const p = { }, l = liderDe(p);
+  CARACTERISTICAS.forEach(([k]) => { l.notas[k] = 3; });
+  l.fecha = '2026-11-13';
+  l.anterior = { fecha: '2026-08-01', notas: { ...l.notas, frustracion: 1, agil: 4 } };
+  assert.deepEqual(cambiosLider(l).map((x) => [x.k, x.antes, x.ahora]), [['frustracion', 1, 3], ['agil', 4, 3]]);
+  const creado = new Date(2026, 10, 13).getTime();
+  assert.equal(venceAccion({ plazo: 1, creado }), '2026-12-13');
+  assert.equal(venceAccion({ plazo: 6, creado }), '2027-05-13');
+  l.acciones.push({ area: 'frustracion', accion: 'Respirar 5 min antes de reuniones', plazo: 1, recursos: 'App de mindfulness', hecho: true });
+  l.textos.compromisos = 'Leer un libro sobre adaptabilidad';
+  const t = textoLider(l);
+  assert.match(t, /Alta tolerancia a la frustración: 3\/5/);
+  assert.match(t, /Fortalezas: Recursivo, Creativo, Alta tolerancia/);
+  assert.match(t, /✅ Alta tolerancia a la frustración: Respirar 5 min antes de reuniones \(1 mes · App de mindfulness\)/);
+  assert.match(t, /Mis compromisos: Leer un libro/);
+  assert.ok(t.includes('\n') && !t.includes(String.fromCharCode(92) + 'n')); // saltos de línea de verdad, no "\n" escrito
+});

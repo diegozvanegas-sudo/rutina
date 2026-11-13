@@ -9,6 +9,7 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "test": "node --test \"tests/*.test.mjs\"",
+    "humo": "node .claude/skills/probar-rutina/scripts/probar.mjs tools/humo.mjs",
     "iconos": "node tools/generar_iconos.mjs",
     "db:esquema": "node tools/aplicar_esquema.mjs"
   },

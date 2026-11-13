@@ -121,8 +121,30 @@ function historialEj(ej, sem, abierto = false, v = varianteActual(ej)) {
   const cuerpo = '<p class="nota-corta">1RM estimado de la mejor serie, semana a semana: así 60 × 10 y 65 × 7 se pueden comparar.</p>' +
     linea(puntos, { formato: rm, margenEje: 1 }) +
     tablaDatos(['Semana', 'Peso', 'Reps', '1RM est.', ''], hist.slice().reverse().map((p) => [etiqueta(p), formatoPeso(p.peso) + ' ' + u, p.reps, rm(p.rm), recs.has(p.semana) ? '🏆' : '']));
-  return abierto ? cuerpo : '<details class="nota historial-ej"><summary>📈 Historial' + (v ? ' · ' + esc(v) : '') + '</summary>' + cuerpo + '</details>';
+  return cuerpo;
 }
+// En la tarjeta del ejercicio el historial va en un desplegable que se dibuja al abrirlo: con muchas semanas anotadas,
+// dibujar el gráfico y la tabla de todos los ejercicios en cada toque hacía lento el día
+function historialPlegado(ej, sem, v = varianteActual(ej)) {
+  if (historial(e().semanas, e().rutina, ej, 0, sem, v).length < 2) return '';
+  return '<details class="nota historial-ej" data-hist="' + esc(ej.id) + '" data-sem="' + sem + '"' + (v != null ? ' data-v="' + esc(v) + '"' : '') + '><summary>📈 Historial' + (v ? ' · ' + esc(v) : '') + '</summary></details>';
+}
+// El análisis para Claude (largo de armar) también se escribe al abrir "Ver el texto"
+if (typeof document !== 'undefined') document.addEventListener('toggle', (ev) => {
+  const d = ev.target;
+  if (!d.open || !d.dataset || d.dataset.listo) return;
+  if (d.dataset.hist) {
+    const ej = e().rutina.flatMap((x) => x.ejercicios).find((x) => x.id === d.dataset.hist);
+    if (!ej) return;
+    d.dataset.listo = '1';
+    d.insertAdjacentHTML('beforeend', historialEj(ej, Number(d.dataset.sem), true, 'v' in d.dataset ? d.dataset.v : null));
+  } else if (d.dataset.prompt) {
+    const dia = e().rutina.find((x) => x.id === d.dataset.prompt), sem = Number(d.dataset.sem), campo = d.querySelector('textarea');
+    if (!dia || !campo) return;
+    d.dataset.listo = '1';
+    campo.value = promptEntreno(dia, sem, textoDia(dia, sem));
+  }
+}, true);
 
 // Últimas 4 semanas: en qué subiste, qué está quieto y tus últimos récords (Gym → Resumen y Progreso)
 export function tarjetaFuerza(hasta = semanaActual()) {
@@ -256,7 +278,7 @@ function ejercicio(ej, sem, sufijo = '') {
     (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
     chipsVariante(ej, sem, sufijo) +
     ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima)).join('') +
-    historialEj(ej, sem, false, varianteEn(ej, registros(sem), sufijo)) +
+    historialPlegado(ej, sem, varianteEn(ej, registros(sem), sufijo)) +
     '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details>' +
     '</article>';
 }
@@ -273,7 +295,7 @@ function biserie(a, b, sem) {
   const plan = Math.max(ea.plan, eb.plan), ronda = Math.min(ea.hechas, eb.hechas) + 1;
   const descanso = Math.max(...[fa, fb, a.filas[0], b.filas[0]].filter(Boolean).map((f) => f.descanso));
   const parte = (ej, letra) => '<div class="bis-ej"><h4><span class="bis-letra">' + letra + '</span>' + esc(ej.nombre) + ' <small>' + esc(ej.musculo) + '</small></h4>' +
-    chipsVariante(ej, sem) + ej.filas.map((f, i) => fila(f, sem, f.id, ej, i, true)).join('') + historialEj(ej, sem, false, varianteEn(ej, registros(sem))) +
+    chipsVariante(ej, sem) + ej.filas.map((f, i) => fila(f, sem, f.id, ej, i, true)).join('') + historialPlegado(ej, sem, varianteEn(ej, registros(sem))) +
     '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details></div>';
   // Cada campo va a la fila pendiente de su ejercicio; si ese ya terminó, no aparece
   const campo = (f, ej, letra) => (f ? '<label class="campo">' + letra + ' · ' + esc(ej.nombre) + (ej.filas.length > 1 ? ' (' + f.tipo + ' ' + esc(f.esquema) + ')' : '') +
@@ -405,7 +427,7 @@ function tarjetaAnalisis(d, sem) {
         (x.semanasParado >= 3 ? ' · ' + x.semanasParado + ' semanas sin récord' : '') + (x.meta ? ' · próxima: ' + x.meta : '')) + '</small></span></li>').join('') + '</ul>' +
     '<button type="button" class="boton primario ancho" data-accion="gym-analisis" data-dia="' + d.id + '">📋 Copiar análisis completo para Claude</button>' +
     '<p class="nota-corta">Lleva la sesión, el historial de cada ejercicio, el volumen por músculo, el sueño, la proteína, el peso y el fútbol, con las instrucciones para que te responda como entrenador. Pégalo en Claude.</p>' +
-    '<details><summary>Ver el texto</summary><textarea id="prompt-entreno" class="texto-copia" rows="10" readonly>' + esc(promptEntreno(d, sem, textoDia(d, sem))) + '</textarea></details></section>';
+    '<details data-prompt="' + esc(d.id) + '" data-sem="' + sem + '"><summary>Ver el texto</summary><textarea id="prompt-entreno" class="texto-copia" rows="10" readonly></textarea></details></section>';
 }
 
 // Core al final de cualquier día: se anota en el día que se hace y cuenta para el total de la semana

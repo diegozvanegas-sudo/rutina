@@ -4,6 +4,19 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   // Rutas relativas: funciona en la raíz de un dominio o en una subcarpeta (GitHub Pages)
   base: './',
+  build: {
+    rollupOptions: {
+      output: {
+        // Los textos de cursos y libros (más de la mitad del peso) van en archivos aparte: al publicar un cambio
+        // de la app, el celular no los vuelve a descargar. Siguen guardados al instalar, así que todo funciona sin señal
+        manualChunks(id) {
+          const ruta = id.replace(/\\/g, '/');
+          if (ruta.includes('/src/cursos/')) return 'cursos';
+          if (ruta.includes('/src/libros/')) return 'libros';
+        },
+      },
+    },
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

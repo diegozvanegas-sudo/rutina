@@ -247,7 +247,7 @@ function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
     '<span class="esquema">' + esc(f.esquema) + (f.unidad === 's' ? ' (seg)' : '') + '</span>' +
     '<span class="descanso" title="Descanso">⏱ ' + reloj(f.descanso) + '</span>' +
     '<span class="contador">' + est.hechas + ' / ' + est.plan + '</span></div>' +
-    (est.color === 'sube' ? '<div class="sube-peso">⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></div>' : '') +
+    (est.color === 'sube' && !(ej && ej.calentamiento) ? '<div class="sube-peso">⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></div>' : '') +
     // Qué hacer hoy y contra qué se compara, en un renglón
     (meta ? '<div class="meta-sesion">🎯 Hoy: <b' + (meta.sube ? ' class="sugerido-sube"' : '') + '>' + esc(meta.texto) + (meta.sube ? ' ⬆' : '') + '</b> <span class="ultimo">· último <b>' + textoRegistro(ult) + '</b></span><small>' + esc(meta.motivo) + '</small></div>'
       : '<div class="ultimo">Último: <b>' + textoRegistro(ult) + '</b>' +
@@ -304,7 +304,7 @@ function ejercicio(ej, sem, sufijo = '') {
   const proxima = ej.filas.findIndex((f) => { const x = estadoFila(f, registros(sem)[f.id + sufijo] || {}); return x.hechas < x.plan; });
   const clave = ej.id + sufijo;
   if (!estaAbierto(clave, es || (!sufijo && ej.id === ultimoEj && sem === semanaActual()))) return plegado(clave, esc(nombreConVariante(ej, varianteEn(ej, registros(sem), sufijo))), esc(ej.musculo), resumenEj(ej, sem, sufijo));
-  return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '" data-ancla="ej-' + esc(clave) + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + botonPlegar(clave, ej.nombre) + '</header>' +
+  return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '" data-ancla="ej-' + esc(clave) + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + (ej.calentamiento ? '🔥 ' : '') + esc(ej.musculo) + '</span>' + moverEj(ej) + botonPlegar(clave, ej.nombre) + '</header>' +
     (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
     chipsVariante(ej, sem, sufijo) +
     ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima)).join('') +
@@ -345,11 +345,11 @@ function biserie(a, b, sem) {
 
 // Peso planeado del primer top set del día: lo escrito hoy, si no lo sugerido
 function pesoPlaneado(d, sem) {
-  const f = d.ejercicios[0] && d.ejercicios[0].filas[0];
+  const ej = d.ejercicios.find((x) => !x.calentamiento), f = ej && ej.filas[0];
   if (!f) return null;
-  const reg = registros(sem)[f.id], ult = ultimoRegistro(e().semanas, f, sem, filtroEn(d.ejercicios[0], sem)), sug = sugerencia(f, ult);
+  const reg = registros(sem)[f.id], ult = ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem)), sug = sugerencia(f, ult);
   const peso = numero(reg && reg.peso) ?? (sug && sug.peso);
-  return peso ? { peso, unidad: (reg && reg.unidad) || (sug && sug.unidad) || 'kg', nombre: d.ejercicios[0].nombre } : null;
+  return peso ? { peso, unidad: (reg && reg.unidad) || (sug && sug.unidad) || 'kg', nombre: ej.nombre } : null;
 }
 
 // "pierna" abre "calentamiento-pierna"; también vale el id de cualquier sesión
@@ -556,7 +556,7 @@ function cambiarReps(id, texto) {
   }
   if (ahora > antes && ahora < info.f.series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
   if (ahora > antes && !eraRecord && esRecord()) toast('🏆 ¡Récord en ' + nombreConVariante(info.ej, filtro && filtro.v) + '! Tu mejor 1RM estimado');
-  else if (ahora >= info.f.series && ahora > antes) toast(estadoFila(info.f, reg).color === 'sube' ? '⬆ ¡Tope del rango! Sube peso la próxima semana' : '✓ ' + info.ej.nombre + ' completo');
+  else if (ahora >= info.f.series && ahora > antes) toast(estadoFila(info.f, reg).color === 'sube' && !info.ej.calentamiento ? '⬆ ¡Tope del rango! Sube peso la próxima semana' : '✓ ' + info.ej.nombre + ' completo');
   guardar();
 }
 

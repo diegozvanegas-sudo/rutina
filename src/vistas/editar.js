@@ -139,11 +139,16 @@ function editorRutina() {
         lista('Plan de comida', 'rutina.' + i + '.dieta', d.dieta || '', PLANES_DIETA) + '</div>') +
       '</section>' +
       '<datalist id="musculos">' + musculos.map((m) => '<option value="' + esc(m) + '">').join('') + '</datalist>' +
+      // Cada ejercicio es un renglón que se edita ahí mismo (nombre, músculo y series × reps); ⋯ abre lo demás
+      (d.ejercicios.length ? '<div class="ed-ej-linea ed-ej-titulos" aria-hidden="true"><span></span><span>Ejercicio</span><span>Músculo</span><span>Series × reps</span><span></span></div>' : '') +
       d.ejercicios.map((ej, j) => {
-        const r = 'rutina.' + i + '.ejercicios.' + j;
-        return abrirItem(r, (j + 1) + '. ' + esc(ej.nombre), controles('rutina.' + i + '.ejercicios', j, d.ejercicios.length, ej.nombre)) +
-          '<div class="dos">' + campo('Ejercicio', r + '.nombre', ej.nombre) + campo('Músculo', r + '.musculo', ej.musculo, ' list="musculos"') + '</div>' +
-          '<label class="campo">Series × reps<input type="text" data-cambio="ed-esquema" data-ruta="' + r + '" value="' + esc(esquemaDe(ej)) + '" placeholder="Top 1×4-7 · Back-off 2×8-12"></label>' +
+        const r = 'rutina.' + i + '.ejercicios.' + j, abierto = itemAbierto === r;
+        return '<section class="tarjeta ed-item ed-ej' + (abierto ? ' rec-activa' : '') + '" data-ancla="ed-' + esc(ej.id) + '"><div class="ed-ej-linea"><span class="ed-num">' + (ej.calentamiento ? '🔥' : j + 1) + '</span>' +
+          '<input class="ed-ej-nombre" type="text" data-cambio="ed" data-ruta="' + r + '.nombre" value="' + esc(ej.nombre) + '" aria-label="Ejercicio ' + (j + 1) + '">' +
+          '<input class="ed-ej-musculo" type="text" data-cambio="ed" data-ruta="' + r + '.musculo" value="' + esc(ej.musculo || '') + '" list="musculos" placeholder="Músculo" aria-label="Músculo de ' + esc(ej.nombre) + '">' +
+          '<input class="ed-ej-esquema" type="text" data-cambio="ed-esquema" data-ruta="' + r + '" value="' + esc(esquemaDe(ej)) + '" placeholder="3×8-12" aria-label="Series por reps de ' + esc(ej.nombre) + '">' +
+          '<button type="button" class="icono ed-mas" data-accion="ed-abrir" data-r="' + r + '" aria-expanded="' + abierto + '" aria-label="Más opciones de ' + esc(ej.nombre) + '">' + (abierto ? '▾' : '⋯') + '</button></div>' +
+          (!abierto ? '</section>' : '<div class="ed-cuerpo">' + controles('rutina.' + i + '.ejercicios', j, d.ejercicios.length, ej.nombre) +
           '<div class="dos">' + campo('Nota', r + '.nota', ej.nota, ' placeholder="Técnica, máquina, agarre…"') +
           (rutina.length > 1 ? '<label class="campo">Mover a otro día<select data-cambio="ed-mover-dia" data-dia="' + i + '" data-j="' + j + '"><option value="">—</option>' +
             rutina.map((x, k) => (k === i ? '' : '<option value="' + k + '">' + esc(x.nombre) + '</option>')).join('') + '</select></label>' : '') + '</div>' +
@@ -151,11 +156,17 @@ function editorRutina() {
             ej.variantes.map((v, k) => '<div class="ed-variante"><input type="text" data-cambio="ed-variante" data-ruta="' + r + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="Nombre de la variante ' + (k + 1) + '">' +
               '<button type="button" class="icono" data-accion="ed-variante-quitar" data-ruta="' + r + '" data-k="' + k + '" aria-label="Quitar ' + esc(v) + '">✕</button></div>').join('') + '</div>' : '') +
           (d.id !== 'core' && d.ejercicios[j + 1] ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.biserie"' + (ej.biserie ? ' checked' : '') + '> 🔁 En biserie con el siguiente (' + esc(d.ejercicios[j + 1].nombre) + ')</label>' : '') +
-          '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></div></section>';
+          (d.id !== 'core' ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.calentamiento"' + (ej.calentamiento ? ' checked' : '') + '> 🔥 Es del calentamiento (cuenta las series, pero no pide subir peso)</label>' : '') +
+          '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></div></section>');
       }).join('') +
-      '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="rutina.' + i + '.ejercicios">＋ Ejercicio</button>' +
-      '<p class="nota-corta">Series × reps: "3×8-12", "4×10 + fallo", "1×1 min" o con top set y back-off separados por "·". ' +
-      'Si reordenas o mueves un ejercicio a otro día, sus registros se van con él. ⧉ duplica (la copia empieza sin registros).</p>');
+      // Agregar escribiendo en el mismo renglón (Enter o el botón)
+      '<section class="tarjeta ed-ej ed-nuevo"><div class="ed-ej-linea"><span class="ed-num">＋</span>' +
+      '<input class="ed-ej-nombre" type="text" id="ed-nuevo-nombre" placeholder="Nuevo ejercicio" aria-label="Nombre del ejercicio nuevo" data-enter="ed-ej-agregar" autocomplete="off">' +
+      '<input class="ed-ej-musculo" type="text" id="ed-nuevo-musculo" list="musculos" placeholder="Músculo" aria-label="Músculo del ejercicio nuevo" data-enter="ed-ej-agregar" autocomplete="off">' +
+      '<input class="ed-ej-esquema" type="text" id="ed-nuevo-esquema" placeholder="3×8-12" aria-label="Series por reps del ejercicio nuevo" data-enter="ed-ej-agregar" autocomplete="off">' +
+      '<button type="button" class="boton primario ed-mas" data-accion="ed-ej-agregar" data-lista="rutina.' + i + '.ejercicios">Agregar</button></div></section>' +
+      '<p class="nota-corta">Cambia el nombre, el músculo o las series ahí mismo: se guarda al salir del campo y lo ya anotado en el Gym se conserva. ⋯ abre lo demás (orden, nota, descansos, mover de día, duplicar, borrar). ' +
+      'Series × reps: "3×8-12", "4×10 + fallo", "1×1 min" o con top set y back-off separados por "·" (también vale "3x8-12").</p>');
 }
 
 // ---------- Sesiones ----------
@@ -426,6 +437,20 @@ registrar({
     if (!confirm('¿Borrar "' + nombre + '"?' + (ruta === 'rutina' || /\.ejercicios$/.test(ruta) ? '\nLos registros de semanas pasadas quedan guardados pero no se verán.' : ''))) return;
     arr.splice(Number(i), 1);
     guardar();
+  },
+  // Ejercicio nuevo desde el renglón de abajo: queda listo y el cursor vuelve al nombre para seguir agregando
+  'ed-ej-agregar'({ lista: ruta }) {
+    const val = (id) => (document.getElementById(id) || { value: '' }).value.trim();
+    const nombre = val('ed-nuevo-nombre'), musculo = val('ed-nuevo-musculo'), esquema = val('ed-nuevo-esquema') || '3×8-12';
+    if (!nombre) { toast('Escribe el nombre del ejercicio'); document.getElementById('ed-nuevo-nombre')?.focus(); return; }
+    const dia = obtener(ruta.replace(/\.ejercicios$/, '')), id = dia.id + '-' + uid();
+    let filas;
+    try { filas = filasDeEsquema(esquema, musculo === 'Core' ? DESCANSOS.Core : DESCANSOS.Series); } catch (err) { toast('No entendí "' + esquema + '". Ej.: 3×8-12 o Top 1×4-7 · Back-off 2×8-12'); document.getElementById('ed-nuevo-esquema')?.focus(); return; }
+    obtener(ruta).push({ id, nombre, musculo, nota: '', filas: filas.map((f, k) => ({ ...f, id: id + '-' + (k + 1) })) });
+    for (const c of ['nombre', 'musculo', 'esquema']) document.getElementById('ed-nuevo-' + c).value = '';
+    guardar();
+    toast('＋ ' + nombre + ' agregado');
+    setTimeout(() => document.getElementById('ed-nuevo-nombre')?.focus(), 60);
   },
   'ed-agregar'({ lista: ruta }) {
     const item = nuevo(ruta);

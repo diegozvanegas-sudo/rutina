@@ -152,6 +152,59 @@ function restaurarCampos({ clave, valores, cursor }) {
   });
 }
 
+// ---------- Tarjetas que se abren y cierran (toda la app) ----------
+// Cualquier tarjeta con título (h2) se puede cerrar tocando el título o su flecha; queda solo el título.
+// Cuáles están cerradas se recuerda en este equipo (no viaja a la nube: el celular y el computador pueden diferir)
+const CLAVE_PLEGADAS = 'rutina_plegadas';
+let plegadas = null;
+function leerPlegadas() {
+  if (!plegadas) { try { plegadas = new Set(JSON.parse(localStorage.getItem(CLAVE_PLEGADAS)) || []); } catch (err) { plegadas = new Set(); } }
+  return plegadas;
+}
+function marcarPlegable(t, cerrada) {
+  const b = t.querySelector('.plegar-t');
+  t.classList.toggle('tarjeta-cerrada', cerrada);
+  if (!b) return;
+  b.textContent = cerrada ? '▸' : '▾';
+  b.setAttribute('aria-expanded', String(!cerrada));
+  b.setAttribute('aria-label', (cerrada ? 'Abrir ' : 'Cerrar ') + (b.dataset.titulo || 'la tarjeta'));
+}
+function prepararPlegables(v) {
+  const vistos = {}, cerradas = leerPlegadas();
+  document.querySelectorAll('#vista section.tarjeta, #vista article.tarjeta, #vista div.tarjeta').forEach((t) => {
+    const cab = t.firstElementChild;
+    if (!cab || t.children.length < 2) return;
+    const h = cab.matches('h2') ? cab : cab.matches('.fila-resumen, .ed-cab, header, a.titulo-enlace') ? cab.querySelector('h2') : null;
+    if (!h) return;
+    // Sin números: "🔔 4 recordatorios" y "🔔 5 recordatorios" son la misma tarjeta
+    const titulo = h.textContent.replace(/\s+/g, ' ').trim(), base = v + '|' + titulo.replace(/[\d.,:/%$+−-]+/g, '').replace(/\s+/g, ' ').trim();
+    vistos[base] = (vistos[base] || 0) + 1;
+    t.dataset.plegable = base + (vistos[base] > 1 ? '#' + vistos[base] : '');
+    t.classList.add('plegable');
+    cab.classList.add('t-cab');
+    const b = document.createElement('span');
+    b.className = 'plegar-t'; b.tabIndex = 0; b.setAttribute('role', 'button'); b.dataset.titulo = titulo;
+    h.prepend(b);
+    marcarPlegable(t, cerradas.has(t.dataset.plegable));
+  });
+}
+function alternarPlegable(t) {
+  const cerradas = leerPlegadas(), k = t.dataset.plegable, cerrar = !cerradas.has(k);
+  if (cerrar) cerradas.add(k); else cerradas.delete(k);
+  try { localStorage.setItem(CLAVE_PLEGADAS, JSON.stringify([...cerradas])); } catch (err) {}
+  marcarPlegable(t, cerrar);
+}
+// La flecha siempre pliega; el título también, si no es un enlace ni tiene un control debajo del dedo
+function plegableTocado(ev) {
+  const el = ev.target.closest && (ev.target.closest('.plegar-t') || (!ev.target.closest('a, button, input, select, textarea, label, [data-accion]') && ev.target.closest('.plegable > h2.t-cab, .plegable > .t-cab h2')));
+  return el ? el.closest('.plegable') : null;
+}
+document.addEventListener('keydown', (ev) => {
+  if ((ev.key !== 'Enter' && ev.key !== ' ') || !ev.target.matches || !ev.target.matches('.plegar-t')) return;
+  ev.preventDefault(); ev.stopPropagation();
+  alternarPlegable(ev.target.closest('.plegable'));
+}, true);
+
 // Lo último que se tocó: si está dentro de algo con data-ancla, ese bloque no se mueve al repintar.
 // Se guardan todos los que lo envuelven, de adentro hacia afuera: si el de adentro ya no está después de repintar, vale el siguiente
 let ultimoToque = null;
@@ -195,6 +248,7 @@ function pintar() {
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
   $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios() + VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
+  prepararPlegables(v);
   $('lateral').innerHTML = lateral();
   aplicarBarra();
   flotante();
@@ -231,7 +285,8 @@ document.addEventListener('pointerup', () => { clearTimeout(soltar); soltar = se
 document.addEventListener('pointercancel', () => { clearTimeout(soltar); soltar = setTimeout(vaciar, 400); }, true);
 
 document.addEventListener('click', (ev) => {
-  const el = ev.target.closest('[data-accion]');
+  const plegable = plegableTocado(ev), el = plegable ? null : ev.target.closest('[data-accion]');
+  if (plegable) { ev.preventDefault(); alternarPlegable(plegable); }
   if (el) ejecutar(el.dataset.accion, el, ev);
   if (ev.target.closest('#lateral a')) menu(false); // tocar la sección en la que ya está también cierra el menú
   clearTimeout(soltar);

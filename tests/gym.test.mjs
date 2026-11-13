@@ -224,3 +224,29 @@ test('imagen de la rutina semanal: los 7 días, fútbol, descanso, metas y balan
   assert.ok(pecho.plan > 0 && pecho.max >= pecho.min && ['Bajo', 'Alto', 'En rango'].includes(pecho.estado));
   assert.equal(r.totales.series, r.dias.reduce((s, d) => s + d.entrenos.reduce((t, x) => t + x.series, 0), 0) + r.core.reduce((s, ej) => s + ej.series, 0));
 });
+
+test('calentamiento con peso corporal: paralelas en empuje, dominadas en tirón y 2 + 2 en torso, una sola vez', async () => {
+  const { calentamientoPeso } = await import('../src/estado.js');
+  const est = { rutina: JSON.parse(JSON.stringify(RUTINA)) };
+  calentamientoPeso(est);
+  const primeros = (id) => est.rutina.find((d) => d.id === id).ejercicios.filter((x) => x.calentamiento).map((x) => x.nombre + ' ' + x.musculo + ' ' + x.filas[0].series);
+  assert.deepEqual(primeros('d1'), ['Dominadas (calentamiento) Espalda 2', 'Paralelas (calentamiento) Pecho 2']); // torso
+  assert.deepEqual(primeros('d3'), ['Paralelas (calentamiento) Pecho 2']); // empuje
+  assert.deepEqual(primeros('d5'), ['Dominadas (calentamiento) Espalda 2']); // tirón
+  assert.deepEqual(primeros('pa'), []); // pierna no cambia
+  // Van de primeros y lo que ya había sigue con su id (los registros no se mueven)
+  const torso = est.rutina.find((d) => d.id === 'd1');
+  assert.equal(torso.ejercicios[2].id, 'd1-1');
+  assert.equal(torso.ejercicios.length, RUTINA.find((d) => d.id === 'd1').ejercicios.length + 2);
+  // Cuentan en las series de la semana
+  const antes = resumenSemana(RUTINA, {}).musculos, ahora = resumenSemana(est.rutina, {}).musculos;
+  assert.equal(ahora.Pecho.plan, antes.Pecho.plan + 4);
+  assert.equal(ahora.Espalda.plan, antes.Espalda.plan + 4);
+  // No se repite, ni se agrega si el día ya tiene ese ejercicio
+  const n = torso.ejercicios.length;
+  delete est.calentamientoPesoV1; calentamientoPeso(est);
+  assert.equal(torso.ejercicios.length, n);
+  const propio = { rutina: [{ id: 'x', calentamiento: 'empuje', ejercicios: [{ id: 'x-1', nombre: 'Fondos en paralelas', musculo: 'Pecho', filas: [] }] }] };
+  calentamientoPeso(propio);
+  assert.equal(propio.rutina[0].ejercicios.length, 1);
+});

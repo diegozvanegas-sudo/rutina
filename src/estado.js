@@ -1,6 +1,6 @@
 // Todo se guarda en el celular (localStorage) en un objeto por usuario ("rutina_v1:<id>"). Funciona sin internet; se puede
 // exportar/importar en Ajustes. Sin nube configurada se usa "rutina_v1".
-import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS, FUTBOL } from './datos_iniciales.js';
+import { HABITOS, METAS, ESPERA, RUTINA, SESIONES, OBJETIVOS, FUTBOL, filasDeEsquema } from './datos_iniciales.js';
 import { juegaEl } from './futbol.js';
 import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
@@ -56,7 +56,7 @@ const CONFIG_NUEVA = () => ({
   estudio: { minutos: 15 }, // minutos de estudio al día (🎓 Estudiar)
 });
 // Las migraciones de abajo son para datos viejos: un celular nuevo arranca con todas hechas
-const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2', 'dietaEnergiaV1', 'dietaProgresoV1', 'fortalecimientoV1'];
+const MIGRACIONES = ['hojaAplicada', 'diasV2', 'futbolV1', 'piernasV2', 'lugaresV1', 'lugaresV2', 'sinRepetidosV1', 'sinRepetidosV2', 'dietaEnergiaV1', 'dietaProgresoV1', 'fortalecimientoV1', 'calentamientoPesoV1'];
 // 2 nov 2026: la carne con la grasa que dan sus calorías, plan de recarga antes del partido y más arroz el día de fútbol.
 // Los carbos y la grasa por kg se vuelven a tomar de los planes, para que recalcular no los deshaga
 function dietaEnergia(est) {
@@ -135,6 +135,26 @@ function fortalecimiento(est) {
   est.fortalecimientoV1 = true;
   est.cambio = Date.now();
 }
+// Paralelas y dominadas del calentamiento: quedan como primer ejercicio del día para anotarlas, y cuentan en las series
+// de pecho y espalda. Días de empuje: paralelas; de tirón: dominadas; de torso: 2 de dominadas y 2 de paralelas.
+// Llevan calentamiento: true (no piden subir peso ni se usan para la aproximación del primer top set). Se cambian en Editar
+export const CALENTAMIENTO_PESO = { empuje: ['par'], tiron: ['dom'], torso: ['dom', 'par'] };
+const EJ_CALENTAMIENTO = { par: ['Paralelas (calentamiento)', 'Pecho', /paralelas|fondos/i], dom: ['Dominadas (calentamiento)', 'Espalda', /dominadas/i] };
+export function calentamientoPeso(est) {
+  if (est.calentamientoPesoV1) return;
+  for (const d of est.rutina || []) {
+    const nuevos = [];
+    for (const k of CALENTAMIENTO_PESO[d.calentamiento] || []) {
+      const [nombre, musculo, yaEsta] = EJ_CALENTAMIENTO[k], id = d.id + '-cal-' + k;
+      if (d.ejercicios.some((ej) => yaEsta.test(ej.nombre) || ej.id === id)) continue;
+      nuevos.push({ id, nombre, musculo, calentamiento: true, nota: 'Peso corporal. Deja 3 o más reps en reserva: es para calentar, no para llegar cansado al primer ejercicio.',
+        filas: filasDeEsquema('2×5-12').map((f, j) => ({ ...f, id: id + '-' + (j + 1), descanso: 60 })) });
+    }
+    d.ejercicios.unshift(...nuevos);
+  }
+  est.calentamientoPesoV1 = true;
+  est.cambio = Date.now();
+}
 const leerClave = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch (err) { return null; } };
 
 export function cargar() {
@@ -175,6 +195,7 @@ export function cargar() {
   dietaEnergia(estado);
   dietaProgreso(estado);
   fortalecimiento(estado);
+  calentamientoPeso(estado);
   const c = estado.config, n = CONFIG_NUEVA();
   for (const k of Object.keys(n)) c[k] ??= n[k];
   ponerSemana1(c.semana1);
@@ -325,6 +346,7 @@ export function reemplazar(datos) {
   dietaEnergia(estado);
   dietaProgreso(estado);
   fortalecimiento(estado);
+  calentamientoPeso(estado);
   for (const [k, v] of Object.entries(CONFIG_NUEVA())) estado.config[k] ??= v;
   ponerSemana1(estado.config.semana1);
   escribir();

@@ -251,6 +251,35 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .fuerza-lista b.baja { color: var(--amarillo); }
 .entradas { display: grid; grid-template-columns: 90px 96px 1fr; gap: 8px; }
 .serie-rapida { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+/* Tarjetas que se abren y cierran en toda la app: la flecha va al inicio del título */
+.plegar-t { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; margin: -6px 4px -6px -8px; border-radius: 8px; color: var(--muted); font-size: 13px; line-height: 1; cursor: pointer; vertical-align: middle; flex: none; }
+.titulo-enlace .plegar-t { color: var(--muted); font-size: 13px; }
+.plegar-t:hover { background: var(--surface-2); color: var(--ink); }
+.plegar-t:focus-visible { outline: 2px solid var(--brand); outline-offset: 0; }
+.plegable > h2.t-cab, .plegable > .t-cab h2 { cursor: pointer; }
+.plegable > a.t-cab h2 { cursor: inherit; }
+.tarjeta-cerrada > :not(.t-cab) { display: none !important; }
+.tarjeta-cerrada > .t-cab, .tarjeta-cerrada > .t-cab h2 { margin-bottom: 0; }
+/* Editar rutina: un renglón por ejercicio, editable ahí mismo */
+.ed-ej { padding: 8px 10px; margin-bottom: 8px; gap: 8px; }
+.ed-ej-linea { display: grid; grid-template-columns: 24px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.7fr) 44px; gap: 6px; align-items: center; }
+.ed-ej-linea input { min-height: 44px; padding: 8px 10px; min-width: 0; }
+.ed-ej-nombre { font-weight: 700; }
+.ed-num { color: var(--muted); font-weight: 700; font-size: 13px; text-align: center; }
+.ed-mas { background: var(--surface-2); border: 1px solid var(--line); }
+.ed-nuevo .ed-ej-linea { grid-template-columns: 24px minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1.7fr) auto; }
+.ed-nuevo .ed-mas { min-height: 44px; padding: 8px 14px; }
+.ed-ej-titulos { padding: 0 11px; margin: 4px 0; color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.ed-ej .ed-cuerpo { padding-top: 4px; border-top: 1px solid var(--line); }
+@media (max-width: 640px) {
+  .ed-ej-titulos { display: none; }
+  .ed-ej-linea, .ed-nuevo .ed-ej-linea { grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1.3fr) auto; grid-template-areas: "n nombre nombre mas" "n musculo esquema esquema"; }
+  .ed-num { grid-area: n; align-self: start; padding-top: 12px; }
+  .ed-ej-nombre { grid-area: nombre; }
+  .ed-ej-musculo { grid-area: musculo; }
+  .ed-ej-esquema { grid-area: esquema; }
+  .ed-ej-linea .ed-mas { grid-area: mas; }
+}
 /* Ejercicio plegado: una fila con su resumen; se abre al tocarla */
 .ejercicio.plegado { padding: 0; margin-bottom: 8px; }
 .ej-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto 14px; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 14px;

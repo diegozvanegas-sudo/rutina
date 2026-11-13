@@ -9,6 +9,7 @@ import { soportados, avisosActivos, activarAvisos, desactivarAvisos } from '../a
 import { bloqueo, huellaActiva, activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
 import { esc, registrar, toast } from '../ui.js';
 import { avisosDeSuplementos } from './suplementos.js';
+import { presentacion } from './presentacion.js';
 
 // La meta de calorías la pone el plan de Dieta de cada día
 const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)', pantalla: 'Pantalla máxima (min)' };
@@ -36,11 +37,13 @@ export function vistaAjustes() {
 // Sin sesión no se muestra la app: solo esta pantalla (main.js)
 export function pantallaEntrar() {
   if (!nube.lista) return '<section class="entrar"><p class="nota-corta">Cargando…</p></section>';
-  return '<section class="tarjeta entrar"><h1>🏋️ Rutina</h1><p class="nota-corta">Entra con tu usuario de microrrutas para usar la app. Tus datos se guardan en la nube y pasan a otro celular o al computador.</p>' +
+  // Al lado (computador) o debajo (celular): qué es la app, para quien llega por primera vez
+  return '<div class="entrar-pagina"><section class="tarjeta entrar" aria-labelledby="entrar-titulo"><h2 id="entrar-titulo">Entrar</h2><p class="nota-corta">Entra con tu usuario. Tus datos se guardan en la nube y pasan a otro celular o al computador.</p>' +
     '<label class="campo">Correo<input type="email" id="nube-correo" autocomplete="username" inputmode="email"></label>' +
     '<label class="campo">Contraseña<input type="password" id="nube-clave" autocomplete="current-password"></label>' +
     (nube.estado === 'sin-sesion' && !navigator.onLine ? '<p class="aviso">Sin conexión: conéctate para iniciar sesión.</p>' : '') +
-    '<button type="button" class="boton primario grande ancho" data-accion="nube-entrar">Entrar</button></section>';
+    '<button type="button" class="boton primario grande ancho" data-accion="nube-entrar">Entrar</button>' +
+    '<p class="nota-corta">¿No tienes usuario? Pídeselo a tu entrenador.</p></section>' + presentacion() + '</div>';
 }
 
 // Con la huella activa: candado al abrir la app (main.js)

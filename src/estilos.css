@@ -47,6 +47,38 @@ small { color: var(--muted); }
 /* Sin sesión: solo la tarjeta para entrar, sin menú */
 .sin-sesion #lateral, .sin-sesion .top-movil .menu, .sin-sesion #flotante, .sin-sesion #reproductor { display: none !important; }
 .entrar { max-width: 420px; margin: 12vh auto 0; display: grid; gap: 12px; }
+/* Pantalla de entrar con la presentación de la app: celular, el formulario arriba; computador, presentación a la izquierda */
+.entrar-pagina { display: grid; gap: 18px; max-width: 1120px; margin: 0 auto; padding: 12px 0 40px; }
+.entrar-pagina .entrar { margin: 0; width: 100%; max-width: none; }
+.entrar-pagina .entrar h2 { margin: 0; font-size: 22px; }
+@media (min-width: 900px) {
+  .entrar-pagina { grid-template-columns: minmax(0, 1fr) 380px; align-items: start; gap: 32px; padding-top: 32px; }
+  .entrar-pagina .entrar { order: 2; position: sticky; top: 24px; }
+  .entrar-pagina .pr { order: 1; }
+}
+.pr { display: grid; gap: 14px; }
+.pr-heroe { display: grid; gap: 10px; padding: 18px 4px 6px; }
+.pr-etiqueta { margin: 0; color: var(--brand); font-weight: 800; letter-spacing: .02em; }
+.pr-heroe h1 { margin: 0; font-size: clamp(28px, 4.4vw, 44px); line-height: 1.1; letter-spacing: -.01em; text-wrap: balance; }
+.pr-sub { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.5; max-width: 60ch; }
+.pr-cta { justify-self: start; min-height: 48px; padding: 12px 20px; text-decoration: none; }
+.pr-bloque { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radio); padding: 16px; display: grid; gap: 10px; }
+.pr-bloque h2 { margin: 0; font-size: 19px; }
+.pr-bloque p { margin: 0; color: var(--muted); line-height: 1.5; }
+.pr-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+@media (min-width: 640px) { .pr-lista { grid-template-columns: 1fr 1fr; } }
+.pr-lista li { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: start; }
+.pr-ic { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--surface-2); font-size: 18px; }
+.pr-lista b, .pr-pasos b { display: block; }
+.pr-lista small, .pr-pasos small { display: block; color: var(--muted); font-size: 14px; line-height: 1.45; margin-top: 2px; }
+.pr-pasos { margin: 0; padding: 0; list-style: none; counter-reset: paso; display: grid; gap: 10px; }
+@media (min-width: 640px) { .pr-pasos { grid-template-columns: repeat(3, 1fr); } }
+.pr-pasos li { counter-increment: paso; padding: 12px; border-radius: 12px; background: var(--bg); }
+.pr-pasos li::before { content: counter(paso); display: grid; place-items: center; width: 28px; height: 28px; margin-bottom: 8px; border-radius: 50%; background: var(--brand); color: var(--brand-ink); font-weight: 800; }
+.pr-privacidad { border-color: var(--brand); }
+.pr-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pr-chips span { padding: 6px 10px; border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 14px; }
+.pr-final { text-align: left; }
 @media (min-width: 900px) { .sin-sesion .app { display: block; } }
 /* Organizar el menú */
 .marca .barra-plegar { margin-left: auto; display: none; }

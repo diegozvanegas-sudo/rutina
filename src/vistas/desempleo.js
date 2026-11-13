@@ -199,7 +199,7 @@ let modulo = 'desempleo';
 export function vistaDesempleo() {
   const chips = '<nav class="chips" aria-label="Módulo">' + [['desempleo', '🛟 Módulo 1 · Afrontar el desempleo'], ['lider', '🧭 Módulo 2 · Liderazgo emergente'], ['creativo', '💡 Módulo 3 · Despertar creativo'], ['innovacion', '🚀 Módulo 4 · Innovación'], ['pitch', '🎤 Módulo 5 · Pitch']].map(([k, t]) =>
     '<button type="button" class="chip' + (k === modulo ? ' activo' : '') + '" data-accion="pb-modulo" data-v="' + k + '" aria-pressed="' + (k === modulo) + '">' + t + '</button>').join('') + '</nav>';
-  if (modulo === 'innovacion') return chips + vistaInnovacion() + '<p class="nota-corta centro">Inspirado en la ruta de trabajo autónomo de Comfama (módulo 4), con ejercicios propios.</p>';
+  if (modulo === 'innovacion') return chips + vistaInnovacion() + '<p class="nota-corta centro">Basado en la guía de Comfama: Trabajo autónomo, módulo 4 (con ejercicios de apoyo propios).</p>';
   if (modulo === 'pitch') return chips + vistaPitch() + '<p class="nota-corta centro">Inspirado en la ruta de trabajo autónomo de Comfama (módulo 5), con ejercicios propios.</p>';
   if (modulo === 'creativo') return chips + vistaCreativo() + '<p class="nota-corta centro">Basado en la guía de Comfama: Trabajo autónomo, módulo 3.</p>';
   if (modulo === 'lider') return chips + liderazgo() + '<p class="nota-corta centro">Basado en la guía de Comfama: Trabajo autónomo, módulo 2.</p>';

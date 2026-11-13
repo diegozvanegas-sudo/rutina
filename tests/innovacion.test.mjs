@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { innovacionDe, nuevoProblema, nuevaIdea, puntaje, ranking, cuadrante, fraseValor, resultadoExperimento, avanceInnovacion, textoInnovacion } from '../src/innovacion.js';
+import { innovacionDe, pasosGuia, nuevoProblema, nuevaIdea, puntaje, ranking, cuadrante, fraseValor, resultadoExperimento, avanceInnovacion, textoInnovacion } from '../src/innovacion.js';
 import { pitchDe, sugerencias, segundosDe, duracionPitch, avancePitch, textoCompartirPitch, BLOQUES_PITCH, PREGUNTAS_DIFICILES } from '../src/pitch.js';
 
 test('innovación: puntaje de los problemas y el mejor primero', () => {
@@ -41,6 +41,18 @@ test('innovación: avance completo y el texto para compartir', () => {
   assert.match(t, /No hay quién arregle celulares/);
   assert.match(t, /Para vecinos, un taller móvil\./);
   assert.match(t, /3 de 10 dijeron que sí \(30 %\)/);
+});
+
+test('innovación: los 5 pasos de la guía de Comfama', () => {
+  const x = innovacionDe({});
+  assert.deepEqual(pasosGuia(x).map((p) => p.hecho), [false, false, false, false, false]);
+  const p = nuevoProblema('No tengo tiempo para buscar empleo'); x.problemas.push(p); x.elegido = p.id;
+  x.ideas = Array.from({ length: 9 }, (_, i) => nuevaIdea('Idea ' + i));
+  assert.equal(pasosGuia(x)[2].hecho, false); // faltan ideas para las 10
+  x.ideas.push(nuevaIdea('Usar IA para un CV automatizado'));
+  x.prototipo = 'video'; x.textos.feedback = 'Que sea más corto';
+  assert.deepEqual(pasosGuia(x).map((p) => p.hecho), [true, false, true, true, true]);
+  assert.match(textoInnovacion(x), /Lo que me dijo mi red de apoyo/);
 });
 
 test('pitch: sugerencias del módulo 4, duración y avance', () => {

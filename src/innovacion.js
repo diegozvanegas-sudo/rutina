@@ -30,8 +30,21 @@ export const SCAMPER = [
 ];
 export const PROTOTIPOS = [
   ['dibujo', '✏️ Un dibujo o boceto'], ['maqueta', '📦 Una maqueta o una muestra'], ['whatsapp', '📱 Un mensaje o catálogo de WhatsApp'],
-  ['mano', '🙌 Hacerlo a mano para 3 clientes'], ['video', '🎬 Un video corto explicándolo'], ['pagina', '🌐 Una página sencilla con el precio'],
+  ['mano', '🙌 Hacerlo a mano para 3 clientes'], ['video', '🎬 Un video de 1 minuto (por ejemplo para LinkedIn)'], ['pagina', '🌐 Una página sencilla con el precio'],
 ];
+// Los 5 pasos de la guía de Comfama (punto 1: Explora la innovación en acción), con su ejemplo y el paso de esta pantalla donde se hace
+export const PASOS_GUIA = [
+  ['Identificar un problema cotidiano', 'Ej.: «No tengo tiempo para buscar empleo».', 2],
+  ['Investigar', 'Ej.: entrevistar a 3 personas que hayan solucionado ese problema.', 3],
+  ['Generar 10 ideas locas', 'Ej.: usar IA para crear un CV automatizado.', 4],
+  ['Prototipar la mejor idea', 'Ej.: hacer un video de 1 minuto para LinkedIn.', 6],
+  ['Presentar el prototipo a tu red de apoyo (opcional) y recibir feedback', 'Muéstraselo a 2 o 3 personas de confianza y anota lo que te digan.', 6],
+];
+export const META_IDEAS = 10;
+export function pasosGuia(x) {
+  const hechos = [!!x.elegido, x.entrevistas.filter((e) => e.aprendi && e.aprendi.trim()).length >= 3, x.ideas.filter((i) => i.texto).length >= META_IDEAS, !!x.prototipo, !!(x.textos.feedback && x.textos.feedback.trim())];
+  return PASOS_GUIA.map(([titulo, ejemplo, tarjeta], i) => ({ n: i + 1, titulo, ejemplo, tarjeta, hecho: hechos[i] }));
+}
 export const VEREDICTOS = [['seguir', '✅ Seguir: funcionó'], ['ajustar', '🔧 Ajustar y probar otra vez'], ['cambiar', '🔄 Cambiar de idea']];
 
 export function innovacionDe(p) {
@@ -107,6 +120,7 @@ export function textoInnovacion(x) {
     if (v) L.push(v[1]);
   }
   if (t.aprendi) L.push('', '*Lo que aprendí*', t.aprendi);
+  if (t.feedback) L.push('', '*Lo que me dijo mi red de apoyo*', t.feedback);
   if (t.siguiente) L.push('', '*Mi siguiente paso*', t.siguiente);
   return L.join('\n');
 }

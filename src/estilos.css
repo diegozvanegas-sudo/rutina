@@ -531,6 +531,10 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .vt-papel th { background: #f1f5f3; }
 .vt-papel small { color: #555; }
 /* Finanzas → Plan B → Módulo 4 (innovación) */
+.in-guia { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 8px; }
+.in-guia li { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); border-left: 4px solid #f472b6; }
+.in-guia li.ok { border-left-color: var(--verde); } .in-guia li.ok b { color: var(--verde); }
+.in-guia small { color: var(--muted); font-size: 13px; }
 .in-tipos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 8px; margin: 8px 0 12px; }
 .in-tipos > div { display: grid; gap: 4px; padding: 10px; border-radius: 12px; background: var(--surface-2); }
 .in-tipos small { color: var(--muted); font-size: 13px; }

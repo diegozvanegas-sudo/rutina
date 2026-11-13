@@ -6,7 +6,7 @@ import { iso, fechaCorta } from '../fechas.js';
 import { esc, registrar, toast, barra, copiarTexto } from '../ui.js';
 import { planDe } from '../desempleo.js';
 import { innovacionDe, nuevoProblema, nuevaEntrevista, nuevaIdea, puntaje, ranking, cuadrante, fraseValor, resultadoExperimento, avanceInnovacion, textoInnovacion,
-  TIPOS_INNOVACION, CRITERIOS, SCAMPER, PROTOTIPOS, VEREDICTOS } from '../innovacion.js';
+  TIPOS_INNOVACION, CRITERIOS, SCAMPER, PROTOTIPOS, VEREDICTOS, pasosGuia, META_IDEAS } from '../innovacion.js';
 
 export const inn = () => innovacionDe(planDe(e().finanzas));
 const tarjeta = (n, titulo, cuerpo) => '<section class="tarjeta pb" data-ancla="in-' + n + '"><h2><span class="pb-n">' + n + '</span> ' + titulo + '</h2>' + cuerpo + '</section>';
@@ -19,7 +19,7 @@ function problemas(x) {
   return '<p class="pb-punto">Una buena idea empieza por un <b>problema real</b>, no por un producto. Anota problemas que tú o la gente que conoces sufren (en tu barrio, en tu oficio, en tu trabajo anterior) y califica cada uno del 1 al 5.</p>' +
     '<div class="in-problemas">' + x.problemas.map((pr, i) => {
       const p = puntaje(pr);
-      return '<div class="in-problema' + (x.elegido === pr.id ? ' elegido' : '') + '"><div class="in-fila"><input type="text" data-cambio="in-problema" data-i="' + i + '" value="' + esc(pr.texto) + '" placeholder="Ej.: los vecinos no tienen quién les arregle el celular cerca" autocomplete="off" aria-label="Problema ' + (i + 1) + '">' +
+      return '<div class="in-problema' + (x.elegido === pr.id ? ' elegido' : '') + '"><div class="in-fila"><input type="text" data-cambio="in-problema" data-i="' + i + '" value="' + esc(pr.texto) + '" placeholder="Ej.: no tengo tiempo para buscar empleo" autocomplete="off" aria-label="Problema ' + (i + 1) + '">' +
         '<button type="button" class="icono borrar" data-accion="in-problema-borrar" data-i="' + i + '" aria-label="Borrar el problema">🗑</button></div>' +
         CRITERIOS.map(([k, t]) => '<div class="in-criterio"><small>' + t + '</small><div class="lid-notas" role="group" aria-label="' + esc(t) + '">' + [1, 2, 3, 4, 5].map((n) =>
           chip('in-nota', ' data-i="' + i + '" data-k="' + k + '" data-n="' + n + '"', n, pr.notas[k] === n)).join('') + '</div></div>').join('') +
@@ -32,7 +32,7 @@ function problemas(x) {
 
 function entrevistas(x) {
   const hechas = x.entrevistas.filter((en) => en.aprendi && en.aprendi.trim()).length;
-  return '<p class="pb-punto">Antes de inventar, <b>pregunta</b>. Habla con 3 personas que tengan el problema y pregúntales por lo que <b>ya hicieron</b>, no por lo que harían:</p>' +
+  return '<p class="pb-punto">Antes de inventar, <b>pregunta</b>. Entrevista a 3 personas que tengan el problema o que <b>ya lo hayan solucionado</b>, y pregúntales por lo que <b>ya hicieron</b>, no por lo que harían:</p>' +
     '<ul class="puntos-libro"><li>«Cuéntame la última vez que te pasó. ¿Qué hiciste?»</li><li>«¿Cuánto te costó (plata o tiempo)?»</li><li>«¿Qué has probado para resolverlo? ¿Por qué no te sirvió?»</li></ul>' +
     '<p class="nota-corta">No les cuentes tu idea todavía: por amabilidad te van a decir que sí. Lo que hicieron vale más que lo que opinan.</p>' +
     '<div class="in-entrevistas">' + x.entrevistas.map((en, i) => '<div class="cr-dia' + (en.aprendi ? ' hecho' : '') + '"><div class="in-fila"><input type="text" data-cambio="in-entrevista" data-i="' + i + '" data-k="quien" value="' + esc(en.quien) + '" placeholder="¿Con quién hablaste?" autocomplete="off" aria-label="Persona ' + (i + 1) + '">' +
@@ -50,7 +50,8 @@ function ideas(x) {
     punto('SCAMPER:', 'siete preguntas para sacar ideas de algo que ya existe. Responde las que te salgan, sin juzgar.') +
     '<div class="in-scamper">' + SCAMPER.map(([k, n, q]) => '<label class="campo"><span><b class="in-letra">' + k.toUpperCase() + '</b> ' + n + ' <small>' + q + '</small></span>' +
       '<input type="text" data-cambio="in-scamper" data-k="' + k + '" value="' + esc(x.scamper[k] || '') + '" autocomplete="off"></label>').join('') + '</div>' +
-    punto('Tus ideas:', 'escribe al menos 3 (pueden salir del SCAMPER) y ubícalas según su impacto y su esfuerzo. Elige una con la ⭐.') +
+    punto('10 ideas locas:', 'no te frenes: entre más raras, mejor (ej.: usar IA para crear un CV automatizado). Pueden salir del SCAMPER. Después ubícalas según su impacto y su esfuerzo y elige la mejor con la ⭐.') +
+    '<p class="nota-corta">💡 ' + x.ideas.filter((i) => i.texto).length + ' de ' + META_IDEAS + ' ideas' + (x.ideas.filter((i) => i.texto).length >= META_IDEAS ? ' ✓' : '') + '</p>' +
     '<div class="in-ideas">' + x.ideas.map((idea, i) => {
       const q = cuadrante(idea);
       return '<div class="in-idea' + (x.idea === idea.id ? ' elegida' : '') + '"><div class="in-fila"><input type="text" data-cambio="in-idea" data-i="' + i + '" value="' + esc(idea.texto) + '" placeholder="Idea ' + (i + 1) + '" autocomplete="off" aria-label="Idea ' + (i + 1) + '">' +
@@ -60,7 +61,7 @@ function ideas(x) {
           '<span class="in-eje" role="group" aria-label="' + t + '"><small>' + t + '</small>' + vs.map((v) => chip('in-idea-eje', ' data-i="' + i + '" data-k="' + k + '" data-v="' + v + '"', v, idea[k] === v)).join('') + '</span>').join('') +
         (q ? '<b class="in-q ' + q[0] + '">' + q[1] + '</b>' : '') + '</div></div>';
     }).join('') + '</div>' +
-    '<button type="button" class="boton ' + (x.ideas.length < 3 ? 'primario' : 'secundario') + '" data-accion="in-idea-nueva">＋ Idea</button>' +
+    '<button type="button" class="boton ' + (x.ideas.length < META_IDEAS ? 'primario' : 'secundario') + '" data-accion="in-idea-nueva">＋ Idea</button>' +
     matriz(x);
 }
 
@@ -95,7 +96,9 @@ function prueba(x) {
     (r ? '<div class="in-resultado"><div class="barra"><span style="width:' + Math.min(100, r.pct) + '%"></span></div><p><b>' + r.si + ' de ' + r.personas + '</b> (' + r.pct + ' %)' +
       (r.logrado === true ? ' · <b class="verde">✓ Lograste la meta</b>' : r.logrado === false ? ' · <b class="rojo">No llegó a la meta (' + r.meta + ')</b>' : '') + '</p></div>' : '') +
     '<p class="pb-punto"><b>¿Qué decides?</b></p><div class="chips envolver" role="group" aria-label="Decisión">' + VEREDICTOS.map(([k, t]) => chip('in-veredicto', ' data-v="' + k + '"', t, ex.veredicto === k)).join('') + '</div>' +
-    '<p class="nota-corta">Cambiar de idea no es fracasar: es lo que ahorra meses y plata. Casi ninguna idea sale bien en el primer intento.</p>';
+    '<p class="nota-corta">Cambiar de idea no es fracasar: es lo que ahorra meses y plata. Casi ninguna idea sale bien en el primer intento.</p>' +
+    '<p class="pb-punto"><b>Preséntalo a tu red de apoyo</b> (opcional): muéstraselo a 2 o 3 personas de confianza y pídeles que te digan qué mejorarían.</p>' +
+    area('feedback', '🗣️ El feedback que recibí', 'Ej.: «el video es largo, di tu valor en los primeros 10 segundos»', 3);
 }
 
 export function vistaInnovacion() {
@@ -105,6 +108,9 @@ export function vistaInnovacion() {
     '<div class="datos-peso"><div><small>Pasos hechos</small><b>' + av.hechos + ' / ' + av.total + '</b></div><div><small>Problemas</small><b>' + x.problemas.length + '</b></div>' +
     '<div><small>Conversaciones</small><b>' + x.entrevistas.filter((en) => en.aprendi).length + ' / 3</b></div><div><small>Ideas</small><b>' + x.ideas.length + '</b></div></div>' + barra(av.hechos / av.total) +
     '<ul class="cr-pasos">' + av.pasos.map(([t, ok]) => '<li class="' + (ok ? 'ok' : '') + '">' + (ok ? '✓' : '○') + ' ' + esc(t) + '</li>').join('') + '</ul></section>' +
+    '<section class="tarjeta pb" data-ancla="in-guia"><h2>🧭 Explora la innovación en acción</h2>' +
+      '<p class="pb-punto">Enfrentar un problema es la oportunidad perfecta para desafiar lo establecido y descubrir nuevas soluciones. En este ejercicio pondrás en práctica el proceso de innovación para abordar un desafío real, transformando ideas en propuestas concretas. <b>¡Es momento de crear!</b></p>' +
+      '<ol class="in-guia">' + pasosGuia(x).map((p) => '<li class="' + (p.hecho ? 'ok' : '') + '"><b>' + (p.hecho ? '✓ ' : '') + 'Paso ' + p.n + ': ' + esc(p.titulo) + '</b><small>' + esc(p.ejemplo) + ' → se hace en el punto ' + p.tarjeta + '.</small></li>').join('') + '</ol></section>' +
     tarjeta(1, 'Qué es innovar',
       '<p class="pb-punto">Innovar no es inventar algo que nadie ha visto: es <b>resolver mejor un problema</b> y que alguien lo use (o pague). Casi siempre es una mejora pequeña sobre algo que ya existe.</p>' +
       '<div class="in-tipos">' + TIPOS_INNOVACION.map(([t, d]) => '<div><b>' + t + '</b><small>' + d + '</small></div>').join('') + '</div>' +

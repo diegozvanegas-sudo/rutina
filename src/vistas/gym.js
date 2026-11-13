@@ -220,7 +220,7 @@ function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
     '<span class="esquema">' + esc(f.esquema) + (f.unidad === 's' ? ' (seg)' : '') + '</span>' +
     '<span class="descanso" title="Descanso">⏱ ' + reloj(f.descanso) + '</span>' +
     '<span class="contador">' + est.hechas + ' / ' + est.plan + '</span></div>' +
-    (est.color === 'sube' ? '<div class="sube-peso">⬆ SUBE PESO la próxima semana (+2,5–5 %)</div>' : '') +
+    (est.color === 'sube' ? '<div class="sube-peso">⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></div>' : '') +
     '<div class="ultimo">Último: <b>' + textoRegistro(ult) + '</b>' +
     (sug ? ' · Hoy: <b class="' + (sug.sube ? 'sugerido-sube' : '') + '">' + esc(sug.texto) + (sug.sube ? ' ⬆' : '') + '</b>' : '') + '</div>' +
     (meta ? '<div class="meta-sesion">🎯 Meta: <b>' + esc(meta.texto) + '</b><small>' + esc(meta.motivo) + '</small></div>' : '') +
@@ -232,7 +232,7 @@ function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
     '</div>' +
     (est.hechas < est.plan && !sinRapida ? '<div class="serie-rapida"><input type="text" inputmode="numeric" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
       '<button type="button" class="boton primario" data-accion="serie" data-fila="' + clave + '">＋ Serie ' + (est.hechas + 1) + ' y descanso</button></div>' : '') +
-    (est.hechas && f.unidad !== 's' ? '<div class="rir"><span>¿Cuántas reps te quedaban en la última serie?</span><span class="raro-botones">' + [0, 1, 2, 3, 4].map(rir).join('') + '</span></div>' : '') +
+    (est.hechas && f.unidad !== 's' ? '<div class="rir" role="group" aria-label="¿Cuántas reps te quedaban en la última serie?" title="¿Cuántas reps te quedaban en la última serie?"><span>Te quedaban:</span><span class="raro-botones">' + [0, 1, 2, 3, 4].map(rir).join('') + '</span></div>' : '') +
     '</div>';
 }
 
@@ -250,10 +250,12 @@ const ahora = '<span class="ahora">▶ Ahora</span>';
 function ejercicio(ej, sem, sufijo = '') {
   // "A / b" en el nombre: botón para separarlo en una biserie (juntar dos ejercicios cualquiera se hace en Editar)
   const d = e().rutina.find((x) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre), es = !sufijo && ej.id === actualId;
+  // Un solo botón "＋ Serie" por ejercicio: en la fila donde va la próxima serie (las demás se pueden llenar en su campo de reps)
+  const proxima = ej.filas.findIndex((f) => { const x = estadoFila(f, registros(sem)[f.id + sufijo] || {}); return x.hechas < x.plan; });
   return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + '</header>' +
     (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
     chipsVariante(ej, sem, sufijo) +
-    ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i)).join('') +
+    ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima)).join('') +
     historialEj(ej, sem, false, varianteEn(ej, registros(sem), sufijo)) +
     '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details>' +
     '</article>';

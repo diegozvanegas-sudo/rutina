@@ -251,6 +251,11 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .fuerza-lista b.baja { color: var(--amarillo); }
 .entradas { display: grid; grid-template-columns: 90px 96px 1fr; gap: 8px; }
 .serie-rapida { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+/* Caja de anotar compacta: campos más bajos y todo en un renglón (peso · unidad · reps) también en el celular */
+.fila-ej input, .fila-ej select, .fila-ej .serie-rapida .boton { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+.fila-ej .entradas input, .fila-ej .entradas select { min-width: 0; }
+.fila-ej input::placeholder { font-size: 14px; }
+.fila-ej .sube-peso { font-size: 14px; }
 .nota textarea { margin-top: 4px; }
 .aprox { display: flex; gap: 8px; flex-wrap: wrap; }
 .aprox span { background: var(--bg); border-radius: 10px; padding: 8px 12px; display: grid; text-align: center; }
@@ -316,8 +321,15 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .toast[hidden] { display: none; }
 
 @media (max-width: 480px) {
-  .entradas { grid-template-columns: 1fr 1fr; }
-  .entradas .reps { grid-column: 1 / -1; }
+  .fila-ej { padding: 8px; gap: 6px; }
+  .entradas { grid-template-columns: minmax(0, 1fr) 86px minmax(0, 1.6fr); gap: 6px; }
+  .fila-ej .entradas input, .fila-ej .entradas select { padding-left: 8px; padding-right: 6px; }
+  .fila-ej .serie-rapida { grid-template-columns: 76px 1fr; gap: 6px; }
+  .fila-ej .serie-rapida .boton { white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+  .fila-ej .rir { column-gap: 6px; }
+  .fila-ej .rir .raro-botones { gap: 4px; }
+  .fila-ej .rir .chip.mini { min-width: 34px; }
+  .fila-ej .sube-peso span { white-space: nowrap; }
 }
 
 /* Computador: el temporizador queda abajo, junto a la barra lateral (va al final para ganarle a la regla del celular) */
@@ -677,7 +689,9 @@ a.libro-tarjeta { text-decoration: none; }
 .raro-botones { display: flex; flex-wrap: wrap; gap: 6px; }
 .raro .chip.mini { background: var(--surface); }
 .enlace { background: none; border: 0; padding: 0; color: var(--azul); font: inherit; text-decoration: underline; cursor: pointer; min-height: 32px; }
-.rir { display: grid; gap: 4px; margin-top: 8px; font-size: 13px; color: var(--muted); }
+.rir { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 13px; color: var(--muted); }
+.rir .raro-botones { flex-wrap: nowrap; gap: 5px; }
+.rir .chip.mini { min-width: 38px; padding: 4px 0; text-align: center; }
 .raros { display: grid; gap: 10px; margin-bottom: 8px; }
 .raro-ej small { color: var(--muted); }
 .entrenador { border-color: var(--brand); }

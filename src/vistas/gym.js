@@ -21,6 +21,10 @@ let semanaVista = null, diaVista = null, editandoObjetivos = false, fuerzaEj = n
 // Ejercicio en el que vas: el último donde anotaste una serie (si le faltan) o el primero con series pendientes.
 // enfocar: al abrir el día o terminar un ejercicio, la pantalla baja a ese y deja listo el campo de reps
 let ultimoEj = null, actualId = null, enfocar = true;
+// Solo queda abierto el ejercicio en el que vas (y el último donde anotaste, para responder las reps en reserva);
+// los demás son una fila con su resumen. manual: lo que se abrió o plegó a mano en este día (gana a lo automático)
+let manual = {};
+const estaAbierto = (clave, auto) => (clave in manual ? manual[clave] : auto);
 if (typeof window !== 'undefined') window.addEventListener('hashchange', () => { if (location.hash.startsWith('#gym')) enfocar = true; });
 
 export function diaDeHoy() {
@@ -98,7 +102,7 @@ function avisosRaros(f, sem, clave, reg, ult) {
   }).join('');
 }
 
-function lineaFuerza(ej, i, sem, v = varianteActual(ej)) {
+function lineaFuerza(ej, i, sem, v = varianteActual(ej), conMeta = false) {
   const hist = historial(e().semanas, e().rutina, ej, i, sem, v);
   if (!hist.length) return '';
   const u = hist[0].unidad, rec = records(hist).find((p) => p.semana === sem && sem > 0);
@@ -107,7 +111,8 @@ function lineaFuerza(ej, i, sem, v = varianteActual(ej)) {
   if (est && est.estancado) return '<div class="progresion estancado">⏸ ' + est.semanas + ' semanas sin superar <b>' + formatoPeso(est.mejor.peso) + ' ' + u + ' × ' + est.mejor.reps + '</b>' +
     '<small>' + esc(consejoRir(rirReciente(ej, i, sem, v), true) || consejo(ej, est.semanas)) + '</small></div>';
   if (sub) return '<div class="progresion">📈 Última subida: ' + formatoPeso(sub.de) + ' → <b>' + formatoPeso(sub.a) + ' ' + u + '</b> · ' + cuando(sub.semana, sem) + '</div>';
-  return hist.length >= 2 ? '<div class="progresion">Aún no has subido el peso: llega al tope de reps en todas las series para subir.</div>' : '';
+  // Con meta a la vista sobra: la meta ya dice qué hacer hoy (y "sube el peso" chocaba con "aún no has subido")
+  return hist.length >= 2 && !conMeta ? '<div class="progresion">Aún no has subido el peso: llega al tope de reps en todas las series para subir.</div>' : '';
 }
 
 // abierto: sin el desplegable (en la tarjeta de Fuerza, donde ya se eligió el ejercicio)
@@ -243,16 +248,17 @@ function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
     '<span class="descanso" title="Descanso">⏱ ' + reloj(f.descanso) + '</span>' +
     '<span class="contador">' + est.hechas + ' / ' + est.plan + '</span></div>' +
     (est.color === 'sube' ? '<div class="sube-peso">⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></div>' : '') +
-    '<div class="ultimo">Último: <b>' + textoRegistro(ult) + '</b>' +
-    (sug ? ' · Hoy: <b class="' + (sug.sube ? 'sugerido-sube' : '') + '">' + esc(sug.texto) + (sug.sube ? ' ⬆' : '') + '</b>' : '') + '</div>' +
-    (meta ? '<div class="meta-sesion">🎯 Meta: <b>' + esc(meta.texto) + '</b><small>' + esc(meta.motivo) + '</small></div>' : '') +
-    (ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null) : '') + avisosRaros(f, sem, clave, reg, ult) +
+    // Qué hacer hoy y contra qué se compara, en un renglón
+    (meta ? '<div class="meta-sesion">🎯 Hoy: <b' + (meta.sube ? ' class="sugerido-sube"' : '') + '>' + esc(meta.texto) + (meta.sube ? ' ⬆' : '') + '</b> <span class="ultimo">· último <b>' + textoRegistro(ult) + '</b></span><small>' + esc(meta.motivo) + '</small></div>'
+      : '<div class="ultimo">Último: <b>' + textoRegistro(ult) + '</b>' +
+        (sug ? ' · Hoy: <b class="' + (sug.sube ? 'sugerido-sube' : '') + '">' + esc(sug.texto) + (sug.sube ? ' ⬆' : '') + '</b>' : '') + '</div>') +
+    (ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null, !!meta) : '') + avisosRaros(f, sem, clave, reg, ult) +
     '<div class="entradas">' +
     '<input class="peso" type="text" inputmode="decimal" data-cambio="peso" data-fila="' + clave + '" value="' + esc(reg.peso || '') + '" placeholder="' + esc(sug ? formatoPeso(sug.peso) : 'Peso') + '" aria-label="Peso">' +
     '<select data-cambio="unidad" data-fila="' + clave + '" aria-label="Unidad"><option' + (unidad === 'kg' ? ' selected' : '') + '>kg</option><option' + (unidad === 'discos' ? ' selected' : '') + '>discos</option></select>' +
     '<input class="reps" type="text" data-cambio="reps" data-fila="' + clave + '" value="' + esc(reg.reps || '') + '" placeholder="Reps: 10 9 8" aria-label="Repeticiones de cada serie, separadas por espacio" autocomplete="off">' +
     '</div>' +
-    (est.hechas < est.plan && !sinRapida ? '<div class="serie-rapida"><input type="text" inputmode="numeric" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
+    (est.hechas < est.plan && !sinRapida ? '<div class="serie-rapida" data-ancla="serie-' + esc(clave) + '"><input type="text" inputmode="numeric" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
       '<button type="button" class="boton primario" data-accion="serie" data-fila="' + clave + '">＋ Serie ' + (est.hechas + 1) + ' y descanso</button></div>' : '') +
     (est.hechas && f.unidad !== 's' ? '<div class="rir" role="group" aria-label="¿Cuántas reps te quedaban en la última serie?" title="¿Cuántas reps te quedaban en la última serie?"><span>Te quedaban:</span><span class="raro-botones">' + [0, 1, 2, 3, 4].map(rir).join('') + '</span></div>' : '') +
     '</div>';
@@ -269,12 +275,36 @@ function moverEj(ej) {
 }
 
 const ahora = '<span class="ahora">▶ Ahora</span>';
+// Lo anotado de un ejercicio en una línea ("41 kg × 5 · 40 kg × 12 11"); sin nada anotado, el esquema y la meta de hoy
+function resumenEj(ej, sem, sufijo = '') {
+  const regs = registros(sem);
+  let hechas = 0, plan = 0;
+  const partes = ej.filas.map((f) => {
+    const reg = regs[f.id + sufijo] || {}, est = estadoFila(f, reg), reps = repsDe(reg.reps), p = numero(reg.peso);
+    hechas += Math.min(est.hechas, est.plan); plan += est.plan;
+    return reps.length ? (p != null ? formatoPeso(p) + ' ' + (reg.unidad || 'kg') + ' × ' : '') + reps.join(' ') : '';
+  }).filter(Boolean);
+  if (partes.length) return { hechas, plan, texto: partes.join(' · ') };
+  const f = ej.filas[0], meta = f && metaSesion(f, ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem, sufijo)));
+  return { hechas, plan, texto: ej.filas.map((x) => x.esquema + (x.unidad === 's' ? ' seg' : '')).join(' · ') + (meta ? ' · hoy ' + meta.texto + (meta.sube ? ' ⬆' : '') : '') };
+}
+// Fila de un ejercicio plegado: se abre al tocarla
+function plegado(clave, titulo, sub, r) {
+  const listo = r.plan > 0 && r.hechas >= r.plan;
+  return '<article class="tarjeta ejercicio plegado ' + (listo ? 'c-completo' : r.hechas ? 'c-falta' : '') + '" data-ancla="ej-' + esc(clave) + '">' +
+    '<button type="button" class="ej-fila" data-accion="gym-plegar" data-clave="' + esc(clave) + '" data-abierto="0" aria-expanded="false">' +
+    '<span class="ej-txt"><span><b>' + titulo + '</b> <small>' + sub + '</small></span><span class="ej-resumen">' + esc(r.texto) + '</span></span>' +
+    '<span class="contador">' + (listo ? '✓ ' : '') + r.hechas + ' / ' + r.plan + '</span><span class="ej-flecha" aria-hidden="true">▸</span></button></article>';
+}
+const botonPlegar = (clave, nombre) => '<button type="button" class="icono ej-plegar" data-accion="gym-plegar" data-clave="' + esc(clave) + '" data-abierto="1" aria-expanded="true" aria-label="Plegar ' + esc(nombre) + '">▾</button>';
 function ejercicio(ej, sem, sufijo = '') {
   // "A / b" en el nombre: botón para separarlo en una biserie (juntar dos ejercicios cualquiera se hace en Editar)
   const d = e().rutina.find((x) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre), es = !sufijo && ej.id === actualId;
   // Un solo botón "＋ Serie" por ejercicio: en la fila donde va la próxima serie (las demás se pueden llenar en su campo de reps)
   const proxima = ej.filas.findIndex((f) => { const x = estadoFila(f, registros(sem)[f.id + sufijo] || {}); return x.hechas < x.plan; });
-  return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + '</header>' +
+  const clave = ej.id + sufijo;
+  if (!estaAbierto(clave, es || (!sufijo && ej.id === ultimoEj && sem === semanaActual()))) return plegado(clave, esc(nombreConVariante(ej, varianteEn(ej, registros(sem), sufijo))), esc(ej.musculo), resumenEj(ej, sem, sufijo));
+  return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '" data-ancla="ej-' + esc(clave) + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + esc(ej.musculo) + '</span>' + moverEj(ej) + botonPlegar(clave, ej.nombre) + '</header>' +
     (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
     chipsVariante(ej, sem, sufijo) +
     ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima)).join('') +
@@ -300,8 +330,12 @@ function biserie(a, b, sem) {
   // Cada campo va a la fila pendiente de su ejercicio; si ese ya terminó, no aparece
   const campo = (f, ej, letra) => (f ? '<label class="campo">' + letra + ' · ' + esc(ej.nombre) + (ej.filas.length > 1 ? ' (' + f.tipo + ' ' + esc(f.esquema) + ')' : '') +
     '<input type="text" inputmode="numeric" placeholder="reps" data-serie="ronda@' + f.id + '"></label>' : '');
-  const es = actualId === a.id || actualId === b.id;
-  return '<article class="tarjeta ejercicio biserie' + (es ? ' actual' : '') + '"><header>' + (es ? ahora : '') + '<h3>🔁 Biserie</h3><span class="musculo">sin descanso entre los dos · ⏱ ' + reloj(descanso) + ' después</span></header>' +
+  const es = actualId === a.id || actualId === b.id, clave = 'bis-' + a.id;
+  if (!estaAbierto(clave, es || ((ultimoEj === a.id || ultimoEj === b.id) && sem === semanaActual()))) {
+    const ra = resumenEj(a, sem), rb = resumenEj(b, sem);
+    return plegado(clave, '🔁 ' + esc(a.nombre) + ' + ' + esc(b.nombre), 'biserie', { hechas: ra.hechas + rb.hechas, plan: ra.plan + rb.plan, texto: ra.hechas + rb.hechas ? ra.texto + ' | ' + rb.texto : ra.texto });
+  }
+  return '<article class="tarjeta ejercicio biserie' + (es ? ' actual' : '') + '" data-ancla="ej-' + esc(clave) + '"><header>' + (es ? ahora : '') + '<h3>🔁 Biserie</h3><span class="musculo">sin descanso entre los dos · ⏱ ' + reloj(descanso) + ' después</span>' + botonPlegar(clave, 'la biserie') + '</header>' +
     parte(a, 'A1') + parte(b, 'A2') +
     (fa || fb ? '<div class="bis-ronda"><div class="dos">' + campo(fa, a, 'A1') + campo(fb, b, 'A2') + '</div>' +
       '<button type="button" class="boton primario ancho" data-accion="gym-ronda" data-a="' + a.id + '" data-b="' + b.id + '">＋ Ronda ' + Math.min(ronda, plan) + ' de ' + plan + ' y descanso</button></div>'
@@ -408,13 +442,13 @@ function vistaDia(d, sem) {
   if (enfocar && actualId) { enfocar = false; setTimeout(irAlActual, 60); }
   return tarjetaCalentamiento(d, sem) +
     '<div class="fila-resumen sticky-resumen"><b>' + esc(d.nombre) + '</b><span>' + r.hechas + ' / ' + r.plan + ' series</span></div>' + barra(r.plan ? r.hechas / r.plan : 0) +
-    '<div class="copiar-dia"><button type="button" class="boton secundario" data-accion="gym-copiar" data-dia="' + d.id + '">📋 Copiar resumen del día</button>' +
-    '<button type="button" class="boton secundario" data-accion="gym-imagen" data-dia="' + d.id + '">🖼️ Imagen del resumen</button>' +
-    '<details><summary>Ver texto</summary><pre class="texto-copia">' + esc(textoDia(d, sem)) + '</pre></details></div>' +
     gruposDia(d.ejercicios).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem))).join('') +
     tarjetaCore(d, sem) +
     tarjetaCardio(d, sem) +
-    (r.hechas ? tarjetaAnalisis(d, sem) : '');
+    // Copiar o compartir el resumen: al final y solo con algo anotado (antes estaba arriba, estorbando al empezar)
+    (r.hechas ? '<div class="copiar-dia"><button type="button" class="boton secundario" data-accion="gym-copiar" data-dia="' + d.id + '">📋 Copiar resumen del día</button>' +
+      '<button type="button" class="boton secundario" data-accion="gym-imagen" data-dia="' + d.id + '">🖼️ Imagen del resumen</button>' +
+      '<details><summary>Ver texto</summary><pre class="texto-copia">' + esc(textoDia(d, sem)) + '</pre></details></div>' + tarjetaAnalisis(d, sem) : '');
 }
 // Al terminar: cómo fue cada ejercicio y el prompt completo para que Claude lo analice como entrenador
 function tarjetaAnalisis(d, sem) {
@@ -541,8 +575,10 @@ function elegirVariante(id, v, sufijo = '') {
 }
 
 registrar({
-  'ir-dia'({ dia }) { diaVista = dia; enfocar = true; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
-  semana(ds, el) { semanaVista = Number(el.value); repintar(); },
+  'ir-dia'({ dia }) { diaVista = dia; enfocar = true; manual = {}; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
+  semana(ds, el) { semanaVista = Number(el.value); manual = {}; repintar(); },
+  // Abrir o plegar la tarjeta de un ejercicio (la pantalla no se mueve: main.js deja quieta la tarjeta tocada)
+  'gym-plegar'({ clave, abierto }) { manual[clave] = abierto !== '1'; repintar(); },
   'abrir-gym'({ p }) { diaVista = p; },
   'gym-objetivos'() { editandoObjetivos = !editandoObjetivos; repintar(); },
   'gym-objetivo'({ m, k }, el) {

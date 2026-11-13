@@ -152,6 +152,16 @@ function restaurarCampos({ clave, valores, cursor }) {
   });
 }
 
+// Lo último que se tocó: si está dentro de algo con data-ancla, ese bloque no se mueve al repintar.
+// Se guardan todos los que lo envuelven, de adentro hacia afuera: si el de adentro ya no está después de repintar, vale el siguiente
+let ultimoToque = null;
+document.addEventListener('pointerdown', (ev) => { ultimoToque = ev.target; }, true);
+function anclaDe() {
+  const el = ultimoToque && ultimoToque.isConnected ? ultimoToque : document.activeElement;
+  const lista = [];
+  for (let a = el && el.closest ? el.closest('#vista [data-ancla]') : null; a; a = a.parentElement && a.parentElement.closest('#vista [data-ancla]')) lista.push({ k: a.dataset.ancla, top: a.getBoundingClientRect().top });
+  return lista;
+}
 let ultimaVista = null;
 function pintar() {
   // Sin sesión iniciada solo se ve la pantalla para entrar (lo escrito en correo/contraseña se conserva)
@@ -181,7 +191,7 @@ function pintar() {
     ultimaVista = null;
     return;
   }
-  const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null;
+  const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
   $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios() + VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
@@ -189,7 +199,17 @@ function pintar() {
   aplicarBarra();
   flotante();
   document.title = VISTAS[v][1] + ' · Rutina';
-  if (v === ultimaVista) window.scrollTo(0, y); else window.scrollTo(0, 0);
+  if (v === ultimaVista) {
+    window.scrollTo(0, y);
+    const nuevas = ancla && ancla.length ? [...document.querySelectorAll('#vista [data-ancla]')] : [];
+    for (const a of ancla || []) {
+      const el = nuevas.find((x) => x.dataset.ancla === a.k);
+      if (!el) continue;
+      const mueve = el.getBoundingClientRect().top - a.top;
+      if (Math.abs(mueve) > 1) window.scrollTo(0, y + mueve);
+      break;
+    }
+  } else window.scrollTo(0, 0);
   ultimaVista = v;
 }
 

@@ -251,6 +251,22 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .fuerza-lista b.baja { color: var(--amarillo); }
 .entradas { display: grid; grid-template-columns: 90px 96px 1fr; gap: 8px; }
 .serie-rapida { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+/* Ejercicio plegado: una fila con su resumen; se abre al tocarla */
+.ejercicio.plegado { padding: 0; margin-bottom: 8px; }
+.ej-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto 14px; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px 14px;
+  background: none; border: 0; border-radius: var(--radio); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.ej-fila:hover { background: var(--surface-2); }
+.ej-fila:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.ej-txt { display: grid; gap: 2px; min-width: 0; }
+.ej-txt small { color: var(--muted); font-weight: 400; font-size: 13px; }
+.ej-resumen { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; }
+.plegado.c-completo .ej-resumen, .plegado.c-falta .ej-resumen { color: var(--ink); }
+.ej-fila .contador { margin-left: 0; font-size: 14px; white-space: nowrap; }
+.ej-flecha { color: var(--muted); }
+.ej-plegar { min-width: 36px; min-height: 36px; font-size: 16px; align-self: center; background: var(--surface-2); border: 1px solid var(--line); }
+.meta-sesion .ultimo { font-size: inherit; }
+.meta-sesion .ultimo b { color: var(--ink); }
+@media (min-width: 900px) { .fila-ej .serie-rapida { grid-template-columns: 90px minmax(0, 320px); } }
 /* Caja de anotar compacta: campos más bajos y todo en un renglón (peso · unidad · reps) también en el celular */
 .fila-ej input, .fila-ej select, .fila-ej .serie-rapida .boton { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
 .fila-ej .entradas input, .fila-ej .entradas select { min-width: 0; }

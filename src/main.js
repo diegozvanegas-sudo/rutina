@@ -188,6 +188,22 @@ function prepararPlegables(v) {
     marcarPlegable(t, cerradas.has(t.dataset.plegable));
   });
 }
+// Filas de chips que se deslizan de lado: la activa queda a la vista y, si hay más a la derecha o a la izquierda, se nota
+function marcarFila(c) {
+  const izq = c.scrollLeft > 2, der = c.scrollLeft + c.clientWidth < c.scrollWidth - 2;
+  c.classList.toggle('mas-der', der); c.classList.toggle('mas-izq', izq);
+}
+function prepararFilas() {
+  document.querySelectorAll('#vista .chips').forEach((c) => {
+    if (c.scrollWidth <= c.clientWidth + 2) return;
+    const activo = c.querySelector('.chip.activo');
+    if (activo) { const r = activo.getBoundingClientRect(), rc = c.getBoundingClientRect(); if (r.right > rc.right || r.left < rc.left) c.scrollLeft += r.left - rc.left - (rc.width - r.width) / 2; }
+    marcarFila(c);
+    c.addEventListener('scroll', () => marcarFila(c), { passive: true });
+  });
+}
+// Al girar el celular o cambiar el tamaño de la ventana, cambia qué cabe
+window.addEventListener('resize', () => document.querySelectorAll('#vista .chips').forEach(marcarFila), { passive: true });
 function alternarPlegable(t) {
   const cerradas = leerPlegadas(), k = t.dataset.plegable, cerrar = !cerradas.has(k);
   if (cerrar) cerradas.add(k); else cerradas.delete(k);
@@ -249,6 +265,7 @@ function pintar() {
   $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios() + VISTAS[v][2]();
   if (campos) restaurarCampos(campos);
   prepararPlegables(v);
+  prepararFilas();
   $('lateral').innerHTML = lateral();
   aplicarBarra();
   flotante();

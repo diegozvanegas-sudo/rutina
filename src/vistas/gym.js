@@ -8,6 +8,7 @@ import { CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, estadoFila, repsDe,
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../entrenador.js';
+import { pesos as pesosCorporales } from '../dieta.js';
 import { linea, tablaDatos } from '../graficos.js';
 import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../analisis.js';
 import { CARDIO } from '../datos_iniciales.js';
@@ -61,6 +62,17 @@ function chipsVariante(ej, sem, sufijo = '') {
     '<button type="button" class="chip mini' + (x === v ? ' activo' : '') + '" aria-pressed="' + (x === v) + '" data-accion="gym-variante" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '" data-v="' + esc(x) + '">' + esc(x) + '</button>').join('') +
     '<button type="button" class="chip mini" data-accion="gym-variante-nueva" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '" aria-label="Agregar variante">＋</button></div>';
 }
+// Peso corporal del día de ese entreno (el último anotado hasta ese día, nunca uno futuro): es el peso de las paralelas
+// y dominadas del calentamiento. null si nunca lo has anotado
+function pesoDelDia(clave, sem) {
+  const info = buscarFila(clave);
+  if (!info) return null;
+  const d = clave.includes('@') ? e().rutina.find((x) => x.id === clave.split('@')[1]) : info.d;
+  const dia = d && d.diaSemana ? sumarDias(lunesDe(sem), d.diaSemana - 1) : iso(), hasta = dia < iso() ? dia : iso();
+  const lista = pesosCorporales(e().dias).filter((x) => x.fecha <= hasta);
+  return lista.length ? lista[lista.length - 1].peso : null;
+}
+const kgCorporal = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
 function textoRegistro(r) {
   if (!r) return '—';
   const p = numero(r.peso);
@@ -240,7 +252,7 @@ function graficoEjercicio(hasta) {
 function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
   const reg = registros(sem)[clave] || {}, est = estadoFila(f, reg), filtro = ej && filtroEn(ej, sem, sufijoDe(clave));
   const ult = ultimoRegistro(e().semanas, f, sem, filtro), sug = sugerencia(f, ult), meta = metaSesion(f, ult);
-  const unidad = reg.unidad || (ult && ult.unidad) || 'kg';
+  const unidad = reg.unidad || (ult && ult.unidad) || 'kg', calent = !!(ej && ej.calentamiento), corporal = calent ? pesoDelDia(clave, sem) : null;
   const rir = (v) => '<button type="button" class="chip mini' + (reg.rir === v ? ' activo' : '') + '" data-accion="gym-rir" data-fila="' + clave + '" data-v="' + v + '" aria-pressed="' + (reg.rir === v) + '">' + (v === 4 ? '4+' : v) + '</button>';
   return '<div class="fila-ej c-' + est.color + '">' +
     '<div class="fila-cab"><span class="tipo t-' + f.tipo.toLowerCase() + '">' + f.tipo + '</span>' +
@@ -252,9 +264,11 @@ function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
     (meta ? '<div class="meta-sesion">🎯 Hoy: <b' + (meta.sube ? ' class="sugerido-sube"' : '') + '>' + esc(meta.texto) + (meta.sube ? ' ⬆' : '') + '</b> <span class="ultimo">· último <b>' + textoRegistro(ult) + '</b></span><small>' + esc(meta.motivo) + '</small></div>'
       : '<div class="ultimo">Último: <b>' + textoRegistro(ult) + '</b>' +
         (sug ? ' · Hoy: <b class="' + (sug.sube ? 'sugerido-sube' : '') + '">' + esc(sug.texto) + (sug.sube ? ' ⬆' : '') + '</b>' : '') + '</div>') +
+    // Calentamiento con peso corporal: el peso es el tuyo de ese día
+    (calent ? '<div class="ultimo">⚖️ ' + (corporal ? 'Tu peso de ese día: <b>' + kgCorporal(corporal) + ' kg</b> (se anota solo en cada serie)' : 'Anota tu peso en Hoy (Sueño y peso) y se usa aquí solo') + '</div>' : '') +
     (ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null, !!meta) : '') + avisosRaros(f, sem, clave, reg, ult) +
     '<div class="entradas">' +
-    '<input class="peso" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-sig="[data-serie]" data-cambio="peso" data-fila="' + clave + '" value="' + esc(reg.peso || '') + '" placeholder="' + esc(sug ? formatoPeso(sug.peso) : 'Peso') + '" aria-label="Peso">' +
+    '<input class="peso" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-sig="[data-serie]" data-cambio="peso" data-fila="' + clave + '" value="' + esc(reg.peso || '') + '" placeholder="' + esc(corporal ? kgCorporal(corporal) : calent ? 'Tu peso' : sug ? formatoPeso(sug.peso) : 'Peso') + '" aria-label="Peso">' +
     '<select data-cambio="unidad" data-fila="' + clave + '" aria-label="Unidad"><option' + (unidad === 'kg' ? ' selected' : '') + '>kg</option><option' + (unidad === 'discos' ? ' selected' : '') + '>discos</option></select>' +
     '<input class="reps" type="text" data-solo="reps" enterkeyhint="done" data-cambio="reps" data-fila="' + clave + '" value="' + esc(reg.reps || '') + '" placeholder="Reps: 10 9 8" aria-label="Repeticiones de cada serie, separadas por espacio" autocomplete="off">' +
     '</div>' +
@@ -547,6 +561,8 @@ function cambiarReps(id, texto) {
   const esRecord = () => records(historial(e().semanas, e().rutina, info.ej, i, semanaVista, filtro ? filtro.v : null)).some((p) => p.semana === semanaVista);
   const antes = repsDe(reg.reps).length, eraRecord = esRecord();
   reg.reps = texto.replace(/\s+/g, ' ').trim(); // siempre texto
+  // Calentamiento con peso corporal: sin peso escrito, se anota el tuyo de ese día
+  if (info.ej.calentamiento && !String(reg.peso || '').trim() && repsDe(reg.reps).length) { const c = pesoDelDia(id, semanaVista); if (c) { reg.peso = kgCorporal(c); reg.unidad = 'kg'; } }
   const ahora = repsDe(reg.reps).length;
   if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista, filtro); reg.unidad = (u && u.unidad) || 'kg'; }
   // Descanso automático al sumar una serie (si aún faltan). En una biserie lo arranca la ronda, después de los dos
@@ -720,8 +736,8 @@ registrar({
     if (!/^\d+([.,]\d+)?$/.test(n)) { toast('Escribe las reps de la serie'); campo.focus(); return; }
     campo.value = '';
     const reg = registros(semanaVista)[id] || {};
-    if (!reg.peso) {
-      // Sin peso escrito: se usa el sugerido para no tener que escribirlo en cada serie
+    if (!reg.peso && !buscarFila(id).ej.calentamiento) {
+      // Sin peso escrito: se usa el sugerido para no tener que escribirlo en cada serie (en el calentamiento, el corporal: cambiarReps)
       const info = buscarFila(id), sug = sugerencia(info.f, ultimoRegistro(e().semanas, info.f, semanaVista, filtroEn(info.ej, semanaVista, sufijoDe(id))));
       if (sug) (registros(semanaVista)[id] ??= {}).peso = String(sug.peso);
     }

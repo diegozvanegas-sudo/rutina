@@ -47,12 +47,15 @@ export function pantallaEntrar() {
 }
 
 // Con la huella activa: candado al abrir la app (main.js)
+// El navegador que abre los enlaces dentro de WhatsApp, Instagram o Facebook: ahí la huella no funciona
+const navegadorDeApp = () => typeof navigator !== 'undefined' && /WhatsApp|FBAN|FBAV|Instagram|Line\//i.test(navigator.userAgent || '');
 export function pantallaBloqueo() {
-  return '<section class="tarjeta entrar"><h1>🔒 Rutina</h1><p class="nota-corta">' + esc(nube.usuario.correo) + '</p>' +
+  return '<div class="entrar-pagina"><section class="tarjeta entrar"><h2>🔒 Desbloquear</h2><p class="nota-corta">' + esc(nube.usuario.correo) + '</p>' +
     '<p class="nota-corta">Desbloquea con tu huella, tu cara o el PIN del celular.</p>' +
     (bloqueo.error ? '<p class="aviso">' + esc(bloqueo.error) + '</p>' : '') +
+    (bloqueo.error || navegadorDeApp() ? '<p class="nota-corta">Si abriste el enlace desde WhatsApp u otra app, la huella puede no funcionar ahí: ábrelo en Safari o Chrome (menú ⋯ → Abrir en el navegador) o entra con tu contraseña.</p>' : '') +
     '<button type="button" class="boton primario grande ancho" data-accion="huella-abrir"' + (bloqueo.intentando ? ' disabled' : '') + '>🔓 Desbloquear</button>' +
-    '<button type="button" class="boton secundario ancho" data-accion="huella-contrasena">Entrar con contraseña</button></section>';
+    '<button type="button" class="boton secundario ancho" data-accion="huella-contrasena">Entrar con contraseña</button></section>' + presentacion() + '</div>';
 }
 
 function seccionHuella() {

@@ -819,6 +819,38 @@ a.libro-tarjeta { text-decoration: none; }
 .rec-pestanas .chip { font-size: 14px; }
 .rec-editar { margin-top: 2px; }
 .rec-borrar { color: var(--rojo); justify-self: start; }
+/* Lista de recordatorios: una fila por cada uno; al tocarla se abre el detalle debajo */
+.lista-rec { display: grid; gap: 6px; margin-bottom: 14px; }
+.rec-fila { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 12px; gap: 0; }
+.rec-fila.rec-e-vencido { border-left-color: var(--rojo); }
+.rec-fila.rec-e-pronto, .rec-fila.rec-e-pendiente { border-left-color: var(--amarillo); }
+.rec-fila.rec-e-al-dia { border-left-color: var(--brand); }
+.rec-linea { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 8px 6px 4px; }
+.rec-abrir { display: grid; grid-template-columns: 30px auto minmax(0, 1fr) 14px; grid-template-areas: "ic nombre nombre flecha" "ic estado cuando flecha"; align-items: center; gap: 2px 8px;
+  min-height: 48px; padding: 4px 6px; background: none; border: 0; border-radius: 8px; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.rec-abrir:hover { background: var(--surface-2); }
+.rec-abrir:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.rec-ic { grid-area: ic; font-size: 20px; text-align: center; }
+.rec-nombre { grid-area: nombre; overflow-wrap: anywhere; }
+.rec-nombre small { font-weight: 400; color: var(--muted); }
+.rec-abrir .estado { grid-area: estado; margin: 0; justify-self: start; white-space: nowrap; }
+.rec-cuando { grid-area: cuando; color: var(--muted); font-size: 14px; }
+.rec-flecha { grid-area: flecha; color: var(--muted); }
+.rec-info { cursor: default; }
+.rec-info:hover { background: none; }
+.rec-cuando b { color: var(--ink); }
+.rec-fila.rec-e-programado { border-left-color: var(--azul); }
+.rec-ok { min-width: 48px; min-height: 44px; padding: 8px 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-weight: 700; }
+.rec-ok-ya { color: var(--brand); }
+.rec-ok-txt { display: none; }
+.rec-detalle { display: grid; gap: 8px; padding: 6px 12px 12px; border-top: 1px solid var(--line); }
+.rec-detalle .rec-titulo { font-size: 17px; }
+@media (min-width: 900px) {
+  .rec-abrir { grid-template-columns: 30px minmax(0, 1.2fr) minmax(0, 1.2fr) 110px 14px; grid-template-areas: "ic nombre cuando estado flecha"; column-gap: 12px; }
+  .rec-ok { min-width: 136px; }
+  .rec-ok-txt { display: inline; }
+  .rec-detalle { padding-left: 54px; }
+}
 .rec-cabeza { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
 .rec-cabeza .titulo-grupo { margin: 0; }
 .rec-filtros { margin-bottom: 10px; }

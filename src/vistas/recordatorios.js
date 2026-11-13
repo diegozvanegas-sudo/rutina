@@ -3,7 +3,7 @@
 import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta, fechaLarga, diasEntre } from '../fechas.js';
 import { ordenarEventos, eventosCerca, cuandoFalta, AVISAR_DIAS } from '../eventos.js';
-import { estadoRecordatorio, proximoRecordatorio, recordatoriosAutomaticos, ritmoKm, kmActual, pesos, leerMonto } from '../finanzas.js';
+import { estadoRecordatorio, proximoRecordatorio, tocaYa, recordatoriosAutomaticos, ritmoKm, kmActual, pesos, leerMonto } from '../finanzas.js';
 import { PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../datos_finanzas.js';
 import { esc, barra, tip, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
@@ -42,7 +42,8 @@ function regla(x) {
 
 const hace = (n) => (n <= 0 ? 'hoy' : n === 1 ? 'ayer' : 'hace ' + n + ' días');
 
-// Solo un panel abierto por tarjeta; vive fuera del HTML para que no se cierre al guardar un campo y repintar
+// Una sola fila abierta: que = 'detalle' (solo ver) o el panel abierto dentro ('hecho', 'historial', 'editar').
+// Vive fuera del HTML para que no se cierre al guardar un campo y repintar
 let abierto = { id: null, que: null }, filtroEstado = '';
 
 function principal(x, s, actual) {
@@ -91,19 +92,37 @@ function panelEditar(x, i) {
     '<button type="button" class="boton secundario rec-borrar" data-accion="ed-borrar" data-lista="recordatorios.lista" data-i="' + i + '" data-nombre="' + esc(x.nombre) + '">🗑 Borrar recordatorio</button>';
 }
 
-function tarjeta(x, i) {
+// Lo que toca, en una línea, para la fila de la lista
+function cuandoCorto(x, s, actual) {
+  // Sin registro (ya lo dice la etiqueta): mejor cada cuánto toca
+  if (s.estado === 'sin-dato') { const t = x.diario ? 'todos los días' : regla(x); return t[0].toUpperCase() + t.slice(1); }
+  const p =proximoRecordatorio(x, s, actual);
+  if (s.empieza) return p.titulo + ' · ' + fechaCorta(s.empieza);
+  if (!p) return s.ultimo ? 'Último: ' + fechaCorta(s.ultimo.fecha) : 'Sin fecha fija';
+  return p.titulo + (p.fecha ? ' · ' + (p.km != null ? '≈ ' : '') + fechaCorta(p.fecha) : '');
+}
+
+// Una fila por recordatorio: qué es, cuándo toca, estado y ✓ para marcarlo. Al tocar la fila se abre el detalle,
+// y ahí están Otra fecha, Historial y Editar (con Borrar)
+function fila(x, i) {
   const v = vehiculo(x.vehiculo), s = estadoRecordatorio(x, v), actual = v ? kmActual(v.km) : null;
   const que = abierto.id === x.id ? abierto.que : null, hoyYa = (s.ultimo || {}).fecha === iso(), urge = s.estado !== 'al-dia';
   const pest = (k, t) => '<button type="button" class="chip' + (que === k ? ' activo' : '') + '" data-accion="rec-panel" data-id="' + x.id + '" data-q="' + k + '" aria-expanded="' + (que === k) + '">' + t + '</button>';
   // Hecho hoy, con un toque. Lo de km usa el odómetro; si no hay lectura, pide los km
-  const hecho = s.estado === 'programado' ? '' : hoyYa ? '<p class="rec-hecho-hoy">✓ Hecho hoy</p>'
-    : '<button type="button" class="boton ' + (urge ? 'primario' : 'secundario') + ' ancho" data-accion="rec-hoy" data-id="' + x.id + '">' +
-      (x.cadaKm && actual != null ? '✓ Hecho hoy, a los ' + km(actual) : '✓ Hecho hoy') + '</button>';
-  return '<section class="tarjeta rec e-borde-' + s.estado + (que ? ' rec-activa' : '') + '" data-rec-id="' + x.id + '"><div class="ed-cab"><b' + tip(x.nota) + '>' + (x.icono || '🔔') + ' ' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
-    '<span class="estado e-' + s.estado + '">' + ESTADOS[s.estado] + '</span></div>' +
-    principal(x, s, actual) + hecho +
-    '<div class="chips rec-pestanas">' + (s.estado === 'programado' ? '' : pest('hecho', '📅 Otra fecha')) + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +
-    (que === 'hecho' ? panelHecho(x, actual) : que === 'historial' && x.hechos.length ? panelHistorial(x) : que === 'editar' ? panelEditar(x, i) : '') + '</section>';
+  const conKm = x.cadaKm && actual != null ? 'Hecho hoy, a los ' + km(actual) : 'Hecho hoy';
+  const hecho = s.estado === 'programado' ? '<span class="rec-ok"></span>' : hoyYa ? '<span class="rec-ok rec-ok-ya" title="Hecho hoy"><span aria-hidden="true">✓</span><span class="rec-ok-txt">Hecho hoy</span></span>'
+    : '<button type="button" class="boton ' + (urge ? 'primario' : 'secundario') + ' rec-ok" data-accion="rec-hoy" data-id="' + x.id + '" title="' + conKm + '" aria-label="' + esc(x.nombre) + ': ' + conKm + '">' +
+      '<span aria-hidden="true">✓</span><span class="rec-ok-txt">Hecho hoy</span></button>';
+  return '<section class="rec rec-fila rec-e-' + s.estado + (que ? ' rec-activa' : '') + '" data-rec-id="' + x.id + '"><div class="rec-linea">' +
+    '<button type="button" class="rec-abrir" data-accion="rec-abrir" data-id="' + x.id + '" aria-expanded="' + !!que + '">' +
+    '<span class="rec-ic" aria-hidden="true">' + (x.icono || '🔔') + '</span>' +
+    '<b class="rec-nombre">' + esc(x.nombre) + (v ? ' <small>· ' + esc(v.nombre) + '</small>' : '') + '</b>' +
+    '<span class="estado e-' + s.estado + '">' + ESTADOS[s.estado] + '</span>' +
+    '<span class="rec-cuando">' + cuandoCorto(x, s, actual) + '</span>' +
+    '<span class="rec-flecha" aria-hidden="true">' + (que ? '▾' : '▸') + '</span></button>' + hecho + '</div>' +
+    (que ? '<div class="rec-detalle">' + principal(x, s, actual) + (x.nota ? '<p class="nota-corta">📝 ' + esc(x.nota) + '</p>' : '') +
+      '<div class="chips rec-pestanas">' + (s.estado === 'programado' ? '' : pest('hecho', '📅 Otra fecha')) + (x.hechos.length ? pest('historial', '🕘 Historial (' + x.hechos.length + ')') : '') + pest('editar', '✏️ Editar') + '</div>' +
+      (que === 'hecho' ? panelHecho(x, actual) : que === 'historial' && x.hechos.length ? panelHistorial(x) : que === 'editar' ? panelEditar(x, i) : '') + '</div>' : '') + '</section>';
 }
 
 // ---------- Eventos ----------
@@ -111,17 +130,25 @@ const ESTADO_EVENTO = { hoy: ['pronto', 'Hoy'], pronto: ['pronto', ''], programa
 const buscar = (x) => 'https://www.google.com/search?q=' + encodeURIComponent(x.nombre + ' fecha');
 const enlaceSeguro = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
 const opcionesAviso = (v) => AVISAR_DIAS.map((n) => '<option value="' + n + '"' + (Number(v) === n ? ' selected' : '') + '>' + (n === 1 ? '1 día antes' : n + ' días antes') + '</option>').join('');
-function tarjetaEvento(x, i, s) {
+// Fila del evento: al tocarla se abre el detalle (lugar, aviso, nota, enlaces) y ahí está Editar, con Borrar
+function filaEvento(x, i, s) {
   const [clase, texto] = ESTADO_EVENTO[s.estado] || ['programado', ''], ruta = 'recordatorios.eventos.' + i, enlace = enlaceSeguro(x.enlace);
+  const id = x.id || 'ev-' + i, que = abierto.id === id ? abierto.que : null;
   const cuando = s.fecha ? fechaLarga(s.fecha) + (x.hora ? ' · ' + esc(x.hora) : '') : 'Aún no sabes cuándo es';
-  return '<section class="tarjeta rec e-borde-' + clase + '"><div class="ed-cab"><b>' + esc((x.icono || '🎟️') + ' ' + x.nombre) + '</b>' +
-    '<span class="estado e-' + clase + '">' + (texto || (s.faltan === 1 ? 'Mañana' : 'En ' + s.faltan + ' días')) + '</span></div>' +
-    '<p class="rec-titulo">' + cuando + '</p>' +
+  return '<section class="rec rec-fila rec-e-' + clase + (que ? ' rec-activa' : '') + '" data-rec-id="' + esc(id) + '"><div class="rec-linea">' +
+    '<button type="button" class="rec-abrir" data-accion="rec-abrir" data-id="' + esc(id) + '" aria-expanded="' + !!que + '">' +
+    '<span class="rec-ic" aria-hidden="true">' + esc(x.icono || '🎟️') + '</span>' +
+    '<b class="rec-nombre">' + esc(x.nombre) + '</b>' +
+    '<span class="estado e-' + clase + '">' + (texto || (s.faltan === 1 ? 'Mañana' : 'En ' + s.faltan + ' días')) + '</span>' +
+    '<span class="rec-cuando">' + cuando + '</span>' +
+    '<span class="rec-flecha" aria-hidden="true">' + (que ? '▾' : '▸') + '</span></button></div>' +
+    (que ? '<div class="rec-detalle"><p class="rec-titulo">' + cuando + '</p>' +
     '<p class="nota-corta">' + [x.lugar ? '📍 ' + esc(x.lugar) : '', x.anual ? '🔁 Cada año' : '', s.fecha ? 'Te avisa ' + (Number(x.avisarDias ?? 7) || 0) + ' días antes' : 'Cuando sepas la fecha, ponla en Editar y te avisa'].filter(Boolean).join(' · ') + '</p>' +
     (x.nota ? '<p class="nota-corta">📝 ' + esc(x.nota) + '</p>' : '') +
-    (enlace || !s.fecha ? '<div class="chips">' + (enlace ? '<a class="chip" href="' + esc(enlace) + '" target="_blank" rel="noopener">🔗 Abrir enlace</a>' : '') +
-      (s.fecha ? '' : '<a class="chip" href="' + esc(buscar(x)) + '" target="_blank" rel="noopener">🔎 Buscar la fecha</a>') + '</div>' : '') +
-    '<details><summary>✏️ Editar</summary><div class="dos">' +
+    '<div class="chips rec-pestanas">' + (enlace ? '<a class="chip" href="' + esc(enlace) + '" target="_blank" rel="noopener">🔗 Abrir enlace</a>' : '') +
+      (s.fecha ? '' : '<a class="chip" href="' + esc(buscar(x)) + '" target="_blank" rel="noopener">🔎 Buscar la fecha</a>') +
+      '<button type="button" class="chip' + (que === 'editar' ? ' activo' : '') + '" data-accion="rec-panel" data-id="' + esc(id) + '" data-q="editar" aria-expanded="' + (que === 'editar') + '">✏️ Editar</button></div>' +
+    (que === 'editar' ? '<div class="dos">' +
     '<label class="campo">Nombre<input type="text" data-cambio="ed" data-ruta="' + ruta + '.nombre" value="' + esc(x.nombre) + '"></label>' +
     '<label class="campo">Ícono<input type="text" maxlength="4" data-cambio="ed" data-ruta="' + ruta + '.icono" value="' + esc(x.icono || '') + '"></label>' +
     '<label class="campo">Fecha<input type="date" data-cambio="ed" data-ruta="' + ruta + '.fecha" value="' + esc(x.fecha || '') + '"></label>' +
@@ -131,13 +158,13 @@ function tarjetaEvento(x, i, s) {
     '<label class="campo">Enlace (boletas, página, transmisión)<input type="url" inputmode="url" data-cambio="ed" data-ruta="' + ruta + '.enlace" value="' + esc(x.enlace || '') + '" placeholder="https://…"></label>' +
     '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + ruta + '.anual"' + (x.anual ? ' checked' : '') + '> Se repite cada año (cumpleaños, fechas especiales)</label>' +
     '<label class="campo">Nota<textarea rows="2" data-cambio="ed" data-ruta="' + ruta + '.nota">' + esc(x.nota || '') + '</textarea></label>' +
-    '<button type="button" class="boton secundario rec-borrar" data-accion="ed-borrar" data-lista="recordatorios.eventos" data-i="' + i + '" data-nombre="' + esc(x.nombre) + '">🗑 Borrar evento</button></details></section>';
+    '<button type="button" class="boton secundario rec-borrar" data-accion="ed-borrar" data-lista="recordatorios.eventos" data-i="' + i + '" data-nombre="' + esc(x.nombre) + '">🗑 Borrar evento</button>' : '') + '</div>' : '') + '</section>';
 }
 function seccionEventos() {
   const { proximos, porConfirmar, pasados } = ordenarEventos(r().eventos);
   return '<h2 class="titulo-grupo">🎟️ Eventos</h2><p class="nota-corta">Conciertos, partidos, estrenos, cumpleaños: lo que quieres ver o no perderte. Cuando se acerca, te avisa aquí, en Hoy y en el menú.</p>' +
-    '<div class="rejilla-rec">' + [...proximos, ...porConfirmar].map(({ x, i, s }) => tarjetaEvento(x, i, s)).join('') +
-    '<section class="tarjeta"><h2>＋ Agregar evento</h2><label class="campo">Qué es<input type="text" id="evento-nombre" placeholder="Ej.: concierto de …, final de la liga"></label><div class="dos">' +
+    (proximos.length + porConfirmar.length ? '<div class="lista-rec">' + [...proximos, ...porConfirmar].map(({ x, i, s }) => filaEvento(x, i, s)).join('') + '</div>' : '') +
+    '<div class="rejilla-rec"><section class="tarjeta"><h2>＋ Agregar evento</h2><label class="campo">Qué es<input type="text" id="evento-nombre" placeholder="Ej.: concierto de …, final de la liga"></label><div class="dos">' +
     '<label class="campo">Fecha (si ya la sabes)<input type="date" id="evento-fecha"></label>' +
     '<label class="campo">Hora (opcional)<input type="time" id="evento-hora"></label>' +
     '<label class="campo">Avisarme<select id="evento-aviso">' + opcionesAviso(7) + '</select></label></div>' +
@@ -205,12 +232,16 @@ export function vistaRecordatorios() {
     (lista.length > 1 ? '<div class="chips rec-filtros"><button type="button" class="chip' + (filtroEstado ? '' : ' activo') + '" data-accion="rec-filtro" data-v="">Todos (' + lista.length + ')</button>' +
       [['pendiente', 'De hoy'], ['vencido', 'Vencidos'], ['pronto', 'Pronto'], ['sin-dato', 'Sin registro'], ['al-dia', 'Al día'], ['programado', 'Programados']].filter(([k]) => cuenta(k)).map(([k, t]) =>
         '<button type="button" class="chip' + (filtroEstado === k ? ' activo' : '') + '" data-accion="rec-filtro" data-v="' + k + '">' + t + ' (' + cuenta(k) + ')</button>').join('') + '</div>' : '') +
-    (lista.length ? '<div class="rejilla-rec' + (abierto.id ? ' con-activa' : '') + '">' + visibles.map(({ x, i }) => tarjeta(x, i)).join('') + '</div>' : '<section class="tarjeta"><p class="nota-corta">Aún no tienes recordatorios. Toca ＋ Agregar y escoge uno.</p></section>') +
+    (lista.length ? '<div class="lista-rec">' + visibles.map(({ x, i }) => fila(x, i)).join('') + '</div>' : '<section class="tarjeta"><p class="nota-corta">Aún no tienes recordatorios. Toca ＋ Agregar y escoge uno.</p></section>') +
     seccionEventos() +
-    (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2><div class="rejilla-rec">' + auto.map((a) =>
-      '<section class="tarjeta"><div class="ed-cab"><b>' + esc(a.nombre) + '</b><span class="estado e-' + a.estado + '">' + ESTADOS[a.estado] + '</span></div>' +
-      '<div class="fila-resumen nota-corta"><span>' + fechaCorta(a.fecha) + (a.faltan > 0 ? ' · en ' + a.faltan + ' días' : a.faltan === 0 ? ' · hoy' : '') + '</span><b>' + pesos(a.monto) + '</b></div>' +
-      '<button type="button" class="boton secundario ancho" data-accion="' + ({ fijo: 'fin-pagar-fijo', cobro: 'fin-cobrar' }[a.tipo] || 'fin-pagar-deuda') + '" data-id="' + a.id + '">' + (a.tipo === 'cobro' ? 'Registrar cobro' : 'Registrar pago') + '</button></section>').join('') + '</div>' : '') +
+    (auto.length ? '<h2 class="titulo-grupo">💸 Pagos de Finanzas</h2><div class="lista-rec">' + auto.map((a) =>
+      '<section class="rec-fila rec-e-' + a.estado + '"><div class="rec-linea"><div class="rec-abrir rec-info">' +
+      '<span class="rec-ic" aria-hidden="true">' + (a.tipo === 'cobro' ? '💰' : '💸') + '</span>' +
+      '<b class="rec-nombre">' + esc(a.nombre) + '</b>' +
+      '<span class="estado e-' + a.estado + '">' + ESTADOS[a.estado] + '</span>' +
+      '<span class="rec-cuando"><b>' + pesos(a.monto) + '</b> · ' + fechaCorta(a.fecha) + (a.faltan > 0 ? ' · en ' + a.faltan + ' días' : a.faltan === 0 ? ' · hoy' : '') + '</span></div>' +
+      '<button type="button" class="boton ' + (a.estado === 'vencido' ? 'primario' : 'secundario') + ' rec-ok" data-accion="' + ({ fijo: 'fin-pagar-fijo', cobro: 'fin-cobrar' }[a.tipo] || 'fin-pagar-deuda') + '" data-id="' + a.id + '" aria-label="' + (a.tipo === 'cobro' ? 'Registrar cobro' : 'Registrar pago') + ' de ' + esc(a.nombre) + '">' +
+      (a.tipo === 'cobro' ? 'Cobrar' : 'Pagar') + '</button></div></section>').join('') + '</div>' : '') +
     seccionCirculo() +
     '<details class="tarjeta rec-agregar" id="rec-agregar"' + (agregarAbierto ? ' open' : '') + '><summary><h2>＋ Agregar recordatorio</h2></summary>' +
     '<input type="search" class="rec-buscar" placeholder="Buscar: hipoteca, SOAT, aceite…" aria-label="Buscar plantilla"><div class="grupos-plantilla">' + Object.entries(GRUPOS_PLANTILLA).map(([g, titulo]) =>
@@ -219,11 +250,17 @@ export function vistaRecordatorios() {
     '<p class="nota-corta">Los pagos fijos, las cuotas y los intereses por cobrar de Finanzas aparecen aquí solos cuando se acerca el día.</p></details>';
 }
 
-// Lo de todos los días que aún no se marcó: franja arriba de toda la app (main.js) hasta que se toque ✓
+// Franja arriba de toda la app (main.js) hasta que se toque ✓: lo de todos los días que aún no se marcó
+// y cualquier recordatorio desde el día en que le toca (o cuando ya se cumplieron los km)
 export function bannerDiarios() {
-  const pendientes = r().lista.filter((x) => x.diario && estadoRecordatorio(x, vehiculo(x.vehiculo)).estado === 'pendiente');
-  return pendientes.map((x) => '<div class="diario"><span>' + (x.icono || '📌') + ' <b>' + esc(x.nombre) + '</b>' + (x.nota ? '<small>' + esc(x.nota) + '</small>' : '') + '</span>' +
-    '<button type="button" class="boton primario" data-accion="rec-hoy" data-id="' + x.id + '">✓ Listo</button></div>').join('');
+  return r().lista.map((x) => {
+    const v = vehiculo(x.vehiculo), s = estadoRecordatorio(x, v);
+    if (!tocaYa(x, s)) return '';
+    const p = x.diario ? null : proximoRecordatorio(x, s, v ? kmActual(v.km) : null);
+    const cuando = p ? (p.titulo === 'Hoy' ? 'Toca hoy' : p.titulo.startsWith('Hace ') ? 'Tocaba h' + p.titulo.slice(1) : p.titulo) : '';
+    return '<div class="diario"><span>' + (x.icono || '📌') + ' <b>' + esc(x.nombre) + '</b>' + (cuando || x.nota ? '<small>' + [cuando, esc(x.nota || '')].filter(Boolean).join(' · ') + '</small>' : '') + '</span>' +
+      '<button type="button" class="boton primario" data-accion="rec-hoy" data-id="' + x.id + '">✓ Listo</button></div>';
+  }).join('');
 }
 
 registrar({
@@ -277,13 +314,25 @@ registrar({
     if (!x) return;
     const actual = x.cadaKm ? kmActual((vehiculo(x.vehiculo) || { km: [] }).km) : null;
     // Lo de km necesita saber con cuántos km fue
-    if (x.cadaKm && actual == null) { abierto = { id: x.id, que: 'hecho' }; repintar(); toast('Escribe los km de la moto'); return; }
+    // (desde la franja de otra pantalla: lleva a Recordatorios, donde queda abierto para escribirlos)
+    if (x.cadaKm && actual == null) {
+      abierto = { id: x.id, que: 'hecho' };
+      if (location.hash.split('/')[0] !== '#recordatorios') location.hash = '#recordatorios'; else repintar();
+      toast('Escribe los km de la moto');
+      return;
+    }
     const deshacer = anotarHecho(x, { fecha: iso(), km: actual, costo: 0 });
     guardar();
     toast('✓ ' + x.nombre + ' · hoy', deshacer);
   },
+  // Tocar la fila abre o cierra su detalle
+  'rec-abrir'({ id }) {
+    abierto = abierto.id === id ? { id: null, que: null } : { id, que: 'detalle' };
+    repintar();
+  },
+  // Dentro del detalle: tocar otra vez la misma pestaña la cierra y deja el detalle
   'rec-panel'({ id, q }) {
-    abierto = abierto.id === id && abierto.que === q ? { id: null, que: null } : { id, que: q };
+    abierto = { id, que: abierto.id === id && abierto.que === q ? 'detalle' : q };
     repintar();
   },
   'rec-filtro'({ v }) { filtroEstado = v; repintar(); },
@@ -308,7 +357,7 @@ registrar({
     const nuevo = { id: 'r' + uid(), ...p, vehiculo: p.vehiculo && vehiculo(p.vehiculo) ? p.vehiculo : '', hechos: [] };
     r().lista.push(nuevo);
     filtroEstado = '';
-    // Lleva a la tarjeta nueva, resaltada y lista para editar
+    // Lleva a la fila nueva, abierta y lista para editar
     abierto = { id: nuevo.id, que: 'editar' };
     agregarAbierto = false;
     guardar();

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { FINANZAS, PLANTILLAS_RECORDATORIO, GRUPOS_PLANTILLA } from '../src/datos_finanzas.js';
 import {
   leerMonto, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, mesesParaPagar, sumarMeses,
-  estadoRecordatorio, proximoRecordatorio, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
+  estadoRecordatorio, proximoRecordatorio, tocaYa, ritmoKm, recordatoriosAutomaticos, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda,
   planMeta, planPago, saldoCuenta, patrimonio, anotarPatrimonio, deseosDelMes, fijosPorRevisar, cobroPrestamo, prestarMas, interesPrestamo, estadoCobro, pagosSinDeuda, convertirEnPagoDeuda,
 } from '../src/finanzas.js';
 
@@ -306,4 +306,29 @@ test('recordatorio de todos los días: pendiente hasta marcarlo hoy, y mañana v
   x.hechos.push({ fecha: '2026-11-04' });
   assert.equal(estadoRecordatorio(x, null, '2026-11-04').estado, 'al-dia');
   assert.equal(estadoRecordatorio(x, null, '2026-11-05').estado, 'pendiente');
+});
+
+test('tocaYa: avisa desde el día que toca (o al cumplir los km) hasta marcarlo', () => {
+  const ya = (rec, veh, hoy) => tocaYa(rec, estadoRecordatorio(rec, veh, hoy));
+  // Cada 18 días: último el 30 oct → toca el 17 nov
+  const corte = { cadaDias: 18, hechos: [{ fecha: '2026-10-30' }] };
+  assert.equal(ya(corte, null, '2026-11-16'), false); // "pronto", pero aún no es el día
+  assert.equal(ya(corte, null, '2026-11-17'), true);
+  assert.equal(ya(corte, null, '2026-11-20'), true); // sigue los días siguientes
+  assert.equal(ya({ ...corte, hechos: [...corte.hechos, { fecha: '2026-11-17' }] }, null, '2026-11-17'), false); // marcado ese día
+  // Día fijo del mes
+  const pago = { diaMes: 15, hechos: [{ fecha: '2026-10-15' }] };
+  assert.equal(ya(pago, null, '2026-11-14'), false);
+  assert.equal(ya(pago, null, '2026-11-15'), true);
+  // Por km: al llegar a los km, aunque no haya fecha
+  const aceite = { cadaKm: 2000, hechos: [{ fecha: '2026-10-31', km: 20000 }] };
+  assert.equal(ya(aceite, { km: [{ fecha: '2026-11-13', km: 21780 }] }, '2026-11-13'), false);
+  assert.equal(ya(aceite, { km: [{ fecha: '2026-11-13', km: 22000 }] }, '2026-11-13'), true);
+  // Sin registro no avisa; algo que empieza en una fecha, desde esa fecha
+  assert.equal(ya({ cadaDias: 30, hechos: [] }, null, '2026-11-13'), false);
+  assert.equal(ya({ cadaMeses: 1, empieza: '2026-11-13', hechos: [] }, null, '2026-11-12'), false);
+  assert.equal(ya({ cadaMeses: 1, empieza: '2026-11-13', hechos: [] }, null, '2026-11-13'), true);
+  // Lo de todos los días sigue igual
+  assert.equal(ya({ diario: true, hechos: [] }, null, '2026-11-13'), true);
+  assert.equal(ya({ diario: true, hechos: [{ fecha: '2026-11-13' }] }, null, '2026-11-13'), false);
 });

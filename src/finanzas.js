@@ -340,6 +340,14 @@ export function estadoRecordatorio(rec, vehiculo, hoy = iso()) {
 }
 
 // Lo que muestra la tarjeta: la frase del próximo (el límite que llegue primero, km o fecha) y cuánto del ciclo ya pasó (0 a 1)
+// ¿Ya llegó el día (o los km)? Desde ese día sale arriba en toda la app hasta que se marque, como lo de todos los días.
+// s: lo que devuelve estadoRecordatorio. Sin registro o sin fecha fija no avisa: no hay día que haya llegado
+export function tocaYa(rec, s) {
+  if (rec.diario) return s.estado === 'pendiente';
+  if (s.estado === 'sin-dato') return false;
+  return (s.faltaDias != null && s.faltaDias <= 0) || (s.faltaKm != null && s.faltaKm <= 0);
+}
+
 export function proximoRecordatorio(rec, s, kmHoy, hoy = iso()) {
   if (s.empieza) {
     const d = s.faltaDias;

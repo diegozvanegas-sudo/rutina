@@ -8,7 +8,7 @@ description: Publica los cambios de la app Rutina: pruebas, build, commit de los
 Subir a `main` publica la app en GitHub Pages. Solo se hace cuando el usuario lo pide.
 
 1. `git status --short`: mira qué cambió.
-2. `npm test` y `npm run build`. Si algo falla, **para**, muestra el error y no subas.
+2. `npm test`, `npm run humo` y `npm run build`. Si algo falla, **para**, muestra el error y no subas. `humo` abre todas las pantallas en computador y celular (tarda cerca de un minuto); sáltalo solo si el cambio no toca nada de `src/` ni `vite.config.js`, y dilo.
 3. `git add` con **los nombres de los archivos de la tarea**. Nunca `git add .` ni `-A`.
 4. Commit con un mensaje en español, al estilo del repo ("Sección: qué cambió"), con la atribución que indique la sesión. Revisa primero `git log -5 --format=%s`.
 5. `git push origin main`.

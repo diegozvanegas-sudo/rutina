@@ -121,7 +121,6 @@ function editorRutina() {
   const rutina = e().rutina;
   if (!rutina.some((d) => d.id === diaEd)) diaEd = rutina[0] && rutina[0].id;
   const i = rutina.findIndex((d) => d.id === diaEd), d = rutina[i];
-  const musculos = [...new Set(rutina.flatMap((x) => x.ejercicios.map((ej) => ej.musculo)).filter(Boolean))];
   const repetidos = rutina.filter((x) => x.diaSemana && rutina.filter((y) => y.diaSemana === x.diaSemana).length > 1);
   return '<nav class="chips">' + rutina.map((x) => '<button type="button" class="chip' + (x.id === diaEd ? ' activo' : '') + '" data-accion="ed-dia" data-id="' + x.id + '">' + esc(x.nombre) + '</button>').join('') +
     '<button type="button" class="chip" data-accion="ed-agregar" data-lista="rutina">＋ Día</button></nav>' +
@@ -140,35 +139,43 @@ function editorRutina() {
         '<div class="dos dos-largo">' + campo('Antes de empezar', 'rutina.' + i + '.previo', d.previo, ' placeholder="Ej.: movilidad previa 5-10 min"') +
         lista('Plan de comida', 'rutina.' + i + '.dieta', d.dieta || '', PLANES_DIETA) + '</div>') +
       '</section>' +
-      '<datalist id="musculos">' + musculos.map((m) => '<option value="' + esc(m) + '">').join('') + '</datalist>' +
-      // Cada ejercicio es un renglón que se edita ahí mismo (nombre, músculo y series × reps); ⋯ abre lo demás
-      (d.ejercicios.length ? '<div class="ed-ej-linea ed-ej-titulos" aria-hidden="true"><span></span><span>Ejercicio</span><span>Músculo</span><span>Series × reps</span><span></span></div>' : '') +
-      '<div class="ed-lista" data-orden-lista="rutina.' + i + '.ejercicios">' + d.ejercicios.map((ej, j) => {
-        const r = 'rutina.' + i + '.ejercicios.' + j, abierto = itemAbierto === r;
-        return '<section class="tarjeta ed-item ed-ej' + (abierto ? ' rec-activa' : '') + '" data-ancla="ed-' + esc(ej.id) + '" data-orden-i="' + j + '"><div class="ed-ej-linea"><span class="ed-num">' + asa(ej.nombre) + '<small>' + (ej.calentamiento ? '🔥' : j + 1) + '</small></span>' +
-          '<input class="ed-ej-nombre" type="text" data-cambio="ed" data-ruta="' + r + '.nombre" value="' + esc(ej.nombre) + '" aria-label="Ejercicio ' + (j + 1) + '">' +
-          '<input class="ed-ej-musculo" type="text" data-cambio="ed" data-ruta="' + r + '.musculo" value="' + esc(ej.musculo || '') + '" list="musculos" placeholder="Músculo" aria-label="Músculo de ' + esc(ej.nombre) + '">' +
-          '<input class="ed-ej-esquema" type="text" data-cambio="ed-esquema" data-ruta="' + r + '" value="' + esc(esquemaDe(ej)) + '" placeholder="3×8-12" aria-label="Series por reps de ' + esc(ej.nombre) + '">' +
-          '<button type="button" class="icono ed-mas" data-accion="ed-abrir" data-r="' + r + '" aria-expanded="' + abierto + '" aria-label="Más opciones de ' + esc(ej.nombre) + '">' + (abierto ? '▾' : '⋯') + '</button></div>' +
-          (!abierto ? '</section>' : '<div class="ed-cuerpo">' + controles('rutina.' + i + '.ejercicios', j, d.ejercicios.length, ej.nombre) +
-          '<div class="dos">' + campo('Nota', r + '.nota', ej.nota, ' placeholder="Técnica, máquina, agarre…"') +
-          (rutina.length > 1 ? '<label class="campo">Mover a otro día<select data-cambio="ed-mover-dia" data-dia="' + i + '" data-j="' + j + '"><option value="">—</option>' +
-            rutina.map((x, k) => (k === i ? '' : '<option value="' + k + '">' + esc(x.nombre) + '</option>')).join('') + '</select></label>' : '') + '</div>' +
-          (tieneVariantes(ej) ? '<div class="ed-variantes"><b>⇄ Variantes</b><p class="nota-corta">Cada una lleva su propio historial. Lo anotado antes de crearlas quedó en la primera. Se agregan desde la tarjeta del Gym.</p>' +
-            ej.variantes.map((v, k) => '<div class="ed-variante"><input type="text" data-cambio="ed-variante" data-ruta="' + r + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="Nombre de la variante ' + (k + 1) + '">' +
-              '<button type="button" class="icono" data-accion="ed-variante-quitar" data-ruta="' + r + '" data-k="' + k + '" aria-label="Quitar ' + esc(v) + '">✕</button></div>').join('') + '</div>' : '') +
-          (d.id !== 'core' && d.ejercicios[j + 1] ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.biserie"' + (ej.biserie ? ' checked' : '') + '> 🔁 En biserie con el siguiente (' + esc(d.ejercicios[j + 1].nombre) + ')</label>' : '') +
-          (d.id !== 'core' ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.calentamiento"' + (ej.calentamiento ? ' checked' : '') + '> 🔥 Es del calentamiento (cuenta las series, pero no pide subir peso)</label>' : '') +
-          '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></div></section>');
-      }).join('') + '</div>' +
-      // Agregar escribiendo en el mismo renglón (Enter o el botón)
-      '<section class="tarjeta ed-ej ed-nuevo"><div class="ed-ej-linea"><span class="ed-num">＋</span>' +
-      '<input class="ed-ej-nombre" type="text" id="ed-nuevo-nombre" placeholder="Nuevo ejercicio" aria-label="Nombre del ejercicio nuevo" enterkeyhint="next" autocomplete="off">' +
-      '<input class="ed-ej-musculo" type="text" id="ed-nuevo-musculo" list="musculos" placeholder="Músculo" aria-label="Músculo del ejercicio nuevo" enterkeyhint="next" autocomplete="off">' +
-      '<input class="ed-ej-esquema" type="text" id="ed-nuevo-esquema" placeholder="3×8-12" aria-label="Series por reps del ejercicio nuevo" data-enter="ed-ej-agregar" enterkeyhint="done" autocomplete="off">' +
-      '<button type="button" class="boton primario ed-mas" data-accion="ed-ej-agregar" data-lista="rutina.' + i + '.ejercicios">Agregar</button></div></section>' +
-      '<p class="nota-corta">⠿ Arrastra del asa para ordenar los ejercicios (en el computador también con las flechas ↑ ↓). Cambia el nombre, el músculo o las series ahí mismo: se guarda al salir del campo y lo ya anotado en el Gym se conserva. ⋯ abre lo demás (orden, nota, descansos, mover de día, duplicar, borrar). ' +
-      'Series × reps: "3×8-12", "4×10 + fallo", "1×1 min" o con top set y back-off separados por "·" (también vale "3x8-12").</p>');
+      editorEjercicios('rutina', i));
+}
+
+// Los ejercicios de un día, en renglones que se editan ahí mismo (⋯ abre lo demás) y se ordenan arrastrando.
+// lista: ruta de los días ("rutina" o "clientes.2.rutina"); i: el día. Lo usan tu rutina y la de cada cliente (vistas/clientes.js)
+export function editorEjercicios(lista, i, { propia = lista === 'rutina' } = {}) {
+  const rutina = obtener(lista), d = rutina[i], base = lista + '.' + i;
+  const musculos = [...new Set([...e().rutina, ...rutina].flatMap((x) => x.ejercicios.map((ej) => ej.musculo)).filter(Boolean))];
+  return '<datalist id="musculos">' + musculos.map((m) => '<option value="' + esc(m) + '">').join('') + '</datalist>' +
+    // Cada ejercicio es un renglón que se edita ahí mismo (nombre, músculo y series × reps); ⋯ abre lo demás
+    (d.ejercicios.length ? '<div class="ed-ej-linea ed-ej-titulos" aria-hidden="true"><span></span><span>Ejercicio</span><span>Músculo</span><span>Series × reps</span><span></span></div>' : '') +
+    '<div class="ed-lista" data-orden-lista="' + base + '.ejercicios">' + d.ejercicios.map((ej, j) => {
+      const r = base + '.ejercicios.' + j, abierto = itemAbierto === r;
+      return '<section class="tarjeta ed-item ed-ej' + (abierto ? ' rec-activa' : '') + '" data-ancla="ed-' + esc(ej.id) + '" data-orden-i="' + j + '"><div class="ed-ej-linea"><span class="ed-num">' + asa(ej.nombre) + '<small>' + (ej.calentamiento ? '🔥' : j + 1) + '</small></span>' +
+        '<input class="ed-ej-nombre" type="text" data-cambio="ed" data-ruta="' + r + '.nombre" value="' + esc(ej.nombre) + '" aria-label="Ejercicio ' + (j + 1) + '">' +
+        '<input class="ed-ej-musculo" type="text" data-cambio="ed" data-ruta="' + r + '.musculo" value="' + esc(ej.musculo || '') + '" list="musculos" placeholder="Músculo" aria-label="Músculo de ' + esc(ej.nombre) + '">' +
+        '<input class="ed-ej-esquema" type="text" data-cambio="ed-esquema" data-ruta="' + r + '" value="' + esc(esquemaDe(ej)) + '" placeholder="3×8-12" aria-label="Series por reps de ' + esc(ej.nombre) + '">' +
+        '<button type="button" class="icono ed-mas" data-accion="ed-abrir" data-r="' + r + '" aria-expanded="' + abierto + '" aria-label="Más opciones de ' + esc(ej.nombre) + '">' + (abierto ? '▾' : '⋯') + '</button></div>' +
+        (!abierto ? '</section>' : '<div class="ed-cuerpo">' + controles(base + '.ejercicios', j, d.ejercicios.length, ej.nombre) +
+        '<div class="dos">' + campo('Nota', r + '.nota', ej.nota, ' placeholder="Técnica, máquina, agarre…"') +
+        (rutina.length > 1 ? '<label class="campo">Mover a otro día<select data-cambio="ed-mover-dia" data-lista="' + lista + '" data-dia="' + i + '" data-j="' + j + '"><option value="">—</option>' +
+          rutina.map((x, k) => (k === i ? '' : '<option value="' + k + '">' + esc(x.nombre) + '</option>')).join('') + '</select></label>' : '') + '</div>' +
+        (propia && tieneVariantes(ej) ? '<div class="ed-variantes"><b>⇄ Variantes</b><p class="nota-corta">Cada una lleva su propio historial. Lo anotado antes de crearlas quedó en la primera. Se agregan desde la tarjeta del Gym.</p>' +
+          ej.variantes.map((v, k) => '<div class="ed-variante"><input type="text" data-cambio="ed-variante" data-ruta="' + r + '" data-k="' + k + '" value="' + esc(v) + '" aria-label="Nombre de la variante ' + (k + 1) + '">' +
+            '<button type="button" class="icono" data-accion="ed-variante-quitar" data-ruta="' + r + '" data-k="' + k + '" aria-label="Quitar ' + esc(v) + '">✕</button></div>').join('') + '</div>' : '') +
+        (d.id !== 'core' && d.ejercicios[j + 1] ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.biserie"' + (ej.biserie ? ' checked' : '') + '> 🔁 En biserie con el siguiente (' + esc(d.ejercicios[j + 1].nombre) + ')</label>' : '') +
+        (d.id !== 'core' ? '<label class="interruptor"><input type="checkbox" data-cambio="ed" data-tipo="bool" data-ruta="' + r + '.calentamiento"' + (ej.calentamiento ? ' checked' : '') + '> 🔥 Es del calentamiento (cuenta las series, pero no pide subir peso)</label>' : '') +
+        '<div class="ed-descansos">' + ej.filas.map((f, k) => numero('Descanso ' + f.tipo + ' (s) · ' + reloj(f.descanso), r + '.filas.' + k + '.descanso', f.descanso)).join('') + '</div></div></section>');
+    }).join('') + '</div>' +
+    // Agregar escribiendo en el mismo renglón (Enter o el botón)
+    '<section class="tarjeta ed-ej ed-nuevo"><div class="ed-ej-linea"><span class="ed-num">＋</span>' +
+    '<input class="ed-ej-nombre" type="text" id="ed-nuevo-nombre" placeholder="Nuevo ejercicio" aria-label="Nombre del ejercicio nuevo" enterkeyhint="next" autocomplete="off">' +
+    '<input class="ed-ej-musculo" type="text" id="ed-nuevo-musculo" list="musculos" placeholder="Músculo" aria-label="Músculo del ejercicio nuevo" enterkeyhint="next" autocomplete="off">' +
+    '<input class="ed-ej-esquema" type="text" id="ed-nuevo-esquema" placeholder="3×8-12" aria-label="Series por reps del ejercicio nuevo" data-enter="ed-ej-agregar" enterkeyhint="done" autocomplete="off">' +
+    '<button type="button" class="boton primario ed-mas" data-accion="ed-ej-agregar" data-lista="' + base + '.ejercicios">Agregar</button></div></section>' +
+    '<p class="nota-corta">⠿ Arrastra del asa para ordenar los ejercicios (en el computador también con las flechas ↑ ↓). Cambia el nombre, el músculo o las series ahí mismo: se guarda al salir del campo' + (propia ? ' y lo ya anotado en el Gym se conserva' : '') + '. ⋯ abre lo demás (orden, nota, descansos, mover de día, duplicar, borrar). ' +
+    'Series × reps: "3×8-12", "4×10 + fallo", "1×1 min" o con top set y back-off separados por "·" (también vale "3x8-12").</p>';
 }
 
 // ---------- Sesiones ----------
@@ -344,13 +351,13 @@ registrar({
     if (i < 0) arr.push(id); else arr.splice(i, 1);
     guardar();
   },
-  'ed-mover-dia'({ dia, j }, el) {
+  'ed-mover-dia'({ lista = 'rutina', dia, j }, el) {
     if (el.value === '') return;
-    const rutina = e().rutina, de = rutina[Number(dia)], a = rutina[Number(el.value)];
+    const rutina = obtener(lista), de = rutina[Number(dia)], a = rutina[Number(el.value)];
     if (!de || !a) return;
     const [ej] = de.ejercicios.splice(Number(j), 1);
     a.ejercicios.push(ej);
-    diaEd = a.id;
+    if (lista === 'rutina') diaEd = a.id;
     toast('"' + ej.nombre + '" ahora está en ' + a.nombre);
     guardar();
   },

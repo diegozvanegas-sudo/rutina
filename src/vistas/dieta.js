@@ -16,7 +16,8 @@ const r0 = (n) => Math.round(n || 0);
 const d = () => e().dieta;
 const alimento = (id) => d().alimentos.find((a) => a.id === id);
 const unidad = (a) => (!a ? '' : a.por === 'g' ? 'g' : a.por === 'u' ? 'u' : '');
-const macros = (t) => '<span class="macros"><b>' + miles(t.kcal) + '</b> kcal · P ' + r0(t.p) + ' · G ' + r0(t.g) + ' · C ' + r0(t.c) + '</span>';
+export const TIPOS_PLAN = TIPOS;
+export const macros = (t) => '<span class="macros"><b>' + miles(t.kcal) + '</b> kcal · P ' + r0(t.p) + ' · G ' + r0(t.g) + ' · C ' + r0(t.c) + '</span>';
 
 // Peso para los cálculos: el promedio de los últimos 7 registros; si no hay, el de partida
 export function pesoActual() {
@@ -73,7 +74,6 @@ function vistaPlanes() {
   if (!TIPOS[planVista]) planVista = tipoDieta();
   const plan = d().planes[planVista], ruta = 'dieta.planes.' + planVista, total = totalPlan(plan, d().alimentos);
   const peso = pesoActual(), obj = objetivo(d().config, planVista, peso);
-  const opciones = d().alimentos.map((a) => '<option value="' + esc(a.id) + '">' + esc(a.nombre) + '</option>').join('');
   return '<nav class="chips">' + Object.entries(TIPOS).map(([k, t]) => '<button type="button" class="chip' + (k === planVista ? ' activo' : '') + '" data-accion="dieta-plan" data-tipo="' + k + '">' + t + '</button>').join('') + '</nav>' +
     '<section class="tarjeta"><div class="fila-resumen"><b>' + esc(plan.nombre) + '</b>' + macros(total) + '</div>' +
     '<p class="nota-corta">Con <b>' + String(peso).replace('.', ',') + ' kg</b> el objetivo es <b>≈ ' + miles(obj.kcal) + ' kcal</b>: proteína <b>' + obj.p + ' g</b>' +
@@ -81,7 +81,14 @@ function vistaPlanes() {
     '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="dieta-recalcular" data-tipo="' + planVista + '">⚖️ Recalcular este plan</button>' +
     '<button type="button" class="boton secundario" data-accion="dieta-recalcular" data-tipo="todos">Recalcular todos</button>' +
     (d().anterior ? '<button type="button" class="boton secundario" data-accion="dieta-deshacer">↶ Deshacer recálculo</button>' : '') + '</div></section>' +
-    plan.comidas.map((c, i) => {
+    editorComidas(ruta, plan);
+}
+
+// Las comidas de un plan, editables (cantidades, agregar y quitar alimentos, ordenar). ruta: "dieta.planes.superior" o el
+// plan de un cliente ("clientes.0.dieta.planes.superior"). Los alimentos son siempre los tuyos
+export function editorComidas(ruta, plan) {
+  const opciones = d().alimentos.map((a) => '<option value="' + esc(a.id) + '">' + esc(a.nombre) + '</option>').join('');
+  return plan.comidas.map((c, i) => {
       const rc = ruta + '.comidas.' + i;
       return '<section class="tarjeta ed-item"><div class="ed-cab"><input class="titulo-comida" type="text" data-cambio="ed" data-ruta="' + rc + '.nombre" value="' + esc(c.nombre) + '" aria-label="Nombre de la comida">' +
         '<div class="ed-controles">' +

@@ -4,7 +4,7 @@
 
 export const SECCIONES = {
   hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
-  dieta: ['🥗', 'Dieta'], suplementos: ['💊', 'Suplementos'], finanzas: ['💰', 'Finanzas'], compras: ['🛒', 'Compras'], recordatorios: ['🔔', 'Recordatorios'], lugares: ['🗺️', 'Lugares'], gym: ['🏋️', 'Gym'],
+  dieta: ['🥗', 'Dieta'], suplementos: ['💊', 'Suplementos'], finanzas: ['💰', 'Finanzas'], compras: ['🛒', 'Compras'], recordatorios: ['🔔', 'Recordatorios'], lugares: ['🗺️', 'Lugares'], gym: ['🏋️', 'Gym'], clientes: ['👥', 'Clientes'],
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
 export const TARJETAS_HOY = {
@@ -23,7 +23,7 @@ export const FIJAS = { menu: ['hoy', 'editar', 'ajustes'], hoy: [], metas: [] };
 // Se traducen al leer, así quien la tenía movida o escondida la sigue viendo igual
 const ANTES = { menu: { libros: 'estudiar' }, hoy: { libros: 'estudio' }, metas: {} };
 // Secciones nuevas que en un menú ya ordenado van debajo de su vecina y no al final (donde no se ven)
-const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta' }, hoy: { suplementos: 'dieta', retos: 'experimento' }, metas: {} };
+const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta', clientes: 'suplementos' }, hoy: { suplementos: 'dieta', retos: 'experimento' }, metas: {} };
 const lista = (config, que, tipo) => ((config && config[que] && config[que][tipo]) || []).map((id) => ANTES[tipo][id] || id);
 
 // Todos los ids del tipo en el orden del usuario

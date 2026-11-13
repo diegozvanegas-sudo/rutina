@@ -37,6 +37,7 @@ function inicial() {
     recordatorios: RECORDATORIOS(),
     lugares: { lista: LUGARES_INICIALES() }, // 🗺️ Lugares: { id, nombre, pais, region, municipio, mapa, pieza, tipo, emoji, lat, lon, estado: visitado | quiero, prioridad, epoca, horas, presupuesto, visitas: [{ fecha, con, calificacion, nota, gasto, enlace }] }
     compras: { lista: [], veces: {} }, // 🛒 Compras (src/compras.js): mercado y deseos
+    clientes: [], // 👥 Clientes (src/clientes.js): planes de rutina y comida para otras personas
     suplementos: { lista: [] }, // 💊 Suplementos (src/suplementos.js); lo tomado va en dias[fecha].suplementos
     libros: {},   // id del libro (src/libros): { leidos, practica, notas, perfil, fichas, vuelta }
     estudio: { cursos: {}, tarjetas: {}, dias: {} }, // 🎓 Estudiar (src/estudio.js)

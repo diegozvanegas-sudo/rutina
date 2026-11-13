@@ -251,6 +251,10 @@ details summary { cursor: pointer; color: var(--muted); padding: 6px 0; }
 .fuerza-lista b.baja { color: var(--amarillo); }
 .entradas { display: grid; grid-template-columns: 90px 96px 1fr; gap: 8px; }
 .serie-rapida { display: grid; grid-template-columns: 90px 1fr; gap: 8px; }
+/* 👥 Clientes */
+.cl-agregar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+.cl-volver { display: inline-block; margin-bottom: 4px; }
+.cl-fila .rec-abrir .estado { white-space: nowrap; }
 /* Recordatorios → Posibles para agregar */
 .sugeridos .chips { padding-bottom: 8px; }
 .sug-botones { display: flex; align-items: center; gap: 4px; }

@@ -9,7 +9,7 @@ const OK = '#3dd68c', AMARILLO = '#f5c542', AZUL = '#5aa9ff', VIOLETA = '#b48cff
 const T = { bg: '#101418', tarjeta: '#181e24', fila: '#212932', linea: '#2c3640', ink: '#e9eef2', muted: '#93a1ad' };
 
 // Lo que va en la imagen (sin pantalla, para poder probarlo)
-export function resumenRutina(sem, estado) {
+export function resumenRutina(sem, estado, opciones = {}) {
   const lunes = lunesDe(sem), rutina = estado.rutina, sesiones = estado.sesiones || [], cfg = estado.config || {};
   const nombreSesion = (id) => (sesiones.find((s) => s.id === id) || {}).nombre;
   const nombres = (ids) => (ids || []).map(nombreSesion).filter(Boolean);
@@ -41,7 +41,8 @@ export function resumenRutina(sem, estado) {
   const r = resumenSemana(rutina.filter((d) => d.id !== 'core' || d.ejercicios.length), estado.semanas?.[sem] || {}, cfg.objetivos);
   const core = rutina.find((d) => d.id === 'core');
   return {
-    semana: 'Semana ' + sem + ' · ' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)),
+    semana: opciones.subtitulo ?? 'Semana ' + sem + ' · ' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)),
+    titulo: opciones.titulo || '🏋️ Mi rutina semanal',
     totales: { dias: dias.filter((d) => d.entrenos.length).length, series: r.plan, ejercicios: rutina.reduce((s, d) => s + d.ejercicios.length, 0), partidos: dias.filter((d) => d.futbol).length },
     dias,
     core: core && core.ejercicios.length ? core.ejercicios.map(ejercicio) : [],
@@ -103,7 +104,7 @@ export function dibujarRutina(canvas, r) {
   const g = ctx.createLinearGradient(0, 0, W, 0);
   g.addColorStop(0, '#173a2a'); g.addColorStop(1, '#16283c');
   ctx.fillStyle = g; ctx.fillRect(0, 0, W, 270);
-  f(800, 72); txt('🏋️ Mi rutina semanal', M, 106, T.ink);
+  f(800, 72); txt(r.titulo || '🏋️ Mi rutina semanal', M, 106, T.ink);
   f(400, 34); txt(r.semana, M, 156, T.ink);
   const datos = [[r.totales.dias, 'días de gym'], [r.totales.series, 'series'], [r.totales.ejercicios, 'ejercicios'], [r.totales.partidos, r.totales.partidos === 1 ? 'partido' : 'partidos']];
   const wd = (W - 2 * M - 3 * 16) / 4;
@@ -183,6 +184,6 @@ export function dibujarRutina(canvas, r) {
   return canvas;
 }
 
-export function compartirRutina(sem, estado) {
-  return entregarImagen(dibujarRutina(document.createElement('canvas'), resumenRutina(sem, estado)), 'rutina semana ' + sem, 'Mi rutina semanal');
+export function compartirRutina(sem, estado, opciones = {}) {
+  return entregarImagen(dibujarRutina(document.createElement('canvas'), resumenRutina(sem, estado, opciones)), opciones.titulo ? opciones.titulo.replace(/^\W+/, '') : 'rutina semana ' + sem, opciones.titulo || 'Mi rutina semanal');
 }

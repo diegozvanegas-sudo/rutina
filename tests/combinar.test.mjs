@@ -134,3 +134,19 @@ test('la limpieza no le cambia nada a los datos que trae la app', () => {
   const antes = JSON.stringify(datos);
   assert.equal(JSON.stringify(limpiarRepetidos(JSON.parse(antes))), antes);
 });
+
+import { tieneDatosPropios } from '../src/combinar.js';
+
+test('celular recién estrenado: los días y semanas vacíos que crea la app no cuentan como datos propios (no se mezcla con la nube)', () => {
+  // Lo que queda después de abrir Hoy y el Gym sin anotar nada
+  assert.equal(tieneDatosPropios({ dias: { '2026-11-13': { habitos: {}, metas: { agua: 0, pasos: 0, calorias: 0, lectura: 0 }, crono: {} } }, semanas: { 5: {} }, finanzas: { movimientos: [] }, clientes: [] }), false);
+  assert.equal(tieneDatosPropios({}), false);
+  // Cualquier cosa anotada sí cuenta
+  assert.equal(tieneDatosPropios({ dias: { '2026-11-13': { metas: { agua: 500 } } } }), true);
+  assert.equal(tieneDatosPropios({ dias: { '2026-11-13': { habitos: { estirar: { ts: 1 } } } } }), true);
+  assert.equal(tieneDatosPropios({ semanas: { 5: { 'd1-1-1': { reps: '8' } } } }), true);
+  assert.equal(tieneDatosPropios({ dias: { '2026-11-13': { peso: 80 } } }), true);
+  assert.equal(tieneDatosPropios({ finanzas: { movimientos: [{ id: 'm1' }] } }), true);
+  assert.equal(tieneDatosPropios({ clientes: [{ id: 'c1' }] }), true);
+  assert.equal(tieneDatosPropios({ miEntrenador: { checkins: [{ id: 'k1' }] } }), true);
+});

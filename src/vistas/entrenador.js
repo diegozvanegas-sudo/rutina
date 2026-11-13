@@ -28,11 +28,11 @@ export async function cargarMiEntrenador(forzar = false) {
   } catch (err) { /* sin las funciones en la nube o sin conexión: queda lo último guardado */ }
   cargando = false;
 }
-// Manda el resumen a sus entrenadores (a lo sumo cada 30 minutos, salvo que se pida)
+// Manda el resumen a sus entrenadores (a lo sumo cada 5 minutos, salvo que se pida: check-in, usar el plan, "Compartir ahora")
 export async function compartirAvance(forzar = false) {
   const m = mi();
   if (!m.lista.length || !nube.usuario || !navigator.onLine) return false;
-  if (!forzar && m.compartido && Date.now() - m.compartido < 30 * 60 * 1000) return false;
+  if (!forzar && m.compartido && Date.now() - m.compartido < 5 * 60 * 1000) return false;
   try {
     await llamar('rutina_cliente_compartir', { p_resumen: resumenAvance(e(), semanaActual()) });
     m.compartido = Date.now();
@@ -43,7 +43,7 @@ export async function compartirAvance(forzar = false) {
 if (typeof window !== 'undefined') {
   // Al entrar con una cuenta, al volver a la app y cada minuto revisa si toca traer el plan
   setInterval(() => { if (nube.usuario && nube.usuario.id !== ultimoUsuario) cargarMiEntrenador(true); }, 3000);
-  setInterval(() => cargarMiEntrenador(), 60 * 1000);
+  setInterval(() => { cargarMiEntrenador(); if (tieneEntrenador() && document.visibilityState === 'visible') compartirAvance(); }, 60 * 1000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') cargarMiEntrenador(); });
 }
 
@@ -52,7 +52,7 @@ export const tieneEntrenador = () => !!(e().miEntrenador && e().miEntrenador.lis
 
 function unirse() {
   return '<section class="tarjeta"><h2>🔑 Unirme a mi entrenador</h2>' +
-    '<p class="nota-corta">Escribe el código que te mandó tu entrenador. Desde ese momento recibes su plan aquí y él ve un resumen de tu avance: series por semana, peso, sueño, fuerza y tus check-ins. <b>No ve el resto de tus datos.</b> Puedes dejar de compartir cuando quieras.</p>' +
+    '<p class="nota-corta">Escribe el código que te mandó tu entrenador. Desde ese momento recibes su plan aquí y él ve un resumen de tu avance: series por semana, peso, sueño, fuerza y tus check-ins. El administrador de la app también puede verlo. <b>Nadie ve el resto de tus datos.</b> Puedes dejar de compartir cuando quieras.</p>' +
     (!configurada ? '<p class="aviso">Esta versión de la app no tiene la nube configurada.</p>' : !nube.usuario ? '<p class="aviso">Inicia sesión primero (⚙️ Ajustes).</p>' : '') +
     '<div class="cl-agregar"><input type="text" id="ent-codigo" value="' + esc(codigoLink) + '" placeholder="Ej.: F9110E" maxlength="10" autocomplete="off" autocapitalize="characters" aria-label="Código del entrenador" data-enter="ent-unirme" enterkeyhint="go">' +
     '<button type="button" class="boton primario" data-accion="ent-unirme"' + (!nube.usuario ? ' disabled' : '') + '>Unirme</button></div></section>';
@@ -85,7 +85,7 @@ function checkin() {
 export function vistaEntrenador() {
   const m = mi();
   return '<h1>Mi entrenador</h1>' + (m.lista.length ? m.lista.map(tarjetaPlan).join('') + checkin() +
-    '<section class="tarjeta"><h2>🔄 Lo que compartes</h2><p class="nota-corta">Series por semana, peso, sueño promedio, cómo va tu fuerza y tus check-ins. Se manda solo cada vez que abres la app' +
+    '<section class="tarjeta"><h2>🔄 Lo que compartes</h2><p class="nota-corta">Series por semana, peso, sueño promedio, cómo va tu fuerza y tus check-ins, con tu entrenador (y el administrador de la app). Se manda solo cada vez que abres la app' +
       (m.compartido ? ' (la última: ' + fechaCorta(iso(new Date(m.compartido))) + ')' : '') + '.</p>' +
     '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="ent-compartir">🔄 Compartir ahora</button>' +
       m.lista.map((a) => '<button type="button" class="boton secundario rec-borrar" data-accion="ent-salir" data-id="' + esc(a.id) + '">Dejar de compartir con ' + esc((a.entrenador || '').split('@')[0]) + '</button>').join('') + '</div></section>' + unirse()
@@ -97,7 +97,7 @@ registrar({
   async 'ent-unirme'() {
     const campo = document.getElementById('ent-codigo'), codigo = (campo ? campo.value : '').trim();
     if (!codigo) { toast('Escribe el código de tu entrenador'); return; }
-    if (!confirm('¿Unirte a este entrenador?\n\nVa a ver un resumen de tu avance: series por semana, peso, sueño, fuerza y tus check-ins. No ve el resto de tus datos. Puedes dejar de compartir cuando quieras.')) return;
+    if (!confirm('¿Unirte a este entrenador?\n\nVa a ver un resumen de tu avance: series por semana, peso, sueño, fuerza y tus check-ins (el administrador de la app también puede verlo). Nadie ve el resto de tus datos. Puedes dejar de compartir cuando quieras.')) return;
     try {
       const r = await llamar('rutina_cliente_aceptar', { p_codigo: codigo });
       codigoLink = '';
@@ -111,6 +111,7 @@ registrar({
     if (!a || !confirm('¿Usar el plan de tu entrenador?\n\nReemplaza tu rutina del Gym y tus planes de comida. Lo de ahora queda guardado y puedes volver a él.')) return;
     const r = aplicarPlan(e(), a);
     guardar();
+    if (r) compartirAvance(true);
     if (r) toast('✓ Plan listo: ' + cuantos(r.dias, 'día', 'días') + ' en 🏋️ Gym y ' + cuantos(r.planes, 'plan', 'planes') + ' en 🥗 Dieta');
   },
   'ent-volver'() {

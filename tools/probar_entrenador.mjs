@@ -59,7 +59,7 @@ try {
   const vista = await sql(OTRO, `select public.rutina_admin_entrenadores()`);
   const fila = (vista || []).find((x) => x.entrenador === 'entrenador@prueba.local');
   ok(fila && fila.clientes.length === 1 && fila.clientes[0].correo === 'cliente@prueba.local' && fila.clientes[0].estado === 'activo', 'el administrador ve que cliente@ es cliente activo de entrenador@');
-  ok(fila && !('resumen' in fila.clientes[0]) && !('plan' in fila.clientes[0]), 'y no ve su plan ni su avance');
+  ok(fila && fila.clientes[0].resumen && fila.clientes[0].resumen.semanas[0].hechas === 20 && fila.clientes[0].plan.nombre === 'Ana', 'y, como superadmin, ve su plan y su avance');
   ok(/Solo el administrador/.test((await sql(ENT, `select public.rutina_admin_entrenadores()`)).error || ''), 'un entrenador no puede ver la lista de todos');
   await db.query(`update rutina.perfiles set rol = 'estudiante' where usuario = $1`, [OTRO]);
   // Nadie toca el estado completo de otro

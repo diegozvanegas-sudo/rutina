@@ -110,11 +110,14 @@ function vistaEntrenadores() {
   if (entrenadores == null) return '<p class="nota-corta">Cargando…</p>';
   const total = entrenadores.reduce((t, x) => t + x.clientes.filter((c) => c.estado === 'activo').length, 0);
   return '<section class="tarjeta"><h2>🧑‍🏫 Entrenadores y sus clientes</h2><p class="nota-corta">' + entrenadores.length + (entrenadores.length === 1 ? ' entrenador' : ' entrenadores') + ' · ' + total + (total === 1 ? ' cliente activo' : ' clientes activos') +
-    '. Aquí solo ves quién es cliente de quién: el plan y el avance de cada cliente los ve solo su entrenador. Para que alguien pueda invitar clientes, dale el rol «Entrenador» en 👥 Usuarios.</p>' +
+    '. Como superadmin ves todo: quién es cliente de quién, cuándo se le publicó el plan y el avance que le comparte a su entrenador. Cada entrenador ve solo los suyos y cada cliente solo lo suyo. Para que alguien pueda invitar clientes, dale el rol «Entrenador» en 👥 Usuarios.</p>' +
     '<button type="button" class="boton secundario" data-accion="adm-entrenadores">↻ Actualizar</button></section>' +
     entrenadores.map((x) => '<section class="tarjeta"><div class="fila-resumen"><b>' + esc(x.entrenador) + '</b><span class="estado e-programado">' + esc(nombreRol(x.rol)) + '</span></div>' +
       (x.clientes.length ? '<ul class="lista-pesos">' + x.clientes.map((c) => { const [clase, t] = ESTADO_ASIG[c.estado] || ['programado', c.estado];
-        return '<li><span>' + (c.correo ? esc(c.correo) : '<i>sin aceptar aún</i>') + '<small> · ' + (c.aceptado ? 'desde el ' + cuando(c.aceptado) : 'invitado el ' + cuando(c.creado)) + '</small></span><span class="estado e-' + clase + '">' + t + '</span></li>'; }).join('') + '</ul>'
+        const r = c.resumen, sem = r && r.semanas ? r.semanas[r.semanas.length - 1] : null, ps = (r && r.pesos) || [];
+        const avance = r ? [sem ? 'semana ' + sem.n + ': ' + sem.hechas + '/' + sem.plan + ' series' : '', ps.length ? 'peso ' + String(ps[ps.length - 1].peso).replace('.', ',') + ' kg' : '', (r.checkins || []).length ? r.checkins.length + ' check-ins' : '', 'al ' + cuando(c.resumen_actualizado)].filter(Boolean).join(' · ') : 'sin avance compartido';
+        return '<li><span>' + (c.correo ? esc(c.correo) : '<i>sin aceptar aún</i>') + '<small> · ' + (c.aceptado ? 'desde el ' + cuando(c.aceptado) : 'invitado el ' + cuando(c.creado)) +
+          ' · ' + (c.plan_version ? 'plan «' + esc((c.plan && c.plan.nombre) || '') + '» publicado' : 'sin plan publicado') + '</small><small>📊 ' + esc(avance) + '</small></span><span class="estado e-' + clase + '">' + t + '</span></li>'; }).join('') + '</ul>'
         : '<p class="nota-corta">Sin clientes todavía.</p>') + '</section>').join('');
 }
 

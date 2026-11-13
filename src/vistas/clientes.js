@@ -70,7 +70,7 @@ function app(c) {
   if (!nube.usuario) return '<section class="tarjeta"><h2>🔗 App del cliente</h2><p class="aviso">Inicia sesión en la nube (⚙️ Ajustes) para invitar a tus clientes.</p></section>';
   if (remotos == null && !cargandoR) setTimeout(cargarRemotos, 0);
   const a = (remotos || []).find((x) => x.local === c.id), r = a && a.resumen;
-  const explicacion = '<p class="nota-corta">Con su cuenta, ' + esc(c.nombre) + ' ve su plan en su Gym y su Dieta, anota sus entrenos y te manda su check-in. Tú ves un resumen de su avance: series por semana, peso, sueño, fuerza y check-ins. No ves el resto de sus datos y él puede cortar cuando quiera.</p>';
+  const explicacion = '<p class="nota-corta">Con su cuenta, ' + esc(c.nombre) + ' ve su plan en su Gym y su Dieta, anota sus entrenos y te manda su check-in. Tú ves un resumen de su avance: series por semana, peso, sueño, fuerza y check-ins. No ves el resto de sus datos (el administrador de la app sí ve este resumen) y él puede cortar cuando quiera.</p>';
   if (remotos == null) return '<section class="tarjeta"><h2>🔗 App del cliente</h2><p class="nota-corta">Cargando…</p></section>';
   if (!a) return '<section class="tarjeta"><h2>🔗 App del cliente</h2>' + explicacion + (errorR ? '<p class="aviso">' + esc(errorR) + '</p>' : '') +
     '<button type="button" class="boton primario" data-accion="cl-invitar">🔗 Invitar a la app</button>' +

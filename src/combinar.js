@@ -58,6 +58,16 @@ export function combinarEstado(base, local, remoto, ganaLocal) {
 
 // Red de seguridad: los datos de este equipo no son los últimos que se subieron (sin contar la hora del cambio ni el orden
 // de las llaves). Atrapa lo que se cambió sin pasar por guardar(), para que igual llegue a la nube
+// ¿Este equipo tiene algo anotado de verdad? Solo cuenta lo que la persona escribió: al pintar Hoy o el Gym la app crea
+// días y semanas vacíos ({ habitos: {}, metas: { agua: 0 } }), y contarlos hacía que un celular recién estrenado mezclara
+// su rutina de ejemplo con la de la nube (días repetidos) en vez de solo bajarla
+const lleno = (x) => (x == null ? false : typeof x === 'object' ? Object.values(x).some(lleno) : x !== 0 && x !== '' && x !== false);
+export function tieneDatosPropios(est) {
+  return Object.values(est.dias || {}).some(lleno) || Object.values(est.semanas || {}).some(lleno)
+    || ((est.finanzas && est.finanzas.movimientos) || []).length > 0 || (est.clientes || []).length > 0
+    || ((est.miEntrenador && est.miEntrenador.checkins) || []).length > 0;
+}
+
 export function difiereDeLaNube(datos, base) {
   if (!base) return false;
   const sinCambio = ({ cambio, ...resto }) => resto;

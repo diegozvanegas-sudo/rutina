@@ -133,19 +133,24 @@ function flotante() {
 
 // Identidad de un campo para encontrarlo de nuevo después de repintar
 function claveCampo(el) {
+  // Los campos de un formulario que se guarda con un botón (check-in, valoración, agregar…) se reconocen por su id
+  if (el.id && !el.dataset.cambio) return 'id:' + el.id;
   return claveDeDatos(el.dataset || {});
 }
-// Lo escrito y aún no guardado (reps de la serie, el campo donde está el cursor) sobrevive al repintado
+// Lo escrito y aún no guardado sobrevive al repintado (que también pasa solo: al sincronizar o al traer el plan del entrenador):
+// las reps de la serie, el campo donde está el cursor y lo escrito en formularios que se guardan con un botón
 function recordarCampos() {
   const activo = document.activeElement, valores = {};
   document.querySelectorAll('#vista [data-serie]').forEach((el) => { if (el.value) valores[claveCampo(el)] = el.value; });
+  document.querySelectorAll('#vista input[id]:not([data-cambio]):not([type=file]):not([type=checkbox]), #vista textarea[id]:not([data-cambio]), #vista select[id]:not([data-cambio])')
+    .forEach((el) => { if (el.value && el.value !== el.defaultValue) valores[claveCampo(el)] = el.value; });
   // Un campo de archivo no se puede volver a llenar por código
   const clave = activo && $('vista').contains(activo) && activo.type !== 'file' ? claveCampo(activo) : null;
   if (clave) valores[clave] = activo.value;
   return { clave, valores, cursor: clave && activo.selectionStart != null ? [activo.selectionStart, activo.selectionEnd] : null };
 }
 function restaurarCampos({ clave, valores, cursor }) {
-  document.querySelectorAll('#vista input:not([type=file]), #vista textarea').forEach((el) => {
+  document.querySelectorAll('#vista input:not([type=file]), #vista textarea, #vista select[id]:not([data-cambio])').forEach((el) => {
     const k = claveCampo(el);
     if (k && k in valores) el.value = valores[k];
     if (k && k === clave) {

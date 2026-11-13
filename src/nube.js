@@ -2,7 +2,7 @@
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
 import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual } from './estado.js';
-import { combinarEstado, difiereDeLaNube } from './combinar.js';
+import { combinarEstado, difiereDeLaNube, tieneDatosPropios } from './combinar.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -66,10 +66,8 @@ export async function sincronizar(silencio = false) {
   }
 }
 
-// Hay algo propio en este celular (más allá de lo que trae la app de entrada)
-function tieneDatos(est) {
-  return Object.keys(est.dias || {}).length > 0 || Object.keys(est.semanas || {}).some((s) => s !== '1');
-}
+// Hay algo propio en este celular (más allá de lo que trae la app de entrada y de los días vacíos que crea al pintar)
+const tieneDatos = tieneDatosPropios;
 function bajar(remoto) {
   reemplazar(remoto.datos);
   marcarNube({ usuario: nube.usuario.id, base: Number(remoto.version) });

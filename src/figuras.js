@@ -82,12 +82,11 @@ export const POSES = {
     { h: [70, 128], n: [108, 138], c: 6, o: -10, m1: [154, 146], m2: [150, 146], p1: [52, PISO], p2: [50, PISO], t1: -90, t2: -90 },
     { h: [70, 125], n: [110, 137], c: 9, o: -10, m1: [156, 146], m2: [152, 146], p1: [52, PISO], p2: [50, PISO], t1: -90, t2: -90 }], dur: 4 },
   // Estiramiento completo (cadera y columna)
-  'rotacion de la columna': { poses: [
-    { h: [62, 145], n: [66, 103], m1: [96, 140], m2: [40, 146], p1: [122, 146], p2: [98, 146], s: { p2: -1, m2: 1 }, t1: 180 },
-    { h: [62, 145], n: [64, 103], o: -25, m1: [96, 118], m2: [34, 146], p1: [122, 146], p2: [98, 146], s: { p2: -1, m2: 1 }, t1: 180 }], dur: 3 },
+  'rotacion de la columna': { detalle: 'giro' },
+  // De frente: plantas juntas, rodillas abiertas; al inclinarse el tronco se ve más corto
   'postura de la mariposa': { poses: [
-    { h: [70, 145], n: [74, 103], m1: [102, 142], m2: [98, 142], p1: [100, 147], p2: [98, 147], s: { p1: 1, p2: 1 } },
-    { h: [70, 145], n: [100, 118], c: 8, o: -20, m1: [104, 142], m2: [100, 142], p1: [100, 147], p2: [98, 147], s: { p1: 1, p2: 1 } }], dur: 3 },
+    { h: [100, 142], n: [100, 100], m1: [104, 146], m2: [96, 146], p1: [101, 148], p2: [99, 148], s: { p1: 1, p2: -1, m1: 1, m2: -1 }, t1: -90, t2: 90 },
+    { h: [100, 142], n: [100, 118], m1: [106, 146], m2: [94, 146], p1: [101, 148], p2: [99, 148], s: { p1: 1, p2: -1, m1: 1, m2: -1 }, t1: -90, t2: 90 }], dur: 3 },
   'estiramiento cobra': { poses: [
     { h: [86, 144], n: [128, 140], m1: [124, 148], m2: [120, 148], p1: [27, 147], p2: [26, 148], t1: -90, t2: -90 },
     { h: [86, 144], n: [118, 104], c: -12, o: 30, m1: [128, 148], m2: [124, 148], p1: [27, 147], p2: [26, 148], t1: -90, t2: -90 }], dur: 3 },
@@ -151,9 +150,7 @@ export const POSES = {
     con(DE_PIE, { h: [96, 92], n: [102, 50], m1: [146, 66], m2: [144, 68], p1: [108, PISO], p2: [102, PISO] }),
     con(DE_PIE, { h: [96, 92], n: [100, 50], m1: [106, 76], m2: [104, 78], p1: [108, PISO], p2: [102, PISO] })], anclaje: [176, 66] },
   'balanceo de pierna': { poses: [con(DE_PIE, { m2: [64, 70], p1: [146, 124], s: { m2: 1 } }), con(DE_PIE, { m2: [64, 70], p1: [62, 132], s: { m2: 1 } })], pared: 60, dur: 1 },
-  'cadera 90/90': { poses: [
-    con(SENTADO, { m1: [132, 136], m2: [72, 136], p1: [104, 148], p2: [94, 148], s: { p1: -1, p2: -1, m2: -1 } }),
-    con(SENTADO, { m1: [128, 136], m2: [68, 136], p1: [96, 148], p2: [106, 148], s: { p1: 1, p2: 1, m2: -1 } })], dur: 2.4 },
+  'cadera 90/90': { detalle: 'noventa' },
   'tobillo: rodilla a la pared': { poses: [
     { h: [100, 90], n: [108, 50], m1: [148, 60], m2: [148, 64], p1: [126, PISO], p2: [84, PISO] },
     { h: [108, 96], n: [116, 56], m1: [148, 64], m2: [148, 68], p1: [126, PISO], p2: [84, PISO] }], pared: 150 },
@@ -203,6 +200,29 @@ export const POSES = {
     con(DE_PIE, { h: [100, 96], n: [100, 54], p2: [106, 128], m1: [128, 80], m2: [72, 80] }),
     con(DE_PIE, { h: [104, 100], n: [98, 58], p2: [54, 146], m1: [130, 84], m2: [72, 84] })], dur: 2 },
   'saltitos a un pie': { poses: [con(DE_PIE, { p2: [106, 122] }), con(DE_PIE, { h: [100, 82], n: [100, 40], p1: [103, 142], p2: [106, 114], t1: 60 })], dur: 0.35 },
+  // Banco de rehabilitación (banco.js)
+  'extension terminal de rodilla': { poses: [
+    con(DE_PIE, { h: [98, 94], n: [100, 52], m1: [101, 98], m2: [95, 98], p1: [108, PISO], p2: [94, PISO] }),
+    con(DE_PIE, { h: [101, 90], n: [102, 48], m1: [104, 94], m2: [98, 94], p1: [107, PISO], p2: [94, PISO] })], anclajeRodilla: [180, 118], resalta: ['p1'], dur: 1.6 },
+  'sentadilla espanola': { poses: [
+    { h: [80, 116], n: [98, 78], m1: [134, 90], m2: [132, 92], p1: [106, PISO], p2: [102, PISO] },
+    { h: [79, 117], n: [97, 79], m1: [134, 91], m2: [132, 93], p1: [106, PISO], p2: [102, PISO] }], anclajeRodilla: [184, 116], dur: 3 },
+  'bajada del escalon': { poses: [
+    { h: [97, 68], n: [99, 26], m1: [102, 72], m2: [96, 72], p1: [98, 128], p2: [112, 122] },
+    { h: [96, 92], n: [102, 51], m1: [132, 70], m2: [130, 72], p1: [98, 128], p2: [122, PISO] }], escalon: [72, 128, 44], resalta: ['p1'], dur: 3 },
+  'sentadilla dividida': { poses: [
+    { h: [100, 96], n: [100, 54], m1: [104, 100], m2: [98, 100], p1: [130, PISO], p2: [70, PISO], t2: -90 },
+    { h: [100, 118], n: [100, 76], m1: [104, 122], m2: [98, 122], p1: [130, PISO], p2: [70, PISO], t2: -90 }], dur: 2.4 },
+  'puente a una pierna': { poses: [
+    con(BOCA_ARRIBA, { p2: [156, 122], t2: 180 }), con(BOCA_ARRIBA, { h: [104, 116], n: [62, 140], p2: [160, 100], t2: 180 })], dur: 2 },
+  'peso muerto a una pierna': { poses: [
+    con(DE_PIE, { m1: [104, 94], m2: [98, 94], p1: [102, PISO], p2: [96, 144] }),
+    { h: [96, 92], n: [136, 84], m1: [134, 128], m2: [132, 128], p1: [100, PISO], p2: [40, 80], t2: 0 }], pesa: true, dur: 2.6 },
+  'patada de gluteo': { poses: [CUATRO, con(CUATRO, { p1: [40, 88], t1: -90 })], resalta: ['p1'], dur: 1.6 },
+  'apretar balon con las rodillas': { poses: [BOCA_ARRIBA], balon: true },
+  'plancha': { poses: [
+    { h: [74, 134], n: [118, 128], m1: [140, 148], m2: [137, 148], p1: [20, 148], p2: [18, 148] },
+    { h: [74, 133], n: [118, 127], m1: [140, 148], m2: [137, 148], p1: [20, 148], p2: [18, 148] }], dur: 3 },
   // Hombro y codo (sesión 'hombro-codo')
   'rotacion interna con banda': { poses: [
     con(FRENTE, { m1: [126, 76], m2: [66, 82] }), con(FRENTE, { m1: [82, 78], m2: [66, 82], s: { m1: 1 } })], anclaje: [176, 76] },
@@ -394,6 +414,28 @@ const DETALLES = {
       '<circle class="fg-relleno" cx="100" cy="112" r="15"/>' + flecha(puno, 88, -60, 60, true) +
       nota(24, 150, 'palma abajo', 'start') + nota(176, 150, 'palma arriba', 'end');
   },
+  // Cadera 90/90 vista desde arriba (adelante = abajo): una pierna adelante y otra al lado, las dos a 90°; cambia de lado
+  noventa(_, mover) {
+    const pierna = (pts, clase) => '<polyline class="' + clase + '" points="' + pts + '"/><circle class="fg-relleno" cx="' + pts.split(' ').pop().split(',')[0] + '" cy="' + pts.split(' ').pop().split(',')[1] + '" r="5"/>';
+    const lado = (adelante, atras) => pierna(adelante, 'fg-cuerpo') + pierna(atras, 'fg-lejos');
+    const A = lado('110,78 122,116 82,116', '90,78 52,84 52,46'), B = lado('90,78 78,116 118,116', '110,78 148,84 148,46');
+    const ver = (valores) => mover ? '<animate attributeName="opacity" dur="5s" repeatCount="indefinite" keyTimes="0;.42;.5;.92;1" values="' + valores + '"/>' : '';
+    return nota(100, 0, 'Visto desde arriba') +
+      '<g>' + A + ver('1;1;0;0;1') + '</g>' + (mover ? '<g opacity="0">' + B + ver('0;0;1;1;0') + '</g>' : '') +
+      '<line class="fg-cuerpo" x1="80" y1="66" x2="120" y2="66"/><circle class="fg-relleno" cx="100" cy="64" r="10"/>' +
+      flecha([100, 60], 92, 158, 202, true) + nota(100, 158, 'cambia de lado sin manos');
+  },
+  // Rotación de la columna vista desde arriba: las caderas quietas, los hombros giran hacia la rodilla doblada
+  giro(_, mover) {
+    const g = giro([100, 64], [0, -40], 4, mover);
+    return nota(100, 0, 'Visto desde arriba') +
+      '<polyline class="fg-lejos" points="90,82 88,150"/><circle class="fg-lejos-relleno" cx="88" cy="150" r="5"/>' +
+      '<polyline class="fg-cuerpo" points="110,82 112,122 74,128"/><circle class="fg-relleno" cx="74" cy="128" r="5"/>' + nota(122, 120, 'rodilla', 'start') + nota(122, 133, 'doblada', 'start') +
+      '<line class="fg-lejos" x1="84" y1="82" x2="116" y2="82"/>' +
+      '<g' + g.attr + '><line class="fg-cuerpo" x1="74" y1="64" x2="126" y2="64"/><circle class="fg-relleno" cx="100" cy="62" r="10"/>' +
+      '<circle class="fg-punta" cx="100" cy="74" r="3"/>' + g.anim + '</g>' +
+      flecha([100, 64], 40, 172, 128) + nota(196, 40, 'gira el tronco', 'end');
+  },
 };
 
 // Figura del ejercicio. Con animar = false queda quieta en la primera posición (para las listas)
@@ -421,6 +463,14 @@ export function figura(nombre, { animar: mover = true } = {}) {
       return 'M' + m1.map(r1) + 'Q' + r1((m1[0] + m2[0]) / 2) + ',' + r1(2 * (k ? -6 : PISO + 2) - y) + ' ' + m2.map(r1); };
     encima += '<path class="fg-banda" d="' + cuerda(a, 0) + '">' + animar('d', ps.map(cuerda), dur) + '</path>';
   }
+  // Banda detrás de la rodilla cercana, anclada adelante (extensión terminal, sentadilla española)
+  if (f.anclajeRodilla) encima += '<polyline class="fg-banda" points="' + linea([a.p1[1], f.anclajeRodilla]) + '">' + animar('points', val((p) => linea([p.p1[1], f.anclajeRodilla])), dur) + '</polyline>';
+  // Balón entre las rodillas: se encoge un poco al apretar
+  if (f.balon) {
+    const k = a.p1[1];
+    encima += '<circle class="fg-balon" r="9" cx="' + r1(k[0] + 1) + '" cy="' + r1(k[1] + 7) + '">' +
+      (mover ? '<animate attributeName="r" dur="2.4s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.5;1" values="9;7;9" keySplines=".45 0 .55 1;.45 0 .55 1"/>' : '') + '</circle>';
+  }
   if (f.pesa) {
     const m = val((p) => extremo(p, 'm1'));
     encima += '<circle class="fg-pesa" r="7" cx="' + r1(m[0][0]) + '" cy="' + r1(m[0][1]) + '">' + animar('cx', m.map((q) => r1(q[0])), dur) + animar('cy', m.map((q) => r1(q[1])), dur) + '</circle>';
@@ -442,8 +492,10 @@ export const videoValido = (url) => /^https?:\/\/\S+$/i.test(String(url || '').t
 
 export function figuraPaso(p, opciones) {
   if (p.foto && /^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(p.foto)) return '<img class="figura foto-paso" src="' + p.foto + '" alt="Cómo se hace">';
-  if (p.figura === '-') return '';
-  return figura(p.figura || p.nombre, opciones);
+  const dibujo = p.figura === '-' ? '' : figura(p.figura || p.nombre, opciones);
+  // Ejercicio traído del banco sin dibujo: su foto (solo rutas del banco, guardadas con la app)
+  if (!dibujo && /^banco\/[a-z0-9-]+\.webp$/.test(p.imagen || '')) return '<img class="figura foto-paso" src="' + p.imagen + '" alt="Cómo se hace" loading="lazy">';
+  return dibujo;
 }
 export function videoPaso(p) {
   if (videoValido(p.video)) return p.video.trim();

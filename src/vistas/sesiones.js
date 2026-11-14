@@ -4,7 +4,8 @@ import { e, dia, guardar, repintar, hayFutbol, prioridadesDe } from '../estado.j
 import { reloj, iso, sumarDias } from '../fechas.js';
 import { horaCama, minutosTarde } from '../registro.js';
 import { esc, registrar, pitido, barra, toast } from '../ui.js';
-import { figuraPaso, videoPaso } from '../figuras.js';
+import { figuraPaso, videoPaso, figura, urlVideo } from '../figuras.js';
+import { BANCO, ZONAS, NIVELES, pasoDeBanco, fotosDe } from '../banco.js';
 
 const PREPARAR = 5, CAMBIO_LADO = 5;
 const TIPOS = { checklist: '✅ Checklists', calentamiento: '🔥 Calentamiento', estiramiento: '🧘 Estiramiento', fortalecimiento: '🦵 Fortalecimiento', mente: '🧠 Mente' };
@@ -179,6 +180,41 @@ function terminarChecklist() {
   if (rep && rep.alTerminar) { rep.alTerminar(); rep.alTerminar = null; }
 }
 
+// ---------- Banco de rehabilitación y fortalecimiento: un ejercicio por fila, se abre para ver cómo, dosis y progresión ----------
+let zonaVista = 'todas';
+const dosisTexto = (d) => (d.reps ? (d.series || 1) + '×' + d.reps : (d.series > 1 ? d.series + '×' : '') + d.seg + ' s') + (d.lados ? ' por lado' : '');
+function imagenBanco(x, animar) {
+  const dibujo = x.figura === '-' ? '' : figura(x.figura || x.n, { animar });
+  if (dibujo) return dibujo;
+  const fotos = fotosDe(x);
+  return fotos.length ? (animar ? '<div class="banco-fotos">' + fotos.map((f, i) => '<img src="' + f + '" alt="' + esc(x.n) + (i ? ': final' : ': inicio') + '" loading="lazy">').join('') + '</div>'
+    : '<img class="figura foto-paso" src="' + fotos[0] + '" alt="" loading="lazy">') : '';
+}
+function vistaBanco() {
+  const zonas = Object.keys(ZONAS), cuenta = (z) => BANCO.filter((x) => x.z === z).length;
+  if (zonaVista !== 'todas' && !zonas.includes(zonaVista)) zonaVista = 'todas';
+  const lista = BANCO.map((x, i) => ({ x, i })).filter(({ x }) => zonaVista === 'todas' || x.z === zonaVista);
+  const sesiones = e().sesiones.filter((s) => s.tipo !== 'checklist');
+  return '<p class="nota-corta banco-aviso">Para prevenir y fortalecer. Una molestia de hasta 3 de 10 que se calma al día siguiente está bien; si pasa de eso o empeora, baja de nivel. Con una lesión actual, primero el fisioterapeuta.</p>' +
+    '<nav class="chips" aria-label="Zona">' + ['todas', ...zonas].map((z) => '<button type="button" class="chip' + (z === zonaVista ? ' activo' : '') + '" data-accion="banco-zona" data-z="' + z + '">' +
+      (z === 'todas' ? 'Todas (' + BANCO.length + ')' : ZONAS[z] + ' (' + cuenta(z) + ')') + '</button>').join('') + '</nav>' +
+    zonas.filter((z) => zonaVista === 'todas' || z === zonaVista).map((z) => {
+      const items = lista.filter(({ x }) => x.z === z).sort((a, b) => a.x.nv - b.x.nv);
+      return '<h2 class="banco-zona">' + ZONAS[z] + '</h2>' + items.map(({ x, i }) =>
+        '<details class="tarjeta banco-ej"><summary><span class="banco-mini">' + imagenBanco(x, false) + '</span>' +
+        '<span class="banco-tit"><b>' + esc(x.n) + '</b><small>' + esc(x.m) + ' · ' + dosisTexto(x.d) + '</small></span>' +
+        '<span class="banco-nivel n' + x.nv + '" title="' + NIVELES[x.nv] + '">' + '●'.repeat(x.nv) + '<span class="sr">' + NIVELES[x.nv] + '</span></span></summary>' +
+        '<div class="banco-cuerpo">' + imagenBanco(x, true) +
+        '<p><b>Para qué:</b> ' + esc(x.para) + '</p><p><b>Cómo:</b> ' + esc(x.como) + '</p><p><b>Ojo:</b> ' + esc(x.ojo) + '</p>' +
+        '<p class="banco-nivel-txt">' + NIVELES[x.nv] + ' · ' + dosisTexto(x.d) + (x.d.descanso ? ' · descanso ' + x.d.descanso + ' s' : '') + '</p>' +
+        '<p>⬇️ <b>Más fácil:</b> ' + esc(x.facil) + '<br>⬆️ <b>Más difícil:</b> ' + esc(x.dificil) + '</p>' +
+        '<div class="banco-acciones"><a class="rep-video" href="' + esc(urlVideo(x.n)) + '" target="_blank" rel="noopener">🎥 Ver video</a>' +
+        (sesiones.length ? '<select data-cambio="banco-agregar" data-i="' + i + '" aria-label="Agregar ' + esc(x.n) + ' a una sesión"><option value="">➕ Agregar a una sesión…</option>' +
+          sesiones.map((s) => '<option value="' + esc(s.id) + '">' + esc(s.nombre) + '</option>').join('') + '</select>' : '') + '</div>' +
+        (x.foto ? '<p class="nota-corta">Foto: free-exercise-db (dominio público).</p>' : '') + '</div></details>').join('');
+    }).join('');
+}
+
 let tipoVisto = null;
 export function vistaSesiones() {
   const grupos = {};
@@ -186,8 +222,10 @@ export function vistaSesiones() {
   for (const s of [...e().sesiones].sort((a, b) => (b.tipo === 'checklist') - (a.tipo === 'checklist'))) (grupos[s.tipo] ??= []).push(s);
   // Una categoría a la vez, para no recorrer toda la lista
   const tipos = Object.keys(grupos);
-  if (!tipos.includes(tipoVisto)) tipoVisto = tipos[0];
-  return '<h1>Sesiones</h1><nav class="chips pestanas" aria-label="Categoría">' + tipos.map((t) => '<button type="button" class="chip' + (t === tipoVisto ? ' activo' : '') + '" data-accion="ses-tipo" data-t="' + esc(t) + '">' + (TIPOS[t] || esc(t)) + ' (' + grupos[t].length + ')</button>').join('') + '</nav>' +
+  if (!tipos.includes(tipoVisto) && tipoVisto !== 'banco') tipoVisto = tipos[0];
+  return '<h1>Sesiones</h1><nav class="chips pestanas" aria-label="Categoría">' + tipos.map((t) => '<button type="button" class="chip' + (t === tipoVisto ? ' activo' : '') + '" data-accion="ses-tipo" data-t="' + esc(t) + '">' + (TIPOS[t] || esc(t)) + ' (' + grupos[t].length + ')</button>').join('') +
+    '<button type="button" class="chip' + (tipoVisto === 'banco' ? ' activo' : '') + '" data-accion="ses-tipo" data-t="banco">🩹 Banco de ejercicios (' + BANCO.length + ')</button></nav>' +
+    (tipoVisto === 'banco' ? vistaBanco() : '') +
     Object.entries(grupos).filter(([tipo]) => tipo === tipoVisto).map(([tipo, lista]) =>
     lista.map((s) => s.tipo === 'checklist' ? tarjetaChecklist(s) :
       '<section class="tarjeta sesion"><div class="fila-resumen"><b>' + esc(s.nombre) + '</b><span>~' + Math.round(duracion(s) / 60) + ' min · ' + s.pasos.length + ' ejercicios</span></div>' +
@@ -202,6 +240,14 @@ export function vistaSesiones() {
 
 registrar({
   'ses-tipo'({ t }) { tipoVisto = t; repintar(); },
+  'banco-zona'({ z }) { zonaVista = z; repintar(); },
+  'banco-agregar'({ i }, el) {
+    const x = BANCO[Number(i)], s = e().sesiones.find((ses) => ses.id === el.value);
+    if (!x || !s) return;
+    s.pasos.push(pasoDeBanco(x));
+    toast('✓ ' + x.n + ' agregado a ' + s.nombre);
+    guardar();
+  },
   'check-paso'({ sesion, paso }) {
     const s = e().sesiones.find((x) => x.id === sesion);
     if (!s) return;

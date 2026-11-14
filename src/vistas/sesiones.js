@@ -69,6 +69,22 @@ export function duracion(sesion) {
 let rep = null; // { sesion, lista, k, fin, pausa, alTerminar, reloj, bloqueo }
 const $ = (id) => document.getElementById(id);
 
+// Todas las imágenes de la sesión en una fila: la actual resaltada, las hechas con ✓. En el reproductor se tocan para saltar
+function tiraFiguras(pasos, actual = -1, accion = '') {
+  return '<div class="tira-figuras" role="list">' + pasos.map((p, i) => {
+    const clase = i === actual ? ' actual' : actual > i ? ' hecho' : '';
+    const dentro = (figuraPaso(p, { animar: false }) || '<span class="tira-num">' + (i + 1) + '</span>') +
+      '<small>' + (actual > i ? '✓ ' : (i + 1) + '. ') + esc(p.nombre) + '</small>';
+    return accion
+      ? '<button type="button" role="listitem" class="tira-item' + clase + '" data-accion="' + accion + '" data-i="' + i + '"' + (i === actual ? ' aria-current="step"' : '') + ' aria-label="' + esc((i + 1) + '. ' + p.nombre) + '">' + dentro + '</button>'
+      : '<div role="listitem" class="tira-item">' + dentro + '</div>';
+  }).join('') + '</div>';
+}
+function centrarTira(caja) {
+  const tira = caja.querySelector('.tira-figuras'), el = tira && tira.querySelector('.actual');
+  if (el) tira.scrollLeft = el.offsetLeft - (tira.clientWidth - el.offsetWidth) / 2;
+}
+
 function pintar() {
   const caja = $('reproductor');
   if (!rep) { caja.hidden = true; caja.innerHTML = ''; return; }
@@ -94,6 +110,7 @@ function pintar() {
     '<div class="rep-cab"><span>' + esc(rep.sesion.nombre) + ' · ' + (f.i + 1) + ' / ' + total + '</span>' +
     '<button type="button" class="icono" data-accion="rep-cerrar" aria-label="Cerrar">✕</button></div>' +
     '<div class="rep-barra"><span style="width:' + Math.round((rep.k / rep.lista.length) * 100) + '%"></span></div>' +
+    (total > 1 ? tiraFiguras(rep.sesion.pasos, f.i, 'rep-paso') : '') +
     '<div class="rep-centro fase-' + f.fase + '">' +
     '<div class="rep-fase">' + esc([titulo, f.series > 1 && (f.fase === 'tiempo' || f.fase === 'reps') ? 'serie ' + f.serie + ' de ' + f.series : ''].filter(Boolean).join(' · ')) + '&nbsp;</div>' +
     figuraPaso(f.p) +
@@ -108,6 +125,7 @@ function pintar() {
     (f.fase === 'reps' ? '<button type="button" class="boton primario grande" data-accion="rep-mover" data-n="1">✓ Hecho</button>'
       : '<button type="button" class="boton primario grande" data-accion="rep-pausa">' + (rep.pausa != null ? '▶ Seguir' : '⏸ Pausa') + '</button>') +
     '<button type="button" class="boton secundario" data-accion="rep-mover" data-n="1" aria-label="Saltar">⏭</button></div>';
+  centrarTira(caja);
 }
 
 function segRestantes() {
@@ -173,6 +191,7 @@ export function vistaSesiones() {
     Object.entries(grupos).filter(([tipo]) => tipo === tipoVisto).map(([tipo, lista]) =>
     lista.map((s) => s.tipo === 'checklist' ? tarjetaChecklist(s) :
       '<section class="tarjeta sesion"><div class="fila-resumen"><b>' + esc(s.nombre) + '</b><span>~' + Math.round(duracion(s) / 60) + ' min · ' + s.pasos.length + ' ejercicios</span></div>' +
+      (s.pasos.length ? tiraFiguras(s.pasos) : '') +
       '<details><summary>Ver ejercicios</summary><ol class="pasos">' + s.pasos.map((p) =>
         '<li class="paso-con-figura">' + figuraPaso(p, { animar: false }) + '<div><b>' + esc(p.nombre) + '</b> <span class="nota-corta">' + esc(p.musculo || '') + ' · ' +
         (p.reps ? (p.series || 1) + '×' + esc(p.reps) : (p.series > 1 ? p.series + '×' : '') + p.seg + ' s') + (p.lados ? ' por lado' : '') + '</span>' +
@@ -200,6 +219,11 @@ registrar({
   },
   'rep-cerrar'() { cerrar(); },
   'rep-mover'({ n }) { if (rep) ir(rep.k + Number(n)); },
+  'rep-paso'({ i }) {
+    if (!rep || !rep.lista) return;
+    const k = rep.lista.findIndex((f) => f.i === Number(i));
+    if (k >= 0) ir(k);
+  },
   'rep-pausa'() {
     if (!rep) return;
     if (rep.pausa != null) { rep.fin = Date.now() + rep.pausa * 1000; rep.pausa = null; } else rep.pausa = segRestantes();

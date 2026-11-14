@@ -193,8 +193,8 @@ export const POSES = {
   'pantorrilla con rodilla doblada': { poses: [
     { h: [96, 92], n: [100, 50], m1: [132, 70], m2: [130, 72], p1: [100, 140], p2: [97, 140], t1: 115, t2: 115 },
     { h: [96, 82], n: [100, 40], m1: [132, 62], m2: [130, 64], p1: [100, 128], p2: [97, 128], t1: 35, t2: 35 }], escalon: [94, 135, 40], dur: 1.8 },
-  'eversion con banda': { poses: [con(SENTADO, { t1: 70 }), con(SENTADO, { t1: 120 })], resalta: ['p1'], dur: 1.4 },
-  'inversion con banda': { poses: [con(SENTADO, { t1: 120 }), con(SENTADO, { t1: 70 })], resalta: ['p1'], dur: 1.4 },
+  'eversion con banda': { detalle: 'tobillo', hacia: 'afuera' },
+  'inversion con banda': { detalle: 'tobillo', hacia: 'adentro' },
   'caminar en talones': { poses: [
     con(DE_PIE, { p1: [112, PISO], p2: [92, PISO], t1: 145, t2: 145, m1: [110, 94], m2: [92, 94] }),
     con(DE_PIE, { p1: [92, PISO], p2: [112, PISO], t1: 145, t2: 145, m1: [92, 94], m2: [110, 94] })], dur: 0.8 },
@@ -210,9 +210,9 @@ export const POSES = {
     con(ACOSTADO, { m1: [24, 126], m2: [22, 130] }), con(ACOSTADO, { m1: [60, 116], m2: [58, 120] }), con(ACOSTADO, { m1: [70, 124], m2: [68, 128] })], resalta: ['m1', 'm2'], dur: 1.6 },
   'deslizamientos en la pared': { poses: [
     con(DE_PIE, { m1: [128, 66], m2: [126, 68], s: { m1: 1, m2: 1 } }), con(DE_PIE, { m1: [128, 24], m2: [126, 26] })], pared: 134, dur: 1.6 },
-  'extension excentrica de muneca': { poses: [con(SENTADO, { m1: [132, 112] }), con(SENTADO, { m1: [132, 124] })], resalta: ['m1'], dur: 3 },
-  'curl de muneca': { poses: [con(SENTADO, { m1: [132, 124] }), con(SENTADO, { m1: [132, 112] })], resalta: ['m1'], dur: 1.4 },
-  'pronacion y supinacion con martillo': { poses: [con(SENTADO, { m1: [130, 104], s: { m1: 1 } }), con(SENTADO, { m1: [128, 100], s: { m1: 1 } })], resalta: ['m1'], dur: 1.6 },
+  'extension excentrica de muneca': { detalle: 'muneca', palma: 'abajo', lenta: true },
+  'curl de muneca': { detalle: 'muneca', palma: 'arriba' },
+  'pronacion y supinacion con martillo': { detalle: 'martillo' },
   'equilibrio a una pierna': { poses: [
     con(DE_PIE, { p2: [106, 122], m1: [130, 80], m2: [70, 80] }),
     con(DE_PIE, { h: [101, 90], n: [98, 48], p2: [108, 122], m1: [128, 76], m2: [72, 84] })], dur: 1.6 },
@@ -311,7 +311,7 @@ export const POSES = {
 export const claveFigura = (nombre) => String(nombre || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
 export const tieneFigura = (nombre) => claveFigura(nombre) in POSES;
 // Los de mente no llevan video: no hay técnica que ver
-export const esFisico = (nombre) => { const f = POSES[claveFigura(nombre)]; return !f || !!(f.poses && !f.quieta && !f.resalta); };
+export const esFisico = (nombre) => { const f = POSES[claveFigura(nombre)]; return !f || !!f.detalle || !!(f.poses && !f.quieta && !f.resalta); };
 export const urlVideo = (nombre) => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(nombre + ' ejercicio cómo hacerlo técnica');
 
 // Valores de una animación SMIL que pasa por las posiciones y vuelve a la primera
@@ -331,11 +331,77 @@ function respiracion() {
     fase('Inhala', '0', '.25') + fase('Retén', '.25', '.5') + fase('Exhala', '.5', '1') + '</svg>';
 }
 
+// ---------- Primer plano: movimientos chicos (tobillo, muñeca) que el muñeco entero no deja ver ----------
+// Una parte gira alrededor de un punto entre dos ángulos (grados, + = horario); la flecha y el texto dicen hacia dónde
+const polar = ([cx, cy], r, g) => [cx + r * Math.sin((g * Math.PI) / 180), cy - r * Math.cos((g * Math.PI) / 180)];
+function giro(centro, [a, b], dur, mover, tiempos = '0;.5;1') {
+  const quieto = ' transform="rotate(' + a + ' ' + centro.join(' ') + ')"';
+  if (!mover) return { attr: quieto, anim: '' };
+  return { attr: quieto, anim: '<animateTransform attributeName="transform" type="rotate" dur="' + dur + 's" repeatCount="indefinite" calcMode="spline" keyTimes="' + tiempos + '"' +
+    ' values="' + [a, b, a].map((g) => g + ' ' + centro.join(' ')).join(';') + '" keySplines=".45 0 .55 1;.45 0 .55 1"/>' };
+}
+// Arco con punta de flecha al final (y al inicio si doble)
+function flecha(centro, r, desde, hasta, doble = false) {
+  const p0 = polar(centro, r, desde), p1 = polar(centro, r, hasta), barre = hasta > desde ? 1 : 0;
+  const punta = (g, sentido) => {
+    const q = polar(centro, r, g), t = ((g + 90 * sentido) * Math.PI) / 180, n = (g * Math.PI) / 180;
+    const atras = [q[0] - Math.sin(t) * 9, q[1] + Math.cos(t) * 9];
+    return '<polygon class="fg-punta" points="' + linea([q, [atras[0] + Math.sin(n) * 5, atras[1] - Math.cos(n) * 5], [atras[0] - Math.sin(n) * 5, atras[1] + Math.cos(n) * 5]]) + '"/>';
+  };
+  const s = hasta > desde ? 1 : -1;
+  return '<path class="fg-flecha" d="M' + p0.map(r1) + 'A' + r + ',' + r + ' 0 0 ' + barre + ' ' + p1.map(r1) + '"/>' + punta(hasta, s) + (doble ? punta(desde, -s) : '');
+}
+const nota = (x, y, texto, ancla = 'middle') => '<text class="fg-nota" x="' + x + '" y="' + y + '" text-anchor="' + ancla + '">' + texto + '</text>';
+// Planta del pie vista desde arriba, el talón en (x, y) y los dedos hacia arriba; lado = 1 pie derecho (dedo gordo a la izquierda), −1 izquierdo
+function pie(x, y, lado, clase) {
+  const X = (d) => r1(x - d * lado);
+  const planta = 'M' + X(10) + ',' + y + 'Q' + X(16) + ',' + (y - 22) + ' ' + X(13) + ',' + (y - 36) + 'Q' + X(8) + ',' + (y - 46) + ' ' + X(-2) + ',' + (y - 46) +
+    'Q' + X(-14) + ',' + (y - 44) + ' ' + X(-14) + ',' + (y - 30) + 'Q' + X(-13) + ',' + (y - 14) + ' ' + X(-10) + ',' + y + 'Z';
+  const dedos = [[9, 51, 5.2], [1, 53, 3.6], [-5, 51, 3.3], [-10, 48, 3], [-14, 43, 2.7]];
+  return '<path class="' + clase + '" d="' + planta + '"/>' + dedos.map(([dx, dy, r]) => '<circle class="' + clase + '" cx="' + X(dx) + '" cy="' + (y - dy) + '" r="' + r + '"/>').join('');
+}
+
+const DETALLES = {
+  // Piernas estiradas vistas desde arriba: el pie derecho gira contra la banda; el izquierdo queda quieto
+  tobillo({ hacia }, mover) {
+    const tob = [124, 102], afuera = hacia === 'afuera', ang = afuera ? [0, 30] : [0, -30], ancla = afuera ? [30, 22] : [184, 40];
+    const g = giro(tob, ang, 1.6, mover), agarre = (a) => polar(tob, afuera ? 44 : 36, a + (afuera ? -14 : 22));
+    const banda = '<polyline class="fg-banda" points="' + linea([agarre(ang[0]), ancla]) + '">' +
+      (mover ? '<animate attributeName="points" dur="1.6s" repeatCount="indefinite" calcMode="spline" keyTimes="0;.5;1" keySplines=".45 0 .55 1;.45 0 .55 1" values="' + [ang[0], ang[1], ang[0]].map((a) => linea([agarre(a), ancla])).join(';') + '"/>' : '') + '</polyline>';
+    return nota(100, 0, 'Visto desde arriba') + '<text class="fg-nota fg-nota-fuerte" x="100" y="15" text-anchor="middle">Pie derecho hacia ' + hacia + '</text>' +
+      '<circle class="fg-obj" cx="' + ancla[0] + '" cy="' + ancla[1] + '" r="5"/>' +
+      '<rect class="fg-pierna-lejos" x="66" y="100" width="20" height="62" rx="9"/>' + pie(76, 102, -1, 'fg-lejos-relleno') +
+      '<rect class="fg-pierna" x="114" y="100" width="20" height="62" rx="9"/>' +
+      '<g' + g.attr + '>' + pie(124, 102, 1, 'fg-relleno') + g.anim + '</g>' + banda +
+      (afuera ? flecha(tob, 66, 10, 38) : flecha(tob, 66, -8, -36));
+  },
+  // Antebrazo apoyado en el muslo, de lado: solo se mueve la muñeca con la mancuerna
+  muneca({ palma, lenta }, mover) {
+    const pivote = [124, 86], ang = lenta ? [-40, 35] : [35, -40];
+    const g = giro(pivote, ang, lenta ? 4 : 1.6, mover, lenta ? '0;.75;1' : '0;.5;1');
+    return nota(100, 4, 'Palma ' + palma + (lenta ? ' · baja en 3 s' : '')) +
+      '<rect class="fg-obj" x="14" y="96" width="112" height="16" rx="6"/>' + nota(64, 128, 'muslo') +
+      '<polyline class="fg-cuerpo" points="22,88 122,88"/>' + nota(70, 78, 'antebrazo') +
+      '<g' + g.attr + '><polyline class="fg-cuerpo" points="124,88 150,88"/><line class="fg-pesa-barra" x1="156" y1="70" x2="156" y2="106"/>' +
+      '<circle class="fg-pesa" cx="156" cy="68" r="8"/><circle class="fg-pesa" cx="156" cy="108" r="8"/>' + g.anim + '</g>' +
+      (lenta ? flecha(pivote, 54, 50, 140) + nota(178, 150, 'lento') : flecha(pivote, 54, 140, 50) + nota(184, 40, 'sube'));
+  },
+  // Antebrazo visto de frente (el puño), el martillo gira de palma abajo a palma arriba
+  martillo(_, mover) {
+    const puno = [100, 112], g = giro(puno, [-70, 70], 3, mover);
+    return nota(100, 4, 'Codo pegado, visto de frente') +
+      '<g' + g.attr + '><line class="fg-obj" x1="100" y1="112" x2="100" y2="44"/><rect class="fg-pesa" x="84" y="36" width="32" height="14" rx="3"/>' + g.anim + '</g>' +
+      '<circle class="fg-relleno" cx="100" cy="112" r="15"/>' + flecha(puno, 88, -60, 60, true) +
+      nota(24, 150, 'palma abajo', 'start') + nota(176, 150, 'palma arriba', 'end');
+  },
+};
+
 // Figura del ejercicio. Con animar = false queda quieta en la primera posición (para las listas)
 export function figura(nombre, { animar: mover = true } = {}) {
   const f = POSES[claveFigura(nombre)];
   if (!f) return '';
   if (f.respira) return respiracion();
+  if (f.detalle) return '<svg class="figura fg-detalle" viewBox="0 -10 200 170" role="img" aria-label="Cómo se hace: ' + nombre.replace(/"/g, '') + '">' + DETALLES[f.detalle](f, mover) + '</svg>';
   const ps = (mover ? f.poses : f.poses.slice(0, 1)).map(puntos), dur = f.dur || 1.8, a = ps[0];
   const val = (fn) => ps.map(fn);
   const parte = (k, clase) => '<polyline class="' + clase + ((f.resalta || []).includes(k) ? ' fg-resalta' : '') + '" points="' + linea(a[k]) + '">' + animar('points', val((p) => linea(p[k])), dur) + '</polyline>';

@@ -1078,6 +1078,16 @@ a.libro-tarjeta { text-decoration: none; }
 .figura .fg-pesa { fill: var(--azul); }
 .figura .fg-aire { fill: var(--brand-soft); stroke: var(--brand); stroke-width: 3; }
 .figura .fg-texto { fill: var(--ink); font: 700 17px system-ui, sans-serif; }
+.figura .fg-relleno { fill: var(--ink); }
+.figura .fg-lejos-relleno { fill: #6f7d89; }
+.figura .fg-pierna { fill: #a9b4be; }
+.figura .fg-pierna-lejos { fill: #4f5b66; }
+.figura .fg-pesa-barra { stroke: var(--azul); stroke-width: 4; stroke-linecap: round; }
+.figura .fg-flecha { fill: none; stroke: var(--brand); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 6 5; }
+.figura .fg-punta { fill: var(--brand); }
+.figura .fg-nota { fill: var(--muted); font: 600 12px system-ui, sans-serif; }
+.figura .fg-nota-fuerte { fill: var(--brand); }
+.tira-item .fg-nota, .paso-con-figura .fg-nota { display: none; }
 .figura .fg-resalta { stroke: var(--amarillo); fill: none; animation: fg-pulso 2.5s ease-in-out infinite; }
 .figura circle.fg-resalta { fill: var(--amarillo); }
 @keyframes fg-pulso { 50% { opacity: .45; } }

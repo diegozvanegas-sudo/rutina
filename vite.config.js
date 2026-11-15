@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   // Rutas relativas: funciona en la raíz de un dominio o en una subcarpeta (GitHub Pages)
@@ -18,6 +19,8 @@ export default defineConfig({
     },
   },
   plugins: [
+    // Solo para las pantallas migradas a React (src/react)
+    react({ include: /src[\\/]react[\\/].*\.[jt]sx?$/ }),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {

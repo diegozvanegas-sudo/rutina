@@ -19,7 +19,8 @@ import { vistaRecordatorios, alertas, bannerDiarios } from './vistas/recordatori
 import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
 import { vistaEstudiar } from './vistas/estudiar.js';
-import { vistaCalendario } from './vistas/calendario.js';
+import { montarReact, desmontarReact } from './react/montar.js';
+import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import { vistaLugares } from './vistas/lugares.js';
 import { vistaCompras } from './vistas/compras.js';
 import { vistaSuplementos } from './vistas/suplementos.js';
@@ -41,9 +42,11 @@ iniciarHoja();
 iniciarAvisos();
 
 const PANTALLAS = {
-  hoy: vistaHoy, calendario: vistaCalendario, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, suplementos: vistaSuplementos, finanzas: vistaFinanzas, compras: vistaCompras,
+  hoy: vistaHoy, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, suplementos: vistaSuplementos, finanzas: vistaFinanzas, compras: vistaCompras,
   recordatorios: vistaRecordatorios, lugares: vistaLugares, gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
+// Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
+const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx') };
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
 // Administrar no está en el catálogo (ni se ordena ni se esconde): solo la ve el admin
@@ -170,12 +173,6 @@ function restaurarCampos({ clave, valores, cursor }) {
 // ---------- Tarjetas que se abren y cierran (toda la app) ----------
 // Cualquier tarjeta con título (h2) se puede cerrar tocando el título o su flecha; queda solo el título.
 // Cuáles están cerradas se recuerda en este equipo (no viaja a la nube: el celular y el computador pueden diferir)
-const CLAVE_PLEGADAS = 'rutina_plegadas';
-let plegadas = null;
-function leerPlegadas() {
-  if (!plegadas) { try { plegadas = new Set(JSON.parse(localStorage.getItem(CLAVE_PLEGADAS)) || []); } catch (err) { plegadas = new Set(); } }
-  return plegadas;
-}
 function marcarPlegable(t, cerrada) {
   const b = t.querySelector('.plegar-t');
   t.classList.toggle('tarjeta-cerrada', cerrada);
@@ -192,7 +189,7 @@ function prepararPlegables(v) {
     const h = cab.matches('h2') ? cab : cab.matches('.fila-resumen, .ed-cab, header, a.titulo-enlace') ? cab.querySelector('h2') : null;
     if (!h) return;
     // Sin números: "🔔 4 recordatorios" y "🔔 5 recordatorios" son la misma tarjeta
-    const titulo = h.textContent.replace(/\s+/g, ' ').trim(), base = v + '|' + titulo.replace(/[\d.,:/%$+−-]+/g, '').replace(/\s+/g, ' ').trim();
+    const titulo = h.textContent.replace(/\s+/g, ' ').trim(), base = basePlegable(v, titulo);
     vistos[base] = (vistos[base] || 0) + 1;
     t.dataset.plegable = base + (vistos[base] > 1 ? '#' + vistos[base] : '');
     t.classList.add('plegable');
@@ -220,18 +217,16 @@ function prepararFilas() {
 // Al girar el celular o cambiar el tamaño de la ventana, cambia qué cabe
 window.addEventListener('resize', () => document.querySelectorAll('#vista .chips').forEach(marcarFila), { passive: true });
 function alternarPlegable(t) {
-  const cerradas = leerPlegadas(), k = t.dataset.plegable, cerrar = !cerradas.has(k);
-  if (cerrar) cerradas.add(k); else cerradas.delete(k);
-  try { localStorage.setItem(CLAVE_PLEGADAS, JSON.stringify([...cerradas])); } catch (err) {}
-  marcarPlegable(t, cerrar);
+  marcarPlegable(t, alternarPlegada(t.dataset.plegable));
 }
 // La flecha siempre pliega; el título también, si no es un enlace ni tiene un control debajo del dedo
 function plegableTocado(ev) {
+  if (ev.target.closest && ev.target.closest('#raiz-react')) return null; // las de React se pliegan solas (react/Tarjeta.tsx)
   const el = ev.target.closest && (ev.target.closest('.plegar-t') || (!ev.target.closest('a, button, input, select, textarea, label, [data-accion]') && ev.target.closest('.plegable > h2.t-cab, .plegable > .t-cab h2')));
   return el ? el.closest('.plegable') : null;
 }
 document.addEventListener('keydown', (ev) => {
-  if ((ev.key !== 'Enter' && ev.key !== ' ') || !ev.target.matches || !ev.target.matches('.plegar-t')) return;
+  if ((ev.key !== 'Enter' && ev.key !== ' ') || !ev.target.matches || !ev.target.matches('.plegar-t') || ev.target.closest('#raiz-react')) return;
   ev.preventDefault(); ev.stopPropagation();
   alternarPlegable(ev.target.closest('.plegable'));
 }, true);
@@ -253,6 +248,7 @@ function pintar() {
   document.body.classList.toggle('sin-sesion', sinSesion || cerrada);
   if (cerrada) {
     menu(false);
+    desmontarReact();
     $('vista').innerHTML = pantallaBloqueo();
     $('lateral').innerHTML = '';
     document.title = 'Bloqueada · Rutina';
@@ -264,6 +260,7 @@ function pintar() {
     const correo = $('nube-correo'), clave = $('nube-clave');
     const antes = correo && { correo: correo.value, clave: clave.value, foco: document.activeElement && document.activeElement.id };
     menu(false);
+    desmontarReact();
     $('vista').innerHTML = pantallaEntrar();
     $('lateral').innerHTML = '';
     flotante();
@@ -277,10 +274,22 @@ function pintar() {
   }
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
-  $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios() + VISTAS[v][2]();
-  if (campos) restaurarCampos(campos);
-  prepararPlegables(v);
-  prepararFilas();
+  const avisos = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios();
+  if (REACT[v]) {
+    // La pantalla de React se monta una vez y se repinta sola; aquí solo se refrescan los avisos de arriba
+    if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v) {
+      desmontarReact();
+      $('vista').innerHTML = '<div id="avisos-vista"></div><div id="raiz-react" data-pantalla="' + v + '"></div>';
+      montarReact($('raiz-react'), REACT[v]);
+    }
+    if ($('avisos-vista').innerHTML !== avisos) $('avisos-vista').innerHTML = avisos;
+  } else {
+    desmontarReact();
+    $('vista').innerHTML = avisos + VISTAS[v][2]();
+    if (campos) restaurarCampos(campos);
+    prepararPlegables(v);
+    prepararFilas();
+  }
   $('lateral').innerHTML = lateral();
   aplicarBarra();
   flotante();

@@ -8,6 +8,8 @@ export const tokens = {
   ink: '#e9eef2', muted: '#93a1ad',
   brand: '#3dd68c', brandInk: '#062b18', brandSoft: '#173a2a',
   amarillo: '#f5c542', verde: '#3dd68c', azul: '#5aa9ff', rojo: '#ff6b6b',
+  // Texto sobre amarillo (botón que cuenta) y el rosa de los módulos creativos de Plan B, con su texto encima
+  amarilloInk: '#2b2100', rosa: '#f472b6', rosaInk: '#2a0a1a',
   radio: 14,
 };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';

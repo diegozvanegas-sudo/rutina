@@ -1,4 +1,4 @@
-// Plan B → Módulo 3: Despertar creativo (guía de Comfama, trabajo autónomo). Solo la lógica; la pantalla está en vistas/creativo.js.
+// Plan B → Módulo 3: Despertar creativo (guía de Comfama, trabajo autónomo). Solo la lógica; la pantalla está en react/pantallas/FinanzasCreativo.tsx.
 // Se guarda en finanzas.desempleo.creativo (viaja a la nube con lo demás):
 //   textos: { seguido, cama, plato, reto, magico, sentir, norma, perspectiva, problema, porque, ayudo, aprendi, cambios, aplicar }
 //   reto: [{ actividad, fecha }] × 3     una actividad distinta cada día durante 3 días (fecha = el día que la hiciste)

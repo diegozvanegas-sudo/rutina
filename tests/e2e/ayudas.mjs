@@ -20,7 +20,7 @@ export function ayudas(p, pantalla) {
     marcar: (txt, selector = 'button, summary, a, [role=button]', exacto = true) => p.ev(`(()=>{
       document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));
       const n=s=>(s||'').replace(/[▾▸▼▶\\u200b]/g,'').replace(/\\s+/g,' ').trim(), t=${JSON.stringify(txt)};
-      const todos=[...document.querySelectorAll(${JSON.stringify(selector)})].filter(x=>x.offsetParent!==null);
+      const todos=[...document.querySelectorAll(${JSON.stringify(selector)})].filter(x=>x.checkVisibility({visibilityProperty:true}));
       const vale=x=>{const v=[n(x.textContent),n(x.getAttribute('aria-label'))];return ${exacto} ? v.includes(t) : v.some(y=>y.startsWith(t))};
       const el=todos.find(vale);
       if(!el) return false;
@@ -48,7 +48,7 @@ export function ayudas(p, pantalla) {
           const propio=[...l.childNodes].filter(x=>x.nodeType===3).map(x=>x.textContent).join('').trim()||l.textContent.trim();
           if(!propio.startsWith(t)) continue;
           const c=l.querySelector('input,textarea,select')||(l.htmlFor&&document.getElementById(l.htmlFor));
-          if(c&&c.offsetParent!==null) campos.push(c);
+          if(c&&c.checkVisibility({visibilityProperty:true})) campos.push(c);
         }
         const c=campos[${n}]; if(!c) return false; c.setAttribute('data-e2e-campo','1'); return true})()`);
       if (!ok) throw new Error(pantalla + ': no encontré el campo "' + etiqueta + '" (' + n + ')');

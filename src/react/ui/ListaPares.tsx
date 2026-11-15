@@ -10,7 +10,7 @@ export function ListaPares({ pares }: { pares: Par[] }) {
       {pares.map((x) => (
         <Box component="li" key={x.id} sx={{ display: 'flex', justifyContent: 'space-between', gap: '10px', py: '6px', borderBottom: '1px solid', borderColor: 'divider' }}>
           <span>{x.nombre}</span>
-          <b>{x.valor}</b>
+          {typeof x.valor === 'string' || typeof x.valor === 'number' ? <b>{x.valor}</b> : x.valor}
         </Box>
       ))}
     </Box>

@@ -2,7 +2,7 @@
 import { e, guardar, repintar, dia } from '../estado.js';
 import { iso, fechaCorta, sumarDias } from '../fechas.js';
 import { pesos, leerMonto } from '../finanzas.js';
-import { RELACIONES, estadoContacto, estadoEspera, resumenEsperas, IDEAS_POR_TEMA, cumplimientoEstandares } from '../vida.js';
+import { RELACIONES, estadoContacto, estadoEspera, IDEAS_POR_TEMA, cumplimientoEstandares } from '../vida.js';
 import { rango } from '../progreso.js';
 import { esc, barra, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
@@ -41,32 +41,8 @@ export function seccionCirculo() {
 // ---------- Regla de las 72 horas ----------
 const espera = { tipo: 'compra' };
 const SENALES = ['Te prometen ganancias seguras o muy altas', 'Te presionan para decidir ya', 'No entiendes bien cómo se gana la plata', 'Te piden traer a más gente', 'Te pidieron pagar o consignar a una persona, no a una entidad vigilada'];
-export function vistaEsperas() {
-  const lista = (e().finanzas.esperas ||= []), r = resumenEsperas(lista);
-  const activas = lista.filter((x) => x.estado === 'esperando'), viejas = lista.filter((x) => x.estado !== 'esperando').slice(-10).reverse();
-  return '<section class="tarjeta"><h2>⏳ Regla de las 72 horas</h2>' +
-    '<p class="nota-corta">Antes de una compra grande o de meter plata en algo que promete mucho, anótalo aquí y espera 3 días. Si después de 72 horas lo sigues queriendo, cómpralo tranquilo. Las decisiones con prisa son las que más cuestan.</p>' +
-    '<div class="datos-peso"><div><small>Te ahorraste</small><b>' + pesos(r.ahorrado) + '</b></div><div><small>Descartaste</small><b>' + r.descartadas + ' de ' + r.decididas + '</b></div>' +
-    '<div><small>En espera</small><b>' + pesos(r.esperando) + '</b></div></div></section>' +
-    activas.map((x) => {
-      const s = estadoEspera(x);
-      return '<section class="tarjeta ed-item rec e-borde-' + (s.lista ? 'pronto' : 'al-dia') + '"><div class="ed-cab"><b>' + (x.tipo === 'inversion' ? '📈 ' : '🛍️ ') + esc(x.nombre) + '</b><b>' + pesos(x.monto) + '</b></div>' +
-        (x.motivo ? '<p class="nota-corta">Por qué lo quiero: ' + esc(x.motivo) + '</p>' : '') +
-        '<p class="' + (s.lista ? 'aviso' : 'nota-corta') + '">' + (s.lista ? 'Ya pasaron las 72 horas. ¿Lo sigues queriendo igual?' : 'Faltan ' + s.horas + ' horas (desde el ' + fechaCorta(x.fecha) + ').') + '</p>' +
-        '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="espera-decidir" data-id="' + x.id + '" data-e="descartado">🙅 Ya no lo quiero</button>' +
-        (s.lista ? '<button type="button" class="boton primario" data-accion="espera-decidir" data-id="' + x.id + '" data-e="comprado">✓ Lo compro</button>' : '') + '</div></section>';
-    }).join('') +
-    '<section class="tarjeta"><h2>＋ Algo que quiero comprar</h2><nav class="chips">' +
-    [['compra', '🛍️ Compra'], ['inversion', '📈 Inversión / negocio']].map(([k, t]) => '<button type="button" class="chip' + (espera.tipo === k ? ' activo' : '') + '" data-accion="espera-tipo" data-t="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    '<div class="dos"><label class="campo">Qué es<input type="text" id="espera-nombre" placeholder="' + (espera.tipo === 'inversion' ? 'Ej.: plataforma de cripto de un amigo' : 'Ej.: audífonos nuevos') + '"></label>' +
-    '<label class="campo">Cuánto<input type="text" inputmode="numeric" data-pesos id="espera-monto" placeholder="$ 0"></label></div>' +
-    '<label class="campo">Por qué lo quiero<input type="text" id="espera-motivo" placeholder="Ej.: los míos ya fallan / me prometen el 10 % mensual"></label>' +
-    (espera.tipo === 'inversion' ? '<div class="nota-libro"><b>🚩 Señales de alerta</b><div>Si se cumple una sola, no metas plata:</div><ul class="puntos-libro">' + SENALES.map((t) => '<li>' + t + '</li>').join('') + '</ul>' +
-      '<div>Antes de invertir, verifica que la entidad esté vigilada por la Superintendencia Financiera.</div></div>' : '') +
-    '<button type="button" class="boton primario ancho" data-accion="espera-agregar">⏳ Empezar a esperar 72 h</button></section>' +
-    (viejas.length ? '<section class="tarjeta"><h2>Decisiones</h2><ul class="lista-pesos">' + viejas.map((x) =>
-      '<li><span>' + (x.estado === 'descartado' ? '🙅 ' : '✓ ') + esc(x.nombre) + ' <small>' + fechaCorta(x.decidido || x.fecha) + '</small></span><span>' + pesos(x.monto) + '</span></li>').join('') + '</ul></section>' : '');
-}
+// La pantalla está en src/react/pantallas/FinanzasCalculos.tsx; aquí quedan lo que recuerda y sus acciones
+export const piezasEsperas = { espera, SENALES };
 
 // ---------- Mis estándares (Hoy) ----------
 let editandoEstandares = false;

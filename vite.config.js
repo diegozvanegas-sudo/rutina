@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   // Rutas relativas: funciona en la raíz de un dominio o en una subcarpeta (GitHub Pages)
   base: './',
+  // Lo de React se prepara al arrancar el servidor de desarrollo (no cambia la versión publicada)
+  optimizeDeps: { include: ['react', 'react-dom/client', '@mui/material', '@mui/material/styles', '@emotion/react', '@emotion/styled'] },
   build: {
     rollupOptions: {
       output: {

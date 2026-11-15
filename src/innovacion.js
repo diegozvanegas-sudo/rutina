@@ -1,5 +1,5 @@
 // Plan B → Módulo 4: Innovación (ruta de trabajo autónomo de Comfama; los ejercicios son propios, sin la guía a la mano).
-// Lleva de un problema real a una idea probada, lista para el pitch del módulo 5. Solo la lógica; la pantalla está en vistas/innovacion.js.
+// Lleva de un problema real a una idea probada, lista para el pitch del módulo 5. Solo la lógica; la pantalla está en react/pantallas/FinanzasInnovacion.tsx.
 // Se guarda en finanzas.desempleo.innovacion:
 //   problemas: [{ id, texto, notas: { frecuencia, dolor, pagar, puedo } }]   elegido: id del problema
 //   entrevistas: [{ id, quien, fecha, aprendi }]

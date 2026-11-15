@@ -14,12 +14,13 @@ import { vistaAjustes, pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import { vistaEditar } from './vistas/editar.js';
 import { vistaDieta } from './vistas/dieta.js';
-import { vistaFinanzas } from './vistas/finanzas.js';
+import { vistaFinanzas, claveFinanzas } from './vistas/finanzas.js';
 import { vistaRecordatorios, alertas, bannerDiarios } from './vistas/recordatorios.js';
 import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
 import { vistaEstudiar } from './vistas/estudiar.js';
 import { montarReact, desmontarReact } from './react/montar.js';
+import { refrescarReact } from './react/refrescar.js';
 import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import { vistaLugares } from './vistas/lugares.js';
 import { vistaSuplementos } from './vistas/suplementos.js';
@@ -46,6 +47,11 @@ const PANTALLAS = {
 // Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
 const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
   ventas: () => import('./react/pantallas/Ventas.tsx') };
+// Secciones grandes que se migran pestaña por pestaña: las pestañas de "listas" ya son de React; las demás siguen como antes
+const REACT_POR_PESTANA = {
+  finanzas: { actual: claveFinanzas, listas: ['registrar', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'calcular', 'esperas', 'planb:desempleo', 'planb:lider', 'planb:creativo', 'planb:innovacion', 'planb:pitch'], cargar: () => import('./react/pantallas/Finanzas.tsx') },
+};
+const reactDe = (v) => REACT[v] || (REACT_POR_PESTANA[v] && REACT_POR_PESTANA[v].listas.includes(REACT_POR_PESTANA[v].actual()) ? REACT_POR_PESTANA[v].cargar : null);
 // La pestaña de un enlace (#compras/deseos) hacia una pantalla de React: se le pasa al montarla
 let pestanaReact = null;
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
@@ -277,12 +283,13 @@ function pintar() {
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
   const avisos = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios();
-  if (REACT[v]) {
+  const cargarReact = reactDe(v);
+  if (cargarReact) {
     // La pantalla de React se monta una vez y se repinta sola; aquí solo se refrescan los avisos de arriba
     if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v || pestanaReact != null) {
       desmontarReact();
       $('vista').innerHTML = '<div id="avisos-vista"></div><div id="raiz-react" data-pantalla="' + v + '"></div>';
-      montarReact($('raiz-react'), REACT[v], pestanaReact != null ? { pestana: pestanaReact } : null);
+      montarReact($('raiz-react'), cargarReact, pestanaReact != null ? { pestana: pestanaReact } : null);
       pestanaReact = null;
     }
     if ($('avisos-vista').innerHTML !== avisos) $('avisos-vista').innerHTML = avisos;
@@ -537,7 +544,7 @@ document.addEventListener('focusin', (ev) => {
 window.addEventListener('scroll', () => { $('tip').hidden = true; }, { passive: true });
 
 alCambiar(pedirPintar);
-window.addEventListener('hashchange', () => { menu(false); abrirPestana(); pintar(); window.scrollTo(0, 0); });
+window.addEventListener('hashchange', () => { menu(false); abrirPestana(); pintar(); refrescarReact(); window.scrollTo(0, 0); });
 
 // Reloj: temporizadores, cronómetros y la espera de la pastilla, sin repintar toda la pantalla
 setInterval(() => {

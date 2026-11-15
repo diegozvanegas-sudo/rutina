@@ -1,6 +1,6 @@
 // Plan B → Módulo 5: Pitch (ruta de trabajo autónomo de Comfama; los ejercicios son propios). Un pitch de 1 minuto armado
 // por bloques, con sugerencias sacadas del módulo 4 (problema, propuesta de valor, prueba), ensayos cronometrados y
-// respuestas a las preguntas difíciles. Solo la lógica; la pantalla está en vistas/pitch.js.
+// respuestas a las preguntas difíciles. Solo la lógica; la pantalla está en react/pantallas/FinanzasPitch.tsx.
 // Se guarda en finanzas.desempleo.pitch: { bloques: { gancho, problema, … }, respuestas: { … }, ensayos: [{ fecha, segundos }], textos: {} }
 import { fraseValor, resultadoExperimento } from './innovacion.js';
 

@@ -32,7 +32,7 @@ jobs:
       - run: npm test # si una prueba falla no se publica
       # La URL y la llave pública de Supabase vienen de .env.production
       - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
       - id: despliegue

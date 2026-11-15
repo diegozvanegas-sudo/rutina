@@ -67,7 +67,7 @@ function entrenador() {
   const d = disposicion(), u = unicoMejorar(), carga = d.carga && d.carga.ratio != null && d.carga.estado !== 'ok' ? textoCarga(d.carga) : '';
   return '<section class="tarjeta entrenador e-' + d.nivel + '"><h2>🧑‍🏫 Tu entrenador hoy</h2>' +
     '<div class="semaforo"><span class="semaforo-luz" aria-hidden="true">' + d.icono + '</span><div><b>' + d.titulo + '</b><p>' + esc(d.consejo) + '</p>' +
-    (d.razones.length ? '<small>' + d.razones.map(esc).join(' · ') + '</small>' : '<small>Sueño bien, sin partido ayer y sin molestias.</small>') + '</div></div>' +
+    (d.razones.length ? '<small>' + d.razones.map(esc).join(' · ') + '</small>' : '<small>' + (d.sinSueno ? 'Sin datos de sueño' : 'Sueño bien') + ', sin partido ayer y sin molestias.</small>') + '</div></div>' +
     (d.sinSueno ? '<p class="nota-corta">Anota cómo dormiste en 🌙 Sueño y peso para que esto sea más preciso.</p>' : '') +
     (carga ? '<p class="aviso">⚽ ' + esc(carga) + '</p>' : '') +
     '<a class="unico" href="' + u.ir + '"><small>Lo único que mejorar hoy</small><span>' + u.icono + ' ' + esc(u.texto) + '</span></a>' +

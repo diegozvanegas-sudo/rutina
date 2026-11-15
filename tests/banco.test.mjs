@@ -33,3 +33,16 @@ test('del banco a una sesión: el paso guiado trae dosis e imagen', () => {
   assert.match(figuraPaso(plancha), /^<img class="figura foto-paso" src="banco\/side-bridge-0\.webp"/); // sin dibujo: la foto
   assert.equal(figuraPaso({ nombre: 'X', figura: '-', imagen: 'https://malo.com/a.webp' }), ''); // solo fotos del banco
 });
+
+test('cada molestia del partido lleva a una zona del banco con ejercicios', async () => {
+  const { MOLESTIAS } = await import('../src/registro.js');
+  const { ZONA_DE_MOLESTIA, zonasDeMolestias } = await import('../src/banco.js');
+  for (const m of MOLESTIAS) {
+    const z = ZONA_DE_MOLESTIA[m];
+    assert.ok(ZONAS[z], m + ': sin zona');
+    assert.ok(BANCO.some((x) => x.z === z), m + ': zona sin ejercicios');
+  }
+  // Un tobillo ya no manda a rodilla, y dos molestias de la misma zona no la repiten
+  assert.deepEqual(zonasDeMolestias(['Tobillo', 'Pantorrilla', 'Aductor']), ['tobillo', 'ingle']);
+  assert.deepEqual(zonasDeMolestias([]), []);
+});

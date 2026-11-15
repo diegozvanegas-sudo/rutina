@@ -54,6 +54,9 @@ export function disposicion(fecha = iso()) {
     const duro = Number(ayer.rpe) >= 8 || (Number(ayer.minutos) || 0) * (Number(ayer.rpe) || 0) >= 600;
     restar(duro ? 20 : 10, 'Jugaste ayer' + (duro ? ' a tope' : ''));
     if (Number(ayer.energia) && Number(ayer.energia) <= 2) restar(10, 'Terminaste el partido sin piernas');
+  } else if (hayFutbol(sumarDias(fecha, -1))) {
+    // Ayer tocaba partido y no se anotó: cuenta como un partido normal (la mañana ya dice "Ayer jugaste")
+    restar(10, 'Ayer tocaba partido (sin anotar)');
   }
   const molestias = [...new Set(partidos(e()).filter((p) => p.fecha <= fecha && diasEntre(p.fecha, fecha) <= 3).flatMap((p) => p.molestias || []))];
   if (molestias.length) restar(25, 'Molestia reciente: ' + molestias.join(', ').toLowerCase());

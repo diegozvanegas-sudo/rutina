@@ -8,7 +8,11 @@ export const ZONAS = {
   rodilla: '🦵 Rodilla', tobillo: '🦶 Tobillo', isquios: '🏃 Isquios', cadera: '🍑 Cadera y glúteo',
   ingle: '🔗 Ingle', core: '🧱 Core', hombro: '💪 Hombro', codo: '✋ Codo y muñeca',
 };
-export const NIVELES = { 1: 'Para empezar', 2: 'Intermedio', 3: 'Avanzado' };
+// Cada molestia que se anota después del partido (MOLESTIAS de registro.js) y la zona del banco que la trabaja
+export const ZONA_DE_MOLESTIA = { Rodilla: 'rodilla', Isquios: 'isquios', Aductor: 'ingle', 'Cuádriceps': 'rodilla', Pantorrilla: 'tobillo', Tobillo: 'tobillo', Espalda: 'core' };
+// Zonas (sin repetir) para una lista de molestias
+export const zonasDeMolestias = (molestias) => [...new Set((molestias || []).map((m) => ZONA_DE_MOLESTIA[m]).filter(Boolean))];
+export const NIVELES ={ 1: 'Para empezar', 2: 'Intermedio', 3: 'Avanzado' };
 
 const rep = (series, reps, extra = {}) => ({ series, reps, descanso: 45, ...extra });
 const seg = (series, s, extra = {}) => ({ series, seg: s, descanso: 30, ...extra });

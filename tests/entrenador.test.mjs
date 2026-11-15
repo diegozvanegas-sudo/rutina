@@ -93,3 +93,20 @@ test('lo único que mejorar, proteína de la semana y peso para la fuerza relati
   assert.equal(pesoCorporalEn('2026-10-29'), 86);
   assert.equal(pesoCorporalEn('2026-10-01'), null);
 });
+
+test('disposición: un día de fútbol sin anotar ayer también cuenta', () => {
+  const est = e(), antes = est.config.futbol;
+  est.config.futbol = [3]; // miércoles
+  // Jueves 2026-10-01: ayer tocaba partido y no se anotó
+  const d = disposicion('2026-10-01');
+  assert.ok(d.razones.some((r) => /Ayer tocaba partido/.test(r)));
+  assert.equal(d.puntos, 90);
+  // Anotado, no se cuenta dos veces
+  est.dias['2026-09-30'] = { partido: { minutos: 60, rpe: 5 } };
+  const a = disposicion('2026-10-01');
+  assert.ok(a.razones.some((r) => /Jugaste ayer/.test(r)) && !a.razones.some((r) => /sin anotar/.test(r)));
+  delete est.dias['2026-09-30'];
+  // Sin fútbol ayer (martes → miércoles juega esta noche, pero ayer no)
+  assert.ok(!disposicion('2026-09-30').razones.some((r) => /Ayer/.test(r)));
+  est.config.futbol = antes;
+});

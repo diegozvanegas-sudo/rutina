@@ -241,6 +241,13 @@ export function vistaSesiones() {
 registrar({
   'ses-tipo'({ t }) { tipoVisto = t; repintar(); },
   'banco-zona'({ z }) { zonaVista = z; repintar(); },
+  // Enlaces "#sesiones/banco" y "#sesiones/banco-rodilla" (desde las molestias del partido): abren el banco en esa zona
+  'abrir-sesiones'({ p }) {
+    const [donde, zona] = String(p || '').split('-');
+    if (donde !== 'banco') return;
+    tipoVisto = 'banco';
+    zonaVista = ZONAS[zona] ? zona : 'todas';
+  },
   'banco-agregar'({ i }, el) {
     const x = BANCO[Number(i)], s = e().sesiones.find((ses) => ses.id === el.value);
     if (!x || !s) return;

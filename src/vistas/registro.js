@@ -4,6 +4,7 @@ import { e, guardar, dia, hayFutbol } from '../estado.js';
 import { iso, sumarDias, fechaCorta, semanaDe, lunesDe } from '../fechas.js';
 import { horasSueno, promedioSueno, MOLESTIAS, hayPartido, semanaObjetivo, focoDe } from '../registro.js';
 import { rango } from '../progreso.js';
+import { ZONAS, zonasDeMolestias } from '../banco.js';
 import { libro } from '../libros/index.js';
 import { esc, registrar, toast } from '../ui.js';
 import { pausaEn, pausarFutbol, reanudarFutbol } from '../futbol.js';
@@ -45,7 +46,7 @@ export function tarjetaPartido(fecha) {
       return '<button type="button" class="chip' + (activo ? ' activo' : '') + '" data-accion="partido-molestia" ' + datos + ' data-m="' + m + '" aria-pressed="' + activo + '">' + m + '</button>';
     }).join('') + '</div>' +
     '<label class="campo">Nota<input type="text" data-cambio="partido" ' + datos + ' data-k="nota" value="' + esc(p.nota || '') + '" placeholder="Ej.: gol, cancha mojada, me faltó aire…"></label>' +
-    ((p.molestias || []).length ? '<p class="aviso">Con molestias: hoy haz la sesión de rodilla o estira suave, y si el dolor sigue en 2-3 días o es punzante, consulta a un fisioterapeuta.</p>' : '') +
+    ((p.molestias || []).length ? '<p class="aviso">Con molestias: hoy haz ejercicios suaves de ' + zonasDeMolestias(p.molestias).map((z) => '<a href="#sesiones/banco-' + z + '">' + ZONAS[z] + '</a>').join(' · ') + ' o estira suave, y si el dolor sigue en 2-3 días o es punzante, consulta a un fisioterapeuta.</p>' : '') +
     (hecho ? '' : '<button type="button" class="enlace" data-accion="futbol-pausar">⏸ No estoy jugando por estos días</button>') +
     '</section>';
 }

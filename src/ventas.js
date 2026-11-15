@@ -1,5 +1,5 @@
 // 💼 Ventas (solo el superadmin): vender planes en PDF y el plan con entrenador en la app.
-// Aquí solo la lógica (se prueba sin navegador); la pantalla está en vistas/ventas.js y el PDF de ejemplo en ventas-pdf.js.
+// Aquí solo la lógica (se prueba sin navegador); la pantalla está en react/pantallas/Ventas.tsx y el PDF de ejemplo en ventas-pdf.js.
 // La venta y el cobro no pasan por esta app (GitHub Pages no se puede usar para una tienda): el botón de la página de
 // venta lleva al link de pago de Hotmart, Wompi o Mercado Pago, que cobran, entregan el PDF y manejan los reembolsos.
 // Se guarda en estado.ventas = { productos: [...], registro: [{ id, fecha, producto, monto, canal, nota }], lista: { id: true }, autor: {...} }

@@ -13,7 +13,7 @@
     "iconos": "node tools/generar_iconos.mjs",
     "db:esquema": "node tools/aplicar_esquema.mjs",
     "tipos": "tsc --noEmit",
-    "e2e": "node .claude/skills/probar-rutina/scripts/probar.mjs tests/e2e/calendario.mjs"
+    "e2e": "node .claude/skills/probar-rutina/scripts/probar.mjs tests/e2e/todo.mjs"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
@@ -27,6 +27,9 @@
     "vite-plugin-pwa": "^0.21.1"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^9.5.0",
     "@supabase/supabase-js": "^2.118.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

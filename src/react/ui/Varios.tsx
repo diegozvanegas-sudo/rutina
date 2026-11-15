@@ -1,0 +1,63 @@
+// Piezas pequeñas que usan varias pantallas
+import type { ReactNode } from 'react';
+import { Box, ButtonBase, Chip } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material/styles';
+import { tokens } from '../tema';
+
+/** Fila de pestañas o de opciones: una sola activa (en verde). envolver: pasan al renglón de abajo en vez de deslizarse */
+export function Opciones<T extends string>({ opciones, activa, alElegir, nombre, chica = false, envolver = false, sx }: {
+  opciones: [T, ReactNode][]; activa: T | null; alElegir: (id: T) => void; nombre: string; chica?: boolean; envolver?: boolean; sx?: SxProps<Theme>;
+}) {
+  return (
+    <Box role="group" aria-label={nombre}
+      sx={[{ display: 'flex', gap: chica ? '6px' : '8px', p: '2px 0 12px' }, envolver ? { flexWrap: 'wrap' } : { overflowX: 'auto', scrollbarWidth: 'none' }, ...(Array.isArray(sx) ? sx : [sx])]}>
+      {opciones.map(([id, t]) => (
+        <Chip key={id} clickable size={chica ? 'small' : 'medium'} aria-pressed={activa === id} color={activa === id ? 'primary' : 'default'} variant={activa === id ? 'filled' : 'outlined'}
+          label={t} onClick={() => alElegir(id)} sx={{ flex: 'none' }} />
+      ))}
+    </Box>
+  );
+}
+
+/** HTML que todavía arma el código de antes (gráficos de graficos.js, el PDF de ventas-pdf.js). Puente temporal:
+ *  cuando esa pieza se pase a React, deja de usarse. El HTML viene de la app, nunca de lo que escribe otra persona sin escapar */
+export const HtmlViejo = ({ html, clase, sx }: { html: string; clase?: string; sx?: SxProps<Theme> }) => <Box className={clase} sx={sx} dangerouslySetInnerHTML={{ __html: html }} />;
+
+/** Cuadros de cifras: título pequeño, número grande y una nota */
+export function Cifras({ datos }: { datos: { titulo: string; valor: ReactNode; nota?: ReactNode }[] }) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '8px', mb: '10px' }}>
+      {datos.map((d) => (
+        <Box key={d.titulo} sx={{ bgcolor: 'background.default', borderRadius: '10px', p: '8px 10px', display: 'grid' }}>
+          <Box component="small" sx={{ color: 'text.secondary', fontSize: 13 }}>{d.titulo}</Box>
+          <Box component="b" sx={{ fontSize: 20 }}>{d.valor}</Box>
+          {d.nota != null && <Box component="small" sx={{ color: 'text.secondary', fontSize: 13 }}>{d.nota}</Box>}
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+/** Barra de avance (0 a 1) */
+export function Avance({ parte }: { parte: number }) {
+  const pct = Math.round(Math.max(0, Math.min(1, parte || 0)) * 100);
+  return (
+    <Box role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} sx={{ height: 10, borderRadius: 999, bgcolor: tokens.surface2, overflow: 'hidden' }}>
+      <Box sx={{ width: pct + '%', height: '100%', bgcolor: 'primary.main', borderRadius: 999 }} />
+    </Box>
+  );
+}
+
+/** Renglón de una lista para marcar como hecho (caja a la izquierda, texto tachado al marcar) */
+export function Marcable({ hecho, alTocar, children }: { hecho: boolean; alTocar: () => void; children: ReactNode }) {
+  return (
+    <ButtonBase aria-pressed={hecho} onClick={alTocar}
+      sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px', width: '100%', minHeight: 48, p: '8px 10px', mb: '6px', borderRadius: '10px', border: '1px solid',
+        borderColor: hecho ? 'primary.main' : 'divider', bgcolor: 'background.default', color: 'text.primary', font: 'inherit', textAlign: 'left',
+        '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
+      <Box component="span" aria-hidden="true" sx={{ flex: 'none', display: 'grid', placeItems: 'center', width: 24, height: 24, borderRadius: '6px', border: '2px solid', fontWeight: 800,
+        borderColor: hecho ? 'primary.main' : 'divider', bgcolor: hecho ? 'primary.main' : 'transparent', color: 'primary.contrastText' }}>{hecho ? '✓' : ''}</Box>
+      <Box component="span" sx={hecho ? { color: 'text.secondary', textDecoration: 'line-through' } : null}>{children}</Box>
+    </ButtonBase>
+  );
+}

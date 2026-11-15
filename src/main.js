@@ -22,7 +22,6 @@ import { vistaEstudiar } from './vistas/estudiar.js';
 import { montarReact, desmontarReact } from './react/montar.js';
 import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import { vistaLugares } from './vistas/lugares.js';
-import { vistaCompras } from './vistas/compras.js';
 import { vistaSuplementos } from './vistas/suplementos.js';
 import { vistaClientes } from './vistas/clientes.js';
 import { vistaEntrenador, tieneEntrenador } from './vistas/entrenador.js';
@@ -32,7 +31,6 @@ import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
 import { vistaAdministrar, bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
-import { vistaVentas } from './vistas/ventas.js';
 
 registerSW({ immediate: true });
 // Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
@@ -42,17 +40,20 @@ iniciarHoja();
 iniciarAvisos();
 
 const PANTALLAS = {
-  hoy: vistaHoy, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, suplementos: vistaSuplementos, finanzas: vistaFinanzas, compras: vistaCompras,
+  hoy: vistaHoy, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, suplementos: vistaSuplementos, finanzas: vistaFinanzas,
   recordatorios: vistaRecordatorios, lugares: vistaLugares, gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
-const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx') };
+const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
+  ventas: () => import('./react/pantallas/Ventas.tsx') };
+// La pestaña de un enlace (#compras/deseos) hacia una pantalla de React: se le pasa al montarla
+let pestanaReact = null;
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
 // Administrar no está en el catálogo (ni se ordena ni se esconde): solo la ve el admin
 VISTAS.administrar = ['🛡️', 'Administrar', vistaAdministrar];
 // 💼 Ventas (vender los PDF): igual que Administrar, solo el admin y nunca en la vista previa de otro rol
-VISTAS.ventas = ['💼', 'Ventas', vistaVentas];
+VISTAS.ventas = ['💼', 'Ventas'];
 const SOLO_ADMIN = ['administrar', 'ventas'];
 // 📚 Libros es un área de 🎓 Estudiar: no sale en el menú, pero sus enlaces (#libros/fenix) siguen funcionando
 VISTAS.libros = ['📚', 'Libros', vistaLibros];
@@ -65,7 +66,8 @@ const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VI
 function abrirPestana() {
   const [v, sub] = location.hash.slice(1).split('/');
   if (!sub || !VISTAS[v] || !permitida(v)) return;
-  ejecutar('abrir-' + v, { dataset: { p: decodeURIComponent(sub) } });
+  if (REACT[v]) pestanaReact = decodeURIComponent(sub);
+  else ejecutar('abrir-' + v, { dataset: { p: decodeURIComponent(sub) } });
   history.replaceState(null, '', '#' + v);
 }
 
@@ -277,10 +279,11 @@ function pintar() {
   const avisos = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios();
   if (REACT[v]) {
     // La pantalla de React se monta una vez y se repinta sola; aquí solo se refrescan los avisos de arriba
-    if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v) {
+    if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v || pestanaReact != null) {
       desmontarReact();
       $('vista').innerHTML = '<div id="avisos-vista"></div><div id="raiz-react" data-pantalla="' + v + '"></div>';
-      montarReact($('raiz-react'), REACT[v]);
+      montarReact($('raiz-react'), REACT[v], pestanaReact != null ? { pestana: pestanaReact } : null);
+      pestanaReact = null;
     }
     if ($('avisos-vista').innerHTML !== avisos) $('avisos-vista').innerHTML = avisos;
   } else {

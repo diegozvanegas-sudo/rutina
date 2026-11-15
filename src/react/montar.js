@@ -5,12 +5,14 @@ export function desmontarReact() {
   turno++;
   if (raiz) { raiz.unmount(); raiz = null; }
 }
-export async function montarReact(el, cargar) {
+// props: lo que se le pasa a la pantalla (por ejemplo la pestaña de un enlace como #compras/deseos)
+export async function montarReact(el, cargar, props = null) {
   desmontarReact();
   const mio = turno;
-  const [{ createRoot }, { createElement }, pantalla] = await Promise.all([import('react-dom/client'), import('react'), cargar()]);
+  const [{ createRoot }, { createElement }, proveedor, pantalla] = await Promise.all([import('react-dom/client'), import('react'), import('./Proveedor.tsx'), cargar()]);
   // Si mientras cargaba se cambió de pantalla, esta ya no va
   if (mio !== turno || !el.isConnected) return;
   raiz = createRoot(el);
-  raiz.render(createElement(pantalla.default));
+  // Toda pantalla va dentro del tema de la app (Material UI con los colores de siempre)
+  raiz.render(createElement(proveedor.default, null, createElement(pantalla.default, props)));
 }

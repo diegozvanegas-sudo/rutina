@@ -20,6 +20,7 @@ import { deudas, prestamos } from './FinanzasDeudas';
 import { Calcular, esperas } from './FinanzasCalculos';
 import { planb } from './FinanzasPlanB';
 import { Aportar, Aviso, CampoFecha, CampoNumero, CampoPesos, CampoTexto, Chico, Controles, Estado, FILA, FILA_BOTONES, GRANDE, Item, Selector } from './finanzasPiezas';
+import { NombreMetodo } from '../ui/IconoMetodo';
 import { accion } from '../acciones';
 import { tokens } from '../tema';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
@@ -74,7 +75,7 @@ function resumen(f: Fin) {
           return (
             <Box key={m.id} sx={{ py: '8px', borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { borderBottom: 0 } }}>
               <Box sx={{ ...FILA, mb: '6px' }}>
-                <span>{m.icono} {m.nombre}{m.ajuste ? <> <Chico>ajustada el {fechaCorta(m.ajuste.fecha)}</Chico></> : null}</span>
+                <span><NombreMetodo m={m} />{m.ajuste ? <> <Chico>ajustada el {fechaCorta(m.ajuste.fecha)}</Chico></> : null}</span>
                 <Box component="b" sx={{ color: s != null && s < 0 ? 'error.main' : undefined }}>{s == null ? '—' : pesos(s)}</Box>
               </Box>
               <Aportar columnas="1fr auto">

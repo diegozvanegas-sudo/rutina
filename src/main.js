@@ -8,7 +8,7 @@ import { resumenSemana } from './gym.js';
 import { vistaHoy } from './vistas/hoy.js';
 import { vistaManana, textoEspera, revisarCronos } from './vistas/manana.js';
 import { vistaMetas } from './vistas/metas.js';
-import { vistaGym, semanaActual } from './vistas/gym.js';
+import { vistaGym, semanaActual, claveGym } from './vistas/gym.js';
 import { vistaSesiones } from './vistas/sesiones.js';
 import { vistaAjustes, pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.js';
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
@@ -50,6 +50,7 @@ const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), co
 // Secciones grandes que se migran pestaña por pestaña: las pestañas de "listas" ya son de React; las demás siguen como antes
 const REACT_POR_PESTANA = {
   finanzas: { actual: claveFinanzas, listas: ['registrar', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'calcular', 'esperas', 'planb:desempleo', 'planb:lider', 'planb:creativo', 'planb:innovacion', 'planb:pitch'], cargar: () => import('./react/pantallas/Finanzas.tsx') },
+  gym: { actual: claveGym, listas: ['resumen', 'plan12', 'casa'], cargar: () => import('./react/pantallas/Gym.tsx') },
 };
 const reactDe = (v) => REACT[v] || (REACT_POR_PESTANA[v] && REACT_POR_PESTANA[v].listas.includes(REACT_POR_PESTANA[v].actual()) ? REACT_POR_PESTANA[v].cargar : null);
 // La pestaña de un enlace (#compras/deseos) hacia una pantalla de React: se le pasa al montarla

@@ -93,7 +93,7 @@ export default async (p) => {
   await tocarTexto(c0.icono + c0.nombre);
   await paso('categoría elegida');
   await escribirCampo('Nota', 'almuerzo');
-  await tocarTexto(m1.icono + ' ' + m1.nombre);
+  await tocarTexto(m1.nombre);
   await tocarTexto('Guardar gasto');
   f = await fin();
   let g = f.movimientos.at(-1);

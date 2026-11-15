@@ -16,7 +16,7 @@ import { esc, barra, tip, registrar, toast, copiarTexto, botonSesion } from '../
 import { iniciar } from '../temporizador.js';
 import { compartirImagen } from '../imagen.js';
 import { compartirRutina } from '../imagen-rutina.js';
-import { vistaPlan12, vistaCasa } from './plan12.js';
+import './plan12.js';
 
 let semanaVista = null, diaVista = null, editandoObjetivos = false, fuerzaEj = null;
 // Ejercicio en el que vas: el último donde anotaste una serie (si le faltan) o el primero con series pendientes.
@@ -489,21 +489,6 @@ function tarjetaCore(d, sem) {
     core.ejercicios.map((ej) => ejercicio(ej, sem, sufijo)).join('') + '</details>';
 }
 
-// Línea simple con el peso de la primera fila de cada ejercicio, semana a semana
-function grafico(f, hasta, filtro = null) {
-  const puntos = [];
-  for (let s = 1; s <= hasta; s++) {
-    const p = registrosDeFila(e().semanas[s], f).filter((r) => !filtro || varianteDe(r, filtro.ej) === filtro.v).map((r) => numero(r.peso)).find((n) => n != null);
-    if (p != null) puntos.push([s, p]);
-  }
-  if (!puntos.length) return '<span class="nota-corta">sin datos</span>';
-  const ps = puntos.map((p) => p[1]), min = Math.min(...ps), max = Math.max(...ps), W = 120, H = 32;
-  const x = (s) => (hasta > 1 ? ((s - 1) / (hasta - 1)) * (W - 8) + 4 : W / 2), y = (p) => (max > min ? H - 4 - ((p - min) / (max - min)) * (H - 8) : H / 2);
-  return '<svg class="mini" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" aria-hidden="true">' +
-    '<polyline fill="none" stroke="currentColor" stroke-width="2" points="' + puntos.map(([s, p]) => x(s) + ',' + y(p)).join(' ') + '"/>' +
-    puntos.map(([s, p]) => '<circle cx="' + x(s) + '" cy="' + y(p) + '" r="2.5" fill="currentColor"/>').join('') + '</svg>' +
-    '<span class="nota-corta">' + formatoPeso(ps[0]) + ' → <b>' + formatoPeso(ps[ps.length - 1]) + '</b></span>';
-}
 
 // Los ejercicios del día, al pasar por encima de su cuadro en la semana
 function tipDia(id) {
@@ -527,18 +512,28 @@ export function tarjetaSemana(sem = semanaActual(), conMusculos = false) {
       }).join('') + '</div>' : '');
 }
 
-function vistaResumen(sem) {
-  return '<button type="button" class="boton primario ancho boton-rutina" data-accion="gym-imagen-rutina">🖼️ Crear imagen de mi rutina semanal</button>' +
-    '<section class="tarjeta">' + tarjetaSemana(sem, true) + '</section>' +
-    '<section class="tarjeta fuerza"><h2>💪 Fuerza</h2>' + tarjetaFuerza(sem) + '</section>' +
-    '<section class="tarjeta"><h2>Progreso de peso</h2><div class="progreso">' + e().rutina.flatMap((d) => d.ejercicios.flatMap((ej) => (tieneVariantes(ej) ? ej.variantes : [null]).map((v) =>
-      '<div class="progreso-fila"><span>' + esc(nombreConVariante(ej, v)) + '<small>' + esc(d.nombre) + ' · ' + ej.filas[0].tipo + '</small></span>' + grafico(ej.filas[0], sem, v ? { ej, v } : null) + '</div>'))).join('') + '</div></section>';
-}
 
-export function vistaGym() {
+// La semana y la pestaña que se ven (al abrir: la semana actual y el día de hoy, o el resumen)
+function prepararGym() {
   const actual = semanaActual();
   if (semanaVista == null || semanaVista > actual) semanaVista = actual;
   if (diaVista == null || diaVista === 'core') diaVista = (diaDeHoy() || {}).id || 'resumen';
+  return actual;
+}
+// Qué pestaña se ve, para main.js: 'dia' (un día de entreno), 'plan12', 'casa' o 'resumen'
+export function claveGym() {
+  prepararGym();
+  if (diaVista === 'plan12' || diaVista === 'casa') return diaVista;
+  return e().rutina.some((x) => x.id === diaVista) ? 'dia' : 'resumen';
+}
+// Lo que necesita la pantalla de React (src/react/pantallas/Gym.tsx): lo que se ve y los cálculos que comparte con esta
+export const piezasGym = {
+  ver: () => ({ actual: prepararGym(), semana: semanaVista, dia: diaVista, editandoObjetivos, fuerzaEj }),
+  DIAS_CORTOS, rirReciente, consejo, rm, porcentaje, historialEj,
+};
+
+export function vistaGym() {
+  const actual = prepararGym();
   const lunes = lunesDe(semanaVista), d = e().rutina.find((x) => x.id === diaVista);
   const opciones = [];
   for (let s = actual; s >= 1; s--) opciones.push('<option value="' + s + '"' + (s === semanaVista ? ' selected' : '') + '>Semana ' + s + (s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))) + '</option>');
@@ -552,7 +547,8 @@ export function vistaGym() {
     '<button type="button" class="chip' + (diaVista === 'resumen' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="resumen">📊 Resumen</button>' +
     '<button type="button" class="chip' + (diaVista === 'plan12' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="plan12">📆 12 semanas</button>' +
     '<button type="button" class="chip' + (diaVista === 'casa' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="casa">🏠 En casa</button></nav>' +
-    (diaVista === 'plan12' ? vistaPlan12() : diaVista === 'casa' ? vistaCasa() : d ? vistaDia(d, semanaVista) : vistaResumen(semanaVista));
+    // 📊 Resumen, 📆 12 semanas y 🏠 En casa los pinta React (src/react/pantallas/Gym.tsx): aquí solo llega un día
+    (d ? vistaDia(d, semanaVista) : '');
 }
 
 function cambiarReps(id, texto) {

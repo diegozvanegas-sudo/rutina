@@ -31,7 +31,7 @@ export default async (p) => {
     }
     // Gym por dentro: un día de entreno (con una serie anotada y el historial abierto) y las pestañas
     await p.ir('gym');
-    await p.tocar('nav.chips .chip');
+    await p.tocar('#vista [data-accion=ir-dia]');
     await p.dormir(700);
     await p.ev(`(()=>{const c=document.querySelector('.ejercicio.actual [data-serie]');c.focus({preventScroll:true});c.value='8'})()`);
     await p.tocar('.ejercicio.actual [data-accion=serie]');

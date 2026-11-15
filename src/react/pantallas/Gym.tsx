@@ -1,0 +1,305 @@
+// 🏋️ Gym: la cabecera (semana, días y pestañas) y las pestañas que ya son de React: 📊 Resumen, 📆 12 semanas y 🏠 En casa.
+// El día de entreno sigue en src/vistas/gym.js hasta que le toque (main.js: REACT_POR_PESTANA). React pinta; anotar,
+// elegir y cambiar son las acciones de siempre (src/vistas/gym.js y plan12.js).
+import type { ReactNode } from 'react';
+import { Box, Button, ButtonBase, Card, NativeSelect, OutlinedInput, Typography } from '@mui/material';
+import { semanaQuitable } from '../../estado.js';
+import { iso, semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana } from '../../fechas.js';
+import { resumenSemana, progresoMes, records, historial, lineasFuerza, registrosRaros, seriesRaras, ultimoRegistro, varianteDe, nombreConVariante, metaSesion,
+  varianteActual, consejoRir, formatoPeso, numero, registrosDeFila, tieneVariantes } from '../../gym.js';
+import { queTeHaceRendir, pesoCorporalEn } from '../../entrenador.js';
+import { tablaDatos } from '../../graficos.js';
+import { piezasGym, diasEnOrden } from '../../vistas/gym.js';
+import { accion } from '../acciones';
+import { tokens } from '../tema';
+import { usarEstado } from '../usarEstado';
+import { TarjetaPlegable } from '../ui/TarjetaPlegable';
+import { CampoLista, CampoSolo } from '../ui/Campo';
+import { TituloPantalla, Nota } from '../ui/Textos';
+import { Opciones, Avance, HtmlViejo } from '../ui/Varios';
+import { plan12, casa } from './GymPlan12';
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Fin = any;
+const VISTA = 'gym';
+const G = piezasGym as Fin;
+const DIAS: string[] = G.DIAS_CORTOS;
+const H3 = ({ children }: { children: ReactNode }) => <Box component="h3" sx={{ m: '14px 0 6px', fontSize: 15 }}>{children}</Box>;
+const FILA = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' };
+const Chico = ({ children }: { children: ReactNode }) => <Box component="small" sx={{ color: 'text.secondary', fontSize: 13 }}>{children}</Box>;
+
+// Lista "nombre + detalle | cifra" de la fuerza
+type Renglon = { k: string; nombre: ReactNode; detalle: ReactNode; cifra: ReactNode; color?: string };
+const Lista = ({ filas }: { filas: Renglon[] }) => (
+  <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '8px' }}>
+    {filas.map((x) => (
+      <Box component="li" key={x.k} sx={FILA}>
+        <Box component="span" sx={{ display: 'grid', minWidth: 0 }}>{x.nombre}<Chico>{x.detalle}</Chico></Box>
+        <Box component="b" sx={{ whiteSpace: 'nowrap', color: x.color }}>{x.cifra}</Box>
+      </Box>
+    ))}
+  </Box>
+);
+const COLOR_CAMBIO = (c: number) => (c > 0.005 ? tokens.verde : c < -0.005 ? tokens.amarillo : undefined);
+
+function textoRegistro(r: Fin) {
+  if (!r) return '—';
+  const p = numero(r.peso), peso = p != null ? formatoPeso(p) : String(r.peso || '').trim();
+  return (peso ? peso + ' ' + (r.unidad || 'kg') : 'sin peso') + (r.reps ? ' · ' + r.reps : '');
+}
+
+// Etiqueta del estado de un músculo: Bajo, En rango, Alto
+const ESTADO: Record<string, { bgcolor: string; color: string }> = {
+  bajo: { bgcolor: tokens.amarilloFondo, color: tokens.amarillo }, 'en-rango': { bgcolor: tokens.brandSoft, color: tokens.brand }, alto: { bgcolor: tokens.azulFondo, color: tokens.azul },
+};
+const Estado = ({ estado }: { estado: string }) => (
+  <Box component="span" sx={{ fontSize: 12, fontWeight: 800, p: '2px 8px', borderRadius: 999, ml: '6px', ...(ESTADO[estado.replace(' ', '-').toLowerCase()] || {}) }}>{estado}</Box>
+);
+
+// ---------- La semana: días y series por músculo ----------
+function semana(estado: Fin, sem: number, editando: boolean) {
+  const r = resumenSemana(estado.rutina, estado.semanas[sem] || {}, estado.config.objetivos) as Fin;
+  const pos = (id: string) => { const d = estado.rutina.find((x: Fin) => x.id === id); return id === 'core' ? 100 : (d && d.diaSemana) || 99; };
+  r.dias.sort((a: Fin, b: Fin) => pos(a.id) - pos(b.id));
+  const tip = (id: string) => { const d = estado.rutina.find((x: Fin) => x.id === id); return d && d.ejercicios.length ? d.nombre + '\n\n' + d.ejercicios.map((ej: Fin) => '• ' + ej.nombre).join('\n') : undefined; };
+  const MINI = { textAlign: 'left', bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', borderRadius: '12px', p: '10px', color: 'text.primary', font: 'inherit', fontSize: 14, display: 'grid', gap: '4px', justifyContent: 'stretch', '& [role=progressbar]': { m: 0 } };
+  return (
+    <>
+      <Box sx={{ ...FILA, mb: '6px' }}><b>Semana {sem}</b><span>{r.hechas} / {r.plan} series</span></Box>
+      <Avance parte={r.plan ? r.hechas / r.plan : 0} />
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', mb: '8px' }}>
+        {(r.dias as Fin[]).map((d) => {
+          const cuerpo = <><span>{DIAS[pos(d.id)] ? DIAS[pos(d.id)] + ' · ' : ''}{d.nombre}</span><b>{d.hechas}/{d.plan}</b><Avance parte={d.plan ? d.hechas / d.plan : 0} /></>;
+          return d.id === 'core'
+            ? <Box key={d.id} sx={MINI}>{cuerpo}</Box>
+            : <ButtonBase key={d.id} data-tip={tip(d.id)} onClick={() => accion('ir-dia', { dia: d.id })} sx={[MINI, { '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }]}>{cuerpo}</ButtonBase>;
+        })}
+      </Box>
+      <Box sx={{ ...FILA, mb: '6px' }}>
+        <Typography component="h2" variant="h2" sx={{ m: 0 }}>Series por músculo</Typography>
+        <Button color="secondary" onClick={() => accion('gym-objetivos')}>{editando ? '✓ Listo' : '✏️ Editar objetivos'}</Button>
+      </Box>
+      {editando && <Nota>Series por semana que buscas para cada músculo: menos del mínimo es "Bajo", más del máximo es "Alto".</Nota>}
+      <Box sx={{ display: 'grid', gap: '6px' }}>
+        {Object.entries(r.musculos as Record<string, Fin>).map(([m, x]) => (
+          <div key={m}>
+            <Box sx={{ ...FILA, mb: '6px' }}>
+              <span>{m}</span>
+              <span>
+                <b>{x.hechas}</b> / {editando
+                  ? <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <CampoSolo noVaciar type="number" inputMode="numeric" min={0} data-cambio="gym-objetivo" data-m={m} data-k={0} defaultValue={x.min} aria-label={'Mínimo de ' + m} sx={{ width: 64, '& input': { textAlign: 'center', p: '6px 8px' } }} /> – <CampoSolo noVaciar type="number" inputMode="numeric" min={1} data-cambio="gym-objetivo" data-m={m} data-k={1} defaultValue={x.max} aria-label={'Máximo de ' + m} sx={{ width: 64, '& input': { textAlign: 'center', p: '6px 8px' } }} />
+                    </Box>
+                  : x.min + '–' + x.max} <Estado estado={x.estado} />
+              </span>
+            </Box>
+            <Avance parte={x.hechas / x.max} />
+          </div>
+        ))}
+      </Box>
+    </>
+  );
+}
+
+// ---------- 💪 Fuerza ----------
+// Registros de las últimas 4 semanas que se salen del esquema y aún no se han respondido
+function raros(estado: Fin, hasta: number) {
+  const lista = registrosRaros(estado.semanas, estado.rutina, hasta - 3, hasta) as Fin[];
+  if (!lista.length) return null;
+  const chip = { minHeight: 32, p: '4px 10px', borderRadius: 999, fontSize: 13, fontWeight: 700, bgcolor: 'background.paper', color: 'text.primary', border: '1px solid', borderColor: 'divider' };
+  return (
+    <>
+      <H3>⚠️ Revisa estos registros</H3>
+      <Nota>Se salen de tu esquema. Si quedaron incompletos, no cuentan en la comparación.</Nota>
+      <Box sx={{ display: 'grid', gap: '10px', mb: '8px' }}>
+        {lista.slice(0, 8).map((x) => {
+          const v = varianteDe(x.reg, x.ej), ult = (ultimoRegistro as Fin)(estado.semanas, x.fila, x.semana, { ej: x.ej, v });
+          return (
+            <div key={x.semana + x.clave}>
+              <b>{nombreConVariante(x.ej, v)}</b> <Chico>semana {x.semana} · {textoRegistro(x.reg)}</Chico>
+              {(seriesRaras(x.fila, x.reg, ult) as Fin[]).filter((s) => s.estado !== 'ok').map((s) => {
+                const datos = { sem: x.semana, clave: x.clave, i: s.i };
+                return s.estado === 'incompleta'
+                  ? <Box key={s.i} sx={{ mt: '6px', p: '8px 10px', borderRadius: '10px', bgcolor: tokens.surface2, color: 'text.secondary', fontSize: 14 }}>
+                      {s.i === 'p' ? 'Registro marcado como mal anotado' : 'Serie ' + (s.i + 1) + ' marcada como incompleta'}: no cuenta en la fuerza. <Button variant="text" onClick={() => accion('gym-raro', { ...datos, v: 'quitar' })} sx={{ minHeight: 32, p: 0, color: 'info.main', fontWeight: 400, textDecoration: 'underline' }}>Deshacer</Button>
+                    </Box>
+                  : <Box key={s.i} sx={{ display: 'grid', gap: '6px', mt: '6px', p: '8px 10px', borderRadius: '10px', bgcolor: tokens.amarilloFondo, color: 'warning.main', fontSize: 14 }}>
+                      <span>⚠️ {s.texto}. ¿{s.i === 'p' ? 'Peso mal anotado' : 'Registro incompleto'}?</span>
+                      <Box component="span" sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        <Button size="small" onClick={() => accion('gym-raro', { ...datos, v: 'inc' })} sx={chip}>Sí, que no cuente</Button>
+                        <Button size="small" onClick={() => accion('gym-raro', { ...datos, v: 'ok' })} sx={chip}>No, está bien</Button>
+                      </Box>
+                    </Box>;
+              })}
+            </div>
+          );
+        })}
+      </Box>
+    </>
+  );
+}
+
+// Próximo día de gym (hoy si toca) con la meta de cada ejercicio
+function proximo(estado: Fin, semActual: number) {
+  const hoy = iso();
+  for (let k = 0; k < 7; k++) {
+    const f = sumarDias(hoy, k), d = estado.rutina.find((x: Fin) => x.id !== 'core' && x.diaSemana === diaSemana(f));
+    if (!d) continue;
+    const sem = semActual + (k && diaSemana(f) < diaSemana(hoy) ? 1 : 0);
+    const metas = (d.ejercicios as Fin[]).map((ej) => ({ ej, m: metaSesion(ej.filas[0], (ultimoRegistro as Fin)(estado.semanas, ej.filas[0], sem, { ej, v: varianteActual(ej) })) as Fin })).filter((x) => x.m);
+    if (!metas.length) return null;
+    return (
+      <>
+        <H3>🎯 Tu próximo entreno: {d.nombre} <small>{k === 0 ? 'hoy' : k === 1 ? 'mañana' : DIAS[d.diaSemana].toLowerCase()}</small></H3>
+        <Lista filas={metas.map(({ ej, m }) => ({ k: ej.id, nombre: nombreConVariante(ej, varianteActual(ej)), detalle: m.motivo, cifra: m.texto + (m.sube ? ' ⬆' : ''), color: m.sube ? tokens.verde : undefined }))} />
+      </>
+    );
+  }
+  return null;
+}
+
+// 1RM estimado dividido por el peso corporal
+function fuerzaRelativa(lista: Fin[]) {
+  const ahora = pesoCorporalEn(iso()) as number | null, antes = pesoCorporalEn(sumarDias(iso(), -28)) as number | null;
+  if (!ahora) return <><H3>⚖️ Fuerza relativa</H3><Nota>Anota tu peso en ayunas (Hoy → Sueño y peso) para ver cuántas veces tu peso levantas.</Nota></>;
+  const pesoEn = (s: number) => (s ? pesoCorporalEn(sumarDias(lunesDe(s), 6)) as number | null : null);
+  const filas = lista.filter((x) => x.a.unidad === 'kg').map((x) => {
+    const pa = pesoEn(x.a.semana) || ahora, pd = pesoEn(x.de.semana);
+    return { x, rel: x.a.rm / pa, cambio: pd ? (x.a.rm / pa) / (x.de.rm / pd) - 1 : null };
+  }).sort((a, b) => b.rel - a.rel);
+  const veces = (n: number) => (Math.round(n * 100) / 100).toLocaleString('es-CO') + '×';
+  return (
+    <>
+      <H3>⚖️ Fuerza relativa</H3>
+      <Nota>Peso corporal: <b>{formatoPeso(Math.round(ahora * 10) / 10)} kg</b>{antes ? ' (' + (ahora <= antes ? '−' : '+') + formatoPeso(Math.round(Math.abs(ahora - antes) * 10) / 10) + ' kg en 4 semanas)' : ''}. Veces tu peso que levantas (1RM estimado):</Nota>
+      <Lista filas={filas.slice(0, 5).map(({ x, rel, cambio }) => ({ k: x.nombre, nombre: x.nombre, detalle: G.rm(x.a.rm) + ' kg' + (cambio != null ? ' · ' + G.porcentaje(cambio) + ' relativo' : ''), cifra: veces(rel) }))} />
+    </>
+  );
+}
+
+function queRindes() {
+  const r = queTeHaceRendir() as Fin, listos = (r.factores as Fin[]).filter((x) => !x.faltan);
+  return (
+    <>
+      <H3>🧪 ¿Qué te hace rendir?</H3>
+      {listos.length
+        ? <Box component="ul" sx={{ m: 0, pl: '20px', display: 'grid', gap: '6px', lineHeight: 1.5 }}>{listos.map((x) => <li key={x.texto}>{x.texto}</li>)}</Box>
+        : <Nota>Comparo cada entreno con tu propia tendencia. Con {r.sesiones}{r.sesiones === 1 ? ' sesión' : ' sesiones'} todavía faltan datos: anota el sueño cada mañana y los partidos, y en unas semanas vas a ver aquí qué te hace rendir más.</Nota>}
+      {listos.length > 0 && listos.length < r.factores.length && <Nota>Para comparar lo demás faltan más días anotados de cada lado.</Nota>}
+    </>
+  );
+}
+
+// Un ejercicio a la vez: su 1RM estimado semana a semana
+function graficoEjercicio(estado: Fin, hasta: number, elegido: string | null) {
+  const nombres = (lineasFuerza(estado.rutina) as Fin[]).filter((x) => (historial(estado.semanas, estado.rutina, x.ej, 0, hasta, x.v) as Fin[]).length >= 2);
+  if (!nombres.length) return null;
+  const sel = nombres.find((x) => x.nombre === elegido) || nombres[0];
+  return (
+    <>
+      <H3>📉 Un ejercicio en el tiempo</H3>
+      <CampoLista key={sel.nombre} etiqueta="Ejercicio" data-cambio="fuerza-ej" defaultValue={sel.nombre} opciones={nombres.map((x) => [x.nombre, x.nombre])} />
+      <HtmlViejo html={G.historialEj(sel.ej, hasta, true, sel.v)} />
+    </>
+  );
+}
+
+function fuerza(estado: Fin, hasta: number, semActual: number, elegido: string | null) {
+  const lista = progresoMes(estado.semanas, estado.rutina, hasta) as Fin[];
+  const suben = lista.filter((x) => x.cambio > 0.005), quietos = lista.filter((x) => x.est && x.est.estancado);
+  const recs: Fin[] = [];
+  for (const { ej, v, nombre } of lineasFuerza(estado.rutina) as Fin[]) {
+    for (const p of records(historial(estado.semanas, estado.rutina, ej, 0, hasta, v)) as Fin[]) if (p.semana > 0) recs.push({ ...p, nombre });
+  }
+  recs.sort((a, b) => b.semana - a.semana);
+  const arriba = <>{raros(estado, hasta)}{hasta === semActual ? proximo(estado, semActual) : null}</>;
+  if (!lista.length && !recs.length) return <>{arriba}<Nota>Cuando tengas el mismo ejercicio anotado en 2 semanas vas a ver aquí en qué estás mejorando.</Nota></>;
+  const lineaDe = (nombre: string) => (lineasFuerza(estado.rutina) as Fin[]).find((x) => x.nombre === nombre);
+  const cambio = (x: Fin) => ({ k: x.nombre, nombre: x.nombre, detalle: formatoPeso(x.de.peso) + ' × ' + x.de.reps + ' → ' + formatoPeso(x.a.peso) + ' × ' + x.a.reps + ' ' + x.a.unidad, cifra: G.porcentaje(x.cambio), color: COLOR_CAMBIO(x.cambio) });
+  return (
+    <>
+      {arriba}
+      <H3>📈 Mejoraste (4 semanas)</H3>
+      {suben.length ? <Lista filas={suben.slice(0, 5).map(cambio)} /> : <Nota>Ningún ejercicio subió su 1RM estimado en estas 4 semanas.</Nota>}
+      {quietos.length > 0 && <><H3>⏸ Estancados (3+ semanas sin superar tu mejor marca)</H3>
+        <Lista filas={quietos.slice(0, 5).map((x) => ({ k: x.nombre, nombre: x.nombre, detalle: consejoRir(G.rirReciente(lineaDe(x.nombre).ej, 0, hasta, x.variante), true) || G.consejo(x, x.est.semanas), cifra: x.est.semanas + ' sem', color: tokens.amarillo }))} /></>}
+      {recs.length > 0 && <><H3>🏆 Últimos récords</H3>
+        <Lista filas={recs.slice(0, 6).map((p) => ({ k: p.nombre + p.semana, nombre: p.nombre, detalle: formatoPeso(p.peso) + ' ' + p.unidad + ' × ' + p.reps + ' · semana ' + p.semana, cifra: G.rm(p.rm) }))} /></>}
+      {fuerzaRelativa(lista)}
+      {queRindes()}
+      {graficoEjercicio(estado, hasta, elegido)}
+      {lista.length > 0 && <HtmlViejo html={tablaDatos(['Ejercicio', 'Antes', 'Ahora', 'Cambio'], lista.map((x) => [x.nombre, formatoPeso(x.de.peso) + ' × ' + x.de.reps, formatoPeso(x.a.peso) + ' × ' + x.a.reps, G.porcentaje(x.cambio)]))} />}
+    </>
+  );
+}
+
+// ---------- Progreso de peso: la primera fila de cada ejercicio, semana a semana ----------
+function Mini({ estado, f, hasta, filtro }: { estado: Fin; f: Fin; hasta: number; filtro: Fin }) {
+  const puntos: [number, number][] = [];
+  for (let s = 1; s <= hasta; s++) {
+    const p = (registrosDeFila(estado.semanas[s], f) as Fin[]).filter((r) => !filtro || varianteDe(r, filtro.ej) === filtro.v).map((r) => numero(r.peso)).find((n) => n != null);
+    if (p != null) puntos.push([s, p]);
+  }
+  if (!puntos.length) return <Chico>sin datos</Chico>;
+  const ps = puntos.map((p) => p[1]), min = Math.min(...ps), max = Math.max(...ps), W = 120, H = 32;
+  const x = (s: number) => (hasta > 1 ? ((s - 1) / (hasta - 1)) * (W - 8) + 4 : W / 2), y = (p: number) => (max > min ? H - 4 - ((p - min) / (max - min)) * (H - 8) : H / 2);
+  return (
+    <>
+      <svg viewBox={'0 0 ' + W + ' ' + H} width={W} height={H} aria-hidden="true" style={{ color: tokens.brand }}>
+        <polyline fill="none" stroke="currentColor" strokeWidth="2" points={puntos.map(([s, p]) => x(s) + ',' + y(p)).join(' ')} />
+        {puntos.map(([s, p]) => <circle key={s} cx={x(s)} cy={y(p)} r="2.5" fill="currentColor" />)}
+      </svg>
+      <Chico>{formatoPeso(ps[0])} → <b>{formatoPeso(ps[ps.length - 1])}</b></Chico>
+    </>
+  );
+}
+function progreso(estado: Fin, sem: number) {
+  const filas = (estado.rutina as Fin[]).flatMap((d) => (d.ejercicios as Fin[]).flatMap((ej) => (tieneVariantes(ej) ? ej.variantes as string[] : [null]).map((v) => ({ d, ej, v }))));
+  return (
+    <Box sx={{ display: 'grid', gap: '10px' }}>
+      {filas.map(({ d, ej, v }) => (
+        <Box key={d.id + ej.id + (v || '')} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          <Box component="span" sx={{ display: 'grid', fontSize: 14 }}>{nombreConVariante(ej, v)}<Chico>{d.nombre} · {ej.filas[0].tipo}</Chico></Box>
+          <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Mini estado={estado} f={ej.filas[0]} hasta={sem} filtro={v ? { ej, v } : null} /></Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
+
+function resumen(estado: Fin, sem: number, semActual: number, ver: Fin) {
+  return (
+    <>
+      <Button fullWidth onClick={() => accion('gym-imagen-rutina')} sx={{ mb: '14px' }}>🖼️ Crear imagen de mi rutina semanal</Button>
+      <Card component="section" sx={{ mb: '14px' }}>{semana(estado, sem, ver.editandoObjetivos)}</Card>
+      <TarjetaPlegable vista={VISTA} clave="💪 Fuerza" titulo="💪 Fuerza">{fuerza(estado, sem, semActual, ver.fuerzaEj)}</TarjetaPlegable>
+      <TarjetaPlegable vista={VISTA} clave="Progreso de peso" titulo="Progreso de peso">{progreso(estado, sem)}</TarjetaPlegable>
+    </>
+  );
+}
+
+export default function Gym() {
+  const estado = usarEstado() as Fin, ver = G.ver(), actual: number = ver.actual, sem: number = ver.semana, lunes = lunesDe(sem);
+  const semanas = Array.from({ length: actual }, (_, k) => actual - k);
+  const dias: [string, string][] = (diasEnOrden() as Fin[]).map((x) => [x.id, (x.diaSemana ? DIAS[x.diaSemana] + ' · ' : '') + x.nombre]);
+  const pestanas: [string, string][] = [...dias, ['resumen', '📊 Resumen'], ['plan12', '📆 12 semanas'], ['casa', '🏠 En casa']];
+  return (
+    <>
+      <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
+        <TituloPantalla>Gym</TituloPantalla>
+        <NativeSelect key={sem} defaultValue={String(sem)} input={<OutlinedInput />} inputProps={{ 'aria-label': 'Semana', 'data-cambio': 'semana' } as object} sx={{ width: '60%' }}>
+          {semanas.map((s) => <option key={s} value={s}>Semana {s}{s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))}</option>)}
+        </NativeSelect>
+      </Box>
+      <Box sx={{ ...FILA, flexWrap: 'wrap', gap: '8px', m: '-6px 0 10px' }}>
+        <Box component="p" sx={{ color: 'text.secondary', m: 0 }}>
+          {fechaCorta(lunes)} – {fechaCorta(sumarDias(lunes, 6))}{sem < actual ? <> · <b>semana pasada</b></> : sem > semanaDe() ? <> · <b>abierta antes de tiempo</b></> : null}
+        </Box>
+        {sem === actual && <Button color="secondary" onClick={() => accion('semana-nueva')} sx={{ minHeight: 44 }}>＋ Nueva semana</Button>}
+        {sem === actual && semanaQuitable() === actual && <Button color="secondary" onClick={() => accion('semana-quitar')} sx={{ minHeight: 44 }}>Quitar semana {actual}</Button>}
+      </Box>
+      <Opciones nombre="Día" activa={ver.dia} opciones={pestanas} datos={(id) => ({ 'data-accion': 'ir-dia', 'data-dia': id })} />
+      {ver.dia === 'plan12' ? plan12(estado) : ver.dia === 'casa' ? casa(estado) : resumen(estado, sem, actual, ver)}
+    </>
+  );
+}

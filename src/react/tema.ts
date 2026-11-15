@@ -10,6 +10,10 @@ export const tokens = {
   amarillo: '#f5c542', verde: '#3dd68c', azul: '#5aa9ff', rojo: '#ff6b6b',
   // Texto sobre amarillo (botón que cuenta) y el rosa de los módulos creativos de Plan B, con su texto encima
   amarilloInk: '#2b2100', rosa: '#f472b6', rosaInk: '#2a0a1a',
+  // Colores de las billeteras en los iconos de los métodos de pago (ui/IconoMetodo.tsx)
+  nequi: '#d6006f', nequiInk: '#ffffff', daviplata: '#e3262f',
+  // Fondos oscuros de las etiquetas amarilla (Bajo, aviso) y azul (Alto)
+  amarilloFondo: '#3a2d10', azulFondo: '#1f2a3d',
   radio: 14,
 };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';

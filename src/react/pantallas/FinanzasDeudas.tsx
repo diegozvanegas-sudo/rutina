@@ -5,6 +5,7 @@ import { iso, fechaCorta } from '../../fechas.js';
 import { pesos, estadoDeuda, planPago, esCredito, tarjetaDe, interesPrestamo, estadoCobro, interesesCobrados } from '../../finanzas.js';
 import { miles } from '../../ui.js';
 import { piezasFinanzas } from '../../vistas/finanzas.js';
+import { NombreMetodo } from '../ui/IconoMetodo';
 import { accion } from '../acciones';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoSolo, DOS } from '../ui/Campo';
@@ -54,7 +55,7 @@ export function deudas(f: Fin) {
         return (
           <Item key={d.id}>
             <Box sx={{ ...FILA, gap: '8px' }}><b>💳 {d.nombre}</b>{s && saldo > 0 ? <Estado estado={s.estado}>{ESTADOS[s.estado]}</Estado> : null}</Box>
-            {d.metodo && <Nota>Suben su saldo las compras con {metodo(d.metodo).icono} {metodo(d.metodo).nombre}.</Nota>}
+            {d.metodo && <Nota>Suben su saldo las compras con <NombreMetodo m={metodo(d.metodo)} />.</Nota>}
             <Cifras datos={[
               { titulo: 'Saldo', valor: saldo < 0 ? pesos(-saldo) + ' a favor' : pesos(saldo) },
               { titulo: 'Cuota', valor: pesos(d.cuota) },

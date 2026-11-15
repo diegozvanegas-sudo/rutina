@@ -8,6 +8,7 @@ import {
   mesDe, sumarMeses, pesos, gastoDe, resumenMes, estadoFijo, tarjetaDe, subsDe, subDe, buscarCategorias, frecuentes, notasFrecuentes, pagosSinDeuda,
 } from '../../finanzas.js';
 import { piezasFinanzas } from '../../vistas/finanzas.js';
+import { NombreMetodo } from '../ui/IconoMetodo';
 import { accion } from '../acciones';
 import { tokens } from '../tema';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
@@ -133,7 +134,7 @@ function camposTransferencia() {
   if (!lista.some((m) => m.id === form.metodo)) form.metodo = lista[0].id;
   const destinos = lista.filter((m) => m.id !== form.metodo);
   if (!destinos.some((m) => m.id === form.destino)) form.destino = destinos[0].id;
-  const pares = (l: Fin[]) => l.map((m) => [m.id, m.icono + ' ' + m.nombre] as [string, string]);
+  const pares = (l: Fin[]) => l.map((m) => [m.id, <NombreMetodo m={m} />] as [string, ReactNode]);
   return (
     <>
       <Titulo>Sale de</Titulo>{elegir('Sale de', pares(lista), form.metodo, 'fin-metodo')}
@@ -264,7 +265,7 @@ export function Registrar({ f }: { f: Fin }) {
             )}
             {elegirDeuda(f)}
             {pistaPresupuesto(r)}
-            {elegir('Método de pago', metodos.map((m) => [m.id, m.icono + ' ' + m.nombre] as [string, string]), form.metodo, 'fin-metodo')}
+            {elegir('Método de pago', metodos.map((m) => [m.id, <NombreMetodo m={m} />] as [string, ReactNode]), form.metodo, 'fin-metodo')}
           </>
         )}
         {tarjeta && <Nota>💳 Suma al saldo de <b>{tarjeta.nombre}</b> ({pesos(Math.max(0, tarjeta.saldo))} hoy).</Nota>}
@@ -378,7 +379,7 @@ export function mes(f: Fin) {
       </TarjetaPlegable>
       {metodosMes.length > 0 && (
         <TarjetaPlegable vista={VISTA} clave="Por método de pago" titulo="Por método de pago">
-          {metodosMes.map(([id, v]) => <Box key={id} sx={FILA}><span>{metodo(id).icono} {metodo(id).nombre}</span><b>{pesos(v)}</b></Box>)}
+          {metodosMes.map(([id, v]) => <Box key={id} sx={FILA}><NombreMetodo m={metodo(id)} /><b>{pesos(v)}</b></Box>)}
           {r.porMetodo.credito ? <Nota>💳 Con tarjeta de crédito: {pesos(r.porMetodo.credito)}. Págala completa antes de la fecha límite para no pagar intereses.</Nota> : null}
         </TarjetaPlegable>
       )}

@@ -5,7 +5,8 @@ import compras from './compras.mjs';
 import ventas from './ventas.mjs';
 import finanzas from './finanzas.mjs';
 import planb from './planb.mjs';
+import gym from './gym.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym]) await recorrido(p);
 };

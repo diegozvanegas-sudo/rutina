@@ -98,15 +98,20 @@ export const piezasRecordatorios = {
 
 // Franja arriba de toda la app (main.js) hasta que se toque ✓: lo de todos los días que aún no se marcó
 // y cualquier recordatorio desde el día en que le toca (o cuando ya se cumplieron los km)
-export function bannerDiarios() {
-  return r().lista.map((x) => {
+// Los recordatorios que tocan ya, para el aviso de arriba de cada pantalla (react/armazon/Avisos.tsx)
+export function diariosDeHoy() {
+  return r().lista.flatMap((x) => {
     const v = vehiculo(x.vehiculo), s = estadoRecordatorio(x, v);
-    if (!tocaYa(x, s)) return '';
+    if (!tocaYa(x, s)) return [];
     const p = x.diario ? null : proximoRecordatorio(x, s, v ? kmActual(v.km) : null);
     const cuando = p ? (p.titulo === 'Hoy' ? 'Toca hoy' : p.titulo.startsWith('Hace ') ? 'Tocaba h' + p.titulo.slice(1) : p.titulo) : '';
-    return '<div class="diario"><span>' + (x.icono || '📌') + ' <b>' + esc(x.nombre) + '</b>' + (cuando || x.nota ? '<small>' + [cuando, esc(x.nota || '')].filter(Boolean).join(' · ') + '</small>' : '') + '</span>' +
-      '<button type="button" class="boton primario" data-accion="rec-hoy" data-id="' + x.id + '">✓ Listo</button></div>';
-  }).join('');
+    return [{ id: x.id, icono: x.icono || '📌', nombre: x.nombre, detalle: [cuando, x.nota || ''].filter(Boolean).join(' · ') }];
+  });
+}
+// Lo mismo en HTML, para las pantallas que siguen como antes (los respaldos de Finanzas y Gym)
+export function bannerDiarios() {
+  return diariosDeHoy().map((x) => '<div class="diario"><span>' + x.icono + ' <b>' + esc(x.nombre) + '</b>' + (x.detalle ? '<small>' + esc(x.detalle) + '</small>' : '') + '</span>' +
+    '<button type="button" class="boton primario" data-accion="rec-hoy" data-id="' + x.id + '">✓ Listo</button></div>').join('');
 }
 
 registrar({

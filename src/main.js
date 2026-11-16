@@ -2,8 +2,8 @@ import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
 import { e, cargar, esperarUsuario, alCambiar, guardar, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
-import { ejecutar, registrar, prepararAudio, pct, barra, esc, claveDeDatos } from './ui.js';
-import { revisar, restante, sumar, detener } from './temporizador.js';
+import { ejecutar, registrar, prepararAudio, pct, claveDeDatos } from './ui.js';
+import { revisar, sumar, detener } from './temporizador.js';
 import { resumenSemana } from './gym.js';
 import './vistas/hoy.js';
 import { textoEspera, revisarCronos } from './vistas/manana.js';
@@ -22,7 +22,8 @@ import './vistas/mejora.js';
 import './vistas/retos.js';
 import './vistas/libros.js';
 import './vistas/estudiar.js';
-import { montarReact, desmontarReact } from './react/montar.js';
+import { montarReact, desmontarReact, montarFijo } from './react/montar.js';
+import { ponerLateral } from './react/armazon.js';
 import { refrescarReact } from './react/refrescar.js';
 import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import './vistas/lugares.js';
@@ -89,26 +90,8 @@ function abrirPestana() {
   history.replaceState(null, '', '#' + v);
 }
 
-function enlaces() {
-  const avisos = alertas().length;
-  // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
-  const ids = visibles(e().config, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || actual() === 'entrenador')).concat(SOLO_ADMIN.filter(permitida));
-  return ids.map((k) => [k, VISTAS[k]]).map(([k, [icono, nombre]]) =>
-    '<a href="#' + k + '" title="' + nombre + '"' + (k === (DENTRO[actual()] || actual()) ? ' aria-current="page"' : '') + '><span class="ic" aria-hidden="true">' + icono + '</span><span class="ocultable">' + nombre + '</span>' +
-    (k === 'recordatorios' && avisos ? '<span class="insignia" aria-label="' + avisos + ' pendientes">' + avisos + '</span>' : '') + '</a>').join('');
-}
-
-// Organizar el menú: arrastrar del asa ⠿ para ordenar y 👁 para esconder. Las escondidas siguen aquí para volver a mostrarlas
+// Organizar el menú: arrastrar del asa ⠿ (o flechas ↑ ↓) para ordenar y 👁 para esconder. Las escondidas siguen ahí para volver a mostrarlas
 let organizandoMenu = false;
-function filasOrganizar() {
-  const c = e().config;
-  return enOrden(c, 'menu').filter((k) => ve('seccion', k)).map((k) => {
-    const [icono, nombre] = VISTAS[k], apagado = oculto(c, 'menu', k);
-    return '<div class="fila-menu' + (apagado ? ' apagado' : '') + '" data-sec="' + k + '"><button type="button" class="asa-fila" aria-label="Arrastrar ' + nombre + '">⠿</button>' +
-      '<span class="ic" aria-hidden="true">' + icono + '</span><span class="fila-nombre">' + nombre + '</span>' +
-      (FIJAS.menu.includes(k) ? '' : '<button type="button" class="icono" data-accion="barra-ver" data-id="' + k + '" aria-pressed="' + !apagado + '" aria-label="Mostrar ' + nombre + ' en el menú">' + (apagado ? '🙈' : '👁️') + '</button>') + '</div>';
-  }).join('');
-}
 
 // Cómo quiere cada usuario la barra: compacta, ancho, lado y resumen plegado (config.barra). En el celular solo aplica el resumen
 const ANCHO_MIN = 200, ANCHO_MAX = 420;
@@ -120,45 +103,37 @@ function aplicarBarra() {
   document.documentElement.style.setProperty('--ancho-barra', (b.ancho || 260) + 'px');
 }
 
-// Barra lateral: fija a la derecha en el computador; en el celular se abre con ☰ desde la derecha
-function lateral() {
-  const total = habitosDe().length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {}), b = ajustesBarra();
-  const hacia = (b.lado === 'izquierda') === !!b.compacta ? '»' : '«';
+// Barra lateral: fija a un lado en el computador; en el celular se abre con ☰ desde la derecha. Lo que se ve lo pinta
+// React (react/armazon/Lateral.tsx) con estos datos; sin sesión o con la app bloqueada no se muestra
+function datosLateral() {
+  if ((configurada && !nube.usuario) || bloqueada()) return null;
+  const c = e().config, b = ajustesBarra(), avisos = alertas().length, v = actual();
   if (b.compacta) organizandoMenu = false;
-  return '<div class="asa-barra" title="Arrastra para cambiar el ancho" aria-hidden="true"></div>' +
-    '<div class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b>' +
-    '<button type="button" class="icono barra-plegar" data-accion="barra-compacta" aria-pressed="' + !!b.compacta + '" aria-label="' + (b.compacta ? 'Expandir el menú' : 'Dejar solo los íconos') + '" title="' + (b.compacta ? 'Expandir el menú' : 'Dejar solo los íconos') + '">' + hacia + '</button></div>' +
-    (organizandoMenu ? '<div class="nav-lateral lista-menu">' + filasOrganizar() + '</div>' +
-      '<div class="herr-menu"><button type="button" class="boton primario" data-accion="barra-organizar">✓ Listo</button>' +
-      '<button type="button" class="boton secundario" data-accion="barra-restablecer">↺ Como venía</button>' +
-      '<button type="button" class="boton secundario solo-pc" data-accion="barra-lado">⇄ Cambiar de lado</button></div>'
-    : '<nav class="nav-lateral" aria-label="Secciones">' + enlaces() + '</nav>' +
-      '<button type="button" class="boton-suave barra-organizar" data-accion="barra-organizar">✋ Organizar menú</button>') +
-    (b.resumen === false ? '<button type="button" class="boton-suave ocultable" data-accion="barra-resumen" aria-expanded="false">▸ Resumen</button>' : '<button type="button" class="boton-suave ocultable" data-accion="barra-resumen" aria-expanded="true">▾ Resumen</button>') +
-    (b.resumen === false ? '' : resumenLateral(total, m, r)) +
-    '<a class="estado-nube n-' + nube.estado + '" href="#ajustes" title="' + esc(nube.error || textoNube()) + '">☁️ <span class="ocultable">' + textoNube() + '</span></a>' +
-    // Con sesión: quién está adentro y Salir, siempre a la vista (en el celular, al abrir ☰)
-    (nube.usuario ? '<div class="cuenta-lateral"><span class="ocultable" title="' + esc(nube.usuario.correo) + '">👤 ' + esc(nube.usuario.correo) + '</span>' +
-      '<button type="button" class="boton-suave salir-lateral" data-accion="nube-salir" title="Cerrar sesión" aria-label="Cerrar sesión de ' + esc(nube.usuario.correo) + '">↪ <span class="ocultable">Salir</span></button></div>' : '');
+  // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
+  const ids = visibles(c, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || v === 'entrenador')).concat(SOLO_ADMIN.filter(permitida));
+  const total = habitosDe().length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {});
+  return {
+    compacta: !!b.compacta, lado: b.lado === 'izquierda' ? 'izquierda' : 'derecha', resumenAbierto: b.resumen !== false, organizando: organizandoMenu,
+    enlaces: ids.map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], actual: k === (DENTRO[v] || v), insignia: k === 'recordatorios' ? avisos : 0 })),
+    filas: enOrden(c, 'menu').filter((k) => ve('seccion', k)).map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], apagado: oculto(c, 'menu', k), fija: FIJAS.menu.includes(k) })),
+    resumen: [
+      ve('seccion', 'manana') && { href: '#manana', titulo: 'Ir a Mañana', texto: '☀️ Mañana', valor: hechosManana() + '/' + total, parte: fraccionManana() },
+      ve('seccion', 'metas') && { href: '#metas', titulo: 'Ir a Metas', texto: '🎯 Metas', valor: pct(m.total), parte: m.total },
+      ve('seccion', 'gym') && { href: '#gym', titulo: 'Ir a Gym', texto: '🏋️ Semana ' + semanaActual(), valor: r.hechas + '/' + r.plan, parte: r.plan ? r.hechas / r.plan : 0 },
+    ].filter(Boolean),
+    nube: { estado: nube.estado, texto: textoNube(), titulo: nube.error || textoNube() },
+    correo: nube.usuario ? nube.usuario.correo : null,
+  };
 }
-
-function resumenLateral(total, m, r) {
-  return '<div class="resumen-lateral">' +
-    (ve('seccion', 'manana') ? '<a href="#manana" title="Ir a Mañana"><div class="fila-resumen"><span>☀️ Mañana</span><b>' + hechosManana() + '/' + total + '</b></div>' + barra(fraccionManana()) + '</a>' : '') +
-    (ve('seccion', 'metas') ? '<a href="#metas" title="Ir a Metas"><div class="fila-resumen"><span>🎯 Metas</span><b>' + pct(m.total) + '</b></div>' + barra(m.total) + '</a>' : '') +
-    (ve('seccion', 'gym') ? '<a href="#gym" title="Ir a Gym"><div class="fila-resumen"><span>🏋️ Semana ' + semanaActual() + '</span><b>' + r.hechas + '/' + r.plan + '</b></div>' + barra(r.plan ? r.hechas / r.plan : 0) + '</a>' : '') +
-    '</div>';
-}
-
-function flotante() {
-  const a = e().activo, caja = $('flotante');
-  caja.hidden = !a;
-  if (!a) return;
-  caja.innerHTML = '<div class="flot-texto"><small>' + (a.tipo === 'descanso' ? 'Descanso' : 'En curso') + '</small><b>' + esc(a.nombre) + '</b></div>' +
-    '<span class="flot-reloj" id="flot-reloj">' + reloj(restante()) + '</span>' +
-    (a.tipo === 'descanso' ? '<button type="button" class="boton secundario" data-accion="t-sumar">+30 s</button>' : '') +
-    '<button type="button" class="boton secundario" data-accion="t-parar" aria-label="Terminar">✕</button>' +
-    '<span class="flot-barra" id="flot-barra"></span>';
+ponerLateral(datosLateral);
+// El menú lateral, el cronómetro flotante y el reproductor de sesiones: se montan una vez (React) y se repintan solos
+let armazonMontado = false;
+function montarArmazon() {
+  if (armazonMontado) return;
+  armazonMontado = true;
+  montarFijo($('lateral'), () => import('./react/armazon/Lateral.tsx'));
+  montarFijo($('flotante'), () => import('./react/armazon/Flotante.tsx'));
+  montarFijo($('reproductor'), () => import('./react/armazon/Reproductor.tsx'));
 }
 
 // Identidad de un campo para encontrarlo de nuevo después de repintar
@@ -270,7 +245,6 @@ function pintar() {
     menu(false);
     desmontarReact();
     $('vista').innerHTML = pantallaBloqueo();
-    $('lateral').innerHTML = '';
     document.title = 'Bloqueada · Rutina';
     ultimaVista = null;
     if (bloqueo.auto) { bloqueo.auto = false; desbloquear(); }
@@ -282,9 +256,7 @@ function pintar() {
     menu(false);
     desmontarReact();
     $('vista').innerHTML = pantallaEntrar();
-    $('lateral').innerHTML = '';
-    flotante();
-    document.title = 'Entrar · Rutina';
+      document.title = 'Entrar · Rutina';
     if (antes && $('nube-correo')) {
       $('nube-correo').value = antes.correo; $('nube-clave').value = antes.clave;
       if (antes.foco && $(antes.foco)) $(antes.foco).focus();
@@ -294,27 +266,25 @@ function pintar() {
   }
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
-  const avisos = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios();
   const cargarReact = reactDe(v);
   if (cargarReact) {
-    // La pantalla de React se monta una vez y se repinta sola; aquí solo se refrescan los avisos de arriba
+    // La pantalla de React se monta una vez y se repinta sola (con sus avisos de arriba)
     if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v || pestanaReact != null) {
       desmontarReact();
-      $('vista').innerHTML = '<div id="avisos-vista"></div><div id="raiz-react" data-pantalla="' + v + '"></div>';
+      $('vista').innerHTML = '<div id="raiz-react" data-pantalla="' + v + '"></div>';
       montarReact($('raiz-react'), cargarReact, pestanaReact != null ? { pestana: pestanaReact } : null);
       pestanaReact = null;
     }
-    if ($('avisos-vista').innerHTML !== avisos) $('avisos-vista').innerHTML = avisos;
   } else {
     desmontarReact();
-    $('vista').innerHTML = avisos + VISTAS[v][2]();
+    // Los avisos de arriba de las pantallas de React los pinta React (react/armazon/Avisos.tsx)
+    $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios() + VISTAS[v][2]();
     if (campos) restaurarCampos(campos);
     prepararPlegables(v);
     prepararFilas();
   }
-  $('lateral').innerHTML = lateral();
+  montarArmazon();
   aplicarBarra();
-  flotante();
   document.title = VISTAS[v][1] + ' · Rutina';
   if (v === ultimaVista) {
     window.scrollTo(0, y);
@@ -423,7 +393,10 @@ registrar({
   't-parar'() { detener(); },
   menu() { menu(!document.body.classList.contains('menu-abierto')); },
   'menu-cerrar'() { menu(false); },
-  'barra-organizar'() { organizandoMenu = !organizandoMenu; pedirPintar(); },
+  'barra-organizar'() { organizandoMenu = !organizandoMenu; pedirPintar(); refrescarReact(); },
+  // El arrastre del menú (React): poner la sección justo antes de otra (sin "antes", al final)
+  'barra-colocar'({ id, antes }) { if (colocar(e().config, 'menu', id, antes || undefined)) guardar(); },
+  'barra-ancho'({ ancho }) { ajustesBarra().ancho = Math.min(ANCHO_MAX, Math.max(ANCHO_MIN, Math.round(Number(ancho) || 260))); guardar(); },
   'barra-compacta'() { const b = ajustesBarra(); b.compacta = !b.compacta; guardar(); },
   'barra-resumen'() { const b = ajustesBarra(); b.resumen = b.resumen === false; guardar(); },
   'barra-lado'() { const b = ajustesBarra(); b.lado = b.lado === 'izquierda' ? 'derecha' : 'izquierda'; guardar(); },
@@ -431,45 +404,6 @@ registrar({
   'barra-restablecer'() { restablecer(e().config, 'menu'); guardar(); },
 });
 
-// Arrastre con eventos de puntero: funciona con mouse y con el dedo (el de HTML5 no sirve en el celular)
-document.addEventListener('pointerdown', (ev) => {
-  const asa = ev.target.closest && ev.target.closest('.asa-fila, .asa-barra');
-  if (!asa) return;
-  ev.preventDefault();
-  if (asa.classList.contains('asa-barra')) arrastrarAncho(ev);
-  else arrastrarFila(ev, asa.closest('.fila-menu'));
-});
-function arrastrar(ev, alMover, alSoltar) {
-  const fin = () => {
-    document.removeEventListener('pointermove', alMover);
-    document.removeEventListener('pointerup', fin);
-    document.removeEventListener('pointercancel', fin);
-    document.body.classList.remove('arrastrando-barra');
-    alSoltar();
-  };
-  document.body.classList.add('arrastrando-barra');
-  document.addEventListener('pointermove', alMover);
-  document.addEventListener('pointerup', fin);
-  document.addEventListener('pointercancel', fin);
-}
-function arrastrarFila(ev, fila) {
-  fila.classList.add('moviendo');
-  arrastrar(ev, (m) => {
-    const otras = [...fila.parentNode.children].filter((x) => x !== fila);
-    fila.parentNode.insertBefore(fila, otras.find((x) => { const r = x.getBoundingClientRect(); return m.clientY < r.top + r.height / 2; }) || null);
-  }, () => {
-    fila.classList.remove('moviendo');
-    const sig = fila.nextElementSibling;
-    if (colocar(e().config, 'menu', fila.dataset.sec, sig ? sig.dataset.sec : undefined)) guardar();
-  });
-}
-function arrastrarAncho(ev) {
-  const b = ajustesBarra();
-  arrastrar(ev, (m) => {
-    b.ancho = Math.min(ANCHO_MAX, Math.max(ANCHO_MIN, Math.round(b.lado === 'izquierda' ? m.clientX : window.innerWidth - m.clientX)));
-    aplicarBarra();
-  }, () => guardar());
-}
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') menu(false); });
 
 // Cuadro de los gráficos: al pasar el mouse, tocar o enfocar una marca con data-tip
@@ -506,11 +440,6 @@ window.addEventListener('hashchange', () => { menu(false); abrirPestana(); pinta
 setInterval(() => {
   revisar();
   revisarCronos();
-  const fr = $('flot-reloj');
-  if (fr && e().activo) {
-    fr.textContent = reloj(restante());
-    $('flot-barra').style.width = Math.max(0, Math.min(100, 100 - (restante() / e().activo.total) * 100)) + '%';
-  }
   document.querySelectorAll('[data-crono]').forEach((el) => {
     const [fecha, id] = el.dataset.crono.split('|'), d = e().dias[fecha];
     el.textContent = reloj(segundosCrono(d && d.crono[id]));
@@ -525,7 +454,7 @@ setInterval(() => {
 // Al volver a la app después de medianoche, "Hoy" debe ser el día nuevo
 let fechaPintada = new Date().toDateString();
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && new Date().toDateString() !== fechaPintada) { fechaPintada = new Date().toDateString(); pintar(); }
+  if (document.visibilityState === 'visible' && new Date().toDateString() !== fechaPintada) { fechaPintada = new Date().toDateString(); pintar(); refrescarReact(); }
 });
 
 // Solo en desarrollo (npm run dev): probar permisos y Administrar sin Supabase. No llega a la versión publicada.

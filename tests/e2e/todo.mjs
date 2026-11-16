@@ -24,7 +24,10 @@ import editar from './editar.mjs';
 import clientes from './clientes.mjs';
 import ajustes from './ajustes.mjs';
 import entrenador from './entrenador.mjs';
+import menu from './menu.mjs';
+import flotante from './flotante.mjs';
+import reproductor from './reproductor.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor]) await recorrido(p);
 };

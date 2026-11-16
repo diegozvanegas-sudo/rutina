@@ -1,9 +1,8 @@
 // Sesiones guiadas (calentamiento, estiramiento, rodilla): un ejercicio a la vez con cuenta regresiva.
 // Las de tipo checklist (antes de salir, maletín del partido) no tienen tiempo: cada punto se marca con ✓.
 import { e, dia, guardar, repintar } from '../estado.js';
-import { reloj, iso } from '../fechas.js';
-import { esc, registrar, pitido, barra, toast } from '../ui.js';
-import { figuraPaso, videoPaso } from '../figuras.js';
+import { iso } from '../fechas.js';
+import { registrar, pitido, toast } from '../ui.js';
 import { BANCO, ZONAS, pasoDeBanco } from '../banco.js';
 
 const PREPARAR = 5, CAMBIO_LADO = 5;
@@ -16,14 +15,6 @@ export function avanceChecklist(sesion, marcas = {}) {
   return { hechos, total: sesion.pasos.length, completa: sesion.pasos.length > 0 && hechos === sesion.pasos.length };
 }
 const marcasDe = (id, fecha = iso()) => ((e().dias[fecha] || {}).checklists || {})[id] || {};
-function puntosChecklist(s) {
-  const marcas = marcasDe(s.id);
-  return '<div class="practica-libro">' + s.pasos.map((p, i) => {
-    const hecho = !!marcas[idPaso(p, i)];
-    return '<button type="button" class="paso-libro' + (hecho ? ' hecho' : '') + '" data-accion="check-paso" data-sesion="' + esc(s.id) + '" data-paso="' + esc(idPaso(p, i)) + '" aria-pressed="' + hecho + '">' +
-      '<span class="check-libro">' + (hecho ? '✓' : '') + '</span><span>' + esc(p.nombre) + (p.desc ? '<small class="nota-corta"> · ' + esc(p.desc) + '</small>' : '') + '</span></button>';
-  }).join('') + '</div>';
-}
 // Hoy, desde las 7 p. m.: el cierre de la noche para ir marcando
 export const HORA_CIERRE = 19;
 // La sesión "Cierre de la noche" si ya es hora de mostrarla en Hoy (la tarjeta está en src/react/pantallas/HoyTarjetas.tsx)
@@ -50,66 +41,15 @@ export function duracion(sesion) {
 }
 
 let rep = null; // { sesion, lista, k, fin, pausa, alTerminar, reloj, bloqueo }
-const $ = (id) => document.getElementById(id);
 
-// Todas las imágenes de la sesión en una fila: la actual resaltada, las hechas con ✓. En el reproductor se tocan para saltar
-function tiraFiguras(pasos, actual = -1, accion = '') {
-  return '<div class="tira-figuras" role="list">' + pasos.map((p, i) => {
-    const clase = i === actual ? ' actual' : actual > i ? ' hecho' : '';
-    const dentro = (figuraPaso(p, { animar: false }) || '<span class="tira-num">' + (i + 1) + '</span>') +
-      '<small>' + (actual > i ? '✓ ' : (i + 1) + '. ') + esc(p.nombre) + '</small>';
-    return accion
-      ? '<button type="button" role="listitem" class="tira-item' + clase + '" data-accion="' + accion + '" data-i="' + i + '"' + (i === actual ? ' aria-current="step"' : '') + ' aria-label="' + esc((i + 1) + '. ' + p.nombre) + '">' + dentro + '</button>'
-      : '<div role="listitem" class="tira-item">' + dentro + '</div>';
-  }).join('') + '</div>';
-}
-function centrarTira(caja) {
-  const tira = caja.querySelector('.tira-figuras'), el = tira && tira.querySelector('.actual');
-  if (el) tira.scrollLeft = el.offsetLeft - (tira.clientWidth - el.offsetWidth) / 2;
-}
-
-function pintar() {
-  const caja = $('reproductor');
-  if (!rep) { caja.hidden = true; caja.innerHTML = ''; return; }
-  caja.hidden = false;
-  if (rep.sesion.tipo === 'checklist') {
-    const a = avanceChecklist(rep.sesion, marcasDe(rep.sesion.id));
-    caja.innerHTML = '<div class="rep-cab"><span>' + esc(rep.sesion.nombre) + ' · ' + a.hechos + ' / ' + a.total + '</span>' +
-      '<button type="button" class="icono" data-accion="rep-cerrar" aria-label="Cerrar">✕</button></div>' +
-      '<div class="rep-barra"><span style="width:' + Math.round((a.total ? a.hechos / a.total : 0) * 100) + '%"></span></div>' +
-      '<div class="rep-lista">' + (a.completa ? '<div class="rep-centro"><div class="rep-grande">🎉</div><h2>¡Todo listo!</h2></div>' : '') + puntosChecklist(rep.sesion) + '</div>' +
-      '<div class="rep-controles uno"><button type="button" class="boton primario grande" data-accion="rep-cerrar">' + (a.completa ? 'Listo' : 'Cerrar') + '</button></div>';
-    return;
-  }
-  const f = rep.lista[rep.k];
-  if (!f) {
-    caja.innerHTML = '<div class="rep-centro"><div class="rep-grande">🎉</div><h2>¡Sesión completa!</h2><p>' + esc(rep.sesion.nombre) + '</p>' +
-      '<button type="button" class="boton primario grande" data-accion="rep-cerrar">Listo</button></div>';
-    return;
-  }
-  const total = rep.sesion.pasos.length, sig = rep.sesion.pasos[f.i + 1];
-  const titulo = f.fase === 'prep' ? 'Prepárate' : f.fase === 'cambio' ? '↔ Cambia de lado' : f.fase === 'descanso' ? 'Descanso' : f.lado || '';
-  caja.innerHTML =
-    '<div class="rep-cab"><span>' + esc(rep.sesion.nombre) + ' · ' + (f.i + 1) + ' / ' + total + '</span>' +
-    '<button type="button" class="icono" data-accion="rep-cerrar" aria-label="Cerrar">✕</button></div>' +
-    '<div class="rep-barra"><span style="width:' + Math.round((rep.k / rep.lista.length) * 100) + '%"></span></div>' +
-    (total > 1 ? tiraFiguras(rep.sesion.pasos, f.i, 'rep-paso') : '') +
-    '<div class="rep-centro fase-' + f.fase + '">' +
-    '<div class="rep-fase">' + esc([titulo, f.series > 1 && (f.fase === 'tiempo' || f.fase === 'reps') ? 'serie ' + f.serie + ' de ' + f.series : ''].filter(Boolean).join(' · ')) + '&nbsp;</div>' +
-    figuraPaso(f.p) +
-    '<h2>' + esc(f.p.nombre) + '</h2><div class="rep-musculo">' + esc(f.p.musculo || '') + '</div>' +
-    (f.fase === 'reps' ? '<div class="rep-grande">' + esc(f.p.reps) + '<small>reps</small></div>'
-      : '<div class="rep-grande" id="rep-reloj">' + reloj(segRestantes()) + '</div>') +
-    '<p class="rep-desc">' + esc(f.p.desc || '') + '</p>' +
-    (videoPaso(f.p) ? '<a class="rep-video" href="' + esc(videoPaso(f.p)) + '" target="_blank" rel="noopener">🎥 Ver video de cómo se hace</a>' : '') +
-    (sig && f.fase !== 'prep' ? '<p class="rep-sig">Siguiente: ' + esc(sig.nombre) + '</p>' : '') + '</div>' +
-    '<div class="rep-controles">' +
-    '<button type="button" class="boton secundario" data-accion="rep-mover" data-n="-1" aria-label="Anterior">⏮</button>' +
-    (f.fase === 'reps' ? '<button type="button" class="boton primario grande" data-accion="rep-mover" data-n="1">✓ Hecho</button>'
-      : '<button type="button" class="boton primario grande" data-accion="rep-pausa">' + (rep.pausa != null ? '▶ Seguir' : '⏸ Pausa') + '</button>') +
-    '<button type="button" class="boton secundario" data-accion="rep-mover" data-n="1" aria-label="Saltar">⏭</button></div>';
-  centrarTira(caja);
-}
+// Lo pinta React (react/armazon/Reproductor.tsx): aquí solo se le avisa que algo cambió
+let version = 0;
+const oyentes = new Set();
+function pintar() { version++; oyentes.forEach((f) => f()); }
+export const piezasReproductor = {
+  actual: () => rep, version: () => version, segRestantes: () => segRestantes(), marcasDe: (id) => marcasDe(id), avanceChecklist, idPaso,
+  suscribir: (f) => { oyentes.add(f); return () => oyentes.delete(f); },
+};
 
 function segRestantes() {
   if (!rep) return 0;
@@ -129,9 +69,7 @@ function ir(k) {
 
 function tic() {
   if (!rep || rep.pausa != null || !rep.fin) return;
-  const r = segRestantes(), el = $('rep-reloj');
-  if (el) el.textContent = reloj(r);
-  if (r <= 0) ir(rep.k + 1);
+  if (segRestantes() <= 0) ir(rep.k + 1);
 }
 
 export function abrirSesion(id, alTerminar = null) {

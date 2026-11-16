@@ -15,6 +15,8 @@ export const tokens = {
   // Fondos oscuros de las etiquetas amarilla (Bajo, aviso) y azul (Alto)
   amarilloFondo: '#3a2d10', azulFondo: '#1f2a3d',
   // Etiqueta y texto de lo vencido (Recordatorios)
+  // Fondo del aviso "Estás viendo la app como …" (Administrar → Ver como)
+  verComoFondo: '#13263d',
   rojoFondo: '#4a1d1d', rojoSuave: '#ffb3b3', peligroInk: '#ffd0d0',
   // 📚 Libros: el dorado de la lectura del día, la afirmación y la caja de nota
   dorado: '#e0a84a', doradoSuave: '#f3d9a4', notaFondo: '#1d2733', notaBorde: '#2f4257',

@@ -9,10 +9,18 @@ export function desmontarReact() {
 export async function montarReact(el, cargar, props = null) {
   desmontarReact();
   const mio = turno;
-  const [{ createRoot }, { createElement }, proveedor, pantalla] = await Promise.all([import('react-dom/client'), import('react'), import('./Proveedor.tsx'), cargar()]);
+  const [{ createRoot }, { createElement, Fragment }, proveedor, avisos, pantalla] = await Promise.all([import('react-dom/client'), import('react'), import('./Proveedor.tsx'), import('./armazon/Avisos.tsx'), cargar()]);
   // Si mientras cargaba se cambió de pantalla, esta ya no va
   if (mio !== turno || !el.isConnected) return;
   raiz = createRoot(el);
-  // Toda pantalla va dentro del tema de la app (Material UI con los colores de siempre)
-  raiz.render(createElement(proveedor.default, null, createElement(pantalla.default, props)));
+  // Toda pantalla va dentro del tema de la app (Material UI con los colores de siempre), con los avisos de arriba
+  // (Ver como, recordatorios de hoy) encima
+  raiz.render(createElement(proveedor.default, null, createElement(Fragment, null, createElement(avisos.default), createElement(pantalla.default, props))));
+}
+
+// Piezas fijas del armazón (el menú lateral): se montan una sola vez, cada una con su raíz, y no se desmontan al
+// cambiar de pantalla
+export async function montarFijo(el, cargar) {
+  const [{ createRoot }, { createElement }, proveedor, pieza] = await Promise.all([import('react-dom/client'), import('react'), import('./Proveedor.tsx'), cargar()]);
+  createRoot(el).render(createElement(proveedor.default, null, createElement(pieza.default)));
 }

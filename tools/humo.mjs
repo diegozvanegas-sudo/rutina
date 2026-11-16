@@ -8,7 +8,9 @@ const PESTANAS = { finanzas: ['fin-pestana', ['registrar', 'calcular', 'mes', 'r
 export default async (p) => {
   const fallas = [];
   const revisar = async (donde, nombre) => {
-    const largo = await p.ev(`document.getElementById('vista').innerText.trim().length`);
+    // Las pantallas de React se descargan al abrirlas: la primera vez el servidor de pruebas tarda más; se espera hasta 4 s
+    let largo = 0;
+    for (let i = 0; i < 20 && largo < 20; i++) { largo = await p.ev(`document.getElementById('vista').innerText.trim().length`); if (largo < 20) await p.dormir(200); }
     if (largo < 20) fallas.push(donde + ' · ' + nombre + ': pantalla vacía');
     if (!(await p.sinDesborde())) fallas.push(donde + ' · ' + nombre + ': se sale de la pantalla hacia los lados');
     // En el celular, si algo no cabe el navegador agranda la página (innerWidth pasa de 390) en vez de desbordar: sinDesborde no lo ve
@@ -33,10 +35,10 @@ export default async (p) => {
     await p.ir('gym');
     await p.tocar('#vista [data-accion=ir-dia]');
     await p.dormir(700);
-    await p.ev(`(()=>{const c=document.querySelector('.ejercicio.actual [data-serie]');c.focus({preventScroll:true});c.value='8'})()`);
-    await p.tocar('.ejercicio.actual [data-accion=serie]');
+    await p.ev(`(()=>{const c=document.querySelector('[data-actual] [data-serie]');c.focus({preventScroll:true});c.value='8'})()`);
+    await p.tocar('[data-actual] [data-accion=serie]');
     await p.dormir(500);
-    if (!(await p.cuantos('[data-accion=gym-rir]'))) fallas.push(donde + ' · gym: la serie no quedó anotada');
+    if (!(await p.cuantos('[aria-label^="¿Cuántas reps te quedaban"]'))) fallas.push(donde + ' · gym: la serie no quedó anotada');
     await revisar(donde, 'gym (día)');
     for (const dia of ['resumen', 'plan12', 'casa']) {
       await p.tocar('[data-accion=ir-dia][data-dia=' + dia + ']');

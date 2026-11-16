@@ -1,16 +1,20 @@
-// Gym: registro de la semana actual (primero) y semanas pasadas; las futuras no se muestran
-import { e, guardar, repintar, semanaActual, abrirSemana, semanaQuitable, quitarSemana } from '../estado.js';
-import { iso, semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana, reloj } from '../fechas.js';
+// Gym: la pantalla está en src/react/pantallas/Gym.tsx (y GymDia.tsx, GymPlan12.tsx). Aquí quedan sus acciones (anotar series,
+// reps, peso, variantes, biseries, cardio, semanas), lo que ve la pantalla (piezasGym) y las tarjetas que todavía usan Hoy y
+// Progreso como texto HTML (tarjetaFuerza, tarjetaSemana, proximoEntreno, tarjetaCalentamiento)
+import { e, guardar, repintar, semanaActual, abrirSemana, quitarSemana, dia as diaDe } from '../estado.js';
+import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
-import { CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso,
-  PIERNAS, historial, records, ultimaSubida, estancamiento, consejoEstancado, progresoMes, seriesRaras, registrosRaros, metaSesion, consejoRir, gruposDia, enBiserie, nombresBiserie,
-  tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante, lineasFuerza } from '../gym.js';
+import {
+  claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero,
+  formatoPeso, PIERNAS, historial, records, consejoEstancado, progresoMes, seriesRaras, registrosRaros, metaSesion, consejoRir, enBiserie,
+  nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante, lineasFuerza
+} from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../entrenador.js';
 import { pesos as pesosCorporales } from '../dieta.js';
 import { linea, tablaDatos } from '../graficos.js';
-import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../analisis.js';
+import { promptEntreno } from '../analisis.js';
 import { CARDIO } from '../datos_iniciales.js';
 import { esc, barra, tip, registrar, toast, copiarTexto, botonSesion } from '../ui.js';
 import { iniciar } from '../temporizador.js';
@@ -22,6 +26,8 @@ let semanaVista = null, diaVista = null, editandoObjetivos = false, fuerzaEj = n
 // Ejercicio en el que vas: el último donde anotaste una serie (si le faltan) o el primero con series pendientes.
 // enfocar: al abrir el día o terminar un ejercicio, la pantalla baja a ese y deja listo el campo de reps
 let ultimoEj = null, actualId = null, enfocar = true;
+// ⏭ Máquina ocupada: ejercicios que se dejan para después en esta visita (no cambia el orden de la rutina)
+const saltados = new Set();
 // Solo queda abierto el ejercicio en el que vas (y el último donde anotaste, para responder las reps en reserva);
 // los demás son una fila con su resumen. manual: lo que se abrió o plegó a mano en este día (gana a lo automático)
 let manual = {};
@@ -54,14 +60,6 @@ function marcarVariante(clave, sem = semanaVista) {
   const v = varianteEn(info.ej, registros(sem), sufijoDe(clave));
   (registros(sem)[clave] ??= {}).variante = v;
 }
-// Botones para elegir con qué variante se hace hoy (o con cuál se hizo esa semana)
-function chipsVariante(ej, sem, sufijo = '') {
-  if (!tieneVariantes(ej)) return '<button type="button" class="enlace variante-nueva" data-accion="gym-variante-nueva" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '">⇄ Hoy lo hago de otra forma</button>';
-  const v = varianteEn(ej, registros(sem), sufijo);
-  return '<div class="variantes" role="group" aria-label="Variante de ' + esc(ej.nombre) + '">' + ej.variantes.map((x) =>
-    '<button type="button" class="chip mini' + (x === v ? ' activo' : '') + '" aria-pressed="' + (x === v) + '" data-accion="gym-variante" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '" data-v="' + esc(x) + '">' + esc(x) + '</button>').join('') +
-    '<button type="button" class="chip mini" data-accion="gym-variante-nueva" data-ej="' + ej.id + '" data-sufijo="' + sufijo + '" aria-label="Agregar variante">＋</button></div>';
-}
 // Peso corporal del día de ese entreno (el último anotado hasta ese día, nunca uno futuro): es el peso de las paralelas
 // y dominadas del calentamiento. null si nunca lo has anotado
 function pesoDelDia(clave, sem) {
@@ -83,7 +81,6 @@ function textoRegistro(r) {
 
 // ---------- Fuerza: última subida, estancado, récord e historial (1RM estimado del top set) ----------
 const rm = (n) => formatoPeso(Math.round(n * 2) / 2);
-const cuando = (s, sem) => (s === 0 ? 'antes de la app' : s === sem ? 'esta semana' : 'semana ' + s + ' (hace ' + (sem - s) + ' sem)');
 const porcentaje = (c) => (c >= 0 ? '+' : '−') + (Math.round(Math.abs(c) * 1000) / 10).toLocaleString('es-CO') + ' %';
 // Partidos por semana en las últimas 4 (para no confundir el cansancio del fútbol con falta de esfuerzo)
 function partidosSemana() {
@@ -114,18 +111,6 @@ function avisosRaros(f, sem, clave, reg, ult) {
   }).join('');
 }
 
-function lineaFuerza(ej, i, sem, v = varianteActual(ej), conMeta = false) {
-  const hist = historial(e().semanas, e().rutina, ej, i, sem, v);
-  if (!hist.length) return '';
-  const u = hist[0].unidad, rec = records(hist).find((p) => p.semana === sem && sem > 0);
-  const sub = ultimaSubida(hist), est = estancamiento(hist.filter((p) => p.semana < sem));
-  if (rec) return '<div class="record">🏆 Récord: 1RM estimado <b>' + rm(rec.rm) + ' ' + u + '</b> (antes ' + rm(rec.antes) + ')</div>';
-  if (est && est.estancado) return '<div class="progresion estancado">⏸ ' + est.semanas + ' semanas sin superar <b>' + formatoPeso(est.mejor.peso) + ' ' + u + ' × ' + est.mejor.reps + '</b>' +
-    '<small>' + esc(consejoRir(rirReciente(ej, i, sem, v), true) || consejo(ej, est.semanas)) + '</small></div>';
-  if (sub) return '<div class="progresion">📈 Última subida: ' + formatoPeso(sub.de) + ' → <b>' + formatoPeso(sub.a) + ' ' + u + '</b> · ' + cuando(sub.semana, sem) + '</div>';
-  // Con meta a la vista sobra: la meta ya dice qué hacer hoy (y "sube el peso" chocaba con "aún no has subido")
-  return hist.length >= 2 && !conMeta ? '<div class="progresion">Aún no has subido el peso: llega al tope de reps en todas las series para subir.</div>' : '';
-}
 
 // abierto: sin el desplegable (en la tarjeta de Fuerza, donde ya se eligió el ejercicio)
 function historialEj(ej, sem, abierto = false, v = varianteActual(ej)) {
@@ -140,28 +125,6 @@ function historialEj(ej, sem, abierto = false, v = varianteActual(ej)) {
     tablaDatos(['Semana', 'Peso', 'Reps', '1RM est.', ''], hist.slice().reverse().map((p) => [etiqueta(p), formatoPeso(p.peso) + ' ' + u, p.reps, rm(p.rm), recs.has(p.semana) ? '🏆' : '']));
   return cuerpo;
 }
-// En la tarjeta del ejercicio el historial va en un desplegable que se dibuja al abrirlo: con muchas semanas anotadas,
-// dibujar el gráfico y la tabla de todos los ejercicios en cada toque hacía lento el día
-function historialPlegado(ej, sem, v = varianteActual(ej)) {
-  if (historial(e().semanas, e().rutina, ej, 0, sem, v).length < 2) return '';
-  return '<details class="nota historial-ej" data-hist="' + esc(ej.id) + '" data-sem="' + sem + '"' + (v != null ? ' data-v="' + esc(v) + '"' : '') + '><summary>📈 Historial' + (v ? ' · ' + esc(v) : '') + '</summary></details>';
-}
-// El análisis para Claude (largo de armar) también se escribe al abrir "Ver el texto"
-if (typeof document !== 'undefined') document.addEventListener('toggle', (ev) => {
-  const d = ev.target;
-  if (!d.open || !d.dataset || d.dataset.listo) return;
-  if (d.dataset.hist) {
-    const ej = e().rutina.flatMap((x) => x.ejercicios).find((x) => x.id === d.dataset.hist);
-    if (!ej) return;
-    d.dataset.listo = '1';
-    d.insertAdjacentHTML('beforeend', historialEj(ej, Number(d.dataset.sem), true, 'v' in d.dataset ? d.dataset.v : null));
-  } else if (d.dataset.prompt) {
-    const dia = e().rutina.find((x) => x.id === d.dataset.prompt), sem = Number(d.dataset.sem), campo = d.querySelector('textarea');
-    if (!dia || !campo) return;
-    d.dataset.listo = '1';
-    campo.value = promptEntreno(dia, sem, textoDia(dia, sem));
-  }
-}, true);
 
 // Últimas 4 semanas: en qué subiste, qué está quieto y tus últimos récords (Gym → Resumen y Progreso)
 export function tarjetaFuerza(hasta = semanaActual()) {
@@ -193,7 +156,7 @@ function revisarRaros(hasta) {
   if (!raros.length) return '';
   return '<h3>⚠️ Revisa estos registros</h3><p class="nota-corta">Se salen de tu esquema. Si quedaron incompletos, no cuentan en la comparación.</p>' +
     '<div class="raros">' + raros.slice(0, 8).map((x) => '<div class="raro-ej"><b>' + esc(nombreConVariante(x.ej, varianteDe(x.reg, x.ej))) + '</b> <small>semana ' + x.semana + ' · ' + esc(textoRegistro(x.reg)) + '</small>' +
-      avisosRaros(x.fila, x.semana, x.clave, x.reg, ultimoRegistro(e().semanas, x.fila, x.semana, { ej: x.ej, v: varianteDe(x.reg, x.ej) })) + '</div>').join('') + '</div>';
+      avisosRaros(x.fila, x.semana, x.clave, x.reg, ultimoRegistro(e().semanas, x.fila, x.semana, { ej: x.ej, v: varianteDe(x.reg, x.ej) }, e().rutina)) + '</div>').join('') + '</div>';
 }
 
 // Próximo día de gym (hoy si toca) con la meta de cada ejercicio (también en "Tu entrenador hoy")
@@ -203,7 +166,7 @@ export function proximoEntreno(max = Infinity) {
     const f = sumarDias(hoy, k), d = e().rutina.find((x) => x.id !== 'core' && x.diaSemana === diaSemana(f));
     if (!d) continue;
     const sem = semanaActual() + (k && diaSemana(f) < diaSemana(hoy) ? 1 : 0);
-    const metas = d.ejercicios.map((ej) => ({ ej, m: metaSesion(ej.filas[0], ultimoRegistro(e().semanas, ej.filas[0], sem, { ej, v: varianteActual(ej) })) })).filter((x) => x.m);
+    const metas = d.ejercicios.map((ej) => ({ ej, m: metaSesion(ej.filas[0], ultimoRegistro(e().semanas, ej.filas[0], sem, { ej, v: varianteActual(ej) }, e().rutina)) })).filter((x) => x.m);
     if (!metas.length) return '';
     return '<h3>🎯 Tu próximo entreno: ' + esc(d.nombre) + ' <small>' + (k === 0 ? 'hoy' : k === 1 ? 'mañana' : DIAS_CORTOS[d.diaSemana].toLowerCase()) + '</small></h3>' +
       '<ul class="fuerza-lista">' + metas.slice(0, max).map(({ ej, m }) => '<li><span>' + esc(nombreConVariante(ej, varianteActual(ej))) + '<small>' + esc(m.motivo) + '</small></span><b class="' + (m.sube ? 'sube' : '') + '">' + esc(m.texto) + (m.sube ? ' ⬆' : '') + '</b></li>').join('') + '</ul>' +
@@ -248,47 +211,8 @@ function graficoEjercicio(hasta) {
     historialEj(sel.ej, hasta, true, sel.v);
 }
 
-// sinRapida: en una biserie las series se anotan por ronda (los dos ejercicios juntos), no una por una
-function fila(f, sem, clave = f.id, ej = null, i = 0, sinRapida = false) {
-  const reg = registros(sem)[clave] || {}, est = estadoFila(f, reg), filtro = ej && filtroEn(ej, sem, sufijoDe(clave));
-  const ult = ultimoRegistro(e().semanas, f, sem, filtro), sug = sugerencia(f, ult), meta = metaSesion(f, ult);
-  const unidad = reg.unidad || (ult && ult.unidad) || 'kg', calent = !!(ej && ej.calentamiento), corporal = calent ? pesoDelDia(clave, sem) : null;
-  const rir = (v) => '<button type="button" class="chip mini' + (reg.rir === v ? ' activo' : '') + '" data-accion="gym-rir" data-fila="' + clave + '" data-v="' + v + '" aria-pressed="' + (reg.rir === v) + '">' + (v === 4 ? '4+' : v) + '</button>';
-  return '<div class="fila-ej c-' + est.color + '">' +
-    '<div class="fila-cab"><span class="tipo t-' + f.tipo.toLowerCase() + '">' + f.tipo + '</span>' +
-    '<span class="esquema">' + esc(f.esquema) + (f.unidad === 's' ? ' (seg)' : '') + '</span>' +
-    '<span class="descanso" title="Descanso">⏱ ' + reloj(f.descanso) + '</span>' +
-    '<span class="contador">' + est.hechas + ' / ' + est.plan + '</span></div>' +
-    (est.color === 'sube' && !(ej && ej.calentamiento) ? '<div class="sube-peso">⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></div>' : '') +
-    // Qué hacer hoy y contra qué se compara, en un renglón
-    (meta ? '<div class="meta-sesion">🎯 Hoy: <b' + (meta.sube ? ' class="sugerido-sube"' : '') + '>' + esc(meta.texto) + (meta.sube ? ' ⬆' : '') + '</b> <span class="ultimo">· último <b>' + textoRegistro(ult) + '</b></span><small>' + esc(meta.motivo) + '</small></div>'
-      : '<div class="ultimo">Último: <b>' + textoRegistro(ult) + '</b>' +
-        (sug ? ' · Hoy: <b class="' + (sug.sube ? 'sugerido-sube' : '') + '">' + esc(sug.texto) + (sug.sube ? ' ⬆' : '') + '</b>' : '') + '</div>') +
-    // Calentamiento con peso corporal: el peso es el tuyo de ese día
-    (calent ? '<div class="ultimo">⚖️ ' + (corporal ? 'Tu peso de ese día: <b>' + kgCorporal(corporal) + ' kg</b> (se anota solo en cada serie)' : 'Anota tu peso en Hoy (Sueño y peso) y se usa aquí solo') + '</div>' : '') +
-    (ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null, !!meta) : '') + avisosRaros(f, sem, clave, reg, ult) +
-    '<div class="entradas">' +
-    '<input class="peso" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" data-sig="[data-serie]" data-cambio="peso" data-fila="' + clave + '" value="' + esc(reg.peso || '') + '" placeholder="' + esc(corporal ? kgCorporal(corporal) : calent ? 'Tu peso' : sug ? formatoPeso(sug.peso) : 'Peso') + '" aria-label="Peso">' +
-    '<select data-cambio="unidad" data-fila="' + clave + '" aria-label="Unidad"><option' + (unidad === 'kg' ? ' selected' : '') + '>kg</option><option' + (unidad === 'discos' ? ' selected' : '') + '>discos</option></select>' +
-    '<input class="reps" type="text" data-solo="reps" enterkeyhint="done" data-cambio="reps" data-fila="' + clave + '" value="' + esc(reg.reps || '') + '" placeholder="Reps: 10 9 8" aria-label="Repeticiones de cada serie, separadas por espacio" autocomplete="off">' +
-    '</div>' +
-    (est.hechas < est.plan && !sinRapida ? '<div class="serie-rapida" data-ancla="serie-' + esc(clave) + '"><input type="text" inputmode="numeric" enterkeyhint="send" autocomplete="off" placeholder="' + (f.unidad === 's' ? 'seg' : 'reps') + '" aria-label="Repeticiones de esta serie" data-serie="' + clave + '">' +
-      '<button type="button" class="boton primario" data-accion="serie" data-fila="' + clave + '">＋ Serie ' + (est.hechas + 1) + ' y descanso</button></div>' : '') +
-    (est.hechas && f.unidad !== 's' ? '<div class="rir" role="group" aria-label="¿Cuántas reps te quedaban en la última serie?" title="¿Cuántas reps te quedaban en la última serie?"><span>Te quedaban:</span><span class="raro-botones">' + [0, 1, 2, 3, 4].map(rir).join('') + '</span></div>' : '') +
-    '</div>';
-}
 
-// ↑ ↓ en la tarjeta: cambia el orden del día en la rutina (misma acción que en Editar)
-function moverEj(ej) {
-  const d = e().rutina.find((x) => x.ejercicios.includes(ej)), i = d.ejercicios.indexOf(ej), n = d.ejercicios.length;
-  if (n < 2) return '';
-  const lista = 'rutina.' + e().rutina.indexOf(d) + '.ejercicios';
-  return '<span class="mover-ej">' +
-    '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + lista + '" data-i="' + i + '" data-n="-1" aria-label="Subir ' + esc(ej.nombre) + '"' + (i === 0 ? ' disabled' : '') + '>↑</button>' +
-    '<button type="button" class="icono" data-accion="ed-mover" data-lista="' + lista + '" data-i="' + i + '" data-n="1" aria-label="Bajar ' + esc(ej.nombre) + '"' + (i === n - 1 ? ' disabled' : '') + '>↓</button></span>';
-}
 
-const ahora = '<span class="ahora">▶ Ahora</span>';
 // Lo anotado de un ejercicio en una línea ("41 kg × 5 · 40 kg × 12 11"); sin nada anotado, el esquema y la meta de hoy
 function resumenEj(ej, sem, sufijo = '') {
   const regs = registros(sem);
@@ -299,32 +223,8 @@ function resumenEj(ej, sem, sufijo = '') {
     return reps.length ? (p != null ? formatoPeso(p) + ' ' + (reg.unidad || 'kg') + ' × ' : '') + reps.join(' ') : '';
   }).filter(Boolean);
   if (partes.length) return { hechas, plan, texto: partes.join(' · ') };
-  const f = ej.filas[0], meta = f && metaSesion(f, ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem, sufijo)));
+  const f = ej.filas[0], meta = f && metaSesion(f, ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem, sufijo), e().rutina));
   return { hechas, plan, texto: ej.filas.map((x) => x.esquema + (x.unidad === 's' ? ' seg' : '')).join(' · ') + (meta ? ' · hoy ' + meta.texto + (meta.sube ? ' ⬆' : '') : '') };
-}
-// Fila de un ejercicio plegado: se abre al tocarla
-function plegado(clave, titulo, sub, r) {
-  const listo = r.plan > 0 && r.hechas >= r.plan;
-  return '<article class="tarjeta ejercicio plegado ' + (listo ? 'c-completo' : r.hechas ? 'c-falta' : '') + '" data-ancla="ej-' + esc(clave) + '">' +
-    '<button type="button" class="ej-fila" data-accion="gym-plegar" data-clave="' + esc(clave) + '" data-abierto="0" aria-expanded="false">' +
-    '<span class="ej-txt"><span><b>' + titulo + '</b> <small>' + sub + '</small></span><span class="ej-resumen">' + esc(r.texto) + '</span></span>' +
-    '<span class="contador">' + (listo ? '✓ ' : '') + r.hechas + ' / ' + r.plan + '</span><span class="ej-flecha" aria-hidden="true">▸</span></button></article>';
-}
-const botonPlegar = (clave, nombre) => '<button type="button" class="icono ej-plegar" data-accion="gym-plegar" data-clave="' + esc(clave) + '" data-abierto="1" aria-expanded="true" aria-label="Plegar ' + esc(nombre) + '">▾</button>';
-function ejercicio(ej, sem, sufijo = '') {
-  // "A / b" en el nombre: botón para separarlo en una biserie (juntar dos ejercicios cualquiera se hace en Editar)
-  const d = e().rutina.find((x) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre), es = !sufijo && ej.id === actualId;
-  // Un solo botón "＋ Serie" por ejercicio: en la fila donde va la próxima serie (las demás se pueden llenar en su campo de reps)
-  const proxima = ej.filas.findIndex((f) => { const x = estadoFila(f, registros(sem)[f.id + sufijo] || {}); return x.hechas < x.plan; });
-  const clave = ej.id + sufijo;
-  if (!estaAbierto(clave, es || (!sufijo && ej.id === ultimoEj && sem === semanaActual()))) return plegado(clave, esc(nombreConVariante(ej, varianteEn(ej, registros(sem), sufijo))), esc(ej.musculo), resumenEj(ej, sem, sufijo));
-  return '<article class="tarjeta ejercicio' + (es ? ' actual' : '') + '" data-ancla="ej-' + esc(clave) + '"><header>' + (es ? ahora : '') + '<h3>' + esc(ej.nombre) + '</h3><span class="musculo">' + (ej.calentamiento ? '🔥 ' : '') + esc(ej.musculo) + '</span>' + moverEj(ej) + botonPlegar(clave, ej.nombre) + '</header>' +
-    (nombres && !sufijo && d && d.id !== 'core' ? '<button type="button" class="enlace bis-hacer" data-accion="gym-biserie" data-ej="' + ej.id + '">🔁 Separar en biserie: ' + esc(nombres.join(' + ')) + '</button>' : '') +
-    chipsVariante(ej, sem, sufijo) +
-    ej.filas.map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima)).join('') +
-    historialPlegado(ej, sem, varianteEn(ej, registros(sem), sufijo)) +
-    '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details>' +
-    '</article>';
 }
 
 // Biserie: los dos ejercicios en una tarjeta (A1 y A2), cada uno con su peso, y una ronda que anota los dos y arranca el descanso
@@ -334,34 +234,12 @@ function avanceEj(ej, sem) {
   return { hechas: est.reduce((s, x) => s + Math.min(x.hechas, x.plan), 0), plan: est.reduce((s, x) => s + x.plan, 0),
     fila: ej.filas[est.findIndex((x) => x.hechas < x.plan)] || null };
 }
-function biserie(a, b, sem) {
-  const ea = avanceEj(a, sem), eb = avanceEj(b, sem), fa = ea.fila, fb = eb.fila;
-  const plan = Math.max(ea.plan, eb.plan), ronda = Math.min(ea.hechas, eb.hechas) + 1;
-  const descanso = Math.max(...[fa, fb, a.filas[0], b.filas[0]].filter(Boolean).map((f) => f.descanso));
-  const parte = (ej, letra) => '<div class="bis-ej"><h4><span class="bis-letra">' + letra + '</span>' + esc(ej.nombre) + ' <small>' + esc(ej.musculo) + '</small></h4>' +
-    chipsVariante(ej, sem) + ej.filas.map((f, i) => fila(f, sem, f.id, ej, i, true)).join('') + historialPlegado(ej, sem, varianteEn(ej, registros(sem))) +
-    '<details class="nota"' + (ej.nota ? ' open' : '') + '><summary>Notas</summary><textarea rows="2" data-cambio="nota" data-ej="' + ej.id + '" placeholder="Agarre, asiento, molestias…">' + esc(ej.nota || '') + '</textarea></details></div>';
-  // Cada campo va a la fila pendiente de su ejercicio; si ese ya terminó, no aparece
-  const campo = (f, ej, letra) => (f ? '<label class="campo">' + letra + ' · ' + esc(ej.nombre) + (ej.filas.length > 1 ? ' (' + f.tipo + ' ' + esc(f.esquema) + ')' : '') +
-    '<input type="text" inputmode="numeric" placeholder="reps" data-serie="ronda@' + f.id + '"></label>' : '');
-  const es = actualId === a.id || actualId === b.id, clave = 'bis-' + a.id;
-  if (!estaAbierto(clave, es || ((ultimoEj === a.id || ultimoEj === b.id) && sem === semanaActual()))) {
-    const ra = resumenEj(a, sem), rb = resumenEj(b, sem);
-    return plegado(clave, '🔁 ' + esc(a.nombre) + ' + ' + esc(b.nombre), 'biserie', { hechas: ra.hechas + rb.hechas, plan: ra.plan + rb.plan, texto: ra.hechas + rb.hechas ? ra.texto + ' | ' + rb.texto : ra.texto });
-  }
-  return '<article class="tarjeta ejercicio biserie' + (es ? ' actual' : '') + '" data-ancla="ej-' + esc(clave) + '"><header>' + (es ? ahora : '') + '<h3>🔁 Biserie</h3><span class="musculo">sin descanso entre los dos · ⏱ ' + reloj(descanso) + ' después</span>' + botonPlegar(clave, 'la biserie') + '</header>' +
-    parte(a, 'A1') + parte(b, 'A2') +
-    (fa || fb ? '<div class="bis-ronda"><div class="dos">' + campo(fa, a, 'A1') + campo(fb, b, 'A2') + '</div>' +
-      '<button type="button" class="boton primario ancho" data-accion="gym-ronda" data-a="' + a.id + '" data-b="' + b.id + '">＋ Ronda ' + Math.min(ronda, plan) + ' de ' + plan + ' y descanso</button></div>'
-      : '<p class="nota-corta centro">✓ ' + plan + ' rondas hechas</p>') +
-    '<button type="button" class="enlace" data-accion="gym-biserie-quitar" data-ej="' + a.id + '">Ya no es biserie (separar las tarjetas)</button></article>';
-}
 
 // Peso planeado del primer top set del día: lo escrito hoy, si no lo sugerido
 function pesoPlaneado(d, sem) {
   const ej = d.ejercicios.find((x) => !x.calentamiento), f = ej && ej.filas[0];
   if (!f) return null;
-  const reg = registros(sem)[f.id], ult = ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem)), sug = sugerencia(f, ult);
+  const reg = registros(sem)[f.id], ult = ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem), e().rutina), sug = sugerencia(f, ult);
   const peso = numero(reg && reg.peso) ?? (sug && sug.peso);
   return peso ? { peso, unidad: (reg && reg.unidad) || (sug && sug.unidad) || 'kg', nombre: ej.nombre } : null;
 }
@@ -394,21 +272,6 @@ function ultimoCardio(d, sem) {
 }
 const planCardio = () => e().config.cardioPlan ?? CARDIO;
 
-function tarjetaCardio(d, sem) {
-  if (!d.cardio) return '';
-  const c = registros(sem)[claveCardio(d)] || {}, ult = ultimoCardio(d, sem), i = e().rutina.indexOf(d), hecho = hayCardio(c);
-  return '<section class="tarjeta cardio' + (hecho ? ' hecho' : '') + '"><div class="fila-resumen"><h2>🏃 ' + esc(d.cardio) + '</h2>' + (hecho ? '<span class="estado e-pagado">✓ Hecho</span>' : '') + '</div>' +
-    '<p class="nota-corta">Plan: ' + esc(planCardio()) + '</p>' +
-    (ult ? '<p class="ultimo">Último (semana ' + ult.semana + '): <b>' + esc(textoCardio(ult)) + '</b></p>' : '') +
-    '<div class="campos-cardio">' + CAMPOS_CARDIO.map(([k, t, paso]) =>
-      '<label class="campo">' + t + '<input type="text" inputmode="decimal" autocomplete="off" min="0" step="' + paso + '" data-cambio="cardio" data-dia="' + d.id + '" data-k="' + k + '" value="' + esc(c[k] ?? '') + '"' +
-      (ult && ult[k] != null && ult[k] !== '' ? ' placeholder="' + esc(ult[k]) + '"' : '') + '></label>').join('') + '</div>' +
-    '<label class="campo">Nota<input type="text" data-cambio="cardio" data-dia="' + d.id + '" data-k="nota" value="' + esc(c.nota || '') + '" placeholder="Ej.: escaladora en vez de cinta, me sentí pesado…"></label>' +
-    (ult && !hecho ? '<button type="button" class="boton secundario" data-accion="cardio-repetir" data-dia="' + d.id + '">↻ Igual que la última vez</button>' : '') +
-    '<details><summary>Editar plan del cardio</summary><div class="dos">' +
-    '<label class="campo">Cardio de este día<input type="text" data-cambio="ed" data-ruta="rutina.' + i + '.cardio" value="' + esc(d.cardio) + '"></label>' +
-    '<label class="campo">Parámetros (todos los días)<input type="text" data-cambio="ed" data-ruta="config.cardioPlan" value="' + esc(planCardio()) + '"></label></div></details></section>';
-}
 
 // Resumen del día en texto, para pegar en WhatsApp, notas o la hoja
 export function textoDia(d, sem, estado = e()) {
@@ -438,56 +301,24 @@ export function textoDia(d, sem, estado = e()) {
 
 function ejActual(d, sem) {
   if (sem !== semanaActual()) return null;
-  const ult = d.ejercicios.find((ej) => ej.id === ultimoEj);
-  return ((ult && avanceEj(ult, sem).fila ? ult : d.ejercicios.find((ej) => avanceEj(ej, sem).fila)) || {}).id || null;
+  const ult = d.ejercicios.find((ej) => ej.id === ultimoEj), falta = (ej) => avanceEj(ej, sem).fila;
+  return ((ult && falta(ult) && !saltados.has(ult.id) ? ult : d.ejercicios.find((ej) => falta(ej) && !saltados.has(ej.id)) || d.ejercicios.find(falta)) || {}).id || null;
+}
+// Lo que hace la vista del día al pintarse: marca el ejercicio en el que vas y, si toca, pide bajar hasta él
+function prepararDia(d, sem) {
+  actualId = ejActual(d, sem);
+  if (enfocar && actualId) { enfocar = false; return true; }
+  return false;
 }
 function irAlActual() {
-  const a = document.querySelector('.ejercicio.actual');
+  const a = document.querySelector('[data-actual]');
   if (!a) return;
   a.scrollIntoView({ block: 'start', behavior: 'smooth' });
   const campo = a.querySelector('[data-serie]');
   if (campo) campo.focus({ preventScroll: true });
 }
 
-function vistaDia(d, sem) {
-  const r = resumenSemana([d], registros(sem));
-  actualId = ejActual(d, sem);
-  // Después de pintar (y de que la vista vuelva arriba al cambiar de pantalla)
-  if (enfocar && actualId) { enfocar = false; setTimeout(irAlActual, 60); }
-  return tarjetaCalentamiento(d, sem) +
-    '<div class="fila-resumen sticky-resumen"><b>' + esc(d.nombre) + '</b><span>' + r.hechas + ' / ' + r.plan + ' series</span></div>' + barra(r.plan ? r.hechas / r.plan : 0) +
-    gruposDia(d.ejercicios).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem))).join('') +
-    tarjetaCore(d, sem) +
-    tarjetaCardio(d, sem) +
-    // Copiar o compartir el resumen: al final y solo con algo anotado (antes estaba arriba, estorbando al empezar)
-    (r.hechas ? '<div class="copiar-dia"><button type="button" class="boton secundario" data-accion="gym-copiar" data-dia="' + d.id + '">📋 Copiar resumen del día</button>' +
-      '<button type="button" class="boton secundario" data-accion="gym-imagen" data-dia="' + d.id + '">🖼️ Imagen del resumen</button>' +
-      '<details><summary>Ver texto</summary><pre class="texto-copia">' + esc(textoDia(d, sem)) + '</pre></details></div>' + tarjetaAnalisis(d, sem) : '');
-}
-// Al terminar: cómo fue cada ejercicio y el prompt completo para que Claude lo analice como entrenador
-function tarjetaAnalisis(d, sem) {
-  const lista = resumenEjercicios(d, sem), cuenta = (k) => lista.filter((x) => x.estado === k).length;
-  return '<section class="tarjeta analisis"><h2>🧠 Análisis del entreno</h2>' +
-    '<p class="nota-corta">' + [cuenta('record') && '🏆 ' + cuenta('record') + ' récord' + (cuenta('record') > 1 ? 's' : ''), cuenta('sube') && '⬆️ ' + cuenta('sube') + ' subieron',
-      cuenta('igual') && '➖ ' + cuenta('igual') + ' igual', cuenta('baja') && '⬇️ ' + cuenta('baja') + ' bajaron', cuenta('estancado') && '⚠️ ' + cuenta('estancado') + ' estancados'].filter(Boolean).join(' · ') + '</p>' +
-    '<ul class="lista-analisis">' + lista.map((x) => '<li' + (x.estado === 'sin-dato' ? ' class="pendiente"' : '') + '><span><b>' + ICONO_ESTADO[x.estado] + ' ' + esc(x.nombre) + '</b>' +
-      '<small>' + esc(TEXTO_ESTADO[x.estado] + (x.cambio != null && Math.abs(x.cambio) >= 0.005 ? ' (' + (x.cambio > 0 ? '+' : '') + (Math.round(x.cambio * 1000) / 10).toLocaleString('es-CO') + ' %)' : '') +
-        (x.semanasParado >= 3 ? ' · ' + x.semanasParado + ' semanas sin récord' : '') + (x.meta ? ' · próxima: ' + x.meta : '')) + '</small></span></li>').join('') + '</ul>' +
-    '<button type="button" class="boton primario ancho" data-accion="gym-analisis" data-dia="' + d.id + '">📋 Copiar análisis completo para Claude</button>' +
-    '<p class="nota-corta">Lleva la sesión, el historial de cada ejercicio, el volumen por músculo, el sueño, la proteína, el peso y el fútbol, con las instrucciones para que te responda como entrenador. Pégalo en Claude.</p>' +
-    '<details data-prompt="' + esc(d.id) + '" data-sem="' + sem + '"><summary>Ver el texto</summary><textarea id="prompt-entreno" class="texto-copia" rows="10" readonly></textarea></details></section>';
-}
 
-// Core al final de cualquier día: se anota en el día que se hace y cuenta para el total de la semana
-function tarjetaCore(d, sem) {
-  const core = e().rutina.find((x) => x.id === 'core');
-  if (!core) return '';
-  const sufijo = '@' + d.id, regs = registros(sem);
-  const hoyAlgo = Object.keys(regs).some((k) => k.endsWith(sufijo) && repsDe(regs[k].reps).length);
-  const semana = resumenSemana([core], regs);
-  return '<details class="core"' + (hoyAlgo ? ' open' : '') + '><summary><b>💪 Core</b> · al final del día · ' + semana.hechas + ' / ' + semana.plan + ' series esta semana</summary>' +
-    core.ejercicios.map((ej) => ejercicio(ej, sem, sufijo)).join('') + '</details>';
-}
 
 
 // Los ejercicios del día, al pasar por encima de su cuadro en la semana
@@ -530,26 +361,30 @@ export function claveGym() {
 export const piezasGym = {
   ver: () => ({ actual: prepararGym(), semana: semanaVista, dia: diaVista, editandoObjetivos, fuerzaEj }),
   DIAS_CORTOS, rirReciente, consejo, rm, porcentaje, historialEj,
+  // El día: en qué ejercicio vas y qué está abierto (prepararDia dice si hay que bajar al ejercicio en el que vas)
+  prepararDia, irAlActual, estaAbierto, verDia: () => ({ ultimoEj, actualId }), filtroEn, sufijoDe, pesoDelDia, kgCorporal,
+  resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado,
 };
 
+// Gym entero lo pinta React (src/react/pantallas/Gym.tsx); esto queda por si main.js no la encuentra
 export function vistaGym() {
-  const actual = prepararGym();
-  const lunes = lunesDe(semanaVista), d = e().rutina.find((x) => x.id === diaVista);
-  const opciones = [];
-  for (let s = actual; s >= 1; s--) opciones.push('<option value="' + s + '"' + (s === semanaVista ? ' selected' : '') + '>Semana ' + s + (s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))) + '</option>');
-  return '<div class="cab-vista"><h1>Gym</h1><select data-cambio="semana" aria-label="Semana">' + opciones.join('') + '</select></div>' +
-    '<div class="semana-acciones"><p class="sub">' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) +
-      (semanaVista < actual ? ' · <b>semana pasada</b>' : semanaVista > semanaDe() ? ' · <b>abierta antes de tiempo</b>' : '') + '</p>' +
-      (semanaVista === actual ? '<button type="button" class="boton secundario" data-accion="semana-nueva">＋ Nueva semana</button>' : '') +
-      (semanaVista === actual && semanaQuitable() === actual ? '<button type="button" class="boton secundario" data-accion="semana-quitar">Quitar semana ' + actual + '</button>' : '') + '</div>' +
-    '<nav class="chips" aria-label="Día">' + diasEnOrden().map((x) => '<button type="button" class="chip' + (x.id === diaVista ? ' activo' : '') + '" data-accion="ir-dia" data-dia="' + x.id + '">' +
-      (x.diaSemana ? DIAS_CORTOS[x.diaSemana] + ' · ' : '') + esc(x.nombre) + '</button>').join('') +
-    '<button type="button" class="chip' + (diaVista === 'resumen' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="resumen">📊 Resumen</button>' +
-    '<button type="button" class="chip' + (diaVista === 'plan12' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="plan12">📆 12 semanas</button>' +
-    '<button type="button" class="chip' + (diaVista === 'casa' ? ' activo' : '') + '" data-accion="ir-dia" data-dia="casa">🏠 En casa</button></nav>' +
-    // 📊 Resumen, 📆 12 semanas y 🏠 En casa los pinta React (src/react/pantallas/Gym.tsx): aquí solo llega un día
-    (d ? vistaDia(d, semanaVista) : '');
+  return '<h1>Gym</h1>';
 }
+
+// ---------- ⏱ Contador del entreno de hoy: { dia, inicio, fin? } en el día de hoy (dias[fecha].entreno) ----------
+export const entrenoHoy = () => (e().dias[iso()] || {}).entreno || null;
+export const minutosEntreno = (x, ahora = Date.now()) => Math.max(0, Math.round(((x.fin || ahora) - x.inicio) / 60000));
+// Si pasan 90 minutos sin anotar nada, el entreno se da por terminado 5 minutos después de la última serie
+export const ENTRENO_QUIETO = 90 * 60000;
+export const entrenoQuieto = (x, ahora = Date.now()) => !!(x && !x.fin && ahora - (x.ultimo || x.inicio) > ENTRENO_QUIETO);
+// 🤕 Molestias: dias[fecha].molestias = { nombre del ejercicio: 1 (leve) | 2 (fuerte) }
+export const molestiaHoy = (nombre) => (((e().dias[iso()] || {}).molestias) || {})[nombre] || 0;
+// La más reciente de los últimos 14 días (sin contar hoy): { dias, nivel }
+export function molestiaReciente(nombre, hoy = iso()) {
+  for (let k = 1; k <= 14; k++) { const n = (((e().dias[sumarDias(hoy, -k)] || {}).molestias) || {})[nombre]; if (n) return { dias: k, nivel: n }; }
+  return null;
+}
+export const estaSaltado = (id) => saltados.has(id);
 
 function cambiarReps(id, texto) {
   marcarVariante(id);
@@ -560,10 +395,15 @@ function cambiarReps(id, texto) {
   // Calentamiento con peso corporal: sin peso escrito, se anota el tuyo de ese día
   if (info.ej.calentamiento && !String(reg.peso || '').trim() && repsDe(reg.reps).length) { const c = pesoDelDia(id, semanaVista); if (c) { reg.peso = kgCorporal(c); reg.unidad = 'kg'; } }
   const ahora = repsDe(reg.reps).length;
-  if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista, filtro); reg.unidad = (u && u.unidad) || 'kg'; }
+  if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista, filtro, e().rutina); reg.unidad = (u && u.unidad) || 'kg'; }
   // Descanso automático al sumar una serie (si aún faltan). En una biserie lo arranca la ronda, después de los dos
   if (ahora > antes) {
     ultimoEj = info.ej.id;
+    saltados.delete(info.ej.id);
+    // El contador del entreno arranca solo con la primera serie de hoy (en la semana actual)
+    if (semanaVista === semanaActual() && !entrenoHoy()) diaDe().entreno = { dia: info.d.id, inicio: Date.now() };
+    const x = semanaVista === semanaActual() && entrenoHoy();
+    if (x && !x.fin) x.ultimo = Date.now();
     if (!avanceEj(info.ej, semanaVista).fila) enfocar = true; // terminó: pasa al siguiente
   }
   if (ahora > antes && ahora < info.f.series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
@@ -587,7 +427,7 @@ function elegirVariante(id, v, sufijo = '') {
 }
 
 registrar({
-  'ir-dia'({ dia }) { diaVista = dia; enfocar = true; manual = {}; if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
+  'ir-dia'({ dia }) { diaVista = dia; enfocar = true; manual = {}; saltados.clear(); if (location.hash !== '#gym') location.hash = '#gym'; else repintar(); window.scrollTo(0, 0); },
   semana(ds, el) { semanaVista = Number(el.value); manual = {}; repintar(); },
   // Abrir o plegar la tarjeta de un ejercicio (la pantalla no se mueve: main.js deja quieta la tarjeta tocada)
   'gym-plegar'({ clave, abierto }) { manual[clave] = abierto !== '1'; repintar(); },
@@ -690,7 +530,7 @@ registrar({
   // Ronda de la biserie: suma la serie de A1 y la de A2 (las que tengan reps) y arranca un solo descanso
   'gym-ronda'({ a, b }, el) {
     const ejs = [a, b].map((id) => e().rutina.flatMap((d) => d.ejercicios).find((x) => x.id === id));
-    const caja = el.closest('.bis-ronda'), filas = ejs.map((ej) => avanceEj(ej, semanaVista).fila);
+    const caja = el.closest('.bis-ronda, [data-ronda]'), filas = ejs.map((ej) => avanceEj(ej, semanaVista).fila);
     const campos = filas.map((f) => f && caja.querySelector('[data-serie="ronda@' + f.id + '"]')), valores = campos.map((c) => (c ? c.value.trim() : ''));
     const valido = (v) => /^\d+([.,]\d+)?$/.test(v);
     if (!valores.some(valido)) { toast('Escribe las reps de A1 y A2'); (campos.find(Boolean) || el).focus(); return; }
@@ -700,7 +540,7 @@ registrar({
       if (!f || !valido(valores[k])) return;
       const reg = (registros(semanaVista)[f.id] ??= {});
       if (!reg.peso) {
-        const sug = sugerencia(f, ultimoRegistro(e().semanas, f, semanaVista, filtroEn(ejs[k], semanaVista)));
+        const sug = sugerencia(f, ultimoRegistro(e().semanas, f, semanaVista, filtroEn(ejs[k], semanaVista), e().rutina));
         if (sug) reg.peso = String(sug.peso);
       }
       cambiarReps(f.id, ((reg.reps || '') + ' ' + valores[k]).trim());
@@ -728,13 +568,14 @@ registrar({
   unidad({ fila: id }, el) { marcarVariante(id); (registros(semanaVista)[id] ??= {}).unidad = el.value; guardar(); },
   reps({ fila: id }, el) { cambiarReps(id, el.value); },
   serie({ fila: id }, el) {
-    const campo = el.parentNode.querySelector('[data-serie]'), n = campo.value.trim(), conTeclado = document.activeElement === campo;
-    if (!/^\d+([.,]\d+)?$/.test(n)) { toast('Escribe las reps de la serie'); campo.focus(); return; }
+    // Una serie ("12") o varias de una vez ("15 15")
+    const campo = el.parentNode.querySelector('[data-serie]'), n = campo.value.replace(/\s+/g, ' ').trim(), conTeclado = document.activeElement === campo;
+    if (!/^\d+([.,]\d+)?( \d+([.,]\d+)?)*$/.test(n)) { toast('Escribe las reps de la serie'); campo.focus(); return; }
     campo.value = '';
     const reg = registros(semanaVista)[id] || {};
     if (!reg.peso && !buscarFila(id).ej.calentamiento) {
       // Sin peso escrito: se usa el sugerido para no tener que escribirlo en cada serie (en el calentamiento, el corporal: cambiarReps)
-      const info = buscarFila(id), sug = sugerencia(info.f, ultimoRegistro(e().semanas, info.f, semanaVista, filtroEn(info.ej, semanaVista, sufijoDe(id))));
+      const info = buscarFila(id), sug = sugerencia(info.f, ultimoRegistro(e().semanas, info.f, semanaVista, filtroEn(info.ej, semanaVista, sufijoDe(id)), e().rutina));
       if (sug) (registros(semanaVista)[id] ??= {}).peso = String(sug.peso);
     }
     const ejId = buscarFila(id).ej.id;
@@ -746,6 +587,29 @@ registrar({
       if (sig) { sig.focus({ preventScroll: true }); sig.scrollIntoView({ block: 'nearest' }); }
     }, 80);
   },
+  'gym-entreno-empezar'({ dia: d }) { diaDe().entreno = { dia: d, inicio: Date.now() }; guardar(); toast('⏱ Entreno en marcha'); },
+  // en: la hora de cierre cuando se cierra solo (sin aviso)
+  'gym-entreno-terminar'({ en }) {
+    const x = entrenoHoy();
+    if (!x || x.fin) return;
+    x.fin = en ? Number(en) : Date.now();
+    guardar();
+    if (!en) toast('✓ Entreno de ' + minutosEntreno(x) + ' min', () => { delete x.fin; guardar(); });
+  },
+  'gym-ocupada'({ ej }) {
+    saltados.add(ej);
+    if (ultimoEj === ej) ultimoEj = null;
+    enfocar = true;
+    const d = e().rutina.find((x) => x.ejercicios.some((y) => y.id === ej)), sig = d && d.ejercicios.find((y) => y.id === ejActual(d, semanaVista));
+    repintar();
+    toast(sig && sig.id !== ej ? '⏭ Lo dejamos para después. Sigue con ' + sig.nombre : 'No hay otro pendiente: este sigue siendo el que va');
+  },
+  'gym-molestia'({ n, v }) {
+    const m = (diaDe().molestias ??= {}), nivel = Number(v);
+    if (!nivel || m[n] === nivel) delete m[n]; else m[n] = nivel;
+    guardar();
+  },
+  'gym-entreno-seguir'() { const x = entrenoHoy(); if (x) { delete x.fin; guardar(); } },
   nota({ ej: id }, el) {
     for (const d of e().rutina) for (const ej of d.ejercicios) if (ej.id === id) ej.nota = el.value.trim();
     guardar(false);

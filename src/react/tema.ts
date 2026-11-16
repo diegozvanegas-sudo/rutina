@@ -14,6 +14,10 @@ export const tokens = {
   nequi: '#d6006f', nequiInk: '#ffffff', daviplata: '#e3262f',
   // Fondos oscuros de las etiquetas amarilla (Bajo, aviso) y azul (Alto)
   amarilloFondo: '#3a2d10', azulFondo: '#1f2a3d',
+  // Etiqueta y texto de lo vencido (Recordatorios)
+  rojoFondo: '#4a1d1d', rojoSuave: '#ffb3b3',
+  // Gym: etiqueta Top y Back-off, fila "sube peso" y el texto sobre azul
+  topFondo: '#3d2a12', topInk: '#ffc27a', backoffInk: '#9cc3ff', subeFondo: '#12233a', azulInk: '#04162b',
   radio: 14,
 };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';

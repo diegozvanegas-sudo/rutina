@@ -6,7 +6,10 @@ import ventas from './ventas.mjs';
 import finanzas from './finanzas.mjs';
 import planb from './planb.mjs';
 import gym from './gym.mjs';
+import gymdia from './gymdia.mjs';
+import gymextra from './gymextra.mjs';
+import recordatorios from './recordatorios.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios]) await recorrido(p);
 };

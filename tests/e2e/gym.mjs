@@ -4,15 +4,15 @@
 //   node .claude/skills/probar-rutina/scripts/probar.mjs tests/e2e/gym.mjs <carpeta de capturas>
 import { ayudas } from './ayudas.mjs';
 import { PRUEBAS, CASA } from '../../src/plan12.js';
+import { iso } from '../../src/fechas.js';
 
-const lunesDe = (f) => { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
-const menos = (f, n) => { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
+const lunesDe = (f) => { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return iso(d); };
+const menos = (f, n) => { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() - n); return iso(d); };
 
-export default async (p) => {
-  const a = ayudas(p, 'Gym'), { paso, falla, tocarTexto, escribirCampo } = a;
-  const abrirGym = async (dia) => { await p.ir('gym'); await a.esperar('#vista h1'); await a.dormir(400); if (dia) { await tocarTexto(dia); await a.dormir(500); } };
-
-  // Datos de 4 semanas para que la fuerza tenga qué mostrar (se escriben en el equipo y se recarga)
+// Datos de 4 semanas para que la fuerza y el historial tengan qué mostrar (se escriben en el equipo y se recarga).
+// Devuelve el número de la semana actual. También lo usa el recorrido del día (gymdia.mjs)
+export async function sembrar(p, a, abrirGym) {
+  const { falla, tocarTexto } = a;
   await abrirGym();
   const sem = Number(await p.ev(`document.querySelector('[aria-label=Semana]').value`));
   falla(sem >= 4, 'la semana actual es ' + sem);
@@ -32,9 +32,17 @@ export default async (p) => {
       w['d3-1-1']=r(60,'7'); w['d3-1-2']=r(50,'12 12');
     }
     s.semanas[S-1]['d3-1-2']=r(50,'12 2');
-    s.dias ??= {}; (s.dias[${JSON.stringify(new Date().toISOString().slice(0, 10))}] ??= {}).peso=72; (s.dias[${JSON.stringify(menos(new Date().toISOString().slice(0, 10), 28))}] ??= {}).peso=74;
+    s.dias ??= {}; (s.dias[${JSON.stringify(iso())}] ??= {}).peso=72; (s.dias[${JSON.stringify(menos(iso(), 28))}] ??= {}).peso=74;
     localStorage[k]=JSON.stringify(s)})()`);
   await p.recargar();
+  return sem;
+}
+
+export default async (p) => {
+  const a = ayudas(p, 'Gym'), { paso, falla, tocarTexto, escribirCampo } = a;
+  const abrirGym = async (dia) => { await p.ir('gym'); await a.esperar('#vista h1'); await a.dormir(400); if (dia) { await tocarTexto(dia); await a.dormir(500); } };
+
+  const sem = await sembrar(p, a, abrirGym);
 
   // ---------- 📊 Resumen ----------
   await abrirGym('📊 Resumen');
@@ -80,7 +88,7 @@ export default async (p) => {
   await paso('12 semanas');
   await escribirCampo('Edad', '31');
   await p.poner('[name=sexo]', 'H');
-  await p.poner('[name=inicio]', lunesDe(new Date().toISOString().slice(0, 10)));
+  await p.poner('[name=inicio]', lunesDe(iso()));
   await tocarTexto('Empezar el plan');
   falla((await a.aviso()).includes('Plan listo'), 'no empezó el plan');
   await paso('plan empezado');
@@ -101,7 +109,7 @@ export default async (p) => {
   await tocarTexto(tipos[0][1].nombre.split(' (')[0]);
   await paso('tipo elegido');
   await escribirCampo('Reps de cada serie', '10 9 8');
-  const hoy = new Date().toISOString().slice(0, 10), casa = () => p.estado().then((s) => ((s.plan12 || {}).casa || {})[hoy] || {});
+  const hoy = iso(), casa = () => p.estado().then((s) => ((s.plan12 || {}).casa || {})[hoy] || {});
   falla((await casa())[tipos[0][1].ejercicios[0].id] === '10 9 8', 'no guardó las reps en casa: ' + JSON.stringify(await casa()));
   await paso('reps anotadas');
   await p.poner('[data-cambio=casa-nivel]', '1');

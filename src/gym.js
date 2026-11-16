@@ -29,6 +29,15 @@ export function estadoFila(fila, reg) {
   return { hechas, plan: fila.series, color };
 }
 
+// Bajón dentro del ejercicio: la última serie cayó 30 % o más frente a la primera y todavía faltan series.
+// Con eso el músculo ya recibió el estímulo; seguir solo suma cansancio
+export function bajonReps(fila, reg) {
+  const reps = repsDe(reg && reg.reps);
+  if (reps.length < 2 || reps.length >= fila.series) return null;
+  const de = reps[0], a = reps[reps.length - 1];
+  return de > 0 && a <= de * 0.7 ? { de, a, caida: (de - a) / de } : null;
+}
+
 export function numero(v) {
   const n = Number(String(v ?? '').replace(',', '.'));
   return isFinite(n) && String(v ?? '').trim() !== '' ? n : null;
@@ -80,16 +89,41 @@ export function lineasFuerza(rutina) {
 
 // Último registro de una fila antes de la semana indicada (la semana que se cerró pasa a ser "el último").
 // filtro { ej, v }: solo los de esa variante del ejercicio (sin filtro, todos)
-export function ultimoRegistro(semanas, fila, semana, filtro = null) {
+// rutina: el mismo ejercicio en otro día (pierna A y B) cuenta como la misma sesión: vale lo más reciente de cualquiera,
+// incluso de un día anterior de la misma semana
+export function ultimoRegistro(semanas, fila, semana, filtro = null, rutina = null) {
   const sirve = (r) => !filtro || !tieneVariantes(filtro.ej) || filtro.v == null || varianteDe(r, filtro.ej) === filtro.v;
-  const previas = Object.keys(semanas || {}).map(Number).filter((n) => n < semana).sort((a, b) => b - a);
-  for (const n of previas) {
-    const reg = registrosDeFila(semanas[n], fila).filter(conDatos).filter(sirve).pop();
-    if (reg) return { ...reg, semana: n };
+  const gem = rutina ? gemelas(rutina, fila) : null;
+  if (gem && gem.otras.length) {
+    const previas = Object.keys(semanas || {}).map(Number).filter((n) => n <= semana).sort((a, b) => b - a);
+    for (const n of previas) {
+      // En la semana vista solo los días anteriores; en las pasadas, del último día al primero
+      const filas = gem.todas.filter((g) => n < semana || g.dia < gem.dia).sort((a, b) => b.dia - a.dia);
+      for (const g of filas) {
+        const reg = registrosDeFila(semanas[n], g.f).filter(conDatos).filter(sirve).pop();
+        if (reg) return { ...reg, semana: n };
+      }
+    }
+  } else {
+    const previas = Object.keys(semanas || {}).map(Number).filter((n) => n < semana).sort((a, b) => b - a);
+    for (const n of previas) {
+      const reg = registrosDeFila(semanas[n], fila).filter(conDatos).filter(sirve).pop();
+      if (reg) return { ...reg, semana: n };
+    }
   }
   // El de la hoja es de antes de las variantes: cuenta para la principal
   if (filtro && tieneVariantes(filtro.ej) && filtro.v != null && filtro.v !== filtro.ej.variantes[0]) return null;
   return fila.ultimo && (fila.ultimo.reps || fila.ultimo.peso) ? { ...fila.ultimo, semana: null } : null;
+}
+
+// La misma fila (misma posición) del ejercicio con el mismo nombre en cada día de la rutina. dia: el orden en la semana
+function gemelas(rutina, fila) {
+  let propio = null, nombre = null, i = -1;
+  rutina.forEach((d, k) => d.ejercicios.forEach((ej) => { const j = ej.filas.indexOf(fila); if (j >= 0 && !propio) { propio = k; nombre = ej.nombre; i = j; } }));
+  if (propio == null) return null;
+  const todas = [];
+  rutina.forEach((d, k) => d.ejercicios.forEach((ej) => { if (ej.nombre === nombre && ej.filas[i] && ej.filas[i].unidad === fila.unidad) todas.push({ f: ej.filas[i], dia: k }); }));
+  return { dia: propio, todas, otras: todas.filter((g) => g.f !== fila) };
 }
 
 // Peso para hoy: si la última vez hizo el tope en todas las series, sube 2,5–5 %; si no, el mismo
@@ -268,7 +302,7 @@ export function registrosRaros(semanas, rutina, desde, hasta) {
     const regs = semanas[n] || {};
     for (const d of rutina) for (const ej of d.ejercicios) for (const f of ej.filas) {
       for (const clave of Object.keys(regs).filter((k) => k === f.id || k.startsWith(f.id + '@'))) {
-        const raras = seriesRaras(f, regs[clave], ultimoRegistro(semanas, f, n, { ej, v: varianteDe(regs[clave], ej) })).filter((x) => x.estado === 'pendiente');
+        const raras = seriesRaras(f, regs[clave], ultimoRegistro(semanas, f, n, { ej, v: varianteDe(regs[clave], ej) }, rutina)).filter((x) => x.estado === 'pendiente');
         if (raras.length) out.push({ semana: n, clave, ej, fila: f, reg: regs[clave], raras });
       }
     }
@@ -286,10 +320,22 @@ export function metaSesion(fila, ultimo) {
   if (sug.sube) return { peso: sug.peso, reps: fila.min, unidad: u, sube: true, texto: texto(sug.peso, fila.min), motivo: 'Llegaste al tope: sube el peso y vuelve a ' + fila.min + ' reps.' };
   const reps = repsValidas(ultimo);
   if (!reps.length) return null;
-  const mejor = Math.max(...reps), extra = Number(ultimo.rir) >= 3 ? 2 : 1, meta = Math.min(fila.max, Math.max(fila.min, mejor + extra));
-  const motivo = mejor >= fila.max ? 'Llega a ' + fila.max + ' en todas las series y la próxima subes peso.'
-    : 'Supera ' + texto(sug.peso, mejor) + (extra === 2 ? ': te sobraban reps, busca 2 más.' : ' con 1 rep más.');
-  return { peso: sug.peso, reps: meta, unidad: u, sube: false, texto: texto(sug.peso, meta), motivo };
+  const extra = Number(ultimo.rir) >= 3 ? 2 : 1, tope = (n) => Math.min(fila.max, Math.max(fila.min, n));
+  if ((fila.series || 1) <= 1) {
+    const mejor = Math.max(...reps), meta = tope(mejor + extra);
+    const motivo = mejor >= fila.max ? 'Llega a ' + fila.max + ' en todas las series y la próxima subes peso.'
+      : 'Supera ' + texto(sug.peso, mejor) + (extra === 2 ? ': te sobraban reps, busca 2 más.' : ' con 1 rep más.');
+    return { peso: sug.peso, reps: meta, unidad: u, sube: false, texto: texto(sug.peso, meta), motivo };
+  }
+  // Varias series: se sube la más floja (lo realista: subir la mejor obliga a repetirla en todas). Si faltó alguna, se
+  // completa con la última que hiciste
+  const antes = reps.slice(0, fila.series);
+  while (antes.length < fila.series) antes.push(antes[antes.length - 1]);
+  const metas = antes.map(tope), k = metas.lastIndexOf(Math.min(...metas)), de = metas[k];
+  metas[k] = tope(de + extra);
+  const motivo = metas[k] === de ? 'Llega a ' + fila.max + ' en todas las series y la próxima subes peso.'
+    : 'Sube la serie más floja: ' + de + ' → ' + metas[k] + (extra === 2 ? ' (te sobraban reps)' : '') + '; las demás, como la última vez.' + (Math.max(...metas) >= fila.max ? ' Con ' + fila.max + ' en todas, subes peso.' : '');
+  return { peso: sug.peso, reps: Math.max(...metas), series: metas, unidad: u, sube: false, texto: texto(sug.peso, metas.join(' ')), motivo };
 }
 
 // Últimas 4 semanas por ejercicio (fila principal): el registro más reciente contra el de hace unas 4 semanas

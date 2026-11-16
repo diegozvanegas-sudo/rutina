@@ -1,42 +1,13 @@
-// Pantallas de vida.js: círculo cercano (en Recordatorios), regla de las 72 horas (en Finanzas) y mis estándares (en Hoy)
+// Pantallas de vida.js: acciones del círculo cercano (lo pinta Recordatorios en React), regla de las 72 horas (en Finanzas) y mis estándares (en Hoy)
 import { e, guardar, repintar, dia } from '../estado.js';
 import { iso, fechaCorta, sumarDias } from '../fechas.js';
 import { pesos, leerMonto } from '../finanzas.js';
-import { RELACIONES, estadoContacto, estadoEspera, IDEAS_POR_TEMA, cumplimientoEstandares } from '../vida.js';
+import { RELACIONES, estadoEspera, IDEAS_POR_TEMA, cumplimientoEstandares } from '../vida.js';
 import { rango } from '../progreso.js';
 import { esc, barra, registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-const ESTADOS = { vencido: 'Ya toca', pronto: 'Pronto', 'al-dia': 'Al día', 'sin-dato': 'Sin registro' };
-const haceDias = (n) => (n === 0 ? 'hoy' : n === 1 ? 'ayer' : 'hace ' + n + ' días');
-
-// ---------- Círculo cercano ----------
-export function seccionCirculo() {
-  const lista = (e().circulo ||= []), orden = { vencido: 0, pronto: 1, 'sin-dato': 2, 'al-dia': 3 };
-  const filas = lista.map((p, i) => ({ p, i, s: estadoContacto(p) })).sort((a, b) => orden[a.s.estado] - orden[b.s.estado] || (b.s.dias || 0) - (a.s.dias || 0));
-  return '<h2 class="titulo-grupo">👥 Círculo cercano</h2>' +
-    '<p class="nota-corta">Las 5 a 8 personas que más importan. Te avisa cuando llevas mucho sin hablar con alguien: las relaciones también se entrenan.</p><div class="rejilla-rec">' +
-    filas.map(({ p, i, s }) => {
-      const ruta = 'circulo.' + i;
-      return '<section class="tarjeta ed-item rec e-borde-' + s.estado + '"><div class="ed-cab"><b>' + esc(p.nombre) + ' <small>· ' + esc(p.relacion || '') + '</small></b>' +
-        '<span class="estado e-' + s.estado + '">' + ESTADOS[s.estado] + '</span></div>' +
-        '<p class="nota-corta">' + (s.ultimo ? 'Último contacto ' + haceDias(s.dias) + ' (' + fechaCorta(s.ultimo) + ')' : 'Aún no registras ningún contacto') + ' · cada ' + (p.cadaDias || 14) + ' días</p>' +
-        (p.contactos && p.contactos.length && p.contactos[p.contactos.length - 1].nota ? '<p class="nota-corta">📝 ' + esc(p.contactos[p.contactos.length - 1].nota) + '</p>' : '') +
-        '<div class="aportar"><input type="text" placeholder="Nota (opcional): de qué hablaron" aria-label="Nota del contacto" data-nota-contacto="' + p.id + '">' +
-        '<button type="button" class="boton primario" data-accion="circulo-hable" data-id="' + p.id + '">✓ Hablé hoy</button></div>' +
-        '<details><summary>Editar</summary><div class="dos">' +
-        '<label class="campo">Nombre<input type="text" data-cambio="ed" data-ruta="' + ruta + '.nombre" value="' + esc(p.nombre) + '"></label>' +
-        '<label class="campo">Cada cuántos días<input type="number" inputmode="numeric" min="1" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '.cadaDias" value="' + (p.cadaDias || 14) + '"></label>' +
-        '<label class="campo">Relación<select data-cambio="ed" data-ruta="' + ruta + '.relacion">' + Object.keys(RELACIONES).map((r) => '<option' + (r === p.relacion ? ' selected' : '') + '>' + r + '</option>').join('') + '</select></label></div>' +
-        ((p.contactos || []).length > 1 ? '<ul class="lista-pesos">' + [...p.contactos].reverse().slice(0, 8).map((c) => '<li><span>' + fechaCorta(c.fecha) + '</span><span>' + esc(c.nota || '') + '</span></li>').join('') + '</ul>' : '') +
-        '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="circulo" data-i="' + i + '" data-nombre="' + esc(p.nombre) + '" aria-label="Borrar">🗑</button></details></section>';
-    }).join('') +
-    '<section class="tarjeta"><h2>＋ Agregar persona</h2><div class="dos">' +
-    '<label class="campo">Nombre<input type="text" id="circulo-nombre" placeholder="Ej.: Mamá"></label>' +
-    '<label class="campo">Relación<select id="circulo-relacion">' + Object.entries(RELACIONES).map(([r, n]) => '<option value="' + r + '">' + r + ' (cada ' + n + (n === 1 ? ' día' : ' días') + ')</option>').join('') + '</select></label></div>' +
-    '<button type="button" class="boton primario ancho" data-accion="circulo-agregar">Agregar</button></section></div>';
-}
 
 // ---------- Regla de las 72 horas ----------
 const espera = { tipo: 'compra' };

@@ -6,8 +6,10 @@ import { tokens } from '../tema';
 
 /** Fila de pestañas o de opciones: una sola activa (en verde). envolver: pasan al renglón de abajo en vez de deslizarse.
  *  Al tocar una: alElegir(id), o los data-* de datos(id) cuando la acción es de las de siempre (data-accion, las despacha main.js) */
-export function Opciones<T extends string>({ opciones, activa, alElegir, datos, nombre, chica = false, envolver = false, sx }: {
-  opciones: [T, ReactNode][]; activa: T | null; alElegir?: (id: T) => void; datos?: (id: T) => Record<`data-${string}`, string>; nombre: string; chica?: boolean; envolver?: boolean; sx?: SxProps<Theme>;
+export function Opciones<T extends string>({ opciones, activa, alElegir, datos, nombre, chica = false, envolver = false, marcada, sx }: {
+  opciones: [T, ReactNode][]; activa: T | null; alElegir?: (id: T) => void; datos?: (id: T) => Record<`data-${string}`, string>; nombre: string; chica?: boolean; envolver?: boolean;
+  /** Una opción con borde verde aunque no esté elegida (por ejemplo, el día de hoy) y su título al pasar encima */
+  marcada?: { id: T; titulo: string } | null; sx?: SxProps<Theme>;
 }) {
   // En el celular la fila se desliza: la activa queda a la vista
   const fila = useRef<HTMLDivElement>(null);
@@ -22,7 +24,8 @@ export function Opciones<T extends string>({ opciones, activa, alElegir, datos, 
       sx={[{ display: 'flex', gap: chica ? '6px' : '8px', p: '2px 0 12px' }, envolver ? { flexWrap: 'wrap' } : { overflowX: 'auto', scrollbarWidth: 'none' }, ...(Array.isArray(sx) ? sx : [sx])]}>
       {opciones.map(([id, t]) => (
         <Chip key={id} clickable size={chica ? 'small' : 'medium'} aria-pressed={activa === id} color={activa === id ? 'primary' : 'default'} variant={activa === id ? 'filled' : 'outlined'}
-          label={t} onClick={alElegir ? () => alElegir(id) : undefined} {...(datos ? datos(id) : null)} sx={{ flex: 'none' }} />
+          label={t} onClick={alElegir ? () => alElegir(id) : undefined} {...(datos ? datos(id) : null)} title={marcada && marcada.id === id ? marcada.titulo : undefined}
+          sx={[{ flex: 'none' }, marcada && marcada.id === id && activa !== id ? { borderColor: 'primary.main', borderWidth: 2 } : null]} />
       ))}
     </Box>
   );
@@ -47,12 +50,12 @@ export function Cifras({ datos }: { datos: { titulo: string; valor: ReactNode; n
   );
 }
 
-/** Barra de avance (0 a 1). rojo: se pasó del tope */
-export function Avance({ parte, rojo = false }: { parte: number; rojo?: boolean }) {
+/** Barra de avance (0 a 1). rojo: se pasó del tope. color: otro color del tema (por ejemplo "warning.main") */
+export function Avance({ parte, rojo = false, color }: { parte: number; rojo?: boolean; color?: string }) {
   const pct = Math.round(Math.max(0, Math.min(1, parte || 0)) * 100);
   return (
     <Box role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} sx={{ height: 8, borderRadius: 999, bgcolor: tokens.surface2, overflow: 'hidden', m: '2px 0 10px' }}>
-      <Box sx={{ width: pct + '%', height: '100%', bgcolor: rojo ? 'error.main' : 'primary.main', borderRadius: 999, transition: 'width .3s' }} />
+      <Box sx={{ width: pct + '%', height: '100%', bgcolor: color || (rojo ? 'error.main' : 'primary.main'), borderRadius: 999, transition: 'width .3s' }} />
     </Box>
   );
 }

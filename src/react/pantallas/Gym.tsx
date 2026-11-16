@@ -1,5 +1,5 @@
-// 🏋️ Gym: la cabecera (semana, días y pestañas) y las pestañas que ya son de React: 📊 Resumen, 📆 12 semanas y 🏠 En casa.
-// El día de entreno sigue en src/vistas/gym.js hasta que le toque (main.js: REACT_POR_PESTANA). React pinta; anotar,
+// 🏋️ Gym: la cabecera (semana, días y pestañas), el día de entreno (GymDia.tsx), 📊 Resumen, 📆 12 semanas y 🏠 En casa
+// (GymPlan12.tsx). React pinta; anotar,
 // elegir y cambiar son las acciones de siempre (src/vistas/gym.js y plan12.js).
 import type { ReactNode } from 'react';
 import { Box, Button, ButtonBase, Card, NativeSelect, OutlinedInput, Typography } from '@mui/material';
@@ -9,7 +9,7 @@ import { resumenSemana, progresoMes, records, historial, lineasFuerza, registros
   varianteActual, consejoRir, formatoPeso, numero, registrosDeFila, tieneVariantes } from '../../gym.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../../entrenador.js';
 import { tablaDatos } from '../../graficos.js';
-import { piezasGym, diasEnOrden } from '../../vistas/gym.js';
+import { piezasGym, diasEnOrden, diaDeHoy } from '../../vistas/gym.js';
 import { accion } from '../acciones';
 import { tokens } from '../tema';
 import { usarEstado } from '../usarEstado';
@@ -18,6 +18,7 @@ import { CampoLista, CampoSolo } from '../ui/Campo';
 import { TituloPantalla, Nota } from '../ui/Textos';
 import { Opciones, Avance, HtmlViejo } from '../ui/Varios';
 import { plan12, casa } from './GymPlan12';
+import { dia } from './GymDia';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -146,7 +147,7 @@ function proximo(estado: Fin, semActual: number) {
     const f = sumarDias(hoy, k), d = estado.rutina.find((x: Fin) => x.id !== 'core' && x.diaSemana === diaSemana(f));
     if (!d) continue;
     const sem = semActual + (k && diaSemana(f) < diaSemana(hoy) ? 1 : 0);
-    const metas = (d.ejercicios as Fin[]).map((ej) => ({ ej, m: metaSesion(ej.filas[0], (ultimoRegistro as Fin)(estado.semanas, ej.filas[0], sem, { ej, v: varianteActual(ej) })) as Fin })).filter((x) => x.m);
+    const metas = (d.ejercicios as Fin[]).map((ej) => ({ ej, m: metaSesion(ej.filas[0], (ultimoRegistro as Fin)(estado.semanas, ej.filas[0], sem, { ej, v: varianteActual(ej) }, estado.rutina)) as Fin })).filter((x) => x.m);
     if (!metas.length) return null;
     return (
       <>
@@ -282,7 +283,10 @@ export default function Gym() {
   const estado = usarEstado() as Fin, ver = G.ver(), actual: number = ver.actual, sem: number = ver.semana, lunes = lunesDe(sem);
   const semanas = Array.from({ length: actual }, (_, k) => actual - k);
   const dias: [string, string][] = (diasEnOrden() as Fin[]).map((x) => [x.id, (x.diaSemana ? DIAS[x.diaSemana] + ' · ' : '') + x.nombre]);
-  const pestanas: [string, string][] = [...dias, ['resumen', '📊 Resumen'], ['plan12', '📆 12 semanas'], ['casa', '🏠 En casa']];
+  const hoyDia = (estado.rutina as Fin[]).find((x) => x.id === ver.dia);
+  // Los días de entreno en una fila (el de hoy con borde verde) y las vistas en otra: en el computador ya no se cortan
+  const vistas: [string, string][] = [['resumen', '📊 Resumen'], ['plan12', '📆 12 semanas'], ['casa', '🏠 En casa']];
+  const deHoy = sem === actual ? (diaDeHoy() as Fin) : null, ir = (id: string) => ({ 'data-accion': 'ir-dia', 'data-dia': id });
   return (
     <>
       <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
@@ -298,8 +302,9 @@ export default function Gym() {
         {sem === actual && <Button color="secondary" onClick={() => accion('semana-nueva')} sx={{ minHeight: 44 }}>＋ Nueva semana</Button>}
         {sem === actual && semanaQuitable() === actual && <Button color="secondary" onClick={() => accion('semana-quitar')} sx={{ minHeight: 44 }}>Quitar semana {actual}</Button>}
       </Box>
-      <Opciones nombre="Día" activa={ver.dia} opciones={pestanas} datos={(id) => ({ 'data-accion': 'ir-dia', 'data-dia': id })} />
-      {ver.dia === 'plan12' ? plan12(estado) : ver.dia === 'casa' ? casa(estado) : resumen(estado, sem, actual, ver)}
+      <Opciones nombre="Día" activa={ver.dia} opciones={dias} datos={ir} marcada={deHoy ? { id: deHoy.id, titulo: 'Hoy' } : null} sx={{ pb: '8px' }} />
+      <Opciones nombre="Vista" activa={ver.dia} opciones={vistas} datos={ir} chica />
+      {ver.dia === 'plan12' ? plan12(estado) : ver.dia === 'casa' ? casa(estado) : hoyDia ? dia(hoyDia, sem) : resumen(estado, sem, actual, ver)}
     </>
   );
 }

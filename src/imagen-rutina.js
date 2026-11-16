@@ -15,7 +15,7 @@ export function resumenRutina(sem, estado, opciones = {}) {
   const nombres = (ids) => (ids || []).map(nombreSesion).filter(Boolean);
   const serieDe = (ej) => ej.filas.reduce((s, f) => s + f.series, 0);
   const ejercicio = (ej) => {
-    const v = varianteActual(ej), meta = ej.filas[0] ? metaSesion(ej.filas[0], ultimoRegistro(estado.semanas, ej.filas[0], sem, { ej, v })) : null;
+    const v = varianteActual(ej), meta = ej.filas[0] ? metaSesion(ej.filas[0], ultimoRegistro(estado.semanas, ej.filas[0], sem, { ej, v }, estado.rutina)) : null;
     return {
       nombre: nombreConVariante(ej, v), musculo: ej.musculo, series: serieDe(ej), biserie: !!ej.biserie,
       esquema: ej.filas.map((f) => (f.tipo === 'Series' ? '' : f.tipo + ' ') + f.esquema).join(' · '),

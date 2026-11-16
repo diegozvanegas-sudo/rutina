@@ -4,7 +4,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { Box, Button, ButtonBase } from '@mui/material';
 import { hayFutbol } from '../../estado.js';
-import { iso, fechaCorta, sumarDias } from '../../fechas.js';
+import { iso, fechaCorta, sumarDias, diasEntre } from '../../fechas.js';
 import { plan12 as datosPlan, FASES, FIJO, SEMANAS_PLAN, semanaPlan, faseDe, proximoLunes, REVISIONES, PRUEBAS, tocaRevision, pruebaDeSemana, avancePruebas, ultimaCintura,
   CASA, tipoCasaDe, sesionCasa, casaHecha, ultimoCasa, tocaSubir, nivelDe } from '../../plan12.js';
 import { verCasa, enfocarSiguienteCasa } from '../../vistas/plan12.js';
@@ -94,8 +94,10 @@ export function plan12(_estado: Fin, hoy = iso()) {
   const p = datosPlan() as Fin;
   if (!p.inicio) return empezar();
   const s = semanaPlan(p, hoy) as number | null;
+  // Al lado del título, cuánto falta: se ve aunque la tarjeta esté plegada
+  const faltan = s == null ? diasEntre(hoy, p.inicio) as number : 0;
   if (s == null) return (
-    <Tarjeta titulo="📆 Plan de 12 semanas">
+    <Tarjeta titulo="📆 Plan de 12 semanas" lado={<Box component="small" sx={{ color: 'primary.main', fontWeight: 700, whiteSpace: 'nowrap' }}>{faltan <= 1 ? 'Empieza mañana' : 'Empieza en ' + faltan + ' días'}</Box>}>
       <p>Empieza el <b>{fechaCorta(p.inicio)}</b>. Ese día pésate y haz la revisión de la semana 1.</p>
       <Suave accion="p12-reiniciar">Cambiar la fecha</Suave>
     </Tarjeta>

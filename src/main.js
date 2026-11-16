@@ -15,7 +15,7 @@ import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import { vistaEditar } from './vistas/editar.js';
 import { vistaDieta } from './vistas/dieta.js';
 import { vistaFinanzas, claveFinanzas } from './vistas/finanzas.js';
-import { vistaRecordatorios, alertas, bannerDiarios } from './vistas/recordatorios.js';
+import { alertas, bannerDiarios } from './vistas/recordatorios.js';
 import { vistaProgreso } from './vistas/progreso.js';
 import { vistaLibros } from './vistas/libros.js';
 import { vistaEstudiar } from './vistas/estudiar.js';
@@ -42,15 +42,15 @@ iniciarAvisos();
 
 const PANTALLAS = {
   hoy: vistaHoy, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, suplementos: vistaSuplementos, finanzas: vistaFinanzas,
-  recordatorios: vistaRecordatorios, lugares: vistaLugares, gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
+  lugares: vistaLugares, gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
 const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
-  ventas: () => import('./react/pantallas/Ventas.tsx') };
+  ventas: () => import('./react/pantallas/Ventas.tsx'), recordatorios: () => import('./react/pantallas/Recordatorios.tsx') };
 // Secciones grandes que se migran pestaña por pestaña: las pestañas de "listas" ya son de React; las demás siguen como antes
 const REACT_POR_PESTANA = {
   finanzas: { actual: claveFinanzas, listas: ['registrar', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'calcular', 'esperas', 'planb:desempleo', 'planb:lider', 'planb:creativo', 'planb:innovacion', 'planb:pitch'], cargar: () => import('./react/pantallas/Finanzas.tsx') },
-  gym: { actual: claveGym, listas: ['resumen', 'plan12', 'casa'], cargar: () => import('./react/pantallas/Gym.tsx') },
+  gym: { actual: claveGym, listas: ['dia', 'resumen', 'plan12', 'casa'], cargar: () => import('./react/pantallas/Gym.tsx') },
 };
 const reactDe = (v) => REACT[v] || (REACT_POR_PESTANA[v] && REACT_POR_PESTANA[v].listas.includes(REACT_POR_PESTANA[v].actual()) ? REACT_POR_PESTANA[v].cargar : null);
 // La pestaña de un enlace (#compras/deseos) hacia una pantalla de React: se le pasa al montarla

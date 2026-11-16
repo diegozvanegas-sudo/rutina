@@ -30,6 +30,13 @@ export const tokens = {
   topFondo: '#3d2a12', topInk: '#ffc27a', backoffInk: '#9cc3ff', subeFondo: '#12233a', azulInk: '#04162b',
   // 👥 Clientes: colores de las fases del ciclo (colorFase: 0 azul, 1 brand, 2 morado = descarga, 3 amarillo)
   faseAzul: '#3b82f6', faseMorado: '#a78bfa',
+  // Presentación de la pantalla de entrar: el azul de los entrenadores, sus fondos suaves, el brillo detrás del titular,
+  // el reloj de la muestra del Gym, los avatares, el cierre en degradado con su botón claro y las sombras
+  prAzul: '#60a5fa', prAzulSuave: 'rgba(96, 165, 250, .15)', prAzulTenue: 'rgba(96, 165, 250, .35)', prVerdeSuave: 'rgba(61, 214, 140, .14)',
+  prBrilloVerde: 'rgba(61, 214, 140, .2)', prBrilloAzul: 'rgba(96, 165, 250, .16)', prVerdeLeve: 'rgba(61, 214, 140, .08)', prBordeVerde: 'rgba(61, 214, 140, .12)',
+  prReloj: '#0b2a1c', prAvatarA: '#1e3a5f', prAvatarB: '#164e3b', prFinalA: '#12503a', prFinalB: '#1e3a5f',
+  prClaro: '#ffffff', prClaroInk: '#0b1f17', prClaroTexto: 'rgba(255, 255, 255, .82)', prBordeClaro: 'rgba(255, 255, 255, .08)',
+  prSombra: 'rgba(0, 0, 0, .35)', prSombraFuerte: 'rgba(0, 0, 0, .45)', prBrilloInterno: 'rgba(255, 255, 255, .04)',
   radio: 14,
 };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';

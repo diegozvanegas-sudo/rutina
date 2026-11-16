@@ -63,6 +63,10 @@ export default async (p) => {
   falla(e.fin === hace2h + 5 * 60000, 'el contador no se cerró solo: ' + JSON.stringify(e));
   falla((await a.texto()).includes('Entreno de hoy: 35 min'), 'no muestra el entreno cerrado');
   await paso('contador cerrado solo');
+  // Seguir después del cierre solo: el contador vuelve a correr (antes se cerraba otra vez al instante)
+  await tocarTexto('↺ Seguir');
+  await a.dormir(1500);
+  falla(!(await dia()).entreno.fin && await p.cuantos('[data-t=entreno] [role=timer]') === 1, 'Seguir no puso a correr el contador: ' + JSON.stringify((await dia()).entreno));
 
   // 📆 Plan que empieza en unos días: plegado, igual dice cuánto falta
   await tocarTexto('📆 12 semanas');

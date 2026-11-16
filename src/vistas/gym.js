@@ -454,7 +454,9 @@ registrar({
     if (!nivel || m[n] === nivel) delete m[n]; else m[n] = nivel;
     guardar();
   },
-  'gym-entreno-seguir'() { const x = entrenoHoy(); if (x) { delete x.fin; guardar(); } },
+  // Seguir cuenta como actividad: sin esto, si la última serie fue hace más de 90 min, el cierre automático
+  // (entrenoQuieto) lo volvía a terminar al instante y el contador se quedaba en "Seguir"
+  'gym-entreno-seguir'() { const x = entrenoHoy(); if (x) { delete x.fin; x.ultimo = Date.now(); guardar(); toast('⏱ Entreno en marcha'); } },
   nota({ ej: id }, el) {
     for (const d of e().rutina) for (const ej of d.ejercicios) if (ej.id === id) ej.nota = el.value.trim();
     guardar(false);

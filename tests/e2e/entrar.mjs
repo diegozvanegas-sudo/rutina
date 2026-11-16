@@ -53,6 +53,47 @@ export default async (p) => {
   falla(await p.cuantos('#vista [role=alert]'), 'el rechazo no se anuncia');
   await paso('rechazo');
 
+  // La presentación se puede tocar: anotar una serie con su descanso, ver a otro cliente, cambiar de ejercicio, los extras
+  await sesion({ modo: 'entrar' });
+  const ve = async (t, msg) => falla((await a.texto()).includes(t), msg + ' (no dice "' + t + '")');
+  await tocarTexto('Una rep menos');
+  await tocarTexto('＋ Serie 1 y descanso');
+  await ve('💪 Fuerza estimada 70,8 kg · tu récord sigue en 72,5', 'con 4 reps no calculó la fuerza');
+  await a.dormir(2300);
+  await ve('Descansando…', 'no arrancó el descanso');
+  falla(!(await a.texto()).includes('2:30'), 'el descanso no corre');
+  await tocarTexto('✓ 4 reps anotadas · otra vez');
+  await tocarTexto('Una rep más');
+  await tocarTexto('Una rep más');
+  await tocarTexto('＋ Serie 1 y descanso');
+  await ve('🏆 ¡Nuevo récord! Fuerza estimada 75 kg (antes 72,5)', 'con 6 reps no marcó el récord');
+  await tocarTexto('JJuan', undefined, false);
+  await ve('Constancia de Juan por semana', 'no cambió de cliente');
+  falla(await p.cuantos('#vista [aria-pressed=true][aria-label], #vista button[aria-pressed=true]'), 'el cliente elegido no se marca');
+  await tocarTexto('Press plano', '[role=button]');
+  await ve('Fuerza: press plano', 'no cambió de ejercicio');
+  await ve('Semana 6: 62,5 kg', 'no muestra el último punto');
+  await tocarTexto('Semana 3: 55 kg', '[role=button]');
+  await ve('Semana 3: 55 kg', 'no muestra el punto tocado');
+  await tocarTexto('💰 Finanzas', '[role=button]');
+  await ve('Ingresos, gastos, presupuesto y deudas del mes.', 'el extra no dice qué hace');
+  await tocarTexto('2Lo usas cada día', 'button', false);
+  falla(await p.ev(`[...document.querySelectorAll('#vista [aria-current=step]')].map(x=>x.textContent).join('').startsWith('2')`), 'el paso tocado no queda marcado');
+  const antes = await p.ev('location.hash');
+  await tocarTexto('Ver cómo funciona ↓');
+  await a.dormir(900);
+  falla((await p.ev('location.hash')) === antes, 'Ver cómo funciona cambió la dirección');
+  falla(await p.ev(`(()=>{const r=document.getElementById('como-funciona').getBoundingClientRect();return r.top>=-2&&r.top<innerHeight/2})()`), 'Ver cómo funciona no bajó a los pasos');
+  await paso('presentación tocada');
+  await p.ev('window.scrollTo(0,0)');
+  // Tamaño mediano (el formulario fijo a la derecha)
+  await p.cdp('Emulation.setDeviceMetricsOverride', { width: 1000, height: 800, deviceScaleFactor: 1, mobile: false });
+  await sesion({ modo: 'entrar' });
+  falla(await p.sinDesborde(), 'se sale de la pantalla a 1000 px');
+  falla(await p.ev(`(()=>{const f=document.querySelector('#vista [data-formulario]').getBoundingClientRect(),h=document.querySelector('#vista h1').getBoundingClientRect();return f.left>h.right-4&&f.top<300})()`), 'a 1000 px el formulario no va a la derecha del titular');
+  await p.foto('entrar-mediana');
+  await p.computador();
+
   // Celular: el formulario arriba, la presentación debajo
   await p.celular();
   await sesion({ modo: 'entrar' });

@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { e } from '../src/estado.js';
+import { e, empezarDePrueba } from '../src/estado.js';
+// Con los datos de ejemplo de la app (una cuenta nueva empieza vacía)
+empezarDePrueba(true);
 import { puntajeDia, revisionSemanal, rango } from '../src/progreso.js';
 import { barras, linea, calendario } from '../src/graficos.js';
 

@@ -1,5 +1,5 @@
-// Ajustes: las acciones de la pantalla (la pinta React: react/pantallas/Ajustes.tsx) y las pantallas de entrar y del
-// candado, que son del armazón de la app (main.js)
+// Ajustes: las acciones de la pantalla (la pinta React: react/pantallas/Ajustes.tsx), también las de entrar y del
+// candado (las pinta react/armazon/Sesion.tsx)
 import { e, guardar, repintar, exportar, importar, reiniciar, avanceMetas, semanaActual } from '../estado.js';
 import { csvGym, csvDias } from '../csv.js';
 import { iso, hora, fechaLarga, lunesDeFecha, ponerSemana1 } from '../fechas.js';
@@ -7,35 +7,9 @@ import { nube, entrar, salir, sincronizar, usarLoDeLaNube, copiasNube, restaurar
 import { enviarSemana } from '../hoja.js';
 import { calendarioIcs } from '../registro.js';
 import { activarAvisos, desactivarAvisos } from '../avisos.js';
-import { bloqueo, activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
-import { esc, registrar, toast } from '../ui.js';
+import { activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
+import { registrar, toast } from '../ui.js';
 import { avisosDeSuplementos } from './suplementos.js';
-import { presentacion } from './presentacion.js';
-
-// Sin sesión no se muestra la app: solo esta pantalla (main.js)
-export function pantallaEntrar() {
-  if (!nube.lista) return '<section class="entrar"><p class="nota-corta">Cargando…</p></section>';
-  // Al lado (computador) o debajo (celular): qué es la app, para quien llega por primera vez
-  return '<div class="entrar-pagina"><section class="tarjeta entrar" aria-labelledby="entrar-titulo"><h2 id="entrar-titulo">Entrar</h2><p class="nota-corta">Entra con tu usuario. Tus datos se guardan en la nube y pasan a otro celular o al computador.</p>' +
-    '<label class="campo">Correo<input type="email" id="nube-correo" autocomplete="username" inputmode="email"></label>' +
-    '<label class="campo">Contraseña<input type="password" id="nube-clave" autocomplete="current-password"></label>' +
-    (nube.estado === 'sin-sesion' && !navigator.onLine ? '<p class="aviso">Sin conexión: conéctate para iniciar sesión.</p>' : '') +
-    (nube.rechazo ? '<p class="aviso" role="alert">🔒 ' + esc(nube.rechazo) + '</p>' : '') +
-    '<button type="button" class="boton primario grande ancho" data-accion="nube-entrar">Entrar</button>' +
-    '<p class="nota-corta">¿No tienes usuario? Pídeselo a tu entrenador.</p></section>' + presentacion() + '</div>';
-}
-
-// Con la huella activa: candado al abrir la app (main.js)
-// El navegador que abre los enlaces dentro de WhatsApp, Instagram o Facebook: ahí la huella no funciona
-const navegadorDeApp = () => typeof navigator !== 'undefined' && /WhatsApp|FBAN|FBAV|Instagram|Line\//i.test(navigator.userAgent || '');
-export function pantallaBloqueo() {
-  return '<div class="entrar-pagina"><section class="tarjeta entrar"><h2>🔒 Desbloquear</h2><p class="nota-corta">' + esc(nube.usuario.correo) + '</p>' +
-    '<p class="nota-corta">Desbloquea con tu huella, tu cara o el PIN del celular.</p>' +
-    (bloqueo.error ? '<p class="aviso">' + esc(bloqueo.error) + '</p>' : '') +
-    (bloqueo.error || navegadorDeApp() ? '<p class="nota-corta">Si abriste el enlace desde WhatsApp u otra app, la huella puede no funcionar ahí: ábrelo en Safari o Chrome (menú ⋯ → Abrir en el navegador) o entra con tu contraseña.</p>' : '') +
-    '<button type="button" class="boton primario grande ancho" data-accion="huella-abrir"' + (bloqueo.intentando ? ' disabled' : '') + '>🔓 Desbloquear</button>' +
-    '<button type="button" class="boton secundario ancho" data-accion="huella-contrasena">Entrar con contraseña</button></section>' + presentacion() + '</div>';
-}
 
 // Copias que guarda la nube (una cada 10 minutos de uso y antes de cualquier subida que quite datos)
 let copias = null, cargandoCopias = false;

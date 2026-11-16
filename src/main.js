@@ -1,6 +1,6 @@
 import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
-import { e, cargar, esperarUsuario, alCambiar, guardar, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
+import { e, cargar, esperarUsuario, alCambiar, guardar, empezarDePrueba, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct, claveDeDatos } from './ui.js';
 import { revisar, sumar, detener } from './temporizador.js';
@@ -10,7 +10,7 @@ import { textoEspera, revisarCronos } from './vistas/manana.js';
 import './vistas/metas.js';
 import { vistaGym, semanaActual, claveGym } from './vistas/gym.js';
 import './vistas/sesiones.js';
-import { pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.js';
+import './vistas/ajustes.js';
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import './vistas/editar.js';
 import './vistas/dieta.js';
@@ -23,7 +23,7 @@ import './vistas/retos.js';
 import './vistas/libros.js';
 import './vistas/estudiar.js';
 import { montarReact, desmontarReact, montarFijo } from './react/montar.js';
-import { ponerLateral } from './react/armazon.js';
+import { ponerLateral, ponerSesion } from './react/armazon.js';
 import { refrescarReact } from './react/refrescar.js';
 import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import './vistas/lugares.js';
@@ -106,7 +106,7 @@ function aplicarBarra() {
 // Barra lateral: fija a un lado en el computador; en el celular se abre con ☰ desde la derecha. Lo que se ve lo pinta
 // React (react/armazon/Lateral.tsx) con estos datos; sin sesión o con la app bloqueada no se muestra
 function datosLateral() {
-  if ((configurada && !nube.usuario) || bloqueada()) return null;
+  if (modoSesion()) return null;
   const c = e().config, b = ajustesBarra(), avisos = alertas().length, v = actual();
   if (b.compacta) organizandoMenu = false;
   // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
@@ -237,31 +237,27 @@ function anclaDe() {
   return lista;
 }
 let ultimaVista = null;
+// Sin sesión iniciada solo se ve Entrar; con la huella activa, el candado (rutinaPrueba.sesion lo simula en desarrollo)
+const prueba = { modo: null };
+function modoSesion() {
+  if (prueba.modo === 'entrar' || (configurada && !nube.usuario)) return 'entrar';
+  return prueba.modo === 'bloqueada' || bloqueada() ? 'bloqueada' : null;
+}
+ponerSesion(() => ({ modo: modoSesion(), correo: nube.usuario ? nube.usuario.correo : '' }));
 function pintar() {
-  // Sin sesión iniciada solo se ve la pantalla para entrar (lo escrito en correo/contraseña se conserva)
-  const sinSesion = configurada && !nube.usuario, cerrada = !sinSesion && bloqueada();
-  document.body.classList.toggle('sin-sesion', sinSesion || cerrada);
-  if (cerrada) {
+  // Entrar o el candado (React conserva lo escrito en correo y contraseña cuando se repinta)
+  const modo = modoSesion();
+  document.body.classList.toggle('sin-sesion', !!modo);
+  if (modo) {
     menu(false);
-    desmontarReact();
-    $('vista').innerHTML = pantallaBloqueo();
-    document.title = 'Bloqueada · Rutina';
-    ultimaVista = null;
-    if (bloqueo.auto) { bloqueo.auto = false; desbloquear(); }
-    return;
-  }
-  if (sinSesion) {
-    const correo = $('nube-correo'), clave = $('nube-clave');
-    const antes = correo && { correo: correo.value, clave: clave.value, foco: document.activeElement && document.activeElement.id };
-    menu(false);
-    desmontarReact();
-    $('vista').innerHTML = pantallaEntrar();
-      document.title = 'Entrar · Rutina';
-    if (antes && $('nube-correo')) {
-      $('nube-correo').value = antes.correo; $('nube-clave').value = antes.clave;
-      if (antes.foco && $(antes.foco)) $(antes.foco).focus();
+    if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== 'sesion') {
+      desmontarReact();
+      $('vista').innerHTML = '<div id="raiz-react" data-pantalla="sesion"></div>';
+      montarReact($('raiz-react'), () => import('./react/armazon/Sesion.tsx'));
     }
+    document.title = modo === 'bloqueada' ? 'Bloqueada · Rutina' : 'Entrar · Rutina';
     ultimaVista = null;
+    if (modo === 'bloqueada' && bloqueo.auto) { bloqueo.auto = false; desbloquear(); }
     return;
   }
   const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null, ancla = v === ultimaVista ? anclaDe() : null;
@@ -458,7 +454,24 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Solo en desarrollo (npm run dev): probar permisos y Administrar sin Supabase. No llega a la versión publicada.
-if (import.meta.env.DEV) window.rutinaPrueba = { permisos: (p) => { ponerPermisos('prueba', p); pintar(); }, admin: (d) => { ponerDatosAdmin(d); pintar(); } };
+if (import.meta.env.DEV) {
+  const nubeAntes = { estado: nube.estado, lista: nube.lista };
+  window.rutinaPrueba = {
+    permisos: (p) => { ponerPermisos('prueba', p); pintar(); }, admin: (d) => { ponerDatosAdmin(d); pintar(); },
+    // Empezar como una cuenta nueva (vacía) o con los datos de ejemplo (así arrancan los recorridos de prueba)
+    nuevo: () => empezarDePrueba(false), ejemplo: () => empezarDePrueba(true),
+    // modo: 'entrar' | 'bloqueada' | null (volver). cargando, rechazo: la pantalla de entrar; correo, error, intentando: el candado
+    sesion: (o = {}) => {
+      prueba.modo = o.modo || null;
+      nube.usuario = prueba.modo === 'bloqueada' ? { id: 'prueba', correo: o.correo || 'prueba@ejemplo.com' } : null;
+      nube.estado = prueba.modo === 'entrar' ? 'sin-sesion' : nubeAntes.estado;
+      nube.lista = prueba.modo === 'entrar' ? !o.cargando : nubeAntes.lista;
+      nube.rechazo = o.rechazo || '';
+      bloqueo.error = o.error || ''; bloqueo.intentando = !!o.intentando; bloqueo.auto = false;
+      pintar(); refrescarReact();
+    },
+  };
+}
 
 abrirPestana();
 pintar();

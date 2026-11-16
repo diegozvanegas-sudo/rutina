@@ -239,6 +239,7 @@ function Rutina({ e }: { e: Fin }) {
   const dias = (P.DIAS as string[]);
   return (
     <>
+      {rutina.length ? null : <Corta>Aún no tienes días de gym. Toca <b>＋ Día</b> para crear el primero (por ejemplo «Lunes · Pierna») y después agrégale sus ejercicios con series y reps. Si juegas fútbol, marca tus días aquí abajo.</Corta>}
       <Box sx={{ mb: '12px' }}><Chips nombre="Días de la rutina" items={[...rutina.map((x) => ({ id: x.id, texto: x.nombre, activo: x.id === diaEd, datos: { 'data-accion': 'ed-dia', 'data-id': x.id } })), { id: '+', texto: '＋ Día', activo: false, datos: { 'data-accion': 'ed-agregar', 'data-lista': 'rutina' } }]} /></Box>
       <Tarjeta>
         <b>⚽ Días de fútbol</b>

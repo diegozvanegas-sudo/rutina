@@ -83,6 +83,9 @@ try {
   await p.computador();
   await cdp('Page.navigate', { url: 'http://localhost:' + web + '/' });
   await dormir(2000);
+  // Un equipo nuevo empieza vacío: los recorridos arrancan con los datos de ejemplo de la app (rutina, hábitos, fútbol)
+  await ev('window.rutinaPrueba && window.rutinaPrueba.ejemplo && window.rutinaPrueba.ejemplo()');
+  await dormir(300);
   await (await import(pathToFileURL(resolve(rutaPrueba)).href)).default(p);
   ws.close();
 } catch (err) {

@@ -48,7 +48,7 @@ export const focoDe = (est, semana = semanaDe()) => (est.revisiones && est.revis
 
 // ---------- Avisos ----------
 export const AVISOS = {
-  pastilla: { icono: '💊', nombre: 'Pastilla en ayunas', hora: 'pastilla', texto: 'Pastilla de levotiroxina en ayunas. Después empieza la espera del desayuno.' },
+  pastilla: { icono: '💊', nombre: 'Pastilla en ayunas', hora: 'pastilla', texto: 'Tu pastilla en ayunas. Después empieza la espera del desayuno.' },
   'pre-partido': { icono: '🍚', nombre: 'Comida pre-partido (3 h antes)', hora: 'partido', menos: 180, futbol: true, texto: 'Comida pre-partido: arroz y pollo, poca grasa y poca fibra. Agua todo el día.' },
   platano: { icono: '🍌', nombre: 'Plátano y calentar (1 h antes)', hora: 'partido', menos: 60, futbol: true, texto: 'Plátano y agua. Calienta 10-12 min antes de jugar.' },
   'como-fue': { icono: '⚽', nombre: '¿Cómo te fue? (2 h después)', hora: 'partido', menos: -120, futbol: true, texto: 'Anota cómo te fue en el partido: minutos, esfuerzo, energía y molestias.' },

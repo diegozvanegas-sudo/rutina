@@ -6,6 +6,7 @@ import { viendoComo } from '../../permisos.js';
 import { diariosDeHoy } from '../../vistas/recordatorios.js';
 import { tokens } from '../tema';
 import { usarEstado } from '../usarEstado';
+import { modoSesion } from '../armazon.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -13,6 +14,7 @@ const CAJA = { display: 'flex', alignItems: 'center', justifyContent: 'space-bet
 
 export default function Avisos() {
   usarEstado();
+  if (modoSesion()) return null; // sin sesión o bloqueada no hay avisos
   const como = viendoComo() as string | null, diarios = diariosDeHoy() as Fin[];
   if (!como && !diarios.length) return null;
   return (

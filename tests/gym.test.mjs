@@ -4,6 +4,9 @@ import { repsDe, estadoFila, sugerencia, ultimoRegistro, aproximacion, resumenSe
 import { filasDeEsquema, RUTINA, PIERNA } from '../src/datos_iniciales.js';
 import { semanaDe, lunesDe, diaSemana } from '../src/fechas.js';
 import { fases } from '../src/vistas/sesiones.js';
+import { empezarDePrueba } from '../src/estado.js';
+// Con los datos de ejemplo de la app (una cuenta nueva empieza vacía)
+empezarDePrueba(true);
 
 const top = { id: 'x', series: 1, min: 4, max: 7 }, back = { id: 'y', series: 2, min: 8, max: 12 };
 

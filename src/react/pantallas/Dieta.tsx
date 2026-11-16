@@ -196,13 +196,13 @@ function planes(e: Fin, vista: string | null) {
 }
 
 // ---------- ⚖️ Peso ----------
-function grafico(meta: number, lista: Fin[]) {
+function grafico(meta: number | null, lista: Fin[]) {
   if (lista.length < 2) return null;
-  const ult = lista.slice(-30), ps = ult.map((x) => x.peso), min = Math.min(...ps, meta), max = Math.max(...ps), W = 320, H = 90;
+  const ult = lista.slice(-30), ps = ult.map((x) => x.peso), min = meta ? Math.min(...ps, meta) : Math.min(...ps), max = Math.max(...ps), W = 320, H = 90;
   const x = (i: number) => 6 + (i / (ult.length - 1)) * (W - 12), y = (p: number) => H - 8 - ((p - min) / (max - min || 1)) * (H - 16);
   return (
     <Box component="svg" viewBox={'0 0 ' + W + ' ' + H} preserveAspectRatio="none" aria-hidden="true" sx={{ width: '100%', height: 90, color: tokens.azul, display: 'block' }}>
-      <line x1="0" x2={W} y1={y(meta)} y2={y(meta)} stroke={tokens.brand} strokeDasharray="4 4" strokeWidth="1.5" />
+      {meta ? <line x1="0" x2={W} y1={y(meta)} y2={y(meta)} stroke={tokens.brand} strokeDasharray="4 4" strokeWidth="1.5" /> : null}
       <polyline fill="none" stroke="currentColor" strokeWidth="2.5" points={ult.map((p, i) => x(i) + ',' + y(p.peso)).join(' ')} />
     </Box>
   );
@@ -242,7 +242,7 @@ function planDieta(e: Fin, hoy = iso()) {
 function peso(e: Fin) {
   const d = e.dieta, c = d.config, lista = pesos(e.dias) as Fin[], hoyD = e.dias[iso()] || {}, hoy = hoyD.peso;
   const ultimo = lista.length ? lista[lista.length - 1].peso : null, prom = tendencia(lista) as number | null, ref = prom || ultimo || c.pesoBase;
-  const inicio = c.pesoInicio || c.pesoBase, avance = inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0;
+  const inicio = c.pesoInicio || (lista.length ? lista[0].peso : null), avance = inicio && c.meta && inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0;
   const medidas = medidasDe(e.dias) as Fin[], conCintura = medidas.filter((m) => m.cintura > 0), cintura = conCintura.length ? conCintura[conCintura.length - 1].cintura : null;
   const sug = (revisionDieta as Fin)({ lista, dias: e.dias, progreso: progresoMes(e.semanas, e.rutina, semanaActual()), ultimoAjuste: d.ultimoAjuste }, iso()) as Fin, sen = sug.senales;
   const conSigno = (n: number | null, u: string) => (n == null ? '—' : (n > 0 ? '+' : '') + f1(n) + u);
@@ -255,12 +255,12 @@ function peso(e: Fin) {
       <Card component="section" sx={{ mb: '14px' }}>
         <Cifras datos={[
           { titulo: 'Promedio 7 días', valor: prom ? f1(prom) + ' kg' : '—' },
-          { titulo: 'Cambio desde ' + f1(inicio), valor: prom ? (prom - inicio > 0 ? '+' : '') + f1(prom - inicio) + ' kg' : '—' },
-          { titulo: 'Falta para ' + f1(c.meta), valor: f1(Math.max(0, ref - c.meta)) + ' kg' },
-          { titulo: 'Cintura (meta: menos de ' + f1(c.estatura / 2) + ')', valor: cintura ? f1(cintura) + ' cm' : '—' },
+          { titulo: inicio ? 'Cambio desde ' + f1(inicio) : 'Cambio desde el inicio', valor: prom && inicio ? (prom - inicio > 0 ? '+' : '') + f1(prom - inicio) + ' kg' : '—' },
+          { titulo: c.meta ? 'Falta para ' + f1(c.meta) : 'Falta para tu meta', valor: c.meta ? f1(Math.max(0, ref - c.meta)) + ' kg' : '—', nota: c.meta ? undefined : 'Ponla en Planes → ajustes' },
+          { titulo: c.estatura ? 'Cintura (meta: menos de ' + f1(c.estatura / 2) + ')' : 'Cintura', valor: cintura ? f1(cintura) + ' cm' : '—' },
         ]} />
         <Barra parte={avance} />
-        {grafico(c.meta, lista)}
+        {grafico(c.meta || null, lista)}
         {prom && Math.abs(prom - c.pesoBase) >= 1 ? (
           <Box component="p" sx={{ color: 'warning.main', bgcolor: tokens.amarilloFondo, borderRadius: '10px', p: '8px 10px', fontSize: 14, mb: 0 }}>
             Tu promedio cambió {f1(Math.abs(prom - c.pesoBase))} kg desde que se calcularon los planes ({f1(c.pesoBase)} kg). <Enlace href="#dieta" accion="dieta-ir-planes">Recalcular los planes con {f1(prom)} kg →</Enlace>
@@ -375,6 +375,18 @@ export default function Dieta({ pestana }: { pestana?: string }) {
   return (
     <>
       <TituloPantalla>Dieta</TituloPantalla>
+      {!e.dieta.config.pesoInicio && !(pesos(e.dias) as Fin[]).length ? (
+        <Card component="section" sx={{ mb: '14px', borderColor: 'primary.main', display: 'grid', gap: '8px' }}>
+          <Box component="h2" sx={{ m: 0, fontSize: 18 }}>🥗 Empieza por tu peso</Box>
+          <Box component="ol" sx={{ m: 0, pl: '22px', display: 'grid', gap: '4px' }}>
+            <li>En ⚖️ Peso anota tu peso de hoy: con él se calculan tus planes de comida (calorías y proteína a tu medida).</li>
+            <li>En 📋 Planes → ajustes pon tu meta y tu estatura.</li>
+            <li>Cada día marca en 🍽 Hoy lo que comiste; la app suma las calorías y la proteína.</li>
+          </Box>
+          <Nota sx={{ m: 0 }}>Mientras tanto, los planes que ves son un ejemplo.</Nota>
+          {ver.pestana === 'peso' ? null : <Button data-accion="dieta-pestana" data-p="peso" sx={{ justifySelf: 'start' }}>Anotar mi peso →</Button>}
+        </Card>
+      ) : null}
       <Opciones nombre="Pestañas de Dieta" activa={ver.pestana} opciones={PESTANAS} datos={(k) => ({ 'data-accion': 'dieta-pestana', 'data-p': k })} sx={{ '& .MuiChip-root': { fontSize: 15 } }} />
       {ver.pestana === 'planes' ? planes(e, ver.planVista) : ver.pestana === 'peso' ? peso(e) : ver.pestana === 'alimentos' ? alimentos(e) : hoyDieta(e)}
     </>

@@ -302,6 +302,17 @@ export default function Gym() {
         {sem === actual && <Button color="secondary" onClick={() => accion('semana-nueva')} sx={{ minHeight: 44 }}>＋ Nueva semana</Button>}
         {sem === actual && semanaQuitable() === actual && <Button color="secondary" onClick={() => accion('semana-quitar')} sx={{ minHeight: 44 }}>Quitar semana {actual}</Button>}
       </Box>
+      {(estado.rutina as Fin[]).some((x) => x.id !== 'core' && x.ejercicios.length) ? null : (
+        <Card component="section" sx={{ mb: '14px', borderColor: 'primary.main', display: 'grid', gap: '8px' }}>
+          <Box component="h2" sx={{ m: 0, fontSize: 18 }}>🏋️ Aún no tienes rutina</Box>
+          <Box component="ol" sx={{ m: 0, pl: '22px', display: 'grid', gap: '4px' }}>
+            <li>En ✏️ Editar → Rutina agrega tus días (por ejemplo «Lunes · Pierna») y en cada uno sus ejercicios con series y reps.</li>
+            <li>El día de entreno, aquí anotas el peso y las reps de cada serie; el descanso corre solo.</li>
+            <li>Cada semana la app compara con la anterior y te dice cuándo subir el peso.</li>
+          </Box>
+          <Button href="#editar/rutina" sx={{ justifySelf: 'start' }}>Armar mi rutina →</Button>
+        </Card>
+      )}
       <Opciones nombre="Día" activa={ver.dia} opciones={dias} datos={ir} marcada={deHoy ? { id: deHoy.id, titulo: 'Hoy' } : null} sx={{ pb: '8px' }} />
       <Opciones nombre="Vista" activa={ver.dia} opciones={vistas} datos={ir} chica />
       {ver.dia === 'plan12' ? plan12(estado) : ver.dia === 'casa' ? casa(estado) : hoyDia ? dia(hoyDia, sem) : resumen(estado, sem, actual, ver)}

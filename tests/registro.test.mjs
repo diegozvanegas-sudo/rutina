@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { e } from '../src/estado.js';
+import { e, empezarDePrueba } from '../src/estado.js';
+// Con los datos de ejemplo de la app (una cuenta nueva empieza vacía)
+empezarDePrueba(true);
 import { sumarDias, lunesDe } from '../src/fechas.js';
 import { horasSueno, promedioSueno, cargaPartido, hayPartido, piernaAntes, partidos, energiaSegunPierna, semanaObjetivo, avisosDelDia, avisosPendientes, calendarioIcs } from '../src/registro.js';
 

@@ -2,7 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { semanaPlan, faseDe, gastoEstimado, pesoEsperado, tocaSubir, casaHecha, proximoLunes, avancePruebas, CASA, plan12, nivelDe } from '../src/plan12.js';
 import { estadoGym } from '../src/entrenador.js';
-import { e } from '../src/estado.js';
+import { e, empezarDePrueba } from '../src/estado.js';
+// Con los datos de ejemplo de la app (una cuenta nueva empieza vacía)
+empezarDePrueba(true);
 
 test('semana del plan y su fase: base, progresión, descarga en la 9, intensificación', () => {
   const p = { inicio: '2026-11-16' };

@@ -15,7 +15,7 @@ export const TEMAS_RETOS = {
     r('cinco', 'Levántate a las 5 a. m. 30 días seguidos y haz algo difícil antes de que nadie más despierte', 'racha',
       { nota: 'Sirve solo si duermes 7 horas: eso es acostarte a las 10 p. m. Levantarte a las 5 durmiendo poco te quita fuerza en el gym y en la cancha.' }),
     r('ayuno', 'Ayuna 24 horas y demuéstrate que controlas lo que comes', 'una',
-      { futbol: true, nota: 'Nunca el día del partido ni el anterior. La levotiroxina se toma igual, con agua.' }),
+      { futbol: true, nota: 'Nunca el día del partido ni el anterior. Si tomas una pastilla en ayunas, tómala igual, con agua.' }),
     r('alcohol', 'Un mes sin alcohol: mira quién eres completamente sobrio', 'racha'),
     r('porno', '30 días sin porno', 'racha'),
     r('correr', 'Corre hasta que de verdad no puedas más', 'una',

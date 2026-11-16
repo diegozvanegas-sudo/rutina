@@ -76,5 +76,10 @@ export default async (p) => {
   await tocarTexto('Borrar todos los datos');
   await a.dormir(800);
   falla(!(await c()).nombre, 'no borró los datos');
+  const s = (await p.estado()) || {};
+  falla(!s.rutina.length && !s.habitos.length && !Object.keys(s.semanas).length, 'empezar de cero no dejó la cuenta vacía');
+  // Los recorridos que siguen arrancan otra vez con el ejemplo
+  await p.ev('window.rutinaPrueba.ejemplo()');
+  await a.dormir(300);
   console.log('✓ Ajustes');
 };

@@ -10,7 +10,7 @@ import { tipoDeDia, tocaRecarga, totalPlan, macrosPorKg, objetivo, recalcular, q
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
 import { visibles } from './orden.js';
-import { iso, sumarDias, semanaDe, diaSemana, hora, ponerSemana1, SEMANA_1_INICIAL } from './fechas.js';
+import { iso, sumarDias, semanaDe, diaSemana, hora, ponerSemana1, lunesDeFecha, SEMANA_1_INICIAL } from './fechas.js';
 import { limpiarRepetidos } from './combinar.js';
 
 const BASE = 'rutina_v1';
@@ -115,7 +115,22 @@ function sembrarLugares(est) {
   if (!est.lugaresV2) sumar(LUGARES_RESTO());
   est.lugaresV1 = est.lugaresV2 = true;
 }
-const nuevo = () => ({ ...inicial(), ...Object.fromEntries(MIGRACIONES.map((k) => [k, true])), bienvenida: true });
+// Con los datos de ejemplo (la rutina, los hábitos y los días de fútbol de la app): lo que traía antes un equipo nuevo.
+// Lo usan "Cargar el ejemplo" de la bienvenida y las pruebas
+const conElEjemplo = () => ({ ...inicial(), ...Object.fromEntries(MIGRACIONES.map((k) => [k, true])), bienvenida: true });
+// Una cuenta (o un equipo) que empieza de cero: nada de otra persona (ni su rutina, ni sus hábitos, ni su moto, ni su
+// peso), la semana 1 es la de hoy (sin semanas pasadas) y la bienvenida de Hoy explica cómo llenar cada cosa
+const nuevo = () => {
+  const est = conElEjemplo();
+  est.habitos = [];
+  est.rutina = [];
+  est.config.futbol = [];
+  est.config.semana1 = lunesDeFecha(iso());
+  est.recordatorios = { vehiculos: [], lista: [], eventos: [] };
+  // Los planes de comida quedan de ejemplo hasta que anote su primer peso (ahí se recalculan con el suyo)
+  Object.assign(est.dieta.config, { pesoInicio: null, meta: null, estatura: null });
+  return est;
+};
 
 let estado = null, oyentes = [];
 
@@ -226,14 +241,22 @@ export function usarUsuario(id) {
 }
 export const claveActual = () => CLAVE;
 
-// Bienvenida de un usuario nuevo: seguir con el ejemplo o empezar sin hábitos, rutina ni días de fútbol
+// Bienvenida de un usuario nuevo: empezar vacío o cargar el ejemplo (rutina, hábitos y días de fútbol). El ejemplo solo
+// llena lo que está vacío: nunca reemplaza lo que ya tiene (por ejemplo, si sus datos acaban de bajar de la nube)
 export function elegirPlantilla(vacia) {
-  if (vacia) {
-    estado.habitos = [];
-    estado.rutina = [];
-    estado.config.futbol = [];
+  if (!vacia) {
+    const ej = conElEjemplo();
+    if (!estado.habitos.length) estado.habitos = ej.habitos;
+    if (!estado.rutina.length) estado.rutina = ej.rutina;
+    if (!estado.config.futbol.length) estado.config.futbol = ej.config.futbol;
   }
   delete estado.bienvenida;
+  guardar();
+}
+// Solo para las pruebas (rutinaPrueba en main.js, en desarrollo): empezar como una cuenta nueva o con el ejemplo de siempre
+export function empezarDePrueba(conEjemplo) {
+  estado = { ...(conEjemplo ? conElEjemplo() : nuevo()), nube: estado ? estado.nube : null };
+  ponerSemana1(estado.config.semana1);
   guardar();
 }
 export const e = () => estado || cargar();

@@ -62,7 +62,7 @@ function indicadores(e: Fin) {
     ['Puntaje de hoy', hoy ? hoy.total : '—', '/100', '#hoy'], ['Promedio 7 días', prom ?? '—', prom != null ? '/100' : '', '#hoy'],
     ['Racha mañana', r + ' 🔥', r === 1 ? 'día' : 'días', '#manana'],
     ['Peso (prom. 7 d)', peso ? kg(peso) + ' kg' : '—', peso && previo ? (peso <= previo ? '▼ ' : '▲ ') + kg(Math.abs(peso - previo)) + ' en la semana' : 'anota tu peso', '#dieta/peso'],
-    ['Gym semana ' + semanaActual(), gym.hechas + '/' + gym.plan, Math.round((gym.hechas / gym.plan) * 100) + ' % de las series', '#gym/resumen'],
+    ['Gym semana ' + semanaActual(), gym.hechas + '/' + gym.plan, (gym.plan ? Math.round((gym.hechas / gym.plan) * 100) + ' % de las series' : 'arma tu rutina'), '#gym/resumen'],
   ];
   if (mes) tiles.push(['Ahorro del mes', mes.tasaAhorro == null ? '—' : Math.round(mes.tasaAhorro * 100) + ' %', mes.ingresos ? 'de lo que entró' : 'registra ingresos', mes.ingresos ? '#finanzas/mes' : '#finanzas/registrar']);
   return (

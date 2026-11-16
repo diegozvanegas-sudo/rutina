@@ -1,6 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { e } from '../src/estado.js';
+import { e, empezarDePrueba } from '../src/estado.js';
+// Con los datos de ejemplo de la app (una cuenta nueva empieza vacía)
+empezarDePrueba(true);
 import { lunesDe, sumarDias } from '../src/fechas.js';
 import { seriesRaras, registrosRaros, mejorSerie, metaSesion, consejoRir, progresoMes } from '../src/gym.js';
 import { cargaFutbol, disposicion, sesionesGym, queTeHaceRendir, unicoMejorar, estadoGym, constanciaGym, proteinaSemana, pesoCorporalEn } from '../src/entrenador.js';

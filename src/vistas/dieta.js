@@ -60,6 +60,14 @@ registrar({
     const n = Number(String(el.value).replace(',', '.'));
     const hoy = dia();
     if (n > 0) hoy.peso = Math.round(n * 10) / 10; else delete hoy.peso;
+    // El primer peso de una cuenta nueva es su peso de inicio, y los planes de comida (que eran de ejemplo) se calculan con él
+    const c = d().config;
+    if (n > 0 && !c.pesoInicio) {
+      c.pesoInicio = hoy.peso;
+      for (const t of Object.keys(TIPOS)) if (d().planes[t]) d().planes[t] = recalcular(d().planes[t], d().alimentos, objetivo(c, t, hoy.peso)).plan;
+      c.pesoBase = hoy.peso;
+      toast('🥗 Tus planes de comida quedaron calculados con ' + String(hoy.peso).replace('.', ',') + ' kg');
+    }
     guardar();
   },
   'dieta-senal'({ k, n }) {

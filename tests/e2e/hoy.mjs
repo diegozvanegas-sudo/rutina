@@ -16,8 +16,8 @@ export default async (p) => {
   await paso('inicio');
 
   // Bienvenida: empezar con el ejemplo
-  if (await a.marcar('📋 Con el ejemplo (rutina, hábitos y fútbol)')) {
-    await tocarTexto('📋 Con el ejemplo (rutina, hábitos y fútbol)');
+  if (await a.marcar('📋 Cargar el ejemplo (rutina, hábitos y fútbol)')) {
+    await tocarTexto('📋 Cargar el ejemplo (rutina, hábitos y fútbol)');
     await a.dormir(500);
     falla(!(await p.estado()).bienvenida, 'no cerró la bienvenida');
     await paso('con el ejemplo');

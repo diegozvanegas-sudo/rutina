@@ -232,7 +232,7 @@ PLANTILLAS_RECORDATORIO.splice(PLANTILLAS_RECORDATORIO.length - 1, 0,
   { nombre: 'Pasar a ahorro al recibir el pago', icono: '🐷', vehiculo: '', cadaKm: 0, cadaMeses: 1, categoria: 'otros', grupo: 'pagos', nota: 'Primero te pagas a ti: muévelo a Finanzas → Ahorro el mismo día que entra el sueldo.' },
   { nombre: 'Pagar la tarjeta de crédito', icono: '💳', vehiculo: '', cadaKm: 0, cadaMeses: 1, categoria: 'deudas', grupo: 'pagos', nota: 'Pon en Editar el día fijo de pago. Pagar el total evita intereses.' },
   { nombre: 'Revisar el extracto del banco', icono: '🏦', vehiculo: '', cadaKm: 0, cadaMeses: 1, categoria: 'otros', grupo: 'digital', nota: 'Cobros que no reconoces, cuotas de manejo y seguros que no pediste.' },
-  { nombre: 'Control de tiroides (TSH)', icono: '🦋', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'salud', grupo: 'salud', nota: 'Por la levotiroxina. Ajusta cada cuánto según lo que diga tu médico.' },
+  { nombre: 'Control de tiroides (TSH)', icono: '🦋', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'salud', grupo: 'salud', nota: 'Si tomas pastilla para la tiroides. Ajusta cada cuánto según lo que diga tu médico.' },
   { nombre: 'Revisar las metas del año', icono: '🎯', vehiculo: '', cadaKm: 0, cadaMeses: 12, categoria: 'otros', grupo: 'personal', nota: 'Qué cumpliste, qué no y qué quieres para el próximo año (Metas y Progreso).' },
   { nombre: 'Revisar el botiquín', icono: '🩹', vehiculo: '', cadaKm: 0, cadaMeses: 6, categoria: 'salud', grupo: 'casa', nota: 'Lo vencido a la basura; repón vendas, analgésicos y lo del fútbol (hielo en gel, venda elástica).' },
 );

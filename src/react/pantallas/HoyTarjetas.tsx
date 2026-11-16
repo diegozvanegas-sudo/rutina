@@ -142,6 +142,14 @@ export function ProximoEntreno({ e, max = Infinity }: { e: Fin; max?: number }) 
 }
 const BORDE_ENTRENADOR: Record<string, string> = { verde: tokens.verde, amarillo: tokens.amarillo, rojo: tokens.rojo };
 export function Entrenador({ e }: { e: Fin }) {
+  if (!(e.rutina as Fin[]).some((x) => x.id !== 'core' && x.ejercicios.length)) {
+    return (
+      <Tarjeta titulo="🧑‍🏫 Tu entrenador hoy">
+        <Nota sx={{ m: 0 }}>Cuando tengas tu rutina, aquí te digo cada día si subir el peso, mantener o bajar la carga, según cómo dormiste, el fútbol y tus molestias.</Nota>
+        <Box component="a" href="#editar/rutina" sx={{ color: 'primary.main', fontWeight: 700 }}>Armar mi rutina →</Box>
+      </Tarjeta>
+    );
+  }
   const d = disposicion() as Fin, u = unicoMejorar() as Fin, carga = d.carga && d.carga.ratio != null && d.carga.estado !== 'ok' ? textoCarga(d.carga) : '';
   return (
     <Tarjeta titulo="🧑‍🏫 Tu entrenador hoy" sx={{ borderColor: BORDE_ENTRENADOR[d.nivel] }}>

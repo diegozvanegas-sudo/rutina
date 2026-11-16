@@ -228,10 +228,17 @@ export default function Hoy() {
       </Box>
       {bienvenida ? (
         <Tarjeta titulo="👋 Bienvenido">
-          <p>¿Cómo quieres empezar? Todo se puede cambiar, mover o borrar después en ✏️ Editar.</p>
+          <p>Tu cuenta empieza vacía: todo lo que ves aquí lo llenas tú. Por dónde empezar:</p>
+          <Box component="ol" sx={{ m: '0 0 8px', pl: '22px', display: 'grid', gap: '6px', '& a': { color: 'primary.main' } }}>
+            <li><Link href="#ajustes">⚙️ Ajustes</Link>: tu nombre, para saludarte.</li>
+            <li><Link href="#editar/rutina">✏️ Editar → Rutina</Link>: tus días de gym con sus ejercicios, series y reps (y tus días de fútbol, si juegas).</li>
+            <li><Link href="#manana">☀️ Mañana</Link>: los hábitos con los que arrancas el día.</li>
+            <li><Link href="#dieta/peso">🥗 Dieta → ⚖️ Peso</Link>: tu peso de hoy; con él se calculan tus planes de comida.</li>
+          </Box>
+          <Nota sx={{ m: 0 }}>Cada día anotas lo que haces y la app te dice cómo vas. ¿Prefieres ver cómo se ve todo lleno? Carga el ejemplo y cámbialo a tu gusto.</Nota>
           <Botones>
-            <Button data-accion="plantilla" data-vacia="" sx={{ minHeight: 56, fontSize: 17 }}>📋 Con el ejemplo (rutina, hábitos y fútbol)</Button>
-            <Button color="secondary" data-accion="plantilla" data-vacia="1" sx={{ minHeight: 56, fontSize: 17 }}>🧹 Vacío: armo lo mío</Button>
+            <Button data-accion="plantilla" data-vacia="1" sx={{ minHeight: 56, fontSize: 17 }}>✓ Entendido, empiezo</Button>
+            <Button color="secondary" data-accion="plantilla" data-vacia="" sx={{ minHeight: 56, fontSize: 17 }}>📋 Cargar el ejemplo (rutina, hábitos y fútbol)</Button>
           </Botones>
         </Tarjeta>
       ) : null}

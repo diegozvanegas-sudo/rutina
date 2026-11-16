@@ -5,6 +5,22 @@
 create schema if not exists rutina;
 revoke all on schema rutina from public, anon, authenticated;
 
+-- Acceso a la app: las cuentas son las del proyecto de microrrutas y a cuál app entra cada una lo decide su administrador
+-- en 👥 Usuarios (public.accesos y public.tiene_app, migración 0025 de microrrutas: aplicarla antes de correr este archivo).
+-- Sin acceso, cada función de aquí responde «Sin acceso a Rutina…» y la app cierra la sesión (nube.js)
+create or replace function rutina.exigir_acceso()
+returns void
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  if not public.tiene_app('rutina') then
+    raise exception 'Sin acceso a Rutina: esta cuenta no tiene acceso a la app. Pídele al administrador que te la active.';
+  end if;
+end;
+$$;
+revoke execute on function rutina.exigir_acceso() from public, anon, authenticated;
+
 -- Todo el estado de la app de un usuario (lo mismo que se guarda en el celular)
 create table if not exists rutina.estado (
   usuario     uuid primary key references auth.users(id) on delete cascade,
@@ -16,9 +32,12 @@ alter table rutina.estado enable row level security;
 
 create or replace function public.rutina_leer()
 returns table (datos jsonb, version bigint)
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
-  select e.datos, e.version from rutina.estado e where e.usuario = auth.uid();
+begin
+  perform rutina.exigir_acceso();
+  return query select e.datos, e.version from rutina.estado e where e.usuario = auth.uid();
+end;
 $$;
 
 -- Historial: copias anteriores del estado, para volver atrás si un equipo sube algo malo (11 nov 2026 se perdió todo
@@ -104,6 +123,7 @@ as $$
 declare v bigint; viejo jsonb; antes int; ahora int; perdida text; ultima timestamptz;
 begin
   if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
+  perform rutina.exigir_acceso();
   if jsonb_typeof(p_datos) is distinct from 'object' or (p_datos->>'version') is distinct from '1'
      or jsonb_typeof(p_datos->'rutina') is distinct from 'array' then
     raise exception 'Protección: lo que llegó no son datos completos de la app. No se subió; la nube sigue igual.';
@@ -131,10 +151,14 @@ $$;
 -- Copias guardadas del usuario (las más nuevas primero), con cuánto tenía cada una
 create or replace function public.rutina_historial()
 returns table (id bigint, guardado timestamptz, motivo text, dias int, registros int)
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
+begin
+  perform rutina.exigir_acceso();
+  return query
   select h.id, h.guardado, h.motivo, (rutina.conteo(h.datos)->>'dias')::int, (rutina.conteo(h.datos)->>'gym')::int
   from rutina.historial h where h.usuario = auth.uid() order by h.guardado desc;
+end;
 $$;
 
 -- Vuelve a una copia: lo de ahora pasa al historial y la copia queda como lo más nuevo (los equipos la bajan solos)
@@ -144,7 +168,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare d jsonb; v bigint;
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   select h.datos into d from rutina.historial h where h.id = p_id and h.usuario = auth.uid();
   if d is null then raise exception 'Esa copia no existe'; end if;
   perform rutina.respaldar(auth.uid(), 'antes de restaurar');
@@ -206,7 +230,7 @@ create or replace function rutina.es_admin()
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
-  select exists (select 1 from rutina.perfiles p where p.usuario = auth.uid() and p.rol = 'admin');
+  select public.tiene_app('rutina') and exists (select 1 from rutina.perfiles p where p.usuario = auth.uid() and p.rol = 'admin');
 $$;
 
 create or replace function rutina.solo_admin()
@@ -225,7 +249,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare r text;
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   insert into rutina.perfiles (usuario) values (auth.uid()) on conflict (usuario) do nothing;
   select p.rol into r from rutina.perfiles p where p.usuario = auth.uid();
   return jsonb_build_object('rol', r, 'reglas', coalesce((
@@ -358,7 +382,7 @@ create or replace function rutina.puede_entrenar()
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
-  select exists (select 1 from rutina.perfiles p where p.usuario = auth.uid() and p.rol in ('admin', 'entrenador'));
+  select public.tiene_app('rutina') and exists (select 1 from rutina.perfiles p where p.usuario = auth.uid() and p.rol in ('admin', 'entrenador'));
 $$;
 
 -- Invitar (o volver a ver el código de) un cliente. Devuelve { codigo, estado }
@@ -368,7 +392,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare r rutina.asignaciones; c text;
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   if not rutina.puede_entrenar() then raise exception 'Para invitar clientes necesitas el rol de entrenador'; end if;
   if coalesce(trim(p_local), '') = '' then raise exception 'Falta el cliente'; end if;
   select * into r from rutina.asignaciones a where a.entrenador = auth.uid() and a.cliente_local = p_local and a.estado <> 'terminado';
@@ -390,7 +414,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare v bigint := (extract(epoch from now()) * 1000)::bigint; n int;
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   if jsonb_typeof(p_plan) is distinct from 'object' then raise exception 'El plan no es válido'; end if;
   if octet_length(p_plan::text) > 500000 then raise exception 'El plan es demasiado grande'; end if;
   update rutina.asignaciones a set plan = p_plan, plan_version = v
@@ -404,13 +428,17 @@ $$;
 -- Los clientes del entrenador con su estado y lo que cada uno le comparte (el correo, solo de quien aceptó)
 create or replace function public.rutina_coach_clientes()
 returns jsonb
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
-  select coalesce(jsonb_agg(jsonb_build_object(
-    'local', a.cliente_local, 'codigo', a.codigo, 'estado', a.estado, 'correo', case when a.estado = 'activo' then u.email end,
-    'aceptado', a.aceptado, 'plan_version', a.plan_version, 'resumen', a.resumen, 'resumen_actualizado', a.resumen_actualizado) order by a.creado), '[]'::jsonb)
-  from rutina.asignaciones a left join auth.users u on u.id = a.cliente
-  where a.entrenador = auth.uid() and a.estado <> 'terminado';
+begin
+  perform rutina.exigir_acceso();
+  return (
+    select coalesce(jsonb_agg(jsonb_build_object(
+      'local', a.cliente_local, 'codigo', a.codigo, 'estado', a.estado, 'correo', case when a.estado = 'activo' then u.email end,
+      'aceptado', a.aceptado, 'plan_version', a.plan_version, 'resumen', a.resumen, 'resumen_actualizado', a.resumen_actualizado) order by a.creado), '[]'::jsonb)
+    from rutina.asignaciones a left join auth.users u on u.id = a.cliente
+    where a.entrenador = auth.uid() and a.estado <> 'terminado');
+end;
 $$;
 
 -- El entrenador termina la relación (o cancela una invitación que nadie usó)
@@ -419,7 +447,7 @@ returns void
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   update rutina.asignaciones a set estado = 'terminado', terminado = now()
     where a.entrenador = auth.uid() and a.cliente_local = p_local and a.estado <> 'terminado';
 end;
@@ -432,7 +460,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare r rutina.asignaciones; correo text;
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   select * into r from rutina.asignaciones a where a.codigo = upper(trim(p_codigo));
   if r.id is null or r.estado = 'terminado' then raise exception 'Ese código no existe o ya no sirve. Pídele uno nuevo a tu entrenador.'; end if;
   if r.entrenador = auth.uid() then raise exception 'Ese código es tuyo: mándaselo a tu cliente'; end if;
@@ -447,11 +475,15 @@ $$;
 -- Lo que el cliente recibe de sus entrenadores: el plan publicado
 create or replace function public.rutina_cliente_planes()
 returns jsonb
-language sql stable security definer set search_path = ''
+language plpgsql stable security definer set search_path = ''
 as $$
-  select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'entrenador', u.email, 'aceptado', a.aceptado, 'plan', a.plan, 'plan_version', a.plan_version) order by a.aceptado), '[]'::jsonb)
-  from rutina.asignaciones a join auth.users u on u.id = a.entrenador
-  where a.cliente = auth.uid() and a.estado = 'activo';
+begin
+  perform rutina.exigir_acceso();
+  return (
+    select coalesce(jsonb_agg(jsonb_build_object('id', a.id, 'entrenador', u.email, 'aceptado', a.aceptado, 'plan', a.plan, 'plan_version', a.plan_version) order by a.aceptado), '[]'::jsonb)
+    from rutina.asignaciones a join auth.users u on u.id = a.entrenador
+    where a.cliente = auth.uid() and a.estado = 'activo');
+end;
 $$;
 
 -- El cliente manda su resumen (a todos sus entrenadores activos)
@@ -461,7 +493,7 @@ language plpgsql security definer set search_path = ''
 as $$
 declare n int;
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   if jsonb_typeof(p_resumen) is distinct from 'object' or octet_length(p_resumen::text) > 200000 then raise exception 'El resumen no es válido'; end if;
   update rutina.asignaciones a set resumen = p_resumen, resumen_actualizado = now() where a.cliente = auth.uid() and a.estado = 'activo';
   get diagnostics n = row_count;
@@ -475,7 +507,7 @@ returns void
 language plpgsql security definer set search_path = ''
 as $$
 begin
-  if auth.uid() is null then raise exception 'Inicia sesión'; end if;
+  perform rutina.exigir_acceso();
   update rutina.asignaciones a set estado = 'terminado', terminado = now(), resumen = null where a.id = p_id and a.cliente = auth.uid();
 end;
 $$;

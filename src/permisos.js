@@ -9,6 +9,10 @@ export const TIPOS = { seccion: 'Secciones del menú', area: 'Áreas de Estudiar
 export function registrarCatalogo(tipo, f) { CATALOGO[tipo] = f; }
 export const catalogo = (tipo) => (CATALOGO[tipo] ? CATALOGO[tipo]() : {});
 export const tiposCatalogo = () => Object.keys(TIPOS).filter((t) => Object.keys(catalogo(t)).length);
+// La cuenta existe pero no tiene acceso a Rutina (las cuentas son compartidas con microrrutas: su administrador decide a
+// qué app entra cada una). Así empieza el error de las funciones rutina_* (supabase/esquema.sql, rutina.exigir_acceso)
+export const esSinAcceso = (mensaje) => /^Sin acceso a Rutina/.test(String(mensaje || ''));
+
 // Siempre visibles: sin ellas no se puede cerrar sesión ni volver al inicio
 export const SIEMPRE = { seccion: ['hoy', 'ajustes'] };
 

@@ -42,6 +42,7 @@ export function pantallaEntrar() {
     '<label class="campo">Correo<input type="email" id="nube-correo" autocomplete="username" inputmode="email"></label>' +
     '<label class="campo">Contraseña<input type="password" id="nube-clave" autocomplete="current-password"></label>' +
     (nube.estado === 'sin-sesion' && !navigator.onLine ? '<p class="aviso">Sin conexión: conéctate para iniciar sesión.</p>' : '') +
+    (nube.rechazo ? '<p class="aviso" role="alert">🔒 ' + esc(nube.rechazo) + '</p>' : '') +
     '<button type="button" class="boton primario grande ancho" data-accion="nube-entrar">Entrar</button>' +
     '<p class="nota-corta">¿No tienes usuario? Pídeselo a tu entrenador.</p></section>' + presentacion() + '</div>';
 }

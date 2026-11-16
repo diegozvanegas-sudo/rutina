@@ -4,7 +4,14 @@ import assert from 'node:assert/strict';
 const guardado = new Map();
 globalThis.localStorage = { getItem: (k) => (guardado.has(k) ? guardado.get(k) : null), setItem: (k, v) => guardado.set(k, String(v)), removeItem: (k) => guardado.delete(k) };
 const { puedeVer, puedeVerRuta, permisosDe, reglaDe, catalogo, registrarCatalogo, tiposCatalogo, ponerPermisos, permisosGuardados, quitarPermisos,
-  esAdmin, ve, ponerVerComo, viendoComo } = await import('../src/permisos.js');
+  esAdmin, ve, ponerVerComo, viendoComo, esSinAcceso } = await import('../src/permisos.js');
+
+test('cuenta sin acceso a Rutina: se reconoce el error de la nube', () => {
+  assert.equal(esSinAcceso('Sin acceso a Rutina: esta cuenta no tiene acceso a la app. Pídele al administrador que te la active.'), true);
+  assert.equal(esSinAcceso('Protección: esta subida borraría más de la mitad'), false);
+  assert.equal(esSinAcceso('Inicia sesión'), false);
+  assert.equal(esSinAcceso(null), false);
+});
 
 const estudiante = { rol: 'estudiante', reglas: [{ tipo: 'seccion', id: 'finanzas', visible: false }, { tipo: 'seccion', id: 'gym', visible: false },
   { tipo: 'seccion', id: 'gym', visible: true, usuario: true }] };

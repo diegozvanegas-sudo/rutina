@@ -3,7 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual } from './estado.js';
 import { combinarEstado, difiereDeLaNube, tieneDatosPropios } from './combinar.js';
-import { ponerPermisos, permisosGuardados, quitarPermisos } from './permisos.js';
+import { ponerPermisos, permisosGuardados, quitarPermisos, esSinAcceso } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const configurada = !!(url && llave);
@@ -12,8 +12,18 @@ const supabase = configurada ? createClient(url, llave, { auth: { persistSession
 // estado: sin-sesion · sincronizando · al-dia · pendiente · sin-conexion · error
 // lista: ya se sabe si hay sesión guardada (al abrir, Supabase la lee un instante después)
 // proteccion: la nube no dejó subir porque se iban a borrar más de la mitad de los registros (supabase/esquema.sql)
-export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '', lista: !configurada, proteccion: false };
+// rechazo: la cuenta existe pero no tiene acceso a Rutina (es de microrrutas): se cerró la sesión y Entrar dice por qué
+export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '', lista: !configurada, proteccion: false, rechazo: '' };
 function poner(estado, error = '') { nube.estado = estado; nube.error = error; repintar(); }
+
+// Las cuentas son las mismas de microrrutas y su administrador decide a qué app entra cada una: sin acceso a Rutina se cierra
+// la sesión en este equipo (no en los demás ni en microrrutas) y se avisa en la pantalla de Entrar
+async function rechazar(mensaje) {
+  nube.rechazo = mensaje;
+  clearTimeout(espera);
+  try { await supabase.auth.signOut({ scope: 'local' }); } catch (err) {}
+  repintar();
+}
 
 let corriendo = null, otraVez = false, espera = null;
 
@@ -56,6 +66,7 @@ export async function sincronizar(silencio = false) {
     } catch (err) {
       if (err instanceof CambioDeCuenta) return;
       const msg = err.message || String(err);
+      if (esSinAcceso(msg)) { await rechazar(msg); return; }
       if (/^Protecci/.test(msg)) nube.proteccion = true;
       poner(navigator.onLine ? 'error' : 'sin-conexion', msg);
     }
@@ -143,6 +154,7 @@ function programar() {
 export async function cargarPermisos() {
   if (!supabase || !nube.usuario || !navigator.onLine) return;
   const { data, error } = await supabase.rpc('rutina_mis_permisos');
+  if (error && esSinAcceso(error.message)) { await rechazar(error.message); return; }
   if (error || !data) return;
   ponerPermisos(nube.usuario.id, data);
   repintar();
@@ -156,8 +168,12 @@ export async function llamar(funcion, args = {}) {
 }
 
 export async function entrar(correo, clave) {
+  nube.rechazo = '';
   const { error } = await supabase.auth.signInWithPassword({ email: correo.trim(), password: clave });
   if (error) throw new Error(error.message === 'Invalid login credentials' ? 'Correo o contraseña incorrectos' : error.message);
+  // La contraseña es correcta, pero ¿la cuenta entra a Rutina? (si no, se sale y se dice por qué)
+  const r = await supabase.rpc('rutina_mis_permisos');
+  if (r.error && esSinAcceso(r.error.message)) { await rechazar(r.error.message); throw new Error(r.error.message); }
 }
 export async function salir() {
   await supabase.auth.signOut();

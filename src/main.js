@@ -5,25 +5,28 @@ import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct, barra, esc, claveDeDatos } from './ui.js';
 import { revisar, restante, sumar, detener } from './temporizador.js';
 import { resumenSemana } from './gym.js';
-import { vistaHoy } from './vistas/hoy.js';
-import { vistaManana, textoEspera, revisarCronos } from './vistas/manana.js';
-import { vistaMetas } from './vistas/metas.js';
+import './vistas/hoy.js';
+import { textoEspera, revisarCronos } from './vistas/manana.js';
+import './vistas/metas.js';
 import { vistaGym, semanaActual, claveGym } from './vistas/gym.js';
-import { vistaSesiones } from './vistas/sesiones.js';
+import './vistas/sesiones.js';
 import { vistaAjustes, pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.js';
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import { vistaEditar } from './vistas/editar.js';
-import { vistaDieta } from './vistas/dieta.js';
+import './vistas/dieta.js';
 import { vistaFinanzas, claveFinanzas } from './vistas/finanzas.js';
 import { alertas, bannerDiarios } from './vistas/recordatorios.js';
-import { vistaProgreso } from './vistas/progreso.js';
-import { vistaLibros } from './vistas/libros.js';
-import { vistaEstudiar } from './vistas/estudiar.js';
+import './vistas/progreso.js';
+// Acciones que ya no importa ninguna pantalla de antes (las pantallas de React las usan con data-accion)
+import './vistas/mejora.js';
+import './vistas/retos.js';
+import './vistas/libros.js';
+import './vistas/estudiar.js';
 import { montarReact, desmontarReact } from './react/montar.js';
 import { refrescarReact } from './react/refrescar.js';
 import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
-import { vistaLugares } from './vistas/lugares.js';
-import { vistaSuplementos } from './vistas/suplementos.js';
+import './vistas/lugares.js';
+import './vistas/suplementos.js';
 import { vistaClientes } from './vistas/clientes.js';
 import { vistaEntrenador, tieneEntrenador } from './vistas/entrenador.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
@@ -31,7 +34,7 @@ import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
-import { vistaAdministrar, bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
+import { bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
 
 registerSW({ immediate: true });
 // Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
@@ -41,12 +44,18 @@ iniciarHoja();
 iniciarAvisos();
 
 const PANTALLAS = {
-  hoy: vistaHoy, progreso: vistaProgreso, manana: vistaManana, metas: vistaMetas, estudiar: vistaEstudiar, dieta: vistaDieta, suplementos: vistaSuplementos, finanzas: vistaFinanzas,
-  lugares: vistaLugares, gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, sesiones: vistaSesiones, editar: vistaEditar, ajustes: vistaAjustes,
+  finanzas: vistaFinanzas,
+  gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, editar: vistaEditar, ajustes: vistaAjustes,
 };
 // Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
 const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
-  ventas: () => import('./react/pantallas/Ventas.tsx'), recordatorios: () => import('./react/pantallas/Recordatorios.tsx') };
+  ventas: () => import('./react/pantallas/Ventas.tsx'), recordatorios: () => import('./react/pantallas/Recordatorios.tsx'),
+  dieta: () => import('./react/pantallas/Dieta.tsx'), administrar: () => import('./react/pantallas/Administrar.tsx'),
+  libros: () => import('./react/pantallas/Libros.tsx'), lugares: () => import('./react/pantallas/Lugares.tsx'),
+  metas: () => import('./react/pantallas/Metas.tsx'), suplementos: () => import('./react/pantallas/Suplementos.tsx'),
+  manana: () => import('./react/pantallas/Manana.tsx'), estudiar: () => import('./react/pantallas/Estudiar.tsx'),
+  sesiones: () => import('./react/pantallas/Sesiones.tsx'), hoy: () => import('./react/pantallas/Hoy.tsx'),
+  progreso: () => import('./react/pantallas/Progreso.tsx') };
 // Secciones grandes que se migran pestaña por pestaña: las pestañas de "listas" ya son de React; las demás siguen como antes
 const REACT_POR_PESTANA = {
   finanzas: { actual: claveFinanzas, listas: ['registrar', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'calcular', 'esperas', 'planb:desempleo', 'planb:lider', 'planb:creativo', 'planb:innovacion', 'planb:pitch'], cargar: () => import('./react/pantallas/Finanzas.tsx') },
@@ -58,12 +67,12 @@ let pestanaReact = null;
 // Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
 const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
 // Administrar no está en el catálogo (ni se ordena ni se esconde): solo la ve el admin
-VISTAS.administrar = ['🛡️', 'Administrar', vistaAdministrar];
+VISTAS.administrar = ['🛡️', 'Administrar'];
 // 💼 Ventas (vender los PDF): igual que Administrar, solo el admin y nunca en la vista previa de otro rol
 VISTAS.ventas = ['💼', 'Ventas'];
 const SOLO_ADMIN = ['administrar', 'ventas'];
 // 📚 Libros es un área de 🎓 Estudiar: no sale en el menú, pero sus enlaces (#libros/fenix) siguen funcionando
-VISTAS.libros = ['📚', 'Libros', vistaLibros];
+VISTAS.libros = ['📚', 'Libros'];
 const DENTRO = { libros: 'estudiar' };
 const $ = (id) => document.getElementById(id);
 // "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta".

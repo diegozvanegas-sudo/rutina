@@ -9,7 +9,18 @@ import gym from './gym.mjs';
 import gymdia from './gymdia.mjs';
 import gymextra from './gymextra.mjs';
 import recordatorios from './recordatorios.mjs';
+import dieta from './dieta.mjs';
+import administrar from './administrar.mjs';
+import libros from './libros.mjs';
+import lugares from './lugares.mjs';
+import metas from './metas.mjs';
+import suplementos from './suplementos.mjs';
+import manana from './manana.mjs';
+import estudiar from './estudiar.mjs';
+import sesiones from './sesiones.mjs';
+import hoy from './hoy.mjs';
+import progreso from './progreso.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso]) await recorrido(p);
 };

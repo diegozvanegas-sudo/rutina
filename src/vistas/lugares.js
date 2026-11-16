@@ -1,13 +1,12 @@
 // 🗺️ Lugares: los lugares que visité y los que quiero visitar, en mapas SVG propios (sin internet): Mundo › Colombia o Brasil › Antioquia.
 import { e, guardar, repintar } from '../estado.js';
-import { iso, fechaCorta } from '../fechas.js';
-import { esc, barra, pct, registrar, toast } from '../ui.js';
-import { leerMonto, pesos } from '../finanzas.js';
+import { iso } from '../fechas.js';
+import { registrar, toast } from '../ui.js';
+import { leerMonto } from '../finanzas.js';
 import { nuevoMovimiento } from './finanzas.js';
 import { ve } from '../permisos.js';
 import { MAPAS, MAPA_INICIAL, cargarMapa } from '../mapas/index.js';
-import { TIPOS_LUGAR } from '../datos_lugares.js';
-import { proyectar, desproyectar, piezaEn, cajaDe, piezaDelLugar, lugaresDePieza, estadoPieza, resumenMapa, avanceGrupos, lineaTiempo, filtrar, ordenar, agregarVisita, sorprender, mapaHijo, migas, enlaceSeguro, quitarVisita, marcarPieza, desmarcarPieza } from '../lugares.js';
+import { proyectar, desproyectar, piezaEn, cajaDe, piezaDelLugar, agregarVisita, sorprender, mapaHijo, migas, enlaceSeguro, quitarVisita, marcarPieza, desmarcarPieza } from '../lugares.js';
 
 const lista = () => e().lugares.lista;
 const buscar = (id) => lista().find((l) => l.id === id);
@@ -37,163 +36,30 @@ const plural = (n, s, p = s + 's') => n + ' ' + (n === 1 ? s : p);
 const horas = (n) => '≈ ' + String(n).replace('.', ',') + ' h desde Medellín';
 const estrellas = (n) => (n ? '★'.repeat(n) + '☆'.repeat(5 - n) : '');
 
-// ---------- Mapa ----------
-function dibujo() {
-  const indice = MAPAS, porPieza = {};
-  for (const l of lista()) { const p = piezaDelLugar(l, mapa.id, indice); if (p != null) (porPieza[p] ??= []).push(l); }
-  const piezas = mapa.piezas.map((p) => {
-    const ls = porPieza[p.id] || [], { estado, tono } = estadoPieza(ls);
-    const hijo = mapaHijo(MAPAS, mapa.id, p.id);
-    const clase = 'pz' + (estado === 'visitado' ? ' v' + tono : estado === 'quiero' ? ' q' : '') + (p.id === piezaSel ? ' sel' : '') + (hijo ? ' hijo' : '');
-    const tip = p.nombre + ' · ' + p.grupo + ' · ' + (ls.length ? plural(ls.length, 'lugar', 'lugares') : 'sin lugares') + (hijo ? ' · toca para entrar' : '');
-    return '<path class="' + clase + '" d="' + p.d + '" data-pieza="' + p.id + '" data-tip="' + esc(tip) + '"/>';
-  }).join('');
-  // Los lugares de los mapas de abajo solo salen si ya se visitaron: los demás se ven por el color de la pieza, y no tapan el mapa
-  const puntos = lista().filter((l) => l.lat != null && enElMapa(l) && (l.mapa === mapa.id || l.estado === 'visitado')).map((l) => {
-    const [x, y] = proyectar(mapa, l.lat, l.lon), v = l.estado === 'visitado';
-    return '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')"><g class="pt ' + (v ? 'pt-v' : 'pt-q') + (l.id === abierto ? ' abierto' : '') + '" data-lugar="' + l.id + '" data-tip="' + esc((v ? '● ' : '☆ ') + l.nombre) + '">' +
-      '<circle class="pt-toque" r="14"/>' + (v ? '<circle r="6"/>' : '<polygon points="0,-8 2.2,-2.5 8,-2.5 3.4,1.2 5,7 0,3.6 -5,7 -3.4,1.2 -8,-2.5 -2.2,-2.5"/>') + '</g></g>';
-  }).join('');
-  // --z encoge los puntos al acercarse: así miden lo mismo en pantalla en cualquier mapa
-  const z = 1000 / caja.w, c = animar;
-  animar = '';
-  return '<div class="mapa-caja ' + c + (ubicando ? ' ubicando' : '') + '">' +
-    '<svg class="mapa-svg' + (caja.w < mapa.ancho - 1 ? ' con-zoom' : '') + '" viewBox="' + [caja.x, caja.y, caja.w, caja.h].join(' ') + '" style="--z:' + z + ';aspect-ratio:' + mapa.ancho + '/' + mapa.alto + '" role="img" aria-label="Mapa de ' + esc(mapa.nombre) + '">' + piezas + puntos + '</svg>' +
-    '<div class="mapa-zoom"><button type="button" class="icono" data-accion="lug-zoom" data-f="1.5" aria-label="Acercar">＋</button><button type="button" class="icono" data-accion="lug-zoom" data-f="0.66" aria-label="Alejar">－</button><button type="button" class="icono" data-accion="lug-grupo" data-g="" aria-label="Ver todo">⤢</button></div>' +
-    '<div class="mapa-leyenda"><span><i class="ley v2"></i>Visitado</span><span><i class="ley q"></i>Quiero ir</span><span><i class="ley"></i>Sin marcar</span></div></div>';
-}
-
-function numeros() {
-  const r = resumenMapa(mapa, lista(), MAPAS, Number(iso().slice(0, 4))), info = MAPAS[mapa.id];
-  const kpi = (n, texto) => '<div class="kpi"><b>' + esc(n) + '</b><span>' + esc(texto) + '</span></div>';
-  return '<div class="kpis">' + kpi(r.piezas + ' / ' + r.total, info.unidad + ' · ' + pct(r.fraccion)) + kpi(r.visitados, r.visitados === 1 ? 'lugar visitado' : 'lugares visitados') + kpi(r.porVisitar, 'por visitar') +
-    kpi(r.viajes, r.viajes === 1 ? 'viaje este año' : 'viajes este año') + kpi(r.paises, r.paises === 1 ? 'país' : 'países') + kpi(r.ultimo ? r.ultimo.nombre : '—', 'último lugar') + '</div>';
-}
-
-function grupos() {
-  const filas = avanceGrupos(mapa, lista(), MAPAS);
-  return '<section class="tarjeta"><h2>Avance por ' + esc(MAPAS[mapa.id].grupo) + '</h2><p class="nota-corta">Toca una para acercarte en el mapa.</p><div class="grupos-lugar">' + filas.map((g) =>
-    '<button type="button" class="grupo-lugar" data-accion="lug-grupo" data-g="' + esc(g.grupo) + '"><span class="fila-resumen"><span>' + esc(g.grupo) + '</span><b>' + g.hechas + '/' + g.total + '</b></span>' + barra(g.fraccion) + '</button>').join('') + '</div></section>';
-}
-
-// ---------- Panel de la pieza tocada ----------
-function panelPieza() {
-  const p = piezaSel && mapa.piezas.find((x) => x.id === piezaSel);
-  if (!p) return '';
-  const ls = lugaresDePieza(lista(), mapa.id, p.id, MAPAS);
-  return '<section class="tarjeta panel-pieza"><div class="fila-resumen"><h2>' + esc(p.nombre) + '</h2><button type="button" class="icono" data-accion="lug-cerrar-pieza" aria-label="Cerrar">✕</button></div>' +
-    '<p class="nota-corta">' + esc(p.grupo) + ' · ' + plural(ls.length, 'lugar', 'lugares') + '</p>' +
-    (ls.length ? '<ul class="lista-lugares">' + ls.map(fila).join('') + '</ul>' : '') +
-    '<div class="botones-rapidos">' + (ls.some((l) => l.estado === 'visitado') ? '<button type="button" class="boton secundario" data-accion="lug-quitar-pieza" data-p="' + p.id + '">↩ Quitar de visitados</button>' : '<button type="button" class="boton primario" data-accion="lug-ya-estuve" data-p="' + p.id + '">✓ Ya estuve aquí</button>') + '<button type="button" class="boton secundario" data-accion="lug-nuevo" data-p="' + p.id + '">＋ Agregar lugar aquí</button></div></section>';
-}
-
-// ---------- Lista ----------
-function fila(l) {
-  const v = l.estado === 'visitado', detalle = [dondeEs(l), v ? ((l.visitas || []).length ? plural(l.visitas.length, 'visita') : '') : l.horas ? horas(l.horas) : ''].filter(Boolean).join(' · ');
-  return '<li><button type="button" class="fila-lugar' + (l.id === abierto ? ' activa' : '') + '" data-accion="lug-abrir" data-id="' + l.id + '"><span class="lug-emoji" aria-hidden="true">' + esc(l.emoji || '📍') + '</span>' +
-    '<span class="lug-txt"><b>' + esc(l.nombre) + '</b><small>' + esc(detalle) + '</small></span><span class="lug-estado ' + (v ? 'v' : 'q') + '">' + (v ? '●' : '☆') + '</span></button></li>';
-}
-const opciones = (valores, actual, todas) => '<option value="">' + todas + '</option>' + valores.map(([v, t]) => '<option value="' + esc(v) + '"' + (v === actual ? ' selected' : '') + '>' + esc(t) + '</option>').join('');
-
-function listaLugares() {
-  const delMapa = lista().filter(enElMapa), ls = ordenar(filtrar(delMapa, filtro, grupoDe)), paises = [...new Set(delMapa.map((l) => l.pais).filter(Boolean))].sort();
-  const chip = (v, t) => '<button type="button" class="chip' + (filtro.estado === v ? ' activo' : '') + '" data-accion="lug-estado" data-v="' + v + '">' + t + '</button>';
-  return '<section class="tarjeta"><div class="fila-resumen"><h2>Lugares (' + ls.length + ')</h2><button type="button" class="boton primario" data-accion="lug-nuevo">＋ Agregar lugar</button></div>' +
-    '<div class="chips">' + chip('', 'Todos') + chip('visitado', '● Visitados') + chip('quiero', '☆ Por visitar') + '</div>' +
-    '<div class="filtros-lugar"><input type="search" data-cambio="lug-filtro" data-k="texto" placeholder="Buscar" aria-label="Buscar lugar" value="' + esc(filtro.texto) + '">' +
-    '<select data-cambio="lug-filtro" data-k="pais" aria-label="País">' + opciones(paises.map((p) => [p, p]), filtro.pais, 'Todos los países') + '</select>' +
-    '<select data-cambio="lug-filtro" data-k="grupo" aria-label="Región">' + opciones(mapa.grupos.map((g) => [g, g]), filtro.grupo, 'Todas las regiones') + '</select>' +
-    '<select data-cambio="lug-filtro" data-k="tipo" aria-label="Tipo">' + opciones(Object.entries(TIPOS_LUGAR), filtro.tipo, 'Todos los tipos') + '</select></div>' +
-    (ls.length ? '<ul class="lista-lugares">' + ls.map(fila).join('') + '</ul>' : '<p class="nota-corta">Nada con estos filtros.</p>') + '</section>';
-}
-
-// ---------- Detalle de un lugar ----------
-// Las fotos no se guardan en la app: cada visita puede llevar un enlace a su carpeta de Drive
-const verFotos = (v) => (enlaceSeguro(v.enlace) ? '<a class="ver-fotos" href="' + esc(enlaceSeguro(v.enlace)) + '" target="_blank" rel="noopener noreferrer">📷 Ver fotos</a>' : '');
-function detalle() {
-  const l = abierto && buscar(abierto);
-  if (!l) return '';
-  const v = l.estado === 'visitado', finanzas = ve('seccion', 'finanzas');
-  const datos = [TIPOS_LUGAR[l.tipo], dondeEs(l), !v && l.prioridad ? 'Prioridad ' + ['alta', 'media', 'baja'][l.prioridad - 1] : '', !v && l.epoca ? 'Mejor época: ' + l.epoca : '',
-    !v && l.horas ? horas(l.horas) : '', !v && l.presupuesto ? 'Presupuesto ≈ ' + pesos(l.presupuesto) : ''].filter(Boolean);
-  return '<section class="tarjeta detalle-lugar"><div class="fila-resumen"><h2>' + esc((l.emoji || '📍') + ' ' + l.nombre) + '</h2><button type="button" class="icono" data-accion="lug-cerrar" aria-label="Cerrar">✕</button></div>' +
-    '<p class="nota-corta">' + datos.map(esc).join(' · ') + '</p>' +
-    '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="lug-cambiar-estado" data-id="' + l.id + '">' + (v ? '☆ Pasar a quiero ir' : '✓ Ya estuve') + '</button>' +
-    '<button type="button" class="boton secundario" data-accion="lug-editar" data-id="' + l.id + '">✏️ Editar</button><button type="button" class="boton secundario" data-accion="lug-borrar" data-id="' + l.id + '">🗑️ Borrar</button></div>' +
-    ((l.visitas || []).length ? '<h3>Visitas</h3><ul class="visitas-lugar">' + l.visitas.map((x, i) => '<li><div><b>' + esc(x.fecha ? fechaCorta(x.fecha) : 'Sin fecha') + '</b> <span class="lug-cal">' + estrellas(x.calificacion) + '</span>' +
-      '<small>' + [x.con ? 'Con ' + x.con : '', x.gasto ? pesos(x.gasto) : ''].filter(Boolean).map(esc).join(' · ') + '</small>' + (x.nota ? '<p>' + esc(x.nota) + '</p>' : '') + verFotos(x) +
-      '<details class="editar-enlace"><summary>🔗 ' + (x.enlace ? 'Cambiar enlace' : 'Agregar enlace de fotos') + '</summary><input type="url" inputmode="url" data-cambio="lug-enlace" data-id="' + l.id + '" data-i="' + i + '" placeholder="https://drive.google.com/…" aria-label="Enlace de las fotos" value="' + esc(x.enlace || '') + '"></details></div>' +
-      '<button type="button" class="icono" data-accion="lug-borrar-visita" data-id="' + l.id + '" data-i="' + i + '" aria-label="Borrar visita">🗑️</button></li>').join('') + '</ul>' : '') +
-    '<details class="form-visita"' + (v && !(l.visitas || []).length ? ' open' : '') + '><summary>＋ Agregar visita</summary><div data-visita="' + l.id + '">' +
-    '<label class="campo">Fecha<input type="date" name="fecha" value="' + iso() + '"></label><label class="campo">Con quién<input type="text" name="con"></label>' +
-    '<label class="campo">Calificación<select name="calificacion"><option value="0">Sin calificar</option>' + [5, 4, 3, 2, 1].map((n) => '<option value="' + n + '">' + estrellas(n) + '</option>').join('') + '</select></label>' +
-    '<label class="campo">Nota<textarea name="nota" rows="2"></textarea></label><label class="campo">Enlace de las fotos (Drive, opcional)<input type="url" inputmode="url" name="enlace" placeholder="https://drive.google.com/…"></label><label class="campo">Gasto<input type="text" inputmode="numeric" data-pesos name="gasto" placeholder="0"></label>' +
-    (finanzas ? '<label class="interruptor"><input type="checkbox" name="finanzas" checked> Guardar el gasto en Finanzas (Salidas y ocio)</label>' : '') +
-    '<button type="button" class="boton primario ancho" data-accion="lug-guardar-visita" data-id="' + l.id + '">Guardar visita</button></div></details></section>';
-}
-
-// ---------- Formulario de lugar ----------
-function formulario() {
-  if (!borrador) return '';
-  const b = borrador, grupos = mapa.grupos.map((g) => '<optgroup label="' + esc(g) + '">' + mapa.piezas.filter((p) => p.grupo === g && !mapaHijo(MAPAS, mapa.id, p.id)).map((p) => '<option value="' + p.id + '"' + (p.id === b.pieza ? ' selected' : '') + '>' + esc(p.nombre) + '</option>').join('') + '</optgroup>').join('');
-  return '<section class="tarjeta" data-form-lugar><h2>' + (b.id ? 'Editar lugar' : 'Nuevo lugar') + '</h2>' +
-    '<label class="campo">Nombre<input type="text" name="nombre" value="' + esc(b.nombre || '') + '"></label><label class="campo">Emoji<input type="text" maxlength="4" name="emoji" value="' + esc(b.emoji || '📍') + '"></label>' +
-    '<label class="campo">Tipo<select name="tipo">' + Object.entries(TIPOS_LUGAR).map(([k, t]) => '<option value="' + k + '"' + (k === b.tipo ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></label>' +
-    '<label class="campo">Estado<select name="estado"><option value="quiero"' + (b.estado !== 'visitado' ? ' selected' : '') + '>☆ Quiero ir</option><option value="visitado"' + (b.estado === 'visitado' ? ' selected' : '') + '>● Visitado</option></select></label>' +
-    '<label class="campo">' + esc(una()) + '<select name="pieza"><option value="">Escoge…</option>' + grupos + '</select></label>' +
-    '<button type="button" class="boton secundario ancho" data-accion="lug-ubicar">📍 Tocar el mapa para ubicarlo</button>' +
-    '<p class="nota-corta">' + (b.lat != null ? 'Punto: ' + b.lat.toFixed(4) + ', ' + b.lon.toFixed(4) : 'Sin tocar el mapa, el punto queda en el centro.') + '</p>' +
-    '<label class="campo">Prioridad<select name="prioridad">' + [[1, 'Alta'], [2, 'Media'], [3, 'Baja']].map(([n, t]) => '<option value="' + n + '"' + (n === (b.prioridad || 2) ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></label>' +
-    '<label class="campo">Mejor época<input type="text" name="epoca" value="' + esc(b.epoca || '') + '"></label>' +
-    '<label class="campo">Horas desde Medellín<input type="text" inputmode="decimal" autocomplete="off" min="0" step="0.5" name="horas" value="' + esc(b.horas ?? '') + '"></label>' +
-    '<label class="campo">Presupuesto aproximado<input type="text" inputmode="numeric" data-pesos name="presupuesto" value="' + esc(b.presupuesto || '') + '"></label>' +
-    '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="lug-guardar">Guardar</button><button type="button" class="boton secundario" data-accion="lug-cancelar">Cancelar</button></div></section>';
-}
 function leerForm() {
   const caja = document.querySelector('[data-form-lugar]'), val = (n) => caja.querySelector('[name="' + n + '"]').value.trim();
   return { ...borrador, nombre: val('nombre'), emoji: val('emoji'), tipo: val('tipo'), estado: val('estado'), pieza: val('pieza'), prioridad: Number(val('prioridad')), epoca: val('epoca'), horas: Number(val('horas').replace(',', '.')) || 0, presupuesto: leerMonto(val('presupuesto')) || 0 };
 }
 
-// ---------- Línea de tiempo y Sorpréndeme ----------
-function tiempo() {
-  const t = lineaTiempo(lista());
-  return '<section class="tarjeta"><h2>Línea de tiempo</h2>' + (t.length ? '<ol class="tiempo-lugar">' + t.map(({ lugar: l, visita: v }) =>
-    '<li><button type="button" data-accion="lug-abrir" data-id="' + l.id + '"><small>' + esc(fechaCorta(v.fecha)) + '</small><b>' + esc((l.emoji || '📍') + ' ' + l.nombre) + '</b><span class="lug-cal">' + estrellas(v.calificacion) + '</span>' +
-    (v.con || v.nota ? '<small>' + [v.con ? 'Con ' + v.con : '', v.nota].filter(Boolean).map(esc).join(' · ') + '</small>' : '') + '</button>' + verFotos(v) + '</li>').join('') + '</ol>' : '<p class="nota-corta">Cuando agregues una visita con fecha, tus viajes aparecen aquí.</p>') + '</section>';
-}
-function sorpresa() {
-  const p = plan && buscar(plan.principal);
-  const tarjeta = '<section class="tarjeta sorpresa"><div class="fila-resumen"><h2>🎲 Sorpréndeme</h2><button type="button" class="boton primario" data-accion="lug-sorpresa">' + (p ? 'Otro plan' : 'Dame un plan') + '</button></div>';
-  if (!plan) return tarjeta + '<p class="nota-corta">Un plan de fin de semana entre los lugares de Antioquia que quieres conocer, según la distancia y la prioridad.</p></section>';
-  if (!p) return tarjeta + '<p class="nota-corta">No hay lugares por visitar a menos de 4 horas. Agrega alguno.</p></section>';
-  const cerca = plan.cercanos.map(buscar).filter(Boolean);
-  return tarjeta + '<p class="plan-titulo">' + esc((p.emoji || '📍') + ' ' + p.nombre) + '</p><p class="nota-corta">' + esc(dondeEs(p)) + ' · ' + horas(p.horas) + ' · ' + (plan.dias === 2 ? 'mejor con noche' : 'da para ir y volver el mismo día') + '</p>' +
-    (cerca.length ? '<p class="nota-corta">Cerca: ' + cerca.map((x) => esc(x.nombre)).join(', ') + '</p>' : '') + '<button type="button" class="boton secundario" data-accion="lug-abrir" data-id="' + p.id + '">Ver en el mapa</button></section>';
-}
-
-export function vistaLugares() {
-  if (!mapa) {
-    if (!errorMapa) abrirMapa(MAPA_INICIAL);
-    return '<h1>Lugares</h1><section class="tarjeta">' + (errorMapa ? '<p>No se pudo abrir el mapa.</p><button type="button" class="boton primario" data-accion="lug-reintentar">Reintentar</button>' : '<p class="nota-corta">Abriendo el mapa…</p>') + '</section>';
-  }
-  const ruta = migas(MAPAS, mapa.id);
-  return '<h1>Lugares</h1><nav class="migas-mapa" aria-label="Mapa abierto">' + ruta.map((m, i) => (i === ruta.length - 1
-    ? '<span aria-current="page">' + m.icono + ' ' + esc(m.nombre) + '</span>'
-    : '<button type="button" data-accion="lug-mapa" data-id="' + m.id + '">' + m.icono + ' ' + esc(m.nombre) + '</button><span aria-hidden="true">›</span>')).join('') +
-    (mapa.id === 'colombia' ? '<button type="button" class="miga-otro" data-accion="lug-mapa" data-id="brasil">🇧🇷 Brasil</button>' : mapa.id === 'brasil' ? '<button type="button" class="miga-otro" data-accion="lug-mapa" data-id="colombia">🇨🇴 Colombia</button>' : '') + '</nav>' + numeros() +
-    (ubicando ? '<p class="aviso">📍 Toca el punto exacto en el mapa. <button type="button" class="boton secundario" data-accion="lug-no-ubicar">Cancelar</button></p>' : '') +
-    '<section class="tarjeta tarjeta-mapa">' + dibujo() + '<div class="chips grupos-zoom"><button type="button" class="chip" data-accion="lug-grupo" data-g="">Todo</button>' + mapa.grupos.map((g) => '<button type="button" class="chip" data-accion="lug-grupo" data-g="' + esc(g) + '">' + esc(g) + '</button>').join('') + '</div></section>' +
-    formulario() + detalle() + panelPieza() + sorpresa() + grupos() + listaLugares() + tiempo();
-}
+// Lo que necesita la pantalla de React (src/react/pantallas/Lugares.tsx): el mapa abierto, lo seleccionado y las reglas de texto.
+// animar ('mapa-entra' o 'mapa-sale') queda guardado: React lo usa al montar el mapa nuevo
+let cargandoMapa = false;
+export const piezasLugares = {
+  ver: () => ({ mapa, errorMapa, animar, caja, piezaSel, abierto, borrador, ubicando, plan, filtro }),
+  // Abre el mapa inicial la primera vez (antes lo hacía la pantalla al pintarse)
+  pedir: () => { if (!mapa && !errorMapa && !cargandoMapa) { cargandoMapa = true; abrirMapa(MAPA_INICIAL).finally(() => { cargandoMapa = false; }); } },
+  lista, buscar, enElMapa, una, piezaDe, grupoDe, dondeEs, plural, horas, estrellas,
+};
 
 // ---------- Zoom y arrastre ----------
-const svg = () => document.querySelector('.mapa-svg');
+// El mapa lo pinta React (data-mapa-svg); el arrastre y el zoom mueven su viewBox aquí sin repintar
+const svg = () => document.querySelector('[data-mapa-svg]');
 function aplicarCaja() {
   const s = svg();
   if (!s) return;
   s.setAttribute('viewBox', [caja.x, caja.y, caja.w, caja.h].join(' '));
   s.style.setProperty('--z', 1000 / caja.w);
-  s.classList.toggle('con-zoom', caja.w < mapa.ancho - 1);
+  s.toggleAttribute('data-zoom', caja.w < mapa.ancho - 1);
 }
 function limitar(c) {
   const w = Math.max(mapa.ancho / 32, Math.min(mapa.ancho, c.w)), h = w * mapa.alto / mapa.ancho;
@@ -251,7 +117,7 @@ function tocar(objetivo, x, y) {
 }
 if (typeof document !== 'undefined') {
   document.addEventListener('pointerdown', (ev) => {
-    const s = ev.target.closest && ev.target.closest('.mapa-svg');
+    const s = ev.target.closest && ev.target.closest('[data-mapa-svg]');
     if (!s) return;
     dedos.set(ev.pointerId, [ev.clientX, ev.clientY]);
     gesto = dedos.size === 1 ? { objetivo: ev.target, x0: ev.clientX, y0: ev.clientY, movio: false } : { ...gesto, movio: true };
@@ -287,7 +153,7 @@ if (typeof document !== 'undefined') {
   document.addEventListener('pointerup', soltar);
   document.addEventListener('pointercancel', soltar);
   document.addEventListener('wheel', (ev) => {
-    const s = ev.target.closest && ev.target.closest('.mapa-svg');
+    const s = ev.target.closest && ev.target.closest('[data-mapa-svg]');
     if (!s) return;
     ev.preventDefault();
     const [x, y] = aMapa(s, ev.clientX, ev.clientY);

@@ -2,12 +2,9 @@
 // pagos e ingresos fijos, metas de ahorro (fondo de emergencia), deudas (las tarjetas vinculadas suben con cada compra) y plata prestada
 import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta } from '../fechas.js';
-import {
-  mesDe, sumarMeses, pesos, leerMonto, resumenMes, aportado, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, patrimonio,
-  anotarPatrimonio, deseosDelMes, interesPrestamo, cobroPrestamo, prestarMas, subsDe, subDe, posibleDuplicado, valorMeta, convertirEnPagoDeuda,
-} from '../finanzas.js';
+import { mesDe, sumarMeses, pesos, leerMonto, resumenMes, aportado, agregarMovimiento, quitarMovimiento, cambiarMovimiento, pagoDeuda, esCredito, patrimonio, anotarPatrimonio, interesPrestamo, cobroPrestamo, prestarMas, subsDe, subDe, posibleDuplicado, valorMeta, convertirEnPagoDeuda } from '../finanzas.js';
 import { PLANTILLAS_META, slug } from '../datos_finanzas.js';
-import { barra, registrar, toast, miles } from '../ui.js';
+import { registrar, toast, miles } from '../ui.js';
 import './vida.js'; // las acciones de ⏳ 72 h
 import { valorCalculadora } from './calculadora.js';
 import { moduloPlanB } from './desempleo.js';
@@ -70,17 +67,6 @@ export function vistaFinanzas() {
   const tabs = PESTANAS_FINANZAS;
   return '<h1>Finanzas</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
     '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="fin-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>';
-}
-
-// ---------- Hoy: lo que queda para deseos ----------
-export function tarjetaPlataHoy() {
-  if (!e().finanzas) return '';
-  const d = deseosDelMes(f());
-  return '<section class="tarjeta col-plata"><div class="fila-resumen"><h2>💰 Plata del mes</h2><a href="#finanzas/registrar" class="nota-corta">＋ Gasto</a></div>' +
-    (d ? (d.quedan >= 0 ? '<p>Te quedan <b class="verde">' + pesos(d.quedan) + '</b> para deseos este mes: unos <b>' + pesos(d.porDia) + ' por día</b> (' + d.dias + (d.dias === 1 ? ' día' : ' días') + ').</p>'
-      : '<p>Te pasaste <b class="rojo">' + pesos(-d.quedan) + '</b> en deseos este mes. Lo que queda, solo necesidades.</p>') +
-      barra(d.gastado / d.tope, d.quedan < 0 ? 'excedido' : '') + '<p class="nota-corta">' + pesos(d.gastado) + ' de ' + pesos(d.tope) + (d.presupuestado ? ' presupuestados' : ' (30 % de lo que entra)') + '</p>'
-      : '<p class="nota-corta"><a href="#finanzas/fijos">Agrega tu salario</a> o registra un ingreso y aquí verás cuánto te queda para deseos.</p>') + '</section>';
 }
 
 // Pagos que también se usan desde Recordatorios

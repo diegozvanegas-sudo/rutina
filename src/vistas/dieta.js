@@ -1,17 +1,13 @@
-// Dieta: plan del día (según el gym), comidas marcadas, planes editables, peso corporal y recálculo por peso
-import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, comidasDelDia, semanaActual } from '../estado.js';
-import { progresoMes } from '../gym.js';
-import { iso, hora, fechaCorta, diaSemana } from '../fechas.js';
-import { proteinaSemana } from '../entrenador.js';
-import { barras } from '../graficos.js';
-import { totalPlan, totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, revisionDieta, ajusteCarbos, medidasDe } from '../dieta.js';
-import { esc, barra, tip, registrar, toast, miles, subirBajar } from '../ui.js';
-import { tarjetaPlanDieta } from './plan12.js';
+// Dieta: plan del día (según el gym), comidas marcadas, planes editables, peso corporal y recálculo por peso.
+// La pantalla está en src/react/pantallas/Dieta.tsx; aquí quedan la pestaña y el plan que se ven, las acciones y las piezas
+// HTML que usan Hoy (tarjetaComidasHoy) y Clientes (editorComidas, macros, TIPOS_PLAN) hasta que esas se pasen a React
+import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto } from '../estado.js';
+import { iso } from '../fechas.js';
+import { totalComida, valoresItem, objetivo, recalcular, pesos, tendencia, ajusteCarbos } from '../dieta.js';
+import { esc, registrar, toast, miles } from '../ui.js';
 
 let pestana = 'hoy', planVista = null;
 const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', recarga: '🍚 Recarga', descanso: '😌 Descanso' };
-const GRUPOS = { proteina: 'Proteína', carbo: 'Carbohidrato', grasa: 'Grasa', verdura: 'Verdura', otro: 'Otro' };
-const POR = { g: 'por 100 g', u: 'por unidad', libre: 'porción fija' };
 const r0 = (n) => Math.round(n || 0);
 const d = () => e().dieta;
 const alimento = (id) => d().alimentos.find((a) => a.id === id);
@@ -23,65 +19,6 @@ export const macros = (t) => '<span class="macros"><b>' + miles(t.kcal) + '</b> 
 export function pesoActual() {
   const lista = pesos(e().dias), t = tendencia(lista);
   return t ? Math.round(t * 10) / 10 : d().config.pesoBase;
-}
-
-// ---------- Hoy ----------
-export function tarjetaComidasHoy(compacta = false) {
-  const tipo = tipoDieta(), plan = d().planes[tipo], hechas = (e().dias[iso()] || {}).comidas || {};
-  const total = totalPlan(plan, d().alimentos), comido = comidasDelDia();
-  return '<div class="fila-resumen"><span>' + TIPOS[tipo] + '</span><span><b>' + miles(comido.kcal) + '</b> / ' + miles(total.kcal) + ' kcal</span></div>' +
-    barra(total.kcal ? comido.kcal / total.kcal : 0) +
-    '<div class="macros-hoy">' + [['Proteína', 'p'], ['Carbos', 'c'], ['Grasa', 'g']].map(([t, k]) =>
-      '<div><small>' + t + '</small><b>' + r0(comido[k]) + '</b> / ' + r0(total[k]) + ' g' + barra(total[k] ? comido[k] / total[k] : 0) + '</div>').join('') + '</div>' +
-    '<div class="comidas' + (compacta ? ' compactas' : '') + '">' + plan.comidas.map((c, i) => {
-      const t = totalComida(c, d().alimentos), marca = hechas[tipo + ':' + i];
-      const items = c.items.map((it) => {
-        const a = alimento(it.alimento);
-        return (a ? a.nombre : it.alimento) + (a && a.por !== 'libre' ? ' ' + String(it.cant).replace('.', ',') + ' ' + unidad(a) : '');
-      });
-      const detalle = c.nombre + ' · ' + miles(t.kcal) + ' kcal\nProteína ' + r0(t.p) + ' g · Carbos ' + r0(t.c) + ' g · Grasa ' + r0(t.g) + ' g\n\n' + items.map((x) => '• ' + x).join('\n');
-      return '<div class="comida' + (marca ? ' hecha' : '') + '"' + tip(detalle) + '>' +
-        '<button type="button" class="check" data-accion="dieta-comer" data-i="' + i + '" aria-pressed="' + !!marca + '" aria-label="' + esc(c.nombre) + '">' + (marca ? '✓' : '🍽') + '</button>' +
-        '<div class="info"><div class="fila-resumen"><b>' + esc(c.nombre) + '</b><span class="nota-corta">' + miles(t.kcal) + ' kcal · P ' + r0(t.p) + '</span></div>' +
-        (marca ? '<div class="nota-corta">Comida a las ' + hora(marca.ts) + '</div>' : '') +
-        (compacta ? '' : '<div class="nota-corta">' + items.map(esc).join(' · ') + '</div>') + '</div></div>';
-    }).join('') + '</div>';
-}
-
-function vistaHoyDieta() {
-  const tipo = tipoDieta(), auto = tipoDietaAuto(), manual = (e().dias[iso()] || {}).dieta;
-  return '<nav class="chips">' + Object.entries(TIPOS).map(([k, t]) => '<button type="button" class="chip' + (k === tipo ? ' activo' : '') + '" data-accion="dieta-tipo-hoy" data-tipo="' + k + '">' + t +
-    (k === auto ? ' · hoy' : '') + '</button>').join('') + '</nav>' +
-    (manual ? '<p class="nota-corta">Elegiste el plan a mano. <a href="#dieta" data-accion="dieta-tipo-hoy" data-tipo="' + auto + '">Volver al que toca hoy</a></p>'
-      : '<p class="nota-corta">El plan sale del gym y del fútbol de hoy. Toca otro si hoy comes distinto.</p>') +
-    '<section class="tarjeta">' + tarjetaComidasHoy() + '</section>' + tarjetaProteina();
-}
-
-// Proteína de los últimos 7 días contra la del plan de cada día: lo que más pesa para que suba la fuerza
-function tarjetaProteina() {
-  const s = proteinaSemana();
-  if (!s) return '';
-  const letra = (f) => 'LMMJVSD'[diaSemana(f) - 1];
-  return '<section class="tarjeta"><div class="fila-resumen"><h2>🍗 Proteína de la semana</h2><span class="grande-num">' + s.cumplidos + '/7</span></div>' +
-    '<p class="nota-corta">Días que llegaste al 90 % de la proteína del plan. Promedio: <b>' + r0(s.gramos) + ' g</b> al día (' + Math.round(s.parte * 100) + ' % de la meta).</p>' +
-    barras(s.dias.map((x) => ({ etiqueta: letra(x.fecha), v: x.parte * 100, tip: fechaCorta(x.fecha) + ': ' + r0(x.comido) + ' de ' + r0(x.meta) + ' g' })),
-      { alto: 90, max: Math.max(100, ...s.dias.map((x) => x.parte * 100)), formato: (n) => Math.round(n) + ' %', ref: { v: 90, texto: '90 %' } }) +
-    (s.cumplidos < 5 ? '<p class="nota-corta">Para subir: proteína en cada comida (huevos, pollo, carne o el scoop) y no te saltes la última del día.</p>' : '<p class="nota-corta">¡Bien! Así la fuerza tiene con qué subir.</p>') + '</section>';
-}
-
-// ---------- Planes ----------
-function vistaPlanes() {
-  if (!TIPOS[planVista]) planVista = tipoDieta();
-  const plan = d().planes[planVista], ruta = 'dieta.planes.' + planVista, total = totalPlan(plan, d().alimentos);
-  const peso = pesoActual(), obj = objetivo(d().config, planVista, peso);
-  return '<nav class="chips">' + Object.entries(TIPOS).map(([k, t]) => '<button type="button" class="chip' + (k === planVista ? ' activo' : '') + '" data-accion="dieta-plan" data-tipo="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    '<section class="tarjeta"><div class="fila-resumen"><b>' + esc(plan.nombre) + '</b>' + macros(total) + '</div>' +
-    '<p class="nota-corta">Con <b>' + String(peso).replace('.', ',') + ' kg</b> el objetivo es <b>≈ ' + miles(obj.kcal) + ' kcal</b>: proteína <b>' + obj.p + ' g</b>' +
-    (obj.c != null ? ', carbos <b>' + obj.c + ' g</b>, grasa <b>' + obj.g + ' g</b>' : '') + '. <a href="#dieta/peso">Cambiar la fórmula</a></p>' +
-    '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="dieta-recalcular" data-tipo="' + planVista + '">⚖️ Recalcular este plan</button>' +
-    '<button type="button" class="boton secundario" data-accion="dieta-recalcular" data-tipo="todos">Recalcular todos</button>' +
-    (d().anterior ? '<button type="button" class="boton secundario" data-accion="dieta-deshacer">↶ Deshacer recálculo</button>' : '') + '</div></section>' +
-    editorComidas(ruta, plan);
 }
 
 // Las comidas de un plan, editables (cantidades, agregar y quitar alimentos, ordenar). ruta: "dieta.planes.superior" o el
@@ -108,94 +45,17 @@ export function editorComidas(ruta, plan) {
     '<button type="button" class="boton secundario grande ancho" data-accion="ed-agregar" data-lista="' + ruta + '.comidas">＋ Comida</button>';
 }
 
-// ---------- Peso ----------
-function grafico(lista) {
-  if (lista.length < 2) return '';
-  const ult = lista.slice(-30), ps = ult.map((x) => x.peso), min = Math.min(...ps, d().config.meta), max = Math.max(...ps), W = 320, H = 90;
-  const x = (i) => 6 + (i / (ult.length - 1)) * (W - 12), y = (p) => H - 8 - ((p - min) / (max - min || 1)) * (H - 16);
-  return '<svg class="grafico-peso" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' +
-    '<line x1="0" x2="' + W + '" y1="' + y(d().config.meta) + '" y2="' + y(d().config.meta) + '" class="linea-meta"/>' +
-    '<polyline fill="none" stroke="currentColor" stroke-width="2.5" points="' + ult.map((p, i) => x(i) + ',' + y(p.peso)).join(' ') + '"/></svg>';
-}
-
-function vistaPeso() {
-  const c = d().config, lista = pesos(e().dias), hoy = (e().dias[iso()] || {}).peso;
-  const ultimo = lista.length ? lista[lista.length - 1].peso : null, prom = tendencia(lista), ref = prom || ultimo || c.pesoBase;
-  const inicio = c.pesoInicio || c.pesoBase;
-  const avance = inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0;
-  const hoyD = e().dias[iso()] || {}, medidas = medidasDe(e().dias), conCintura = medidas.filter((m) => m.cintura > 0), cintura = conCintura.length ? conCintura[conCintura.length - 1].cintura : null;
-  const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO'), sug = revisionDieta({ lista, dias: e().dias, progreso: progresoMes(e().semanas, e().rutina, semanaActual()), ultimoAjuste: d().ultimoAjuste }, iso());
-  return '<section class="tarjeta"><label class="campo">Peso de hoy (kg)<input class="peso-grande" type="text" inputmode="decimal" autocomplete="off" step="0.1" min="0" data-cambio="dieta-peso" value="' + esc(hoy || '') + '" placeholder="' + esc(ultimo || c.pesoBase) + '"></label>' +
-    '<p class="nota-corta">Mejor en ayunas, después del baño. El promedio de 7 días es el que se usa para recalcular.</p></section>' +
-    '<section class="tarjeta"><div class="datos-peso">' +
-    '<div><small>Promedio 7 días</small><b>' + (prom ? f1(prom) + ' kg' : '—') + '</b></div>' +
-    '<div><small>Cambio desde ' + f1(inicio) + '</small><b>' + (prom ? (prom - inicio > 0 ? '+' : '') + f1(prom - inicio) + ' kg' : '—') + '</b></div>' +
-    '<div><small>Falta para ' + f1(c.meta) + '</small><b>' + f1(Math.max(0, ref - c.meta)) + ' kg</b></div>' +
-    '<div><small>Cintura (meta: menos de ' + f1(c.estatura / 2) + ')</small><b>' + (cintura ? f1(cintura) + ' cm' : '—') + '</b></div></div>' + barra(avance) + grafico(lista) +
-    (prom && Math.abs(prom - c.pesoBase) >= 1 ? '<p class="aviso">Tu promedio cambió ' + f1(Math.abs(prom - c.pesoBase)) + ' kg desde que se calcularon los planes (' + f1(c.pesoBase) + ' kg). ' +
-      '<a href="#dieta" data-accion="dieta-ir-planes">Recalcular los planes con ' + f1(prom) + ' kg →</a></p>' : '') + '</section>' +
-    '<section class="tarjeta"><h2>Cómo te sentiste hoy</h2>' + escala('Energía', 'energia', hoyD.energia, '1 = sin energía · 5 = a tope') + escala('Hambre', 'hambre', hoyD.hambre, '1 = nada · 5 = mucha') + '</section>' +
-    '<section class="tarjeta"><div class="fila-resumen"><h2>📏 Medidas</h2><button type="button" class="boton secundario" data-accion="sesion" data-sesion="medidas">¿Cómo me mido?</button></div>' +
-    '<p class="nota-corta">Una vez por semana, en cm. La cintura es la que más dice si estás perdiendo grasa.</p><div class="dos">' +
-    Object.entries(MEDIDAS).map(([k, t]) => '<label class="campo">' + t + '<input type="text" inputmode="decimal" autocomplete="off" step="0.1" min="0" data-cambio="dieta-medida" data-k="' + k + '" value="' + esc((hoyD.medidas || {})[k] ?? '') + '"></label>').join('') + '</div>' +
-    (medidas.length ? '<ul class="lista-pesos">' + medidas.slice(-6).reverse().map((m) => '<li><span>' + fechaCorta(m.fecha) + '</span><span>' + Object.entries(MEDIDAS).filter(([k]) => m[k] > 0).map(([k, t]) => t + ' <b>' + f1(m[k]) + '</b>').join(' · ') + '</span></li>').join('') + '</ul>' : '') + '</section>' +
-    '<section class="tarjeta"><h2>💡 Sugerencia de la semana</h2><div class="datos-peso">' + senalesRevision(sug.senales, f1) + '</div><p>' + sug.texto + '</p>' +
-    (sug.gramos ? '<button type="button" class="boton primario ancho" data-accion="dieta-aplicar" data-g="' + sug.gramos + '">' + (sug.gramos > 0 ? 'Sumar ' : 'Quitar ') + Math.abs(sug.gramos) + ' g de carbos a los planes</button><p class="nota-corta">Antes de cambiar te muestra cuánto queda, y lo puedes deshacer en Planes.</p>' : '') + '</section>' +
-    (lista.length ? '<section class="tarjeta"><h2>Registros</h2><ul class="lista-pesos">' + lista.slice(-14).reverse().map((x) =>
-      '<li><span>' + fechaCorta(x.fecha) + '</span><b>' + f1(x.peso) + ' kg</b></li>').join('') + '</ul></section>' : '') +
-    '<section class="tarjeta"><h2>Datos y fórmula</h2><div class="dos">' +
-    numero('Peso inicial (kg)', 'dieta.config.pesoInicio', inicio, '0.1') + numero('Meta (kg)', 'dieta.config.meta', c.meta, '0.1') +
-    numero('Planes calculados con (kg)', 'dieta.config.pesoBase', c.pesoBase, '0.1') +
-    numero('Estatura (cm)', 'dieta.config.estatura', c.estatura) + '</div>' +
-    numero('Proteína fija (g al día; 0 = según el peso)', 'dieta.config.protFija', c.protFija || 0) + '<p class="nota-corta">Por cada kg de peso, cada plan apunta a (gramos por kg):</p><div class="tabla-scroll"><table class="historial formula"><thead><tr><th></th><th>Proteína</th><th>Carbos</th><th>Grasa</th><th>≈ kcal / kg</th></tr></thead><tbody>' +
-    Object.entries(TIPOS).map(([k, t]) => {
-      const kcal = objetivo(c, k, ref).kcal, kcalKg = kcal / ref;
-      return '<tr><th>' + t + '</th><td>' + (c.protFija ? '<b>' + c.protFija + ' g</b>' : numero('', 'dieta.config.protKg.' + k, c.protKg[k], '0.01')) + '</td><td>' + numero('', 'dieta.config.carbKg.' + k, (c.carbKg || {})[k], '0.01') +
-        '</td><td>' + numero('', 'dieta.config.grasaKg.' + k, (c.grasaKg || {})[k], '0.01') + '</td><td class="kcal-kg"><b>' + (Math.round(kcalKg * 10) / 10).toLocaleString('es-CO') + '</b><small>' + miles(kcal) + ' kcal con ' + f1(ref) + ' kg</small></td></tr>';
-    }).join('') +
-    '</tbody></table></div><p class="nota-corta">Las kcal salen de los macros: 4 por gramo de proteína y de carbos, 9 por gramo de grasa. Al recalcular se ajusta primero la proteína, después la grasa (contando la de huevos y carne) y al final los carbos.</p><p class="nota-corta">Es una regla simple para ajustar cantidades, no una indicación médica: si el peso se estanca o bajas muy rápido, ajústala con tu nutricionista.</p></section>';
-}
-const MEDIDAS = { cintura: 'Cintura', pecho: 'Pecho', brazo: 'Brazo', muslo: 'Muslo' };
-function escala(titulo, k, valor, ayuda) {
-  return '<p class="nota-corta"><b>' + titulo + '</b> · ' + ayuda + '</p><nav class="chips" aria-label="' + titulo + '">' + [1, 2, 3, 4, 5].map((n) =>
-    '<button type="button" class="chip' + (valor === n ? ' activo' : '') + '" aria-pressed="' + (valor === n) + '" data-accion="dieta-senal" data-k="' + k + '" data-n="' + n + '">' + n + '</button>').join('') + '</nav>';
-}
-// Lo que se tuvo en cuenta en la sugerencia; lo que aún no tiene datos dice "—"
-function senalesRevision(s, f1) {
-  const conSigno = (n, u) => (n == null ? '—' : (n > 0 ? '+' : '') + f1(n) + u);
-  return [['Peso / semana', conSigno(s.peso, ' kg')], ['Cintura / 2 sem.', conSigno(s.cintura, ' cm')], ['Fuerza / mes', conSigno(s.fuerza == null ? null : s.fuerza * 100, ' %')], ['Energía', s.energia == null ? '—' : f1(s.energia) + ' / 5'], ['Hambre', s.hambre == null ? '—' : f1(s.hambre) + ' / 5']]
-    .map(([t, v]) => '<div><small>' + t + '</small><b>' + v + '</b></div>').join('');
-}
-function numero(titulo, ruta, valor, paso = '1') {
-  return '<label class="campo">' + titulo + '<input type="text" inputmode="decimal" autocomplete="off" min="0" step="' + paso + '" data-cambio="ed" data-tipo="num" data-ruta="' + ruta + '" value="' + esc(valor ?? '') + '"></label>';
-}
-
-// ---------- Alimentos ----------
-function vistaAlimentos() {
-  const lista = d().alimentos;
-  return '<p class="nota-corta">Valores por 100 g, por unidad o por porción fija. Al recalcular, la proteína queda en su cantidad fija (o sigue al peso, si la pones en 0) y los carbohidratos ajustan las calorías.</p>' +
-    lista.map((a, i) => {
-      const r = 'dieta.alimentos.' + i;
-      const sel = (campo, opciones) => '<select data-cambio="ed" data-ruta="' + r + '.' + campo + '">' + Object.entries(opciones).map(([v, t]) => '<option value="' + v + '"' + (a[campo] === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-      return '<section class="tarjeta ed-item"><div class="ed-cab"><input class="titulo-comida" type="text" data-cambio="ed" data-ruta="' + r + '.nombre" value="' + esc(a.nombre) + '" aria-label="Nombre">' +
-        '<span class="ed-controles">' + subirBajar('dieta.alimentos', i) + '<button type="button" class="icono borrar" data-accion="ed-borrar" data-lista="dieta.alimentos" data-i="' + i + '" data-nombre="' + esc(a.nombre) + '" aria-label="Borrar">🗑</button></span></div>' +
-        '<div class="dos"><label class="campo">Medida' + sel('por', POR) + '</label><label class="campo">Grupo' + sel('grupo', GRUPOS) + '</label></div>' +
-        '<div class="macros-ed">' + numero('kcal', r + '.kcal', a.kcal) + numero('Proteína', r + '.p', a.p, '0.1') + numero('Grasa', r + '.g', a.g, '0.1') + numero('Carbos', r + '.c', a.c, '0.1') + '</div></section>';
-    }).join('') +
-    '<button type="button" class="boton primario grande ancho" data-accion="ed-agregar" data-lista="dieta.alimentos">＋ Alimento</button>';
-}
-
-export function vistaDieta() {
-  const tabs = { hoy: '🍽 Hoy', planes: '📋 Planes', peso: '⚖️ Peso', alimentos: '🥚 Alimentos' };
-  return '<h1>Dieta</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
-    '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="dieta-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>' +
-    (pestana === 'planes' ? vistaPlanes() : pestana === 'peso' ? vistaPeso() + tarjetaPlanDieta() : pestana === 'alimentos' ? vistaAlimentos() : vistaHoyDieta());
-}
-
 function resumenCambio(tipo, r) {
   return TIPOS[tipo] + ': ' + miles(r.antes.kcal) + ' → ' + miles(r.despues.kcal) + ' kcal\n   P ' + r0(r.antes.p) + ' → ' + r0(r.despues.p) +
     ' · C ' + r0(r.antes.c) + ' → ' + r0(r.despues.c) + ' · G ' + r0(r.antes.g) + ' → ' + r0(r.despues.g) + ' g';
 }
+
+// Lo que necesita la pantalla de React: la pestaña y el plan que se están viendo
+export const piezasDieta = {
+  ver: () => ({ pestana, planVista }),
+  ponerPestana: (p) => { pestana = p; },
+  ponerPlan: (t) => { planVista = t; },
+};
 
 registrar({
   'abrir-dieta'({ p }) { pestana = p; },

@@ -1,11 +1,10 @@
 // Sesiones guiadas (calentamiento, estiramiento, rodilla): un ejercicio a la vez con cuenta regresiva.
 // Las de tipo checklist (antes de salir, maletín del partido) no tienen tiempo: cada punto se marca con ✓.
-import { e, dia, guardar, repintar, hayFutbol, prioridadesDe } from '../estado.js';
-import { reloj, iso, sumarDias } from '../fechas.js';
-import { horaCama, minutosTarde } from '../registro.js';
+import { e, dia, guardar, repintar } from '../estado.js';
+import { reloj, iso } from '../fechas.js';
 import { esc, registrar, pitido, barra, toast } from '../ui.js';
-import { figuraPaso, videoPaso, figura, urlVideo } from '../figuras.js';
-import { BANCO, ZONAS, NIVELES, pasoDeBanco, fotosDe } from '../banco.js';
+import { figuraPaso, videoPaso } from '../figuras.js';
+import { BANCO, ZONAS, pasoDeBanco } from '../banco.js';
 
 const PREPARAR = 5, CAMBIO_LADO = 5;
 const TIPOS = { checklist: '✅ Checklists', calentamiento: '🔥 Calentamiento', estiramiento: '🧘 Estiramiento', fortalecimiento: '🦵 Fortalecimiento', mente: '🧠 Mente' };
@@ -27,25 +26,8 @@ function puntosChecklist(s) {
 }
 // Hoy, desde las 7 p. m.: el cierre de la noche para ir marcando
 export const HORA_CIERRE = 19;
-export function tarjetaCierreHoy(ahora = new Date()) {
-  const s = e().sesiones.find((x) => x.id === 'cierre-noche');
-  return s && ahora.getHours() >= HORA_CIERRE ? tarjetaChecklist(s, '🌙 ', extraCierre(iso(ahora))) : '';
-}
-// Arriba del cierre: la hora fija de acostarse, la noche de partido y las 3 prioridades de mañana
-function extraCierre(hoy) {
-  const cama = horaCama(e().config), acoste = ((e().dias[hoy] || {}).sueno || {}).acoste, tarde = minutosTarde(acoste, cama), manana = sumarDias(hoy, 1);
-  return '<div class="cierre-extra"><p class="cierre-cama">🛏️ A la cama a las <b>' + cama + '</b>' +
-    (acoste ? '<small> · anoche ' + esc(acoste) + (tarde > 10 ? ', ' + tarde + ' min tarde' : ' ✓') + '</small>' : '') +
-    ' <a class="nota-corta" href="#ajustes">cambiar</a></p>' +
-    (hayFutbol(hoy) ? '<p class="aviso">⚽ Noche de partido: al llegar, ducha, cena de recuperación y cero pantallas. Mañana va la versión corta.</p>' : '') +
-    '<label class="campo">🎯 Mis 3 prioridades de mañana<textarea rows="3" data-cambio="prioridades" data-f="' + manana + '" placeholder="1. …&#10;2. …&#10;3. …">' + esc(prioridadesDe(manana)) + '</textarea></label></div>';
-}
-function tarjetaChecklist(s, icono = '', extra = '') {
-  const a = avanceChecklist(s, marcasDe(s.id));
-  return '<section class="tarjeta sesion"><div class="fila-resumen"><b>' + icono + esc(s.nombre) + '</b><span class="' + (a.completa ? 'verde' : '') + '">' + (a.completa ? '✓ Lista' : a.hechos + ' / ' + a.total + ' hoy') + '</span></div>' +
-    barra(a.total ? a.hechos / a.total : 0) + extra + (s.pasos.length ? puntosChecklist(s) : '<p class="nota-corta">Sin puntos todavía: agrégalos en ✏️ Editar → Sesiones.</p>') +
-    (a.hechos ? '<button type="button" class="boton secundario ancho" data-accion="check-limpiar" data-sesion="' + esc(s.id) + '">↺ Desmarcar todo</button>' : '') + '</section>';
-}
+// La sesión "Cierre de la noche" si ya es hora de mostrarla en Hoy (la tarjeta está en src/react/pantallas/HoyTarjetas.tsx)
+export const cierreDeHoy = (ahora = new Date()) => { const s = e().sesiones.find((x) => x.id === 'cierre-noche'); return s && ahora.getHours() >= HORA_CIERRE ? s : null; };
 
 // La sesión se convierte en una lista de fases: preparar, tiempo, reps (espera "Hecho"), cambio de lado y descanso
 export function fases(sesion) {
@@ -183,60 +165,15 @@ function terminarChecklist() {
 // ---------- Banco de rehabilitación y fortalecimiento: un ejercicio por fila, se abre para ver cómo, dosis y progresión ----------
 let zonaVista = 'todas';
 const dosisTexto = (d) => (d.reps ? (d.series || 1) + '×' + d.reps : (d.series > 1 ? d.series + '×' : '') + d.seg + ' s') + (d.lados ? ' por lado' : '');
-function imagenBanco(x, animar) {
-  const dibujo = x.figura === '-' ? '' : figura(x.figura || x.n, { animar });
-  if (dibujo) return dibujo;
-  const fotos = fotosDe(x);
-  return fotos.length ? (animar ? '<div class="banco-fotos">' + fotos.map((f, i) => '<img src="' + f + '" alt="' + esc(x.n) + (i ? ': final' : ': inicio') + '" loading="lazy">').join('') + '</div>'
-    : '<img class="figura foto-paso" src="' + fotos[0] + '" alt="" loading="lazy">') : '';
-}
-function vistaBanco() {
-  const zonas = Object.keys(ZONAS), cuenta = (z) => BANCO.filter((x) => x.z === z).length;
-  if (zonaVista !== 'todas' && !zonas.includes(zonaVista)) zonaVista = 'todas';
-  const lista = BANCO.map((x, i) => ({ x, i })).filter(({ x }) => zonaVista === 'todas' || x.z === zonaVista);
-  const sesiones = e().sesiones.filter((s) => s.tipo !== 'checklist');
-  return '<p class="nota-corta banco-aviso">Para prevenir y fortalecer. Una molestia de hasta 3 de 10 que se calma al día siguiente está bien; si pasa de eso o empeora, baja de nivel. Con una lesión actual, primero el fisioterapeuta.</p>' +
-    '<nav class="chips" aria-label="Zona">' + ['todas', ...zonas].map((z) => '<button type="button" class="chip' + (z === zonaVista ? ' activo' : '') + '" data-accion="banco-zona" data-z="' + z + '">' +
-      (z === 'todas' ? 'Todas (' + BANCO.length + ')' : ZONAS[z] + ' (' + cuenta(z) + ')') + '</button>').join('') + '</nav>' +
-    zonas.filter((z) => zonaVista === 'todas' || z === zonaVista).map((z) => {
-      const items = lista.filter(({ x }) => x.z === z).sort((a, b) => a.x.nv - b.x.nv);
-      return '<h2 class="banco-zona">' + ZONAS[z] + '</h2>' + items.map(({ x, i }) =>
-        '<details class="tarjeta banco-ej"><summary><span class="banco-mini">' + imagenBanco(x, false) + '</span>' +
-        '<span class="banco-tit"><b>' + esc(x.n) + '</b><small>' + esc(x.m) + ' · ' + dosisTexto(x.d) + '</small></span>' +
-        '<span class="banco-nivel n' + x.nv + '" title="' + NIVELES[x.nv] + '">' + '●'.repeat(x.nv) + '<span class="sr">' + NIVELES[x.nv] + '</span></span></summary>' +
-        '<div class="banco-cuerpo">' + imagenBanco(x, true) +
-        '<p><b>Para qué:</b> ' + esc(x.para) + '</p><p><b>Cómo:</b> ' + esc(x.como) + '</p><p><b>Ojo:</b> ' + esc(x.ojo) + '</p>' +
-        '<p class="banco-nivel-txt">' + NIVELES[x.nv] + ' · ' + dosisTexto(x.d) + (x.d.descanso ? ' · descanso ' + x.d.descanso + ' s' : '') + '</p>' +
-        '<p>⬇️ <b>Más fácil:</b> ' + esc(x.facil) + '<br>⬆️ <b>Más difícil:</b> ' + esc(x.dificil) + '</p>' +
-        '<div class="banco-acciones"><a class="rep-video" href="' + esc(urlVideo(x.n)) + '" target="_blank" rel="noopener">🎥 Ver video</a>' +
-        (sesiones.length ? '<select data-cambio="banco-agregar" data-i="' + i + '" aria-label="Agregar ' + esc(x.n) + ' a una sesión"><option value="">➕ Agregar a una sesión…</option>' +
-          sesiones.map((s) => '<option value="' + esc(s.id) + '">' + esc(s.nombre) + '</option>').join('') + '</select>' : '') + '</div>' +
-        (x.foto ? '<p class="nota-corta">Foto: free-exercise-db (dominio público).</p>' : '') + '</div></details>').join('');
-    }).join('');
-}
 
 let tipoVisto = null;
-export function vistaSesiones() {
-  const grupos = {};
-  // Las checklists van primero: son las que se usan a diario
-  for (const s of [...e().sesiones].sort((a, b) => (b.tipo === 'checklist') - (a.tipo === 'checklist'))) (grupos[s.tipo] ??= []).push(s);
-  // Una categoría a la vez, para no recorrer toda la lista
-  const tipos = Object.keys(grupos);
-  if (!tipos.includes(tipoVisto) && tipoVisto !== 'banco') tipoVisto = tipos[0];
-  return '<h1>Sesiones</h1><nav class="chips pestanas" aria-label="Categoría">' + tipos.map((t) => '<button type="button" class="chip' + (t === tipoVisto ? ' activo' : '') + '" data-accion="ses-tipo" data-t="' + esc(t) + '">' + (TIPOS[t] || esc(t)) + ' (' + grupos[t].length + ')</button>').join('') +
-    '<button type="button" class="chip' + (tipoVisto === 'banco' ? ' activo' : '') + '" data-accion="ses-tipo" data-t="banco">🩹 Banco de ejercicios (' + BANCO.length + ')</button></nav>' +
-    (tipoVisto === 'banco' ? vistaBanco() : '') +
-    Object.entries(grupos).filter(([tipo]) => tipo === tipoVisto).map(([tipo, lista]) =>
-    lista.map((s) => s.tipo === 'checklist' ? tarjetaChecklist(s) :
-      '<section class="tarjeta sesion"><div class="fila-resumen"><b>' + esc(s.nombre) + '</b><span>~' + Math.round(duracion(s) / 60) + ' min · ' + s.pasos.length + ' ejercicios</span></div>' +
-      (s.pasos.length ? tiraFiguras(s.pasos) : '') +
-      '<details><summary>Ver ejercicios</summary><ol class="pasos">' + s.pasos.map((p) =>
-        '<li class="paso-con-figura">' + figuraPaso(p, { animar: false }) + '<div><b>' + esc(p.nombre) + '</b> <span class="nota-corta">' + esc(p.musculo || '') + ' · ' +
-        (p.reps ? (p.series || 1) + '×' + esc(p.reps) : (p.series > 1 ? p.series + '×' : '') + p.seg + ' s') + (p.lados ? ' por lado' : '') + '</span>' +
-        '<div class="nota-corta">' + esc(p.desc || '') + '</div>' +
-        (videoPaso(p) ? '<a class="nota-corta" href="' + esc(videoPaso(p)) + '" target="_blank" rel="noopener">🎥 Ver video</a>' : '') + '</div></li>').join('') + '</ol></details>' +
-      '<button type="button" class="boton primario grande ancho" data-accion="sesion" data-sesion="' + s.id + '">▶ Iniciar</button></section>').join('')).join('');
-}
+// Lo que necesita la pantalla de React (src/react/pantallas/Sesiones.tsx): la categoría y la zona que se ven y las reglas
+export const piezasSesiones = {
+  ver: () => ({ tipoVisto, zonaVista }),
+  ponerTipo: (t) => { tipoVisto = t; },
+  ponerZona: (z) => { zonaVista = z; },
+  marcasDe, avanceChecklist, duracion, idPaso, dosisTexto, TIPOS,
+};
 
 registrar({
   'ses-tipo'({ t }) { tipoVisto = t; repintar(); },

@@ -27,7 +27,7 @@ test('avance de una checklist: cuenta lo marcado y se completa con todo', () => 
 });
 
 test('el cierre de la noche sale en Hoy solo desde las 7 p. m.', async () => {
-  const { tarjetaCierreHoy } = await import('../src/vistas/sesiones.js');
-  assert.equal(tarjetaCierreHoy(new Date(2026, 9, 28, 18, 59)), '');
-  assert.match(tarjetaCierreHoy(new Date(2026, 9, 28, 19, 0)), /Cierre de la noche/);
+  const { cierreDeHoy } = await import('../src/vistas/sesiones.js');
+  assert.equal(cierreDeHoy(new Date(2026, 9, 28, 18, 59)), null);
+  assert.match(cierreDeHoy(new Date(2026, 9, 28, 19, 0)).nombre, /Cierre de la noche/);
 });

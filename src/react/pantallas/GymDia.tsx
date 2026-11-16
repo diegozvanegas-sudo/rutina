@@ -52,7 +52,7 @@ function BotonSesion({ id, primario = false, texto = '' }: { id: string; primari
   return <Button color={primario ? 'primary' : 'secondary'} data-accion="sesion" data-sesion={s.id} sx={{ minHeight: 56, fontSize: 17 }}>{(ICONO_SESION[s.tipo] || '▶') + ' ' + (texto || s.nombre)}</Button>;
 }
 
-function calentamiento(d: Fin, sem: number) {
+export function calentamiento(d: Fin, sem: number) {
   if (!d.calentamiento) return null;
   const plan = G.pesoPlaneado(d, sem), aprox = plan ? aproximacion(plan.peso, plan.unidad) as Fin[] : [];
   const lista = aprox.length ? aprox : [[50, 8], [70, 5], [85, 2]].map(([p, reps]) => ({ pct: p, reps }));

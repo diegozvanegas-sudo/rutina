@@ -114,7 +114,11 @@ export default async (p) => {
   // Agregar desde plantilla con el buscador
   await tocarTexto('＋ Agregar');
   falla(await p.ev(`document.activeElement && document.activeElement.getAttribute('aria-label')`) === 'Buscar plantilla', 'no dejó el cursor en el buscador');
+  // La caja se abre con una animación: se espera a que termine y se confirma que lo escrito quedó en el buscador
+  await a.dormir(500);
   await a.escribir('#vista [aria-label="Buscar plantilla"]', 'soat');
+  if (await a.valor('#vista [aria-label="Buscar plantilla"]') !== 'soat') { await a.dormir(500); await a.escribir('#vista [aria-label="Buscar plantilla"]', 'soat'); }
+  await a.dormir(200);
   const visibles = await p.ev(`[...document.querySelector('#vista [aria-label="Buscar plantilla"]').closest('details, [data-plantillas]').querySelectorAll('[data-accion=rec-agregar][data-k]')].filter(b=>b.checkVisibility()).map(b=>b.textContent.trim())`);
   falla(visibles.length >= 1 && visibles.every((t) => t.toLowerCase().includes('soat')), 'el buscador no filtró: ' + JSON.stringify(visibles));
   await p.tocar('#vista [data-accion=rec-agregar][data-k="' + (await p.ev(`[...document.querySelector('#vista [aria-label="Buscar plantilla"]').closest('details, [data-plantillas]').querySelectorAll('[data-accion=rec-agregar][data-k]')].find(b=>b.checkVisibility()).dataset.k`)) + '"]');

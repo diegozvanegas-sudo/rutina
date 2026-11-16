@@ -14,14 +14,19 @@ export default async (p) => {
   const pb = async () => { const f = (await p.estado())?.finanzas || {}; return f.desempleo || f.planB || {}; };
   const json = async () => JSON.stringify(await pb());
   // El n-ésimo botón visible con ese texto (o aria-label), opcionalmente dentro del n-ésimo grupo con ese nombre
+  // Si todavía no está (la pantalla se está repintando o descargando), se reintenta hasta 3 s
   const tocarN = async (txt, n = 0, grupo = null, g = 0) => {
-    const ok = await p.ev(`(()=>{
+    let ok = false;
+    for (let intento = 0; intento < 15 && !ok; intento++) {
+      if (intento) await a.dormir(200);
+      ok = await p.ev(`(()=>{
       document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));
       const norm=s=>(s||'').replace(/[▾▸▼▶\\u200b]/g,'').replace(/\\s+/g,' ').trim(), t=${JSON.stringify(txt)}, gr=${JSON.stringify(grupo)};
       let raiz=document.getElementById('vista');
       if(gr){ raiz=[...raiz.querySelectorAll('[role=group]')].filter(x=>x.getAttribute('aria-label')===gr)[${g}]; if(!raiz) return false; }
       const el=[...raiz.querySelectorAll('button,[role=button]')].filter(x=>x.checkVisibility({visibilityProperty:true})).filter(x=>norm(x.textContent)===t||norm(x.getAttribute('aria-label'))===t)[${n}];
       if(!el) return false; el.setAttribute('data-e2e','1'); el.scrollIntoView({block:'center'}); return true})()`);
+    }
     if (!ok) throw new Error('Plan B 3-5: no encontré "' + txt + '" (' + n + (grupo ? ', en ' + grupo + ' ' + g : '') + ')');
     await p.tocar('[data-e2e]');
   };

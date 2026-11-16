@@ -13,7 +13,12 @@ import { EMOCIONES, BLOQUES, RED, RECURSOS, CARACTERISTICAS, PLAZOS } from '../.
 export default async (p) => {
   const a = ayudas(p, 'Finanzas'), { paso, falla, tocarTexto, escribirCampo } = a;
   const fin = async () => (await p.estado())?.finanzas;
-  const abrir = async (pestana, titulo) => { await p.ir('finanzas/' + pestana); await a.esperar('#vista h1'); await a.dormir(500); if (titulo) falla((await a.texto()).includes(titulo), 'no abrió ' + pestana + ' (falta "' + titulo + '")'); };
+  // Cada pestaña se descarga al abrirla: en una corrida larga puede tardar, así que se espera hasta 6 s a que salga su título
+  const abrir = async (pestana, titulo) => {
+    await p.ir('finanzas/' + pestana); await a.esperar('#vista h1'); await a.dormir(500);
+    for (let i = 0; titulo && i < 30 && !(await a.texto()).includes(titulo); i++) await a.dormir(200);
+    if (titulo) falla((await a.texto()).includes(titulo), 'no abrió ' + pestana + ' (falta "' + titulo + '")');
+  };
 
   // ---------- Resumen ----------
   await abrir('resumen', 'Patrimonio neto');

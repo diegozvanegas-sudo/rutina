@@ -205,7 +205,7 @@ function graficoEjercicio(estado: Fin, hasta: number, elegido: string | null) {
   );
 }
 
-function fuerza(estado: Fin, hasta: number, semActual: number, elegido: string | null) {
+export function fuerza(estado: Fin, hasta: number, semActual: number, elegido: string | null) {
   const lista = progresoMes(estado.semanas, estado.rutina, hasta) as Fin[];
   const suben = lista.filter((x) => x.cambio > 0.005), quietos = lista.filter((x) => x.est && x.est.estancado);
   const recs: Fin[] = [];

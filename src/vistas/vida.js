@@ -2,9 +2,8 @@
 import { e, guardar, repintar, dia } from '../estado.js';
 import { iso, fechaCorta, sumarDias } from '../fechas.js';
 import { pesos, leerMonto } from '../finanzas.js';
-import { RELACIONES, estadoEspera, IDEAS_POR_TEMA, cumplimientoEstandares } from '../vida.js';
-import { rango } from '../progreso.js';
-import { esc, barra, registrar, toast } from '../ui.js';
+import { RELACIONES, estadoEspera } from '../vida.js';
+import { registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -17,29 +16,8 @@ export const piezasEsperas = { espera, SENALES };
 
 // ---------- Mis estándares (Hoy) ----------
 let editandoEstandares = false;
-export function tarjetaEstandares(fecha = iso()) {
-  const lista = (e().estandares ||= []), hechos = ((e().dias[fecha] || {}).estandares) || {}, perfil = (e().libros.fenix && e().libros.fenix.perfil) || {};
-  const semana = cumplimientoEstandares(e(), rango(7, fecha)), n = lista.filter((s) => hechos[s.id]).length;
-  return '<section class="tarjeta col-estandares"><div class="fila-resumen"><h2>🧭 Mis estándares</h2>' +
-    (lista.length ? '<b>' + n + '/' + lista.length + '</b>' : '') + '</div>' +
-    (perfil.proposito ? '<p class="idea-libro">' + esc(perfil.proposito) + '</p>'
-      : '<p class="nota-corta"><a href="#libros/fenix">Escribe tu propósito</a> en Libros → Fénix → Herramientas → Mi perfil Fénix, y aparecerá aquí.</p>') +
-    (lista.length ? '<p class="nota-corta">Lo que no negocias. Márcalos en la noche.</p><div class="practica-libro">' + lista.map((s) =>
-      '<button type="button" class="paso-libro' + (hechos[s.id] ? ' hecho' : '') + '" data-accion="estandar" data-id="' + s.id + '" data-f="' + fecha + '" aria-pressed="' + !!hechos[s.id] + '">' +
-      '<span class="check-libro">' + (hechos[s.id] ? '✓' : '') + '</span><span>' + esc(s.texto) + '</span></button>').join('') + '</div>' +
-      (semana && semana.dias ? '<div class="fila-resumen nota-corta"><span>Últimos 7 días</span><b>' + Math.round(semana.fraccion * 100) + ' %</b></div>' + barra(semana.fraccion) : '')
-      : '<p class="nota-corta">Elige 3 a 5 reglas que cumples pase lo que pase. Toca una idea o escribe la tuya.</p>') +
-    (editandoEstandares || !lista.length ? editorEstandares(lista) : '<button type="button" class="boton secundario ancho" data-accion="estandares-editar">✏️ Editar estándares</button>') + '</section>';
-}
-function editorEstandares(lista) {
-  const libre = (t) => !lista.some((s) => s.texto === t);
-  return (lista.length ? '<ul class="lista-pesos">' + lista.map((s) => '<li><span>' + esc(s.texto) + '</span><button type="button" class="icono" data-accion="estandar-quitar" data-id="' + s.id + '" aria-label="Quitar">✕</button></li>').join('') + '</ul>' : '') +
-    '<div class="aportar"><input type="text" id="estandar-nuevo" placeholder="Mi regla: …" aria-label="Nuevo estándar">' +
-    '<button type="button" class="boton primario" data-accion="estandar-agregar">＋</button></div>' +
-    Object.entries(IDEAS_POR_TEMA).filter(([, ts]) => ts.some(libre)).map(([tema, ts]) => '<h3 class="tema-ideas">' + tema + '</h3><div class="chips envolver">' +
-      ts.filter(libre).map((t) => '<button type="button" class="chip mini" data-accion="estandar-agregar" data-t="' + esc(t) + '">' + esc(t) + '</button>').join('') + '</div>').join('') +
-    (lista.length ? '<button type="button" class="boton secundario ancho" data-accion="estandares-editar">✓ Listo</button>' : '');
-}
+// Para la tarjeta de React (src/react/pantallas/HoyTarjetas.tsx): si se están editando los estándares
+export const editandoLosEstandares = () => editandoEstandares;
 
 registrar({
   'circulo-agregar'() {

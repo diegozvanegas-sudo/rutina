@@ -15,7 +15,15 @@ export const tokens = {
   // Fondos oscuros de las etiquetas amarilla (Bajo, aviso) y azul (Alto)
   amarilloFondo: '#3a2d10', azulFondo: '#1f2a3d',
   // Etiqueta y texto de lo vencido (Recordatorios)
-  rojoFondo: '#4a1d1d', rojoSuave: '#ffb3b3',
+  rojoFondo: '#4a1d1d', rojoSuave: '#ffb3b3', peligroInk: '#ffd0d0',
+  // 📚 Libros: el dorado de la lectura del día, la afirmación y la caja de nota
+  dorado: '#e0a84a', doradoSuave: '#f3d9a4', notaFondo: '#1d2733', notaBorde: '#2f4257',
+  // 📈 Gráficos: series (ingresos, gastos, otra) y la rampa de la constancia, de menos a más (los de graficos.js)
+  serie1: '#3987e5', serie2: '#d95926', serie3: '#2fa37a', rampa1: '#184f95', rampa2: '#256abf', rampa3: '#3987e5', rampa4: '#86b6ef',
+  // 🌅 Mañana: "ya puedes desayunar" (verde claro sobre verde oscuro)
+  brandClaro: '#a9f0c9',
+  // 🗺️ Lugares: relleno de lo visitado (menos a más) y de lo que quiero visitar
+  mapaVisto1: 'rgba(61, 214, 140, .5)', mapaVisto2: 'rgba(61, 214, 140, .75)', mapaQuiero: 'rgba(245, 197, 66, .16)',
   // Gym: etiqueta Top y Back-off, fila "sube peso" y el texto sobre azul
   topFondo: '#3d2a12', topInk: '#ffc27a', backoffInk: '#9cc3ff', subeFondo: '#12233a', azulInk: '#04162b',
   radio: 14,

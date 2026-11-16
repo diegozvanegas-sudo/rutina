@@ -20,7 +20,9 @@ import estudiar from './estudiar.mjs';
 import sesiones from './sesiones.mjs';
 import hoy from './hoy.mjs';
 import progreso from './progreso.mjs';
+import editar from './editar.mjs';
+import clientes from './clientes.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes]) await recorrido(p);
 };

@@ -12,7 +12,7 @@ import { vistaGym, semanaActual, claveGym } from './vistas/gym.js';
 import './vistas/sesiones.js';
 import { vistaAjustes, pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.js';
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
-import { vistaEditar } from './vistas/editar.js';
+import './vistas/editar.js';
 import './vistas/dieta.js';
 import { vistaFinanzas, claveFinanzas } from './vistas/finanzas.js';
 import { alertas, bannerDiarios } from './vistas/recordatorios.js';
@@ -27,7 +27,7 @@ import { refrescarReact } from './react/refrescar.js';
 import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import './vistas/lugares.js';
 import './vistas/suplementos.js';
-import { vistaClientes } from './vistas/clientes.js';
+import './vistas/clientes.js';
 import { vistaEntrenador, tieneEntrenador } from './vistas/entrenador.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
@@ -45,7 +45,7 @@ iniciarAvisos();
 
 const PANTALLAS = {
   finanzas: vistaFinanzas,
-  gym: vistaGym, clientes: vistaClientes, entrenador: vistaEntrenador, editar: vistaEditar, ajustes: vistaAjustes,
+  gym: vistaGym, entrenador: vistaEntrenador, ajustes: vistaAjustes,
 };
 // Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
 const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
@@ -55,7 +55,8 @@ const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), co
   metas: () => import('./react/pantallas/Metas.tsx'), suplementos: () => import('./react/pantallas/Suplementos.tsx'),
   manana: () => import('./react/pantallas/Manana.tsx'), estudiar: () => import('./react/pantallas/Estudiar.tsx'),
   sesiones: () => import('./react/pantallas/Sesiones.tsx'), hoy: () => import('./react/pantallas/Hoy.tsx'),
-  progreso: () => import('./react/pantallas/Progreso.tsx') };
+  progreso: () => import('./react/pantallas/Progreso.tsx'), editar: () => import('./react/pantallas/Editar.tsx'),
+  clientes: () => import('./react/pantallas/Clientes.tsx') };
 // Secciones grandes que se migran pestaña por pestaña: las pestañas de "listas" ya son de React; las demás siguen como antes
 const REACT_POR_PESTANA = {
   finanzas: { actual: claveFinanzas, listas: ['registrar', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'calcular', 'esperas', 'planb:desempleo', 'planb:lider', 'planb:creativo', 'planb:innovacion', 'planb:pitch'], cargar: () => import('./react/pantallas/Finanzas.tsx') },
@@ -431,67 +432,11 @@ registrar({
 
 // Arrastre con eventos de puntero: funciona con mouse y con el dedo (el de HTML5 no sirve en el celular)
 document.addEventListener('pointerdown', (ev) => {
-  const asa = ev.target.closest && ev.target.closest('.asa-fila, .asa-barra, .asa-orden');
+  const asa = ev.target.closest && ev.target.closest('.asa-fila, .asa-barra');
   if (!asa) return;
   ev.preventDefault();
   if (asa.classList.contains('asa-barra')) arrastrarAncho(ev);
-  else if (asa.classList.contains('asa-orden')) arrastrarOrden(ev, asa.closest('[data-orden-i], [data-orden-id]'));
   else arrastrarFila(ev, asa.closest('.fila-menu'));
-});
-// Cualquier lista de Editar: el contenedor lleva data-orden-lista="rutina.0.ejercicios" (o data-orden-tipo="hoy" para las pantallas)
-// y cada elemento data-orden-i (su posición) o data-orden-id. Se arrastra del asa ⠿; cerca del borde de la pantalla, se desplaza sola
-function arrastrarOrden(ev, item) {
-  if (!item) return;
-  const caja = item.parentNode, hermanos = () => [...caja.children].filter((x) => x !== item && (x.dataset.ordenI != null || x.dataset.ordenId != null));
-  let y = ev.clientY, antes = item.nextElementSibling;
-  // Se compara el centro del renglón que se arrastra (no el dedo): en el celular el asa queda arriba de un renglón de dos líneas
-  const r0 = item.getBoundingClientRect(), desfase = r0.top + r0.height / 2 - ev.clientY;
-  const ubicar = () => {
-    const centro = y + desfase;
-    const sig = hermanos().find((x) => { const r = x.getBoundingClientRect(); return centro < r.top + r.height / 2; });
-    // Lo que no es de la lista (el renglón de agregar, notas) se queda al final
-    const fin = hermanos().pop();
-    const destino = sig || (fin ? fin.nextElementSibling : null);
-    if (destino !== item.nextElementSibling && destino !== item) caja.insertBefore(item, destino);
-  };
-  const borde = setInterval(() => {
-    const paso = y < 90 ? -14 : y > innerHeight - 90 ? 14 : 0;
-    if (paso) { scrollBy(0, paso); ubicar(); }
-  }, 16);
-  item.classList.add('orden-moviendo');
-  arrastrar(ev, (m) => { y = m.clientY; ubicar(); }, () => {
-    clearInterval(borde);
-    item.classList.remove('orden-moviendo');
-    if (item.nextElementSibling === antes) return; // no se movió
-    soltarOrden(caja, item);
-  });
-}
-function soltarOrden(caja, item) {
-  if (caja.dataset.ordenLista) {
-    const orden = [...caja.children].filter((x) => x.dataset.ordenI != null).map((x) => x.dataset.ordenI);
-    ejecutar('ed-ordenar', { dataset: { lista: caja.dataset.ordenLista, orden: orden.join(',') } });
-  } else if (caja.dataset.ordenTipo) {
-    const sig = item.nextElementSibling;
-    ejecutar('orden-colocar', { dataset: { tipo: caja.dataset.ordenTipo, id: item.dataset.ordenId, antes: sig && sig.dataset.ordenId != null ? sig.dataset.ordenId : '' } });
-  }
-}
-// Con teclado: flechas arriba y abajo sobre el asa
-document.addEventListener('keydown', (ev) => {
-  if ((ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') || !ev.target.matches || !ev.target.matches('.asa-orden')) return;
-  const item = ev.target.closest('[data-orden-i], [data-orden-id]'), caja = item && item.parentNode;
-  if (!caja) return;
-  ev.preventDefault();
-  const lista = [...caja.children].filter((x) => x.dataset.ordenI != null || x.dataset.ordenId != null), k = lista.indexOf(item), otro = lista[k + (ev.key === 'ArrowUp' ? -1 : 1)];
-  if (!otro) return;
-  caja.insertBefore(item, ev.key === 'ArrowUp' ? otro : otro.nextElementSibling);
-  const clave = item.dataset.ordenI != null ? 'ordenI' : 'ordenId', valor = item.dataset[clave];
-  soltarOrden(caja, item);
-  // Después de repintar, el foco vuelve al asa del mismo elemento (ya en su posición nueva)
-  setTimeout(() => {
-    const nueva = clave === 'ordenId' ? document.querySelector('[data-orden-id="' + valor + '"] .asa-orden')
-      : document.querySelectorAll('[data-orden-lista="' + caja.dataset.ordenLista + '"] > [data-orden-i] .asa-orden')[k + (ev.key === 'ArrowUp' ? -1 : 1)];
-    if (nueva) nueva.focus({ preventScroll: true });
-  }, 30);
 });
 function arrastrar(ev, alMover, alSoltar) {
   const fin = () => {

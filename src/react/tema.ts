@@ -26,6 +26,8 @@ export const tokens = {
   mapaVisto1: 'rgba(61, 214, 140, .5)', mapaVisto2: 'rgba(61, 214, 140, .75)', mapaQuiero: 'rgba(245, 197, 66, .16)',
   // Gym: etiqueta Top y Back-off, fila "sube peso" y el texto sobre azul
   topFondo: '#3d2a12', topInk: '#ffc27a', backoffInk: '#9cc3ff', subeFondo: '#12233a', azulInk: '#04162b',
+  // 👥 Clientes: colores de las fases del ciclo (colorFase: 0 azul, 1 brand, 2 morado = descarga, 3 amarillo)
+  faseAzul: '#3b82f6', faseMorado: '#a78bfa',
   radio: 14,
 };
 const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';

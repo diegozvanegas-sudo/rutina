@@ -1,9 +1,9 @@
 // Tarjetas de registro rápido para "Hoy" y "Progreso": sueño y peso, cómo te fue en el partido,
 // foco de la semana y el cierre de la semana (qué funcionó, qué frenó, qué ley se rompió y el foco de la próxima).
 import { e, guardar, dia, hayFutbol } from '../estado.js';
-import { iso, sumarDias, fechaCorta } from '../fechas.js';
+import { iso, sumarDias } from '../fechas.js';
 import { hayPartido } from '../registro.js';
-import { esc, registrar, toast } from '../ui.js';
+import { registrar, toast } from '../ui.js';
 import { pausaEn, pausarFutbol, reanudarFutbol } from '../futbol.js';
 
 // ---------- Fútbol: el día del partido y, si no se anotó, al día siguiente ----------
@@ -13,17 +13,6 @@ export function fechaPartidoPendiente(hoy = iso()) {
   return hayFutbol(ayer) && !(d && hayPartido(d.partido)) ? ayer : null;
 }
 
-// ⏸ Pausa del fútbol: en Editar → Rutina y desde la tarjeta del partido. Si el partido de ayer no se anotó, la pausa
-// empieza ayer (no se jugó) y deja de preguntarlo
-export function tarjetaPausaFutbol() {
-  const c = e().config, pausa = pausaEn(c, iso());
-  if (!(c.futbol || []).length && !pausa) return '';
-  if (!pausa) return '<button type="button" class="boton secundario" data-accion="futbol-pausar">⏸ Pausar el fútbol (lesión, viaje…)</button>';
-  return '<div class="futbol-pausa"><p class="aviso">⏸ <b>Fútbol en pausa</b> desde el ' + fechaCorta(pausa.desde) + (pausa.hasta ? ' · vuelves el ' + fechaCorta(pausa.hasta) : '') +
-    '. Mientras tanto no sale el partido en Hoy, la comida sigue el plan normal y no hay avisos del partido. Tus días de fútbol quedan guardados.</p>' +
-    '<div class="dos"><label class="campo">Vuelvo a jugar el (opcional)<input type="date" data-cambio="futbol-vuelvo" min="' + sumarDias(iso(), 1) + '" value="' + esc(pausa.hasta || '') + '"></label>' +
-    '<button type="button" class="boton primario" data-accion="futbol-reanudar">▶ Volví a jugar</button></div></div>';
-}
 registrar({
   'futbol-pausar'() {
     const c = e().config, hoy = iso(), ayer = sumarDias(hoy, -1), d = e().dias[ayer], antes = JSON.parse(JSON.stringify(c.futbolPausas || []));

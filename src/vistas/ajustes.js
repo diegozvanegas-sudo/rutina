@@ -1,38 +1,16 @@
-// Ajustes: nube, Google Sheets, metas, espera de la pastilla, sonido y copia de seguridad
+// Ajustes: las acciones de la pantalla (la pinta React: react/pantallas/Ajustes.tsx) y las pantallas de entrar y del
+// candado, que son del armazón de la app (main.js)
 import { e, guardar, repintar, exportar, importar, reiniciar, avanceMetas, semanaActual } from '../estado.js';
 import { csvGym, csvDias } from '../csv.js';
 import { iso, hora, fechaLarga, lunesDeFecha, ponerSemana1 } from '../fechas.js';
-import { nube, configurada, entrar, salir, sincronizar, textoNube, usarLoDeLaNube, copiasNube, restaurarCopia } from '../nube.js';
-import { hoja, hojaLista, enviarSemana } from '../hoja.js';
-import { AVISOS, HORAS_AVISOS, avisosDelDia, calendarioIcs } from '../registro.js';
-import { soportados, avisosActivos, activarAvisos, desactivarAvisos } from '../avisos.js';
-import { bloqueo, huellaActiva, activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
+import { nube, entrar, salir, sincronizar, usarLoDeLaNube, copiasNube, restaurarCopia } from '../nube.js';
+import { enviarSemana } from '../hoja.js';
+import { calendarioIcs } from '../registro.js';
+import { activarAvisos, desactivarAvisos } from '../avisos.js';
+import { bloqueo, activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
 import { esc, registrar, toast } from '../ui.js';
 import { avisosDeSuplementos } from './suplementos.js';
 import { presentacion } from './presentacion.js';
-
-// La meta de calorías la pone el plan de Dieta de cada día
-const ETIQUETAS = { agua: 'Agua (ml)', pasos: 'Pasos', lectura: 'Lectura (min)', pantalla: 'Pantalla máxima (min)' };
-
-export function vistaAjustes() {
-  const c = e().config;
-  return '<h1>Ajustes</h1>' + seccionPerfil() + seccionNube() + seccionAvisos() + seccionHoja() +
-    '<section class="tarjeta"><h2>Metas diarias</h2><div class="dos">' + Object.entries(ETIQUETAS).map(([k, t]) =>
-      '<label class="campo">' + t + '<input type="number" inputmode="numeric" min="0" data-cambio="conf-meta" data-k="' + k + '" value="' + esc(c.metas[k]) + '"></label>').join('') +
-    // Lo guarda la acción de 🎓 Estudiar (vistas/estudiar.js)
-    '<label class="campo">🎓 Estudio al día (min)<input type="number" inputmode="numeric" min="5" max="240" step="5" data-cambio="estudio-minutos" value="' + esc(c.estudio.minutos) + '"></label></div></section>' +
-    '<section class="tarjeta"><h2>Pastilla → desayuno</h2><p class="nota-corta">Ajústalo a lo que indique tu médico.</p><div class="dos">' +
-    '<label class="campo">Mínimo (min)<input type="number" inputmode="numeric" min="0" data-cambio="conf-espera" data-k="minimo" value="' + c.espera.minimo + '"></label>' +
-    '<label class="campo">Ideal (min)<input type="number" inputmode="numeric" min="0" data-cambio="conf-espera" data-k="ideal" value="' + c.espera.ideal + '"></label></div></section>' +
-    '<section class="tarjeta"><h2>Avisos</h2><label class="interruptor"><input type="checkbox" data-cambio="conf-sonido"' + (c.sonido ? ' checked' : '') + '> Sonido al terminar descansos y cambios de lado (la vibración siempre está activa)</label></section>' +
-    '<section class="tarjeta"><h2>Copia de seguridad</h2><p class="nota-corta">Todo se guarda en este celular. Exporta una copia de vez en cuando o para pasarla a otro equipo.</p>' +
-    '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="exportar">⬇ Exportar (JSON)</button>' +
-    '<label class="boton secundario">⬆ Importar<input type="file" accept="application/json,.json" data-cambio="importar" hidden></label></div>' +
-    '<h2>Exportar a Excel / Sheets (CSV)</h2><div class="botones-rapidos">' +
-    '<button type="button" class="boton secundario" data-accion="csv" data-que="gym">🏋️ Gym por semana</button>' +
-    '<button type="button" class="boton secundario" data-accion="csv" data-que="dias">☀️ Hábitos y metas por día</button></div></section>' +
-    '<section class="tarjeta peligro"><h2>Empezar de cero</h2><button type="button" class="boton peligro" data-accion="reiniciar">Borrar todos los datos</button></section>';
-}
 
 // Sin sesión no se muestra la app: solo esta pantalla (main.js)
 export function pantallaEntrar() {
@@ -59,83 +37,11 @@ export function pantallaBloqueo() {
     '<button type="button" class="boton secundario ancho" data-accion="huella-contrasena">Entrar con contraseña</button></section>' + presentacion() + '</div>';
 }
 
-function seccionHuella() {
-  if (huellaActiva()) {
-    return '<h2>🔒 Bloqueo con huella</h2><p class="nota-corta">Activo en este equipo: al abrir la app, o al volver después de 5 minutos, se pide tu huella, tu cara o el PIN del celular.</p>' +
-      '<button type="button" class="boton secundario" data-accion="huella-quitar">Quitar bloqueo</button>';
-  }
-  if (!bloqueo.disponible) return '';
-  return '<h2>🔒 Bloqueo con huella</h2><p class="nota-corta">La sesión sigue recordada, pero para abrir la app se pide tu huella, tu cara o el PIN del celular. Se activa en cada equipo.</p>' +
-    '<button type="button" class="boton primario" data-accion="huella-activar">Activar en este equipo</button>';
-}
-
-function seccionNube() {
-  if (!configurada || !nube.usuario) return '';
-  return '<section class="tarjeta"><h2>☁️ Nube</h2><p>' + esc(nube.usuario.correo) + '</p>' +
-    '<p class="estado-nube n-' + nube.estado + '">' + textoNube() + (nube.ultima ? ' · ' + hora(nube.ultima) : '') + '</p>' +
-    (nube.error ? '<p class="aviso">' + esc(nube.error) + '</p>' : '') +
-    (nube.proteccion ? '<p class="nota-corta">Lo de este equipo tiene muchos menos datos que la nube. Si no los borraste a propósito, quédate con lo de la nube.</p>' +
-      '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="nube-usar">⬇ Usar lo de la nube</button></div>' : '') +
-    '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="nube-sync">↻ Sincronizar ahora</button>' +
-    '<button type="button" class="boton secundario" data-accion="nube-salir">Salir</button></div>' + seccionCopias() + seccionHuella() + '</section>';
-}
-
 // Copias que guarda la nube (una cada 10 minutos de uso y antes de cualquier subida que quite datos)
 let copias = null, cargandoCopias = false;
 const fechaCopia = (t) => { const d = new Date(t); return fechaLarga(iso(d)) + ' · ' + hora(d.getTime()); };
-function seccionCopias() {
-  let lista = '';
-  if (copias) {
-    lista = copias.length ? '<ul class="lista-pesos copias-nube">' + copias.slice(0, 30).map((c) =>
-      '<li><span>' + esc(fechaCopia(c.guardado)) + ' · ' + c.dias + ' días · ' + c.registros + ' registros gym</span> ' +
-      '<button type="button" class="boton secundario" data-accion="nube-restaurar" data-id="' + c.id + '">Restaurar</button></li>').join('') + '</ul>'
-      : '<p class="nota-corta">Aún no hay copias.</p>';
-  }
-  return '<h2>🕘 Copias en la nube</h2><p class="nota-corta">La nube guarda versiones anteriores de tus datos. Si algo se borra, vuelve a una de ellas.</p>' +
-    lista + '<div class="botones-rapidos"><button type="button" class="boton secundario" data-accion="nube-copias"' + (cargandoCopias ? ' disabled' : '') + '>' +
-    (copias ? '↻ Actualizar copias' : 'Ver copias') + '</button></div>';
-}
-
-// Lo propio de cada usuario: cómo saludarlo y desde cuándo cuentan las semanas del gym
-function seccionPerfil() {
-  const c = e().config;
-  return '<section class="tarjeta"><h2>👤 Perfil</h2><div class="dos">' +
-    '<label class="campo">Tu nombre (para el saludo)<input type="text" data-cambio="conf-nombre" value="' + esc(c.nombre || '') + '" autocomplete="given-name"></label>' +
-    '<label class="campo">Semana 1 del gym empieza<input type="date" data-cambio="conf-semana1" value="' + esc(c.semana1) + '"></label></div>' +
-    '<p class="nota-corta">Las semanas van de lunes a domingo: la semana 1 es la del ' + fechaLarga(c.semana1) + ' y hoy vas en la semana ' + semanaActual() + '. ' +
-    'Si la cambias, los registros siguen con su número de semana.</p>' +
-    '<p class="nota-corta">El orden del menú, las tarjetas de Hoy y las metas se cambian en <a href="#editar/pantallas">✏️ Editar → Pantallas</a>.</p></section>';
-}
-
-const ETIQUETAS_HORA = { pastilla: '💊 Pastilla', partido: '⚽ Hora del partido', dormir: '🌙 Prepararte para dormir', revision: '📝 Cierre del domingo' };
-function seccionAvisos() {
-  const c = e().config.avisos || {}, horas = { ...HORAS_AVISOS, ...(c.horas || {}) }, apagados = c.apagados || {};
-  const hoy = avisosDelDia(e().config);
-  return '<section class="tarjeta"><h2>🔔 Avisos del día</h2>' +
-    '<p class="nota-corta">Para que te avise siempre, aunque la app esté cerrada, agrega los avisos al calendario del celular. Los avisos de la app solo llegan con la app abierta o recién cerrada (también el fin del descanso del gym).</p>' +
-    '<div class="dos">' + Object.entries(ETIQUETAS_HORA).map(([k, t]) =>
-      '<label class="campo">' + t + '<input type="time" data-cambio="aviso-hora" data-k="' + k + '" value="' + esc(horas[k]) + '"></label>').join('') + '</div>' +
-    Object.entries(AVISOS).map(([id, a]) => '<label class="interruptor"><input type="checkbox" data-cambio="aviso-activo" data-id="' + id + '"' + (apagados[id] ? '' : ' checked') + '> ' + a.icono + ' ' + esc(a.nombre) + '</label>').join('') +
-    '<p class="nota-corta">Hoy: ' + (hoy.length ? hoy.map((a) => a.hora + ' ' + a.icono).join(' · ') : 'ningún aviso') + '</p>' +
-    (avisosDeSuplementos().length ? '<p class="nota-corta">💊 Suplementos en el calendario: ' + avisosDeSuplementos().map((a) => esc(a.hora + ' ' + a.nombre)).join(' · ') + ' (cámbialos en <a href="#suplementos">💊 Suplementos</a>).</p>' : '') +
-    '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="aviso-calendario">📅 Agregar al calendario</button>' +
-    (soportados() ? (avisosActivos() ? '<button type="button" class="boton secundario" data-accion="aviso-desactivar">🔕 Quitar avisos de la app</button>'
-      : '<button type="button" class="boton secundario" data-accion="aviso-activar">🔔 Activar avisos de la app</button>') : '') + '</div>' +
-    '<p class="nota-corta">Si cambias una hora, vuelve a agregar el calendario (el nuevo reemplaza al anterior en la mayoría de calendarios; si queda repetido, borra el viejo).</p></section>';
-}
-
-function seccionHoja() {
-  const h = e().config.hoja || {};
-  return '<section class="tarjeta"><h2>📗 Google Sheets</h2><p class="nota-corta">Escribe el gym en la pestaña "Rutina 2.0" (columna de cada semana) y los días en "Diario App". ' +
-    'Instala antes el Apps Script de la carpeta apps_script (ver README).</p>' +
-    '<label class="campo">Dirección de la aplicación web<input type="url" data-cambio="conf-hoja" data-k="url" value="' + esc(h.url || '') + '" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off"></label>' +
-    '<label class="campo">Clave (la misma de CLAVE en el script)<input type="text" data-cambio="conf-hoja" data-k="clave" value="' + esc(h.clave || '') + '" autocomplete="off"></label>' +
-    '<label class="interruptor"><input type="checkbox" data-cambio="conf-hoja-auto"' + (h.auto !== false ? ' checked' : '') + '> Enviar sola la semana actual un minuto después de cada cambio</label>' +
-    (hoja.mensaje ? '<p class="' + (hoja.estado === 'error' ? 'aviso' : 'nota-corta') + '">' + (hoja.ultima && hoja.estado === 'ok' ? hora(hoja.ultima) + ' · ' : '') + esc(hoja.mensaje) + '</p>' : '') +
-    '<div class="botones-rapidos"><button type="button" class="boton primario" data-accion="hoja-enviar"' + (hojaLista() ? '' : ' disabled') + '>📤 Enviar semana actual</button>' +
-    '<button type="button" class="boton secundario" data-accion="hoja-todas"' + (hojaLista() ? '' : ' disabled') + '>Enviar todas</button></div></section>';
-}
-
+// Lo que lee la pantalla de React
+export const piezasAjustes = { copias: () => copias, cargandoCopias: () => cargandoCopias, fechaCopia };
 function descargar(texto, tipo, nombre) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([texto], { type: tipo }));

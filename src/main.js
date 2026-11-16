@@ -10,7 +10,7 @@ import { textoEspera, revisarCronos } from './vistas/manana.js';
 import './vistas/metas.js';
 import { vistaGym, semanaActual, claveGym } from './vistas/gym.js';
 import './vistas/sesiones.js';
-import { vistaAjustes, pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.js';
+import { pantallaEntrar, pantallaBloqueo } from './vistas/ajustes.js';
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import './vistas/editar.js';
 import './vistas/dieta.js';
@@ -28,7 +28,7 @@ import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import './vistas/lugares.js';
 import './vistas/suplementos.js';
 import './vistas/clientes.js';
-import { vistaEntrenador, tieneEntrenador } from './vistas/entrenador.js';
+import { tieneEntrenador } from './vistas/entrenador.js';
 import { iniciarNube, nube, textoNube, configurada } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
@@ -45,7 +45,7 @@ iniciarAvisos();
 
 const PANTALLAS = {
   finanzas: vistaFinanzas,
-  gym: vistaGym, entrenador: vistaEntrenador, ajustes: vistaAjustes,
+  gym: vistaGym,
 };
 // Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
 const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
@@ -56,7 +56,8 @@ const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), co
   manana: () => import('./react/pantallas/Manana.tsx'), estudiar: () => import('./react/pantallas/Estudiar.tsx'),
   sesiones: () => import('./react/pantallas/Sesiones.tsx'), hoy: () => import('./react/pantallas/Hoy.tsx'),
   progreso: () => import('./react/pantallas/Progreso.tsx'), editar: () => import('./react/pantallas/Editar.tsx'),
-  clientes: () => import('./react/pantallas/Clientes.tsx') };
+  clientes: () => import('./react/pantallas/Clientes.tsx'), ajustes: () => import('./react/pantallas/Ajustes.tsx'),
+  entrenador: () => import('./react/pantallas/Entrenador.tsx') };
 // Secciones grandes que se migran pestaña por pestaña: las pestañas de "listas" ya son de React; las demás siguen como antes
 const REACT_POR_PESTANA = {
   finanzas: { actual: claveFinanzas, listas: ['registrar', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'calcular', 'esperas', 'planb:desempleo', 'planb:lider', 'planb:creativo', 'planb:innovacion', 'planb:pitch'], cargar: () => import('./react/pantallas/Finanzas.tsx') },

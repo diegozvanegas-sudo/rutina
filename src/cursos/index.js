@@ -22,8 +22,9 @@ import geometriaSagrada from './geometria-sagrada.js';
 import masoneria from './masoneria.js';
 import cienciasOcultas from './ciencias-ocultas.js';
 import inglesB2 from './ingles-b2.js';
+import retratoRealista from './retrato-realista.js';
 
-export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo, numerologia, geometriaSagrada, masoneria, cienciasOcultas, inglesB2];
+export const CURSOS = [aprenderAAprender, metacognicion, tomaDeDecisiones, habitosProductividad, procrastinacion, comunicacionOratoria, inteligenciaEmocional, educacionFinanciera, sesgosCognitivos, neuroplasticidad, neurocienciaDesarrollo, epigenetica, geopolitica, gnosticismo, hermetismo, numerologia, geometriaSagrada, masoneria, cienciasOcultas, inglesB2, retratoRealista];
 export const curso = (id) => CURSOS.find((c) => c.id === id) || null;
 
 const c = (id, icono, nombre, descripcion) => ({ id, icono, nombre, descripcion });
@@ -60,9 +61,12 @@ const AREAS_CURSOS = [
     c('masoneria', '🧱', 'Masonería', 'Origen, grados, símbolos y papel histórico, separando hechos de mitos.'),
     c('ciencias-ocultas', '🔮', 'Ciencias ocultas', 'Alquimia, astrología y magia ceremonial en la historia, y lo que dice la evidencia.'),
   ] },
+  { id: 'arte', icono: '🎨', nombre: 'Arte y dibujo', descripcion: 'Aprender a ver y a dibujar: del primer trazo a un retrato que se parezca.', cursos: [
+    c('retrato-realista', '✏️', 'Retrato realista a lápiz', 'Medir, construir la cabeza, ubicar los rasgos y darles volumen con la luz.'),
+  ] },
 ];
 
-// Las 7 áreas en orden: Libros primero (ya tiene contenido), luego las de cursos
+// Las 8 áreas en orden: Libros primero (ya tiene contenido), luego las de cursos
 export function areas() {
   return [
     { id: 'libros', icono: '📚', nombre: 'Libros', descripcion: 'Libros y seminarios convertidos desde PDF: una lectura por día.',

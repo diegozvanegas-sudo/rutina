@@ -111,5 +111,40 @@ export default async (p) => {
   falla(await p.sinDesborde(), 'se sale de la pantalla en el celular');
   await p.foto('estudiar-cel');
   await p.computador();
+
+  // ✏️ Retrato realista: el área Arte y dibujo y las lecciones con figuras (sobre papel, sin salirse en el celular)
+  await p.ir('estudiar');
+  await a.esperar('#vista h1');
+  // La acción de siempre: un botón con data-accion (main.js la despacha)
+  const accion = (datos) => p.ev(`(()=>{const b=document.createElement('button');Object.assign(b.dataset,${JSON.stringify(datos)});document.getElementById('vista').appendChild(b);b.click();b.remove()})()`);
+  await accion({ accion: 'estudio-area', a: '' });
+  await a.dormir(400);
+  falla((await a.texto()).includes('Arte y dibujo'), 'no aparece el área Arte y dibujo');
+  await accion({ accion: 'estudio-curso', c: 'retrato-realista' });
+  await a.esperar('#vista h1');
+  falla((await a.texto()).includes('Retrato realista a lápiz'), 'no abrió el curso de retrato');
+  for (const [n, figuras] of [[4, 1], [5, 1], [6, 1], [7, 1], [10, 2], [11, 1]]) {
+    await accion({ accion: 'estudio-abrir', n: String(n) });
+    await a.dormir(500);
+    const hay = await p.cuantos('#vista figure svg[role=img]');
+    falla(hay === figuras, 'la lección ' + n + ' debería tener ' + figuras + ' figura(s) y tiene ' + hay);
+    falla(await p.ev(`[...document.querySelectorAll('#vista figure svg[role=img]')].every(s=>s.getBoundingClientRect().height>40 && s.querySelector('.papel'))`), 'la figura de la lección ' + n + ' no se dibujó');
+    await p.ev(`document.querySelector('#vista figure').scrollIntoView()`);
+    await p.foto('retrato-' + n + '-pc');
+  }
+  await accion({ accion: 'estudio-abrir', n: '5' });
+  await a.dormir(500);
+  await paso('retrato lección 5');
+  await p.ev(`document.querySelector('#vista figure').scrollIntoView()`);
+  await p.foto('retrato-proporciones-pc');
+  await p.celular();
+  for (const n of [5, 10]) {
+    await accion({ accion: 'estudio-abrir', n: String(n) });
+    await a.dormir(500);
+    falla(await p.sinDesborde(), 'la lección ' + n + ' del retrato se sale en el celular');
+    await p.ev(`document.querySelector('#vista figure').scrollIntoView()`);
+    await p.foto('retrato-' + n + '-cel');
+  }
+  await p.computador();
   console.log('✓ Estudiar');
 };

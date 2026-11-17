@@ -134,6 +134,11 @@ function montarArmazon() {
   montarFijo($('lateral'), () => import('./react/armazon/Lateral.tsx'));
   montarFijo($('flotante'), () => import('./react/armazon/Flotante.tsx'));
   montarFijo($('reproductor'), () => import('./react/armazon/Reproductor.tsx'));
+  // Los estilos de los gráficos y las figuras (SVG en texto de graficos.js y figuras.js) y del globo de ayuda: una sola vez
+  const estilos = document.createElement('div');
+  estilos.hidden = true;
+  document.body.appendChild(estilos);
+  montarFijo(estilos, () => import('./react/armazon/Estilos.tsx'));
 }
 
 // Identidad de un campo para encontrarlo de nuevo después de repintar

@@ -26,6 +26,33 @@ import { Sub, Puntos, Caja, Paso, Pasos, Dia, TituloLectura, Idea, ListaNumerada
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
 const VISTA = 'estudiar';
+// Figuras de una lección (opcional, cursos de dibujo): SVG simple del archivo del curso, dibujado sobre papel con clases
+// fijas (linea, fina, guia, acento, rotulo, v1 a v5). El SVG es del repositorio, nunca de lo que escribe un usuario
+const FIGURA = {
+  '& .papel': { fill: tokens.figPapel },
+  '& .linea': { fill: 'none', stroke: tokens.figGrafito, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+  '& .fina': { fill: 'none', stroke: tokens.figGrafito, strokeWidth: 1, strokeLinecap: 'round' },
+  '& .guia': { fill: 'none', stroke: tokens.figGuia, strokeWidth: 1, strokeDasharray: '4 3' },
+  '& .acento': { fill: 'none', stroke: tokens.figAcento, strokeWidth: 1.5, strokeDasharray: '5 3' },
+  '& .rotulo': { fill: tokens.figGrafito, fontSize: 9, fontFamily: 'inherit' },
+  '& .rotulo-acento': { fill: tokens.figAcento, fontSize: 9, fontWeight: 700, fontFamily: 'inherit' },
+  '& .s-oscuro': { stopColor: tokens.figV4 }, '& .s-papel': { stopColor: tokens.figPapel },
+  '& .v1': { fill: tokens.figV1 }, '& .v2': { fill: tokens.figV2 }, '& .v3': { fill: tokens.figV3 }, '& .v4': { fill: tokens.figV4 }, '& .v5': { fill: tokens.figV5 },
+};
+function Figuras({ lista }: { lista?: { titulo: string; vista: string; svg: string }[] }) {
+  if (!lista || !lista.length) return null;
+  return (
+    <Box sx={{ display: 'grid', gap: '12px', gridTemplateColumns: { sm: lista.length > 1 ? '1fr 1fr' : '1fr' }, my: '12px' }}>
+      {lista.map((f) => (
+        <Box component="figure" key={f.titulo} sx={{ m: 0, display: 'grid', gap: '6px', justifyItems: 'center' }}>
+          <Box component="svg" role="img" aria-label={f.titulo} viewBox={f.vista} sx={{ width: '100%', maxWidth: 380, height: 'auto', borderRadius: '12px', ...FIGURA }}
+            dangerouslySetInnerHTML={{ __html: '<rect class="papel" x="0" y="0" width="100%" height="100%"/>' + f.svg }} />
+          <Box component="figcaption" sx={{ color: 'text.secondary', fontSize: 13, textAlign: 'center' }}>{f.titulo}</Box>
+        </Box>
+      ))}
+    </Box>
+  );
+}
 const S = piezasEstudio as Fin;
 const FILA = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' };
 const Tarjeta = ({ children, sx, component = 'section' }: { children: ReactNode; sx?: object; component?: string }) => <Card component={component as 'section'} sx={{ mb: '14px', ...sx }}>{children}</Card>;
@@ -176,6 +203,7 @@ function vistaLeccion(ver: Fin, n: number) {
       <Nota>Módulo {l.modulo}: {m.titulo}</Nota>
       <TituloLectura>{l.titulo}</TituloLectura>
       <Idea>{l.idea}</Idea>
+      <Figuras lista={l.figuras} />
       {(l.bloques as [string, string[]][]).map(([t, ps], i) => <div key={i}><Sub>{t}</Sub><Puntos items={ps} /></div>)}
       <Sub>🔎 Ejemplos</Sub><Puntos items={l.ejemplos} />
       <Caja titulo="💡 Para tener en cuenta"><div>{l.nota}</div></Caja>

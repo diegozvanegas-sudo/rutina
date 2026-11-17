@@ -36,6 +36,13 @@ export const tokens = {
   prBrilloVerde: 'rgba(61, 214, 140, .2)', prBrilloAzul: 'rgba(96, 165, 250, .16)', prVerdeLeve: 'rgba(61, 214, 140, .08)', prBordeVerde: 'rgba(61, 214, 140, .12)',
   prReloj: '#0b2a1c', prAvatarA: '#1e3a5f', prAvatarB: '#164e3b', prFinalA: '#12503a', prFinalB: '#1e3a5f',
   prClaro: '#ffffff', prClaroInk: '#0b1f17', prClaroTexto: 'rgba(255, 255, 255, .82)', prBordeClaro: 'rgba(255, 255, 255, .08)',
+  // 🎓 Figuras de los cursos (dibujo): siempre sobre papel claro, como un dibujo a lápiz; los valores van del más claro al más oscuro
+  figPapel: '#f3efe6', figGrafito: '#2b2925', figGuia: '#9a958b', figAcento: '#c8463d',
+  figV1: '#e4dfd3', figV2: '#bdb7ab', figV3: '#8f8a80', figV4: '#5c5852', figV5: '#2b2925',
+  // 📈 Gráficos de graficos.js: la línea de base, la zona al pasar encima y la pista de las barras horizontales al pasar encima
+  graficoBase: '#3a4652', graficoZona: 'rgba(255, 255, 255, .06)', graficoPista: '#26303a',
+  // 🏋️ Figuras de los ejercicios (figuras.js): los objetos (banco, barra), el brazo y la pierna lejanos
+  fgObjeto: '#4a5866', fgLejos: '#6f7d89', fgPierna: '#a9b4be', fgPiernaLejos: '#4f5b66',
   prSombra: 'rgba(0, 0, 0, .35)', prSombraFuerte: 'rgba(0, 0, 0, .45)', prBrilloInterno: 'rgba(255, 255, 255, .04)',
   radio: 14,
 };

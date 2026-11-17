@@ -64,15 +64,16 @@ test('prompt del mentor: lleva el curso, los minutos, el mapa y lo que no supo',
   assert.ok(!t.includes(lecciones(c)[0].recordar[1][0]), 'solo las que no supo');
 });
 
-test('las 7 áreas: Libros primero con los libros de siempre, y ningún id repetido', () => {
+test('las 8 áreas: Libros primero con los libros de siempre, y ningún id repetido', () => {
   const as = areas();
-  assert.equal(as.length, 7);
+  assert.equal(as.length, 8);
   assert.equal(as[0].id, 'libros');
   assert.deepEqual(as[0].cursos.map((x) => x.id), LIBROS.map((x) => x.id));
   assert.ok(as[0].cursos.every((x) => x.libro));
   const ids = as.flatMap((a) => a.cursos.map((x) => x.id));
   assert.equal(new Set(ids).size, ids.length);
-  assert.equal(ids.length, 24); // 4 libros y 20 cursos
+  assert.equal(ids.length, 25); // 4 libros y 21 cursos
+  assert.equal(area('arte').cursos.length, 1);
   assert.equal(area('esoterico').cursos.length, 6);
   assert.equal(area('comunicacion').cursos.length, 3);
   assert.equal(curso('aprender-a-aprender').modulos.length, 3);
@@ -130,6 +131,23 @@ test('Comunicación y oratoria: 4 módulos, 12 lecciones con los temas y autores
   for (const x of ['maldición del conocimiento', 'Minto', 'Oppenheimer', 'Rogers', 'Mehrabian', 'Bond', 'Gottman', 'Aristóteles', 'Petty', 'Cialdini', 'Broockman',
     'Miller', 'Gilovich', 'Brooks', 'Mayer', 'Clark'])
     assert.ok(todo.includes(x), 'falta ' + x);
+});
+
+test('Retrato realista: 4 módulos, 12 lecciones, los campos del mentor, figuras válidas y los autores y conceptos clave', () => {
+  const c = curso('retrato-realista');
+  assert.equal(c.modulos.length, 4);
+  assert.equal(lecciones(c).length, 12);
+  assert.ok(c.ancla && c.principios.length && c.diagnostico.length === 3 && c.modulos.every((m) => m.comprobacion));
+  assert.ok(lecciones(c).every((l) => l.feynman && l.reto), 'cada lección con Feynman y reto');
+  const figs = lecciones(c).flatMap((l) => l.figuras || []);
+  assert.ok(figs.length >= 6, 'figuras de proporciones, giro, ojo, luz, valores y bordes');
+  for (const f of figs) {
+    assert.ok(texto(f.titulo) && /^0 0 \d+ \d+$/.test(f.vista), 'figura con título y tamaño: ' + f.titulo);
+    assert.ok(f.svg.startsWith('<') && !/<script|\son\w+=|javascript:|href="http/i.test(f.svg), 'la figura es solo dibujo: ' + f.titulo);
+  }
+  const todo = JSON.stringify(c);
+  for (const x of ['Loomis', 'Cohen', 'Kozbelt', 'Edwards', 'Nielsen', 'Farkas', 'Bargue', 'Gurney', 'Ericsson', 'Macnamara', 'núcleo de sombra', 'espacios negativos', 'plomada', 'escorzo'])
+    assert.ok(todo.toLowerCase().includes(x.toLowerCase()), 'falta ' + x);
 });
 
 test('Inglés camino a B2: 4 módulos, 12 lecciones con frases para escuchar y los autores clave', () => {

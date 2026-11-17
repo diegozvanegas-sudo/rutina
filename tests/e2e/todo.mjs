@@ -29,7 +29,8 @@ import flotante from './flotante.mjs';
 import reproductor from './reproductor.mjs';
 import entrar from './entrar.mjs';
 import nuevo from './nuevo.mjs';
+import prediccion from './prediccion.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo, prediccion]) await recorrido(p);
 };

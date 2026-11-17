@@ -3,7 +3,7 @@
 // metas y plata). React pinta; los gráficos los dibuja graficos.js como SVG (puente HtmlViejo, igual que en Finanzas) y
 // las reglas son las de siempre (prog-dias, cierre, reto-…).
 import type { ReactNode } from 'react';
-import { Box, Chip, Link } from '@mui/material';
+import { Box, Button, Chip, Link } from '@mui/material';
 import { avanceMetas, racha, semanaActual } from '../../estado.js';
 import { visibles, METAS } from '../../orden.js';
 import { iso, sumarDias, fechaCorta, diaSemana, lunesDe, semanaDe } from '../../fechas.js';
@@ -17,6 +17,8 @@ import { comparativa, queFunciona, experimentos } from '../../mejora.js';
 import { TEMAS_RETOS, RETOS, retoActivo, hechoDe, cuantosHechos, avisoFutbol } from '../../retos.js';
 import { libro } from '../../libros/index.js';
 import { piezasProgreso } from '../../vistas/progreso.js';
+import { predicciones, promptSemanal, textoPrueba } from '../../prediccion.js';
+import { accion } from '../acciones';
 import { piezasGym } from '../../vistas/gym.js';
 import { tokens } from '../tema';
 import { usarEstado } from '../usarEstado';
@@ -100,6 +102,75 @@ function mejora() {
         </Box>
       ) : <Parrafo>Todavía no hay datos para comparar. Sigue anotando: con unas semanas aparece tu tendencia.</Parrafo>}
       {faltan.length && con.length ? <Nota>Aún sin datos para comparar: {faltan.map((x) => x.nombre).join(', ')}.</Nota> : null}
+    </TarjetaPlegable>
+  );
+}
+
+// ---------- 🔮 Predicciones (prediccion.js): peso y gasto real, fuerza, carga, y la revisión para una IA ----------
+// Cada predicción se prueba contra tu pasado: si no le gana a "seguirás igual", no se muestra el número
+const fecha = (f: string) => String(fechaCorta(f));
+const Bloque = ({ titulo, children }: { titulo: string; children: ReactNode }) => (
+  <Box component="section" sx={{ display: 'grid', gap: '4px', p: '10px 12px', borderRadius: '12px', bgcolor: tokens.surface2, '& p': { m: 0 } }}>
+    <Box component="h3" sx={{ m: 0, fontSize: 16 }}>{titulo}</Box>
+    {children}
+  </Box>
+);
+const Prueba = ({ p, unidad, v }: { p: Fin; unidad: string; v: string }) => (
+  <Nota sx={{ m: 0 }}>{v === 'pocas' ? 'Estimación inicial. ' : ''}{textoPrueba(p, unidad)}</Nota>
+);
+// El texto se arma solo al abrir "Ver el texto" (es largo)
+const TextoIA = ({ hoy }: { hoy: string }) => (
+  <Box component="textarea" id="prompt-semanal" readOnly rows={12} value={promptSemanal(hoy)}
+    sx={{ width: '100%', boxSizing: 'border-box', whiteSpace: 'pre-wrap', font: '13px/1.5 ui-monospace, Consolas, monospace', bgcolor: 'background.default', color: 'text.primary', border: '1px solid', borderColor: 'divider', borderRadius: '10px', p: '10px' }} />
+);
+const NO_GANA = 'Con tus datos, esta predicción todavía no le gana a "seguirás igual", así que no te doy un número. Sigue anotando: se vuelve a probar sola.';
+function prediccionesCard(hoy = iso()) {
+  const P = predicciones(hoy) as Fin, pe = P.peso, ga = P.gasto, ca = P.carga;
+  const fuerza = (P.fuerza as Fin[]).slice().sort((a, b) => (b.aviso ? 1 : 0) - (a.aviso ? 1 : 0)).slice(0, 6);
+  return (
+    <TarjetaPlegable vista={VISTA} clave="🔮 Predicciones" titulo="🔮 Predicciones">
+      <Nota sx={{ mt: 0 }}>Salen de tus propios datos, en el celular y sin internet. Cada una se prueba contra tus semanas pasadas antes de mostrarse.</Nota>
+      <Box sx={{ display: 'grid', gap: '10px', gridTemplateColumns: { md: '1fr 1fr' } }}>
+        <Bloque titulo="⚖️ Tu peso">
+          {!pe.listo ? <p>{pe.texto}</p> : pe.veredicto === 'pierde' ? <p>{NO_GANA}</p> : <>
+            <p>Vas a <b>{(pe.semana > 0 ? '+' : '') + kg(pe.semana)} kg por semana</b>. En 4 semanas: <b>{kg(pe.en4)} kg</b> (± {kg(pe.margen)}).</p>
+            {pe.meta ? <p>{pe.llegada ? (pe.llegada.dias ? <>🎯 Llegas a {kg(pe.meta)} kg hacia el <b>{fecha(pe.llegada.fecha)}</b>.</> : <>🎯 Ya estás en tu meta.</>) : <>🎯 A este ritmo no llegas a {kg(pe.meta)} kg: revisa la comida con el gasto real de abajo.</>}</p>
+              : <Nota sx={{ m: 0 }}>Pon tu meta en <Link href="#dieta/planes">Dieta → Planes</Link> y te digo cuándo llegas.</Nota>}
+          </>}
+          {pe.listo ? <Prueba p={pe.prueba} unidad="kg" v={pe.veredicto} /> : null}
+        </Bloque>
+        <Bloque titulo="🔥 Tu gasto real">
+          {!ga.listo ? <p>{ga.texto}</p> : <>
+            <p>Gastas unas <b>{Math.round(ga.gasto).toLocaleString('es-CO')} kcal al día</b>. Comes {Math.round(ga.come).toLocaleString('es-CO')}: {ga.balance < 0 ? 'déficit' : 'superávit'} de {Math.abs(Math.round(ga.balance)).toLocaleString('es-CO')} kcal.</p>
+            <Nota sx={{ m: 0 }}>Con {ga.dias} días de comidas marcadas. Lo que comes fuera del plan no cuenta: si comes más, tu gasto real es mayor.</Nota>
+          </>}
+        </Bloque>
+        <Bloque titulo="💪 Tu fuerza en 4 semanas">
+          {!fuerza.length ? <p>Con 4 semanas anotadas de un ejercicio aparece su predicción.</p> : P.veredictoFuerza === 'pierde' ? <p>{NO_GANA}</p> : (
+            <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none', display: 'grid', gap: '4px' }}>
+              {fuerza.map((x) => (
+                <Box component="li" key={x.nombre} sx={{ display: 'flex', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                  <span>{x.nombre}{x.aviso ? <Chip size="small" label={x.aviso === 'estancado' ? '⚠️ estancado' : '⚠️ se frena'} sx={{ ml: '6px', height: 22, bgcolor: tokens.amarilloFondo, color: 'warning.main' }} /> : null}</span>
+                  <span><b>{kg(x.actual)} → {kg(x.en4)}</b> <Box component="small" sx={{ color: 'text.secondary' }}>± {kg(x.margen)} {x.unidad}</Box></span>
+                </Box>
+              ))}
+            </Box>
+          )}
+          {fuerza.length ? <Prueba p={P.pruebaFuerza} unidad="%" v={P.veredictoFuerza} /> : null}
+        </Bloque>
+        <Bloque titulo="🔋 Tu carga (gym + fútbol)">
+          <p>{ca.texto}</p>
+          {ca.listo ? <Nota sx={{ m: 0 }}>Minutos × esfuerzo de los últimos 7 días contra tu promedio de 6 semanas.</Nota> : null}
+        </Bloque>
+      </Box>
+      <Box sx={{ display: 'grid', gap: '6px', mt: '12px' }}>
+        <Box component="h3" sx={{ m: 0, fontSize: 16 }}>🤖 Revisión de la semana con una IA</Box>
+        <Nota sx={{ m: 0 }}>Copia el texto y pégalo en Claude, ChatGPT o la que uses: lleva tu semana, tus predicciones y lo que tiene que responderte. No lleva tu nombre ni tu correo.</Nota>
+        <Button onClick={() => accion('prediccion-copiar')}>📋 Copiar la revisión para la IA</Button>
+        <Desplegable perezoso titulo="Ver el texto">
+          <TextoIA hoy={hoy} />
+        </Desplegable>
+      </Box>
     </TarjetaPlegable>
   );
 }
@@ -337,6 +408,7 @@ export default function Progreso() {
       </Box>
       {indicadores(e)}
       {mejora()}
+      {prediccionesCard()}
       {revision()}
       {cierreSemana(e)}
       {queTeFunciona()}

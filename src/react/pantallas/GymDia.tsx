@@ -17,7 +17,8 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoLargoSolo, CampoSolo } from '../ui/Campo';
 import { Desplegable } from '../ui/Desplegable';
 import { Nota } from '../ui/Textos';
-import { Avance, HtmlViejo } from '../ui/Varios';
+import { Avance } from '../ui/Varios';
+import { Linea, TablaDatos } from '../ui/Graficos';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -171,10 +172,22 @@ function chipsVariante(ej: Fin, sem: number, sufijo = '') {
     </Box>
   );
 }
+// El 1RM estimado de un ejercicio semana a semana, con su tabla (también en la tarjeta de Fuerza de Gym y Progreso)
+export function HistorialEjercicio({ ej, sem, v }: { ej: Fin; sem: number; v: Fin }) {
+  const h = G.datosHistorial(ej, sem, v) as { puntos: Fin[]; filas: Fin[][] } | null;
+  if (!h) return null;
+  return (
+    <Box>
+      <p className="nota-corta">1RM estimado de la mejor serie, semana a semana: así 60 × 10 y 65 × 7 se pueden comparar.</p>
+      <Linea puntos={h.puntos} formato={G.rm} margenEje={1} />
+      <TablaDatos columnas={['Semana', 'Peso', 'Reps', '1RM est.', '']} filas={h.filas} />
+    </Box>
+  );
+}
 function historialPlegado(ej: Fin, sem: number, v: Fin) {
   const est = e() as Fin;
   if ((historial(est.semanas, est.rutina, ej, 0, sem, v) as Fin[]).length < 2) return null;
-  return <Desplegable perezoso titulo={'📈 Historial' + (v ? ' · ' + v : '')} sx={{ mb: '6px' }}><HtmlViejo html={G.historialEj(ej, sem, true, v)} /></Desplegable>;
+  return <Desplegable perezoso titulo={'📈 Historial' + (v ? ' · ' + v : '')} sx={{ mb: '6px' }}><HistorialEjercicio ej={ej} sem={sem} v={v} /></Desplegable>;
 }
 const notas = (ej: Fin) => (
   <Desplegable titulo="Notas" abiertoAlInicio={!!ej.nota}>

@@ -20,7 +20,7 @@ export const tokens = {
   rojoFondo: '#4a1d1d', rojoSuave: '#ffb3b3', peligroInk: '#ffd0d0',
   // 📚 Libros: el dorado de la lectura del día, la afirmación y la caja de nota
   dorado: '#e0a84a', doradoSuave: '#f3d9a4', notaFondo: '#1d2733', notaBorde: '#2f4257',
-  // 📈 Gráficos: series (ingresos, gastos, otra) y la rampa de la constancia, de menos a más (los de graficos.js)
+  // 📈 Gráficos: series (ingresos, gastos, otra) y la rampa de la constancia, de menos a más (los de ui/Graficos.tsx)
   serie1: '#3987e5', serie2: '#d95926', serie3: '#2fa37a', rampa1: '#184f95', rampa2: '#256abf', rampa3: '#3987e5', rampa4: '#86b6ef',
   // 🌅 Mañana: "ya puedes desayunar" (verde claro sobre verde oscuro)
   brandClaro: '#a9f0c9',
@@ -44,7 +44,7 @@ export const tokens = {
   barraArriba: 'rgba(16, 20, 24, .92)', velo: 'rgba(0, 0, 0, .5)', sombraAviso: 'rgba(0, 0, 0, .4)', flotanteFondo: '#0b2a1c',
   // 📄 Papel: la vista del PDF de Ventas y el PDF del plan al imprimir (siempre blanco con tinta oscura)
   papelFondo: '#fff', papelTinta: '#111', papelTitulo: '#0d6b45', papelLinea: '#ddd', papelLineaImpresa: '#ccc', papelCabeza: '#f1f5f3', papelGris: '#555',
-  // 📈 Gráficos de graficos.js: la línea de base, la zona al pasar encima y la pista de las barras horizontales al pasar encima
+  // 📈 Gráficos (ui/Graficos.tsx): la línea de base, la zona al pasar encima y la pista de las barras horizontales al pasar encima
   graficoBase: '#3a4652', graficoZona: 'rgba(255, 255, 255, .06)', graficoPista: '#26303a',
   // 🏋️ Figuras de los ejercicios (figuras.js): los objetos (banco, barra), el brazo y la pierna lejanos
   fgObjeto: '#4a5866', fgLejos: '#6f7d89', fgPierna: '#a9b4be', fgPiernaLejos: '#4f5b66',

@@ -10,7 +10,6 @@ import { OBJETIVOS_CLIENTE, PERIODOS, estadoCobro, resumenNegocio, semanasCiclo,
   comparacionValoraciones, pesosCliente, objetivoCliente, textoCliente } from '../../clientes.js';
 import { iso, fechaCorta } from '../../fechas.js';
 import { pesos } from '../../finanzas.js';
-import { linea } from '../../graficos.js';
 import { configurada, nube } from '../../nube.js';
 import { checkinsNuevos } from '../../coach.js';
 import { volumenFase, TIPOS_CICLO } from '../../ciclo.js';
@@ -23,7 +22,8 @@ import { usarEstado } from '../usarEstado';
 import { accion } from '../acciones';
 import { Campo, CampoLargo, CampoLista, DOS } from '../ui/Campo';
 import { TituloPantalla, Nota, Parrafo } from '../ui/Textos';
-import { Opciones, Cifras, HtmlViejo, Avance } from '../ui/Varios';
+import { Opciones, Cifras, Avance } from '../ui/Varios';
+import { Linea } from '../ui/Graficos';
 import { Ordenable } from '../ui/Ordenable';
 import { EditorEjercicios, Interruptor, Chips } from './Editar';
 import { EditorComidas, Macros } from './Dieta';
@@ -386,7 +386,7 @@ function Seguimiento({ c }: { c: Fin }) {
       {pesosC.length >= 2 ? (
         <Tarjeta>
           <H2>⚖️ Peso</H2>
-          <HtmlViejo html={linea(pesosC.map((x) => ({ etiqueta: fechaCorta(x.fecha), v: x.peso, tip: fechaCorta(x.fecha) + ': ' + kg(x.peso) + ' kg' })), { formato: kg })} />
+          <Box><Linea puntos={pesosC.map((x) => ({ etiqueta: fechaCorta(x.fecha), v: x.peso, tip: fechaCorta(x.fecha) + ': ' + kg(x.peso) + ' kg' }))} formato={kg} /></Box>
           <Corta>{kg(primero.peso)} → <b>{kg(ultimo.peso)} kg</b> ({ultimo.peso >= primero.peso ? '+' : '−'}{kg(Math.abs(ultimo.peso - primero.peso))} kg desde el {fechaCorta(primero.fecha)})</Corta>
         </Tarjeta>
       ) : null}

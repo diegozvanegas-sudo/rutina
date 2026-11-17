@@ -1,7 +1,7 @@
 // 🧘 Sesiones: las checklists del día, las sesiones guiadas por categoría (con sus ejercicios y ▶ Iniciar) y el banco de
 // ejercicios de rehabilitación. React pinta; las reglas son las de src/vistas/sesiones.js (check-paso, check-limpiar,
 // ses-tipo, banco-zona, banco-agregar). El reproductor (#reproductor) es de toda la app: lo abre "sesion" y sigue allá.
-// Las figuras de los ejercicios las dibuja figuras.js como SVG (puente HtmlViejo, igual que los gráficos).
+// Las figuras de los ejercicios las dibuja figuras.js como SVG (puente HtmlViejo).
 import { useState, type ReactNode } from 'react';
 import { Box, Button, Card, Link } from '@mui/material';
 import { figuraPaso, videoPaso, figura, urlVideo } from '../../figuras.js';

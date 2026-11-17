@@ -9,7 +9,6 @@ import { tipoDieta, tipoDietaAuto, comidasDelDia, semanaActual } from '../../est
 import { progresoMes } from '../../gym.js';
 import { iso, hora, fechaCorta, diaSemana } from '../../fechas.js';
 import { proteinaSemana } from '../../entrenador.js';
-import { barras } from '../../graficos.js';
 import { totalPlan, totalComida, valoresItem, objetivo, pesos, tendencia, revisionDieta, medidasDe } from '../../dieta.js';
 import { plan12, SEMANAS_PLAN, semanaPlan, faseDe, gastoEstimado, kcalPromedioPlan, pesoEsperado, comoVaPeso } from '../../plan12.js';
 import { miles } from '../../ui.js';
@@ -19,7 +18,8 @@ import { usarEstado } from '../usarEstado';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoLista, CampoSolo, DOS } from '../ui/Campo';
 import { TituloPantalla, Nota } from '../ui/Textos';
-import { Opciones, Avance, Cifras, HtmlViejo } from '../ui/Varios';
+import { Opciones, Avance, Cifras } from '../ui/Varios';
+import { Barras } from '../ui/Graficos';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -102,12 +102,12 @@ function proteina() {
   const s = proteinaSemana() as Fin;
   if (!s) return null;
   const letra = (f: string) => 'LMMJVSD'[(diaSemana(f) as number) - 1];
-  const grafico = (barras as Fin)(s.dias.map((x: Fin) => ({ etiqueta: letra(x.fecha), v: x.parte * 100, tip: fechaCorta(x.fecha) + ': ' + r0(x.comido) + ' de ' + r0(x.meta) + ' g' })),
-    { alto: 90, max: Math.max(100, ...s.dias.map((x: Fin) => x.parte * 100)), formato: (n: number) => Math.round(n) + ' %', ref: { v: 90, texto: '90 %' } }) as string;
+  const grafico = <Barras datos={s.dias.map((x: Fin) => ({ etiqueta: letra(x.fecha), v: x.parte * 100, tip: fechaCorta(x.fecha) + ': ' + r0(x.comido) + ' de ' + r0(x.meta) + ' g' }))}
+    alto={90} max={Math.max(100, ...s.dias.map((x: Fin) => x.parte * 100))} formato={(n) => Math.round(n) + ' %'} meta={{ v: 90, texto: '90 %' }} />;
   return (
     <TarjetaPlegable vista={VISTA} clave="🍗 Proteína de la semana" titulo="🍗 Proteína de la semana" lado={<Box component="span" sx={{ fontSize: 22, fontWeight: 800 }}>{s.cumplidos}/7</Box>}>
       <Nota>Días que llegaste al 90 % de la proteína del plan. Promedio: <b>{r0(s.gramos)} g</b> al día ({Math.round(s.parte * 100)} % de la meta).</Nota>
-      <HtmlViejo html={grafico} />
+      <Box>{grafico}</Box>
       <Nota>{s.cumplidos < 5 ? 'Para subir: proteína en cada comida (huevos, pollo, carne o el scoop) y no te saltes la última del día.' : '¡Bien! Así la fuerza tiene con qué subir.'}</Nota>
     </TarjetaPlegable>
   );

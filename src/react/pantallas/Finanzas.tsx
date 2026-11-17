@@ -12,7 +12,6 @@ import {
   mesDe, sumarMeses, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, planMeta, saldoCuenta, patrimonio, fijosPorRevisar, DIAS_REVISION, valorMeta,
 } from '../../finanzas.js';
 import { PLANTILLAS_META } from '../../datos_finanzas.js';
-import * as graficos from '../../graficos.js';
 import { pestanaFinanzas, moduloPlanB, PESTANAS_FINANZAS, piezasFinanzas } from '../../vistas/finanzas.js';
 import { usarEstado } from '../usarEstado';
 import { Registrar, mes } from './FinanzasMovimientos';
@@ -27,14 +26,13 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { CampoSolo, DOS } from '../ui/Campo';
 import { Desplegable } from '../ui/Desplegable';
 import { TituloPantalla, Nota, Parrafo } from '../ui/Textos';
-import { Opciones, HtmlViejo, Cifras, Avance } from '../ui/Varios';
+import { Opciones, Cifras, Avance } from '../ui/Varios';
+import { Linea, BarrasAgrupadas, TablaDatos } from '../ui/Graficos';
 
 const VISTA = 'finanzas';
 // Los datos de finanzas todavía no tienen tipos (vienen de src/finanzas.js, en JavaScript)
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
-// Los gráficos devuelven HTML (ver HtmlViejo)
-const { barrasAgrupadas, linea, tablaDatos } = graficos as unknown as Record<string, (...a: any[]) => string>;
 const { cat, cuentas, pct, corto, nombreMes, millones, ESTADOS, ESTADOS_INGRESO } = piezasFinanzas as {
   cat: (tipo: string, id: string) => { nombre: string; icono: string }; cuentas: () => Fin[]; pct: (x: number | null) => string; corto: (mes: string) => string;
   nombreMes: (mes: string) => string; millones: (n: number) => string; ESTADOS: Record<string, string>; ESTADOS_INGRESO: Record<string, string>;
@@ -63,9 +61,8 @@ function resumen(f: Fin) {
           ...(p.porCobrar ? [{ titulo: 'Te deben', valor: pesos(p.porCobrar) }] : []),
           { titulo: 'Deudas', valor: pesos(p.deudas), color: tokens.rojo },
         ]} />
-        {/* Los gráficos todavía los dibuja graficos.js (los usan las pantallas de antes) */}
         {puntos.filter((x) => x.v != null).length > 1
-          ? <HtmlViejo html={linea(puntos, { formato: millones, margenEje: Math.max(1, Math.abs(p.neto) * 0.05) })} />
+          ? <Box><Linea puntos={puntos} formato={millones} margenEje={Math.max(1, Math.abs(p.neto) * 0.05)} /></Box>
           : <Nota>El gráfico aparece desde el segundo mes.</Nota>}
       </TarjetaPlegable>
       <TarjetaPlegable vista={VISTA} clave="Cuentas" titulo="Cuentas">
@@ -88,11 +85,13 @@ function resumen(f: Fin) {
       </TarjetaPlegable>
       {hayMeses && (
         <TarjetaPlegable vista={VISTA} clave="Últimos 6 meses" titulo="Últimos 6 meses">
-          <HtmlViejo html={'<div class="leyenda"><span><i class="serie-1"></i>Ingresos</span><span><i class="serie-2"></i>Gastos</span><span><i class="serie-3"></i>Ahorro</span></div>' +
-            barrasAgrupadas(res.map(([m, r]) => ({ etiqueta: corto(m), valores: [r.ingresos, r.gastos, Math.max(0, r.ahorro)],
-              tips: [corto(m) + ': ingresos ' + pesos(r.ingresos), corto(m) + ': gastos ' + pesos(r.gastos), corto(m) + ': ahorro ' + pesos(r.ahorro)] })),
-            [{ nombre: 'Ingresos', clase: 'serie-1' }, { nombre: 'Gastos', clase: 'serie-2' }, { nombre: 'Ahorro', clase: 'serie-3' }], { formato: millones }) +
-            tablaDatos(['Mes', 'Ingresos', 'Gastos', 'Ahorro', 'Tasa de ahorro'], res.map(([m, r]) => [nombreMes(m), pesos(r.ingresos), pesos(r.gastos), pesos(r.ahorro), pct(r.tasaAhorro)]))} />
+          <Box>
+            <div className="leyenda"><span><i className="serie-1" />Ingresos</span><span><i className="serie-2" />Gastos</span><span><i className="serie-3" />Ahorro</span></div>
+            <BarrasAgrupadas grupos={res.map(([m, r]) => ({ etiqueta: corto(m), valores: [r.ingresos, r.gastos, Math.max(0, r.ahorro)],
+              tips: [corto(m) + ': ingresos ' + pesos(r.ingresos), corto(m) + ': gastos ' + pesos(r.gastos), corto(m) + ': ahorro ' + pesos(r.ahorro)] }))}
+              series={[{ nombre: 'Ingresos', clase: 'serie-1' }, { nombre: 'Gastos', clase: 'serie-2' }, { nombre: 'Ahorro', clase: 'serie-3' }]} formato={millones} />
+            <TablaDatos columnas={['Mes', 'Ingresos', 'Gastos', 'Ahorro', 'Tasa de ahorro']} filas={res.map(([m, r]) => [nombreMes(m), pesos(r.ingresos), pesos(r.gastos), pesos(r.ahorro), pct(r.tasaAhorro)])} />
+          </Box>
         </TarjetaPlegable>
       )}
     </>

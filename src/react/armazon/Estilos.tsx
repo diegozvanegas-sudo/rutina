@@ -1,14 +1,14 @@
 // Todos los estilos que no son de un componente (antes, src/estilos.css): el armazón de la app y lo general (estilosArmazon.ts)
-// y los dibujos que todavía llegan como SVG en texto (puente HtmlViejo): los gráficos de graficos.js, las figuras de los
-// ejercicios de figuras.js y el globo de ayuda de los gráficos (#tip, main.js). Salen del tema (tokens). Se monta una sola
-// vez al abrir la app (main.js, montarFijo), antes que cualquier pantalla, y las clases son las mismas que escriben esos archivos.
+// y los dibujos: los gráficos (ui/Graficos.tsx), las figuras de los ejercicios de figuras.js (llegan como SVG en texto, puente
+// HtmlViejo) y el globo de ayuda de los gráficos (#tip, main.js). Salen del tema (tokens). Se monta una sola vez al abrir la
+// app (main.js, montarFijo), antes que cualquier pantalla, y las clases son las mismas que escriben esos archivos.
 import { GlobalStyles } from '@mui/material';
 import { tokens as t } from '../tema';
 import { ARMAZON } from './estilosArmazon';
 
 const FUENTE = 'system-ui, sans-serif';
 const ESTILOS = {
-  // ---------- Gráficos (graficos.js) ----------
+  // ---------- Gráficos (ui/Graficos.tsx) ----------
   '.grafico': { width: '100%', height: 'auto', display: 'block', overflow: 'visible' },
   '.grafico .guia': { stroke: t.line, strokeWidth: 1 },
   '.grafico .base': { stroke: t.graficoBase, strokeWidth: 1 },

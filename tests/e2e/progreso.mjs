@@ -19,7 +19,7 @@ export default async (p) => {
   await paso('inicio');
 
   for (const n of ['7', '90', '30']) {
-    await p.tocar('#vista [data-accion=prog-dias][data-n="' + n + '"]');
+    await p.tocar('#vista [aria-label=Rango] [data-n="' + n + '"]');
     await a.dormir(300);
     await paso('rango ' + n);
   }
@@ -64,6 +64,12 @@ export default async (p) => {
   }
 
   falla(await p.cuantos('#vista svg') >= 4, 'faltan gráficos');
+  // Los gráficos los dibuja React (ui/Graficos.tsx): sin números inválidos, y cada barra o punto con su zona y su texto de ayuda
+  const svgs = await p.ev(`[...document.querySelectorAll('#vista .grafico')].map((x) => x.outerHTML).join('')`);
+  falla(!/NaN|undefined|Infinity/.test(svgs), 'un gráfico tiene números inválidos');
+  falla(await p.ev(`[...document.querySelectorAll('#vista .grafico:not(.calendario)')].every((g) => g.querySelectorAll('.zona[data-tip]').length > 0)`), 'un gráfico no tiene zonas para tocar');
+  await p.tocar('#vista .grafico .zona');
+  falla(await p.ev(`(() => { const t = document.getElementById('tip'); return !!t && !t.hidden && t.textContent.trim().length > 0 })()`), 'tocar una barra no muestra su texto');
   falla(await p.sinDesborde(), 'se sale de la pantalla en el computador');
   await p.ev('window.scrollTo(0,0)');
   await p.foto('progreso-pc');

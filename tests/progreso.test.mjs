@@ -4,7 +4,6 @@ import { e, empezarDePrueba } from '../src/estado.js';
 // Con los datos de ejemplo de la app (una cuenta nueva empieza vacía)
 empezarDePrueba(true);
 import { puntajeDia, revisionSemanal, rango } from '../src/progreso.js';
-import { barras, linea, calendario } from '../src/graficos.js';
 
 test('puntaje del día: promedio de mañana, metas, gym (si toca) y dieta', () => {
   const est = e();
@@ -36,8 +35,4 @@ test('revisión semanal: frases de mañana y gym siempre; peso cuando hay regist
   assert.deepEqual(rango(3, '2026-10-22'), ['2026-10-20', '2026-10-21', '2026-10-22']);
 });
 
-test('gráficos: una zona sensible por dato y sin números inválidos', () => {
-  const svg = barras([{ etiqueta: 'a', v: 10, tip: 'A' }, { etiqueta: 'b', v: null, tip: 'B' }], { ref: { v: 8, texto: 'meta' } });
-  assert.equal((svg.match(/class="zona"/g) || []).length, 2);
-  assert.doesNotMatch(svg + linea([{ v: 1 }, { v: null }, { v: 3 }]) + calendario([[{ v: 0.5, tip: 'x' }, null]]), /NaN|undefined/);
-});
+// Los gráficos (react/ui/Graficos.tsx) se revisan en tests/e2e/progreso.mjs: sin números inválidos y con su globo de ayuda

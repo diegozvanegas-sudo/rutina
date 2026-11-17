@@ -1,8 +1,8 @@
 // 📈 Progreso: los indicadores, ¿voy mejor que hace un mes?, la revisión y el cierre de la semana, qué te funciona, los
 // experimentos y los retos, y el tablero de gráficos (constancia, puntaje, peso, sueño, partidos, gym, fuerza, cardio,
-// metas y plata). React pinta; los gráficos los dibuja graficos.js como SVG (puente HtmlViejo, igual que en Finanzas) y
-// las reglas son las de siempre (prog-dias, cierre, reto-…).
-import type { ReactNode } from 'react';
+// metas y plata). React pinta (los gráficos son los de ui/Graficos.tsx); el rango de días y copiar la revisión son de aquí, y
+// las demás reglas son las de siempre (cierre, reto-…).
+import { useState, type ReactNode } from 'react';
 import { Box, Button, Chip, Link } from '@mui/material';
 import { avanceMetas, racha, semanaActual } from '../../estado.js';
 import { visibles, METAS } from '../../orden.js';
@@ -11,14 +11,12 @@ import { resumenSemana } from '../../gym.js';
 import { pesos as pesosCorporales, tendencia } from '../../dieta.js';
 import { resumenMes, mesDe, sumarMeses, pesos } from '../../finanzas.js';
 import { puntajeDia, rango, revisionSemanal } from '../../progreso.js';
-import { barras, barrasAgrupadas, linea, calendario, barrasH, tablaDatos } from '../../graficos.js';
 import { horasSueno, partidos, energiaSegunPierna, semanaObjetivo } from '../../registro.js';
 import { comparativa, queFunciona, experimentos } from '../../mejora.js';
 import { TEMAS_RETOS, RETOS, retoActivo, hechoDe, cuantosHechos, avisoFutbol } from '../../retos.js';
 import { libro } from '../../libros/index.js';
-import { piezasProgreso } from '../../vistas/progreso.js';
 import { predicciones, promptSemanal, textoPrueba } from '../../prediccion.js';
-import { accion } from '../acciones';
+import { copiarTexto } from '../../ui.js';
 import { piezasGym } from '../../vistas/gym.js';
 import { tokens } from '../tema';
 import { usarEstado } from '../usarEstado';
@@ -26,7 +24,8 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoLargo, CampoLista } from '../ui/Campo';
 import { Desplegable } from '../ui/Desplegable';
 import { TituloPantalla, Nota, Parrafo } from '../ui/Textos';
-import { Opciones, Avance, HtmlViejo } from '../ui/Varios';
+import { Opciones, Avance } from '../ui/Varios';
+import { Barras, BarrasAgrupadas, Linea, Calendario, BarrasH, TablaDatos } from '../ui/Graficos';
 import { Sub, Puntos } from '../ui/Lectura';
 import { BloqueReto, Aviso } from './HoyTarjetas';
 import { fuerza } from './Gym';
@@ -34,14 +33,16 @@ import { fuerza } from './Gym';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
 const VISTA = 'progreso';
-const R = piezasProgreso as Fin;
+// El rango de días que se ve (7, 30 o 90): dura mientras la app esté abierta, aunque se vaya a otra pantalla y se vuelva
+let rangoElegido = 30;
 const FILA = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' };
 const LETRA = ['', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
 const NOM = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const corta = (f: string) => String(fechaCorta(f)).split(' ')[0] + '/' + Number(f.slice(5, 7));
 const kg = (n: number) => (Math.round(n * 10) / 10).toLocaleString('es-CO');
 const millones = (n: number) => (n >= 1e6 ? (Math.round(n / 1e5) / 10).toLocaleString('es-CO') + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(Math.round(n)));
-const G = (html: string) => <HtmlViejo html={html} />;
+// El gráfico y su tabla van juntos en un bloque, como antes
+const G = ({ children }: { children: ReactNode }) => <Box>{children}</Box>;
 const Lista = ({ children }: { children: ReactNode }) => <Box component="ul" sx={{ listStyle: 'none', m: '8px 0', p: 0, display: 'grid', gap: '8px', '& > li': { display: 'grid', gap: '2px', p: '8px 12px', borderRadius: '12px', bgcolor: tokens.surface2 } }}>{children}</Box>;
 // La tarjeta de un gráfico: el título se pliega y la › lleva a la sección de donde salen los datos
 function Grafica({ titulo, ir, nota, children }: { titulo: string; ir?: string; nota?: ReactNode; children: ReactNode }) {
@@ -166,7 +167,7 @@ function prediccionesCard(hoy = iso()) {
       <Box sx={{ display: 'grid', gap: '6px', mt: '12px' }}>
         <Box component="h3" sx={{ m: 0, fontSize: 16 }}>🤖 Revisión de la semana con una IA</Box>
         <Nota sx={{ m: 0 }}>Copia el texto y pégalo en Claude, ChatGPT o la que uses: lleva tu semana, tus predicciones y lo que tiene que responderte. No lleva tu nombre ni tu correo.</Nota>
-        <Button onClick={() => accion('prediccion-copiar')}>📋 Copiar la revisión para la IA</Button>
+        <Button onClick={() => copiarTexto(promptSemanal(), 'Revisión copiada: pégala en la IA que uses')}>📋 Copiar la revisión para la IA</Button>
         <Desplegable perezoso titulo="Ver el texto">
           <TextoIA hoy={hoy} />
         </Desplegable>
@@ -223,7 +224,7 @@ function queTeFunciona() {
   return (
     <TarjetaPlegable vista={VISTA} clave="🔬 Qué te funciona a ti" titulo="🔬 Qué te funciona a ti">
       {frases.length ? <>
-        <Lista>{(frases as Fin[]).map(({ titulo, medida, r }) => <li key={titulo}><b>{titulo}</b><span>{Math.round(r.si)} % {medida} cuando sí ({r.nSi} días), frente a {Math.round(r.no)} % cuando no ({r.nNo} días).{r.nota ? '' : ' Casi sin diferencia.'}</span></li>)}</Lista>
+        <Lista>{(frases as Fin[]).map(({ titulo, medida, r }) => <li key={titulo + medida}><b>{titulo}</b><span>{Math.round(r.si)} % {medida} cuando sí ({r.nSi} días), frente a {Math.round(r.no)} % cuando no ({r.nNo} días).{r.nota ? '' : ' Casi sin diferencia.'}</span></li>)}</Lista>
         <Nota>Es una relación en tus datos, no prueba la causa. Úsala para decidir qué probar.</Nota>
       </> : <Nota sx={{ mt: 0 }}>Necesita al menos 5 días de cada lado (por ejemplo, 5 durmiendo bien y 5 no). Llevas {dias} {dias === 1 ? 'día anotado' : 'días anotados'}.</Nota>}
     </TarjetaPlegable>
@@ -296,7 +297,7 @@ function constancia() {
   }
   return (
     <Grafica titulo="🗓️ Constancia" ir="#hoy" nota="Cada cuadro es un día: entre más claro, más alto el puntaje (mañana, metas, gym y dieta).">
-      {G((calendario as Fin)(semanas, { titulos }))}
+      <G><Calendario semanas={semanas} titulos={titulos} /></G>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 12, color: 'text.secondary', mt: '6px', '& i': { width: 14, height: 14, borderRadius: '3px', display: 'inline-block' } }}>
         <span>Menos</span>{[tokens.surface2, tokens.rampa1, tokens.rampa2, tokens.rampa3, tokens.rampa4].map((c) => <Box component="i" key={c} sx={{ bgcolor: c }} />)}<span>Más</span>
       </Box>
@@ -307,7 +308,7 @@ function puntajes(dias: number) {
   const ps = (rango(dias) as string[]).map((f) => ({ f, p: puntajeDia(f) as Fin }));
   const datos = ps.map(({ f, p }) => ({ etiqueta: corta(f), v: p ? p.total : null, tip: LETRA[diaSemana(f) as number] + ' ' + fechaCorta(f) + ': ' + (p ? p.total + '/100 · ' + (p.partes.manana != null ? 'mañana ' + Math.round(p.partes.manana * 100) + ' %, ' : '') + (p.partes.metas != null ? 'metas ' + Math.round(p.partes.metas * 100) + ' %' : '') +
     (p.partes.gym != null ? ', gym ' + Math.round(p.partes.gym * 100) + ' %' : '') + (p.partes.dieta != null ? ', dieta ' + Math.round(p.partes.dieta * 100) + ' %' : '') : 'sin datos') }));
-  return <Grafica titulo="⭐ Puntaje por día" ir="#hoy">{G((barras as Fin)(datos, { max: 100, ref: { v: 80, texto: 'buen día: 80' } }) + (tablaDatos as Fin)(['Día', 'Puntaje'], ps.filter((x) => x.p).map(({ f, p }) => [fechaCorta(f), p.total])))}</Grafica>;
+  return <Grafica titulo="⭐ Puntaje por día" ir="#hoy"><G><Barras datos={datos} max={100} meta={{ v: 80, texto: 'buen día: 80' }} /><TablaDatos columnas={['Día', 'Puntaje']} filas={ps.filter((x) => x.p).map(({ f, p }) => [fechaCorta(f), p.total])} /></G></Grafica>;
 }
 function peso(e: Fin, dias: number) {
   if (!e.dieta) return null;
@@ -317,14 +318,14 @@ function peso(e: Fin, dias: number) {
   const puntos = fs.map((f) => { const hasta = lista.filter((x) => x.fecha <= f), t = hasta.length && porFecha[f] != null ? tendencia(hasta) as number : null; return { etiqueta: corta(f), v: t, tip: fechaCorta(f) + (porFecha[f] != null ? ': ' + kg(porFecha[f]) + ' kg (promedio 7: ' + kg(t as number) + ')' : ': sin registro') }; });
   return (
     <Grafica titulo="⚖️ Peso (promedio de 7 registros)" ir="#dieta/peso" nota="La línea es el promedio para que un día con más agua no te engañe.">
-      {G((linea as Fin)(puntos, { formato: kg, ref: puntos.some((p) => p.v != null && p.v - meta < 6) ? { v: meta, texto: 'meta ' + kg(meta) } : null }) + (tablaDatos as Fin)(['Fecha', 'Peso (kg)'], lista.slice(-dias).reverse().map((x) => [fechaCorta(x.fecha), kg(x.peso)])))}
+      <G><Linea puntos={puntos} formato={kg} meta={puntos.some((p) => p.v != null && p.v - meta < 6) ? { v: meta, texto: 'meta ' + kg(meta) } : null} /><TablaDatos columnas={['Fecha', 'Peso (kg)']} filas={lista.slice(-dias).reverse().map((x) => [fechaCorta(x.fecha), kg(x.peso)])} /></G>
     </Grafica>
   );
 }
 function gymSeries(e: Fin) {
   const actual = semanaActual(), datos: Fin[] = [];
   for (let s = Math.max(1, actual - 11); s <= actual; s++) { const r = resumenSemana(e.rutina, e.semanas[s] || {}) as Fin; datos.push({ etiqueta: 'S' + s, v: r.hechas, plan: r.plan, tip: 'Semana ' + s + ' (' + fechaCorta(lunesDe(s)) + '): ' + r.hechas + ' de ' + r.plan + ' series' }); }
-  return <Grafica titulo="🏋️ Series por semana" ir="#gym/resumen">{G((barras as Fin)(datos, { ref: { v: datos[datos.length - 1].plan, texto: 'plan ' + datos[datos.length - 1].plan } }) + (tablaDatos as Fin)(['Semana', 'Series', 'Plan'], datos.map((d) => [d.etiqueta, d.v, d.plan])))}</Grafica>;
+  return <Grafica titulo="🏋️ Series por semana" ir="#gym/resumen"><G><Barras datos={datos} meta={{ v: datos[datos.length - 1].plan, texto: 'plan ' + datos[datos.length - 1].plan }} /><TablaDatos columnas={['Semana', 'Series', 'Plan']} filas={datos.map((d) => [d.etiqueta, d.v, d.plan])} /></G></Grafica>;
 }
 function cardio(e: Fin) {
   const actual = semanaActual(), datos: Fin[] = [];
@@ -335,7 +336,7 @@ function cardio(e: Fin) {
   if (!datos.some((d) => d.v)) return null;
   // Plan: la suma del mínimo de cada día con cardio ("30-35 min" → 30)
   const plan = (e.rutina as Fin[]).reduce((t, d) => t + (Number(((d.cardio || '').match(/(\d+)/) || [])[1]) || 0), 0);
-  return <Grafica titulo="🏃 Minutos de cardio por semana" ir="#gym">{G((barras as Fin)(datos, plan ? { ref: { v: plan, texto: 'plan ' + plan + ' min' } } : {}) + (tablaDatos as Fin)(['Semana', 'Minutos'], datos.map((d) => [d.etiqueta, d.v])))}</Grafica>;
+  return <Grafica titulo="🏃 Minutos de cardio por semana" ir="#gym"><G><Barras datos={datos} meta={plan ? { v: plan, texto: 'plan ' + plan + ' min' } : undefined} /><TablaDatos columnas={['Semana', 'Minutos']} filas={datos.map((d) => [d.etiqueta, d.v])} /></G></Grafica>;
 }
 function metas(e: Fin, dias: number) {
   const fs = rango(dias) as string[], nombres = Object.fromEntries((visibles(e.config, 'metas') as string[]).map((k) => [k, (METAS as Record<string, string>)[k]]));
@@ -346,7 +347,7 @@ function metas(e: Fin, dias: number) {
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         {Object.entries(nombres).map(([k, t]) => {
           const datos = fs.map((f) => { const a = e.dias[f] ? avanceMetas(f) as Fin : null; return { etiqueta: corta(f), v: a ? Math.round(a.partes[k] * 100) : null, tip: fechaCorta(f) + ': ' + (a ? Math.round(a.partes[k] * 100) + ' % de la meta' : 'sin datos') }; });
-          return <div key={k}><Box component="h3" sx={{ fontSize: 13, color: 'text.secondary', m: '0 0 2px', fontWeight: 600 }}>{t}</Box>{G((barras as Fin)(datos, { alto: 60, max: 100, formato: (n: number) => n + '%', sinEtiquetas: true }))}</div>;
+          return <div key={k}><Box component="h3" sx={{ fontSize: 13, color: 'text.secondary', m: '0 0 2px', fontWeight: 600 }}>{t}</Box><G><Barras datos={datos} alto={60} max={100} formato={(n) => n + '%'} sinEtiquetas /></G></div>;
         })}
       </Box>
     </Grafica>
@@ -366,10 +367,12 @@ function plata(e: Fin) {
     <>
       <Grafica titulo="💰 Ingresos y gastos por mes" ir="#finanzas/mes">
         <Box sx={{ display: 'flex', gap: '12px', fontSize: 13, color: 'text.secondary', '& span': { display: 'inline-flex', alignItems: 'center', gap: '4px' } }}><span>{serie(tokens.serie1)}Ingresos</span><span>{serie(tokens.serie2)}Gastos</span></Box>
-        {G((barrasAgrupadas as Fin)(grupos, [{ nombre: 'Ingresos', clase: 'serie-1' }, { nombre: 'Gastos', clase: 'serie-2' }], { formato: millones }) +
-          (tablaDatos as Fin)(['Mes', 'Ingresos', 'Gastos', 'Diferencia'], res.map(([m, r]) => [NOM[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4), pesos(r.ingresos), pesos(r.gastos), pesos(r.ingresos - r.gastos)])))}
+        <G>
+          <BarrasAgrupadas grupos={grupos} series={[{ nombre: 'Ingresos', clase: 'serie-1' }, { nombre: 'Gastos', clase: 'serie-2' }]} formato={millones} />
+          <TablaDatos columnas={['Mes', 'Ingresos', 'Gastos', 'Diferencia']} filas={res.map(([m, r]) => [NOM[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4), pesos(r.ingresos), pesos(r.gastos), pesos(r.ingresos - r.gastos)])} />
+        </G>
       </Grafica>
-      {filas.length ? <Grafica titulo="🧾 En qué se va la plata este mes" ir="#finanzas/presupuesto">{G((barrasH as Fin)(filas, { formato: pesos }))}</Grafica> : null}
+      {filas.length ? <Grafica titulo="🧾 En qué se va la plata este mes" ir="#finanzas/presupuesto"><G><BarrasH datos={filas} formato={pesos} /></G></Grafica> : null}
     </>
   );
 }
@@ -378,8 +381,10 @@ function sueno(e: Fin, dias: number) {
   if (!datos.some((d) => d.v != null)) return <Grafica titulo="🌙 Sueño" ir="#hoy"><Nota sx={{ m: 0 }}><IrA href="#hoy">Anota a qué hora te acostaste y te levantaste en 🏠 Hoy</IrA> para ver tus noches.</Nota></Grafica>;
   return (
     <Grafica titulo="🌙 Horas de sueño" ir="#hoy" nota="Para ganar músculo y rendir en el fútbol, 7 a 9 horas.">
-      {G((barras as Fin)(datos, { formato: (n: number) => String(Math.round(n * 10) / 10).replace('.', ','), ref: { v: 7, texto: 'mínimo 7 h' } }) +
-        (tablaDatos as Fin)(['Noche', 'Horas', 'Calidad'], fs.filter((f) => e.dias[f] && horasSueno(e.dias[f].sueno) != null).reverse().map((f) => [fechaCorta(f), String(horasSueno(e.dias[f].sueno)).replace('.', ','), e.dias[f].sueno.calidad ? e.dias[f].sueno.calidad + '/5' : '—'])))}
+      <G>
+        <Barras datos={datos} formato={(n) => String(Math.round(n * 10) / 10).replace('.', ',')} meta={{ v: 7, texto: 'mínimo 7 h' }} />
+        <TablaDatos columnas={['Noche', 'Horas', 'Calidad']} filas={fs.filter((f) => e.dias[f] && horasSueno(e.dias[f].sueno) != null).reverse().map((f) => [fechaCorta(f), String(horasSueno(e.dias[f].sueno)).replace('.', ','), e.dias[f].sueno.calidad ? e.dias[f].sueno.calidad + '/5' : '—'])} />
+      </G>
     </Grafica>
   );
 }
@@ -391,20 +396,20 @@ function futbol(e: Fin) {
   const texto = comp ? <>Energía con pierna el día antes: <b>{String(comp.con).replace('.', ',')}/5</b> · sin pierna: <b>{String(comp.sin).replace('.', ',')}/5</b>{mal ? '. La pierna te está quitando piernas para jugar: muévela más lejos del partido o baja una serie.' : '.'}</> : null;
   return (
     <Grafica titulo="⚽ Carga de los partidos" ir="#hoy" nota="Carga = minutos × esfuerzo (1-10). Sirve para no juntar semanas muy pesadas.">
-      {G((barras as Fin)(datos))}
+      <G><Barras datos={datos} /></G>
       {comp ? (mal ? <Aviso>{texto}</Aviso> : <Nota>{texto}</Nota>) : null}
-      {G((tablaDatos as Fin)(['Fecha', 'Min', 'Esfuerzo', 'Energía', 'Pierna antes', 'Molestias'], lista.slice().reverse().map((p) => [fechaCorta(p.fecha), p.minutos || '—', p.rpe || '—', p.energia ? p.energia + '/5' : '—', p.pierna ? 'Sí' : 'No', (p.molestias || []).join(', ') || '—'])))}
+      <G><TablaDatos columnas={['Fecha', 'Min', 'Esfuerzo', 'Energía', 'Pierna antes', 'Molestias']} filas={lista.slice().reverse().map((p) => [fechaCorta(p.fecha), p.minutos || '—', p.rpe || '—', p.energia ? p.energia + '/5' : '—', p.pierna ? 'Sí' : 'No', (p.molestias || []).join(', ') || '—'])} /></G>
     </Grafica>
   );
 }
 
 export default function Progreso() {
-  const e = usarEstado() as Fin, dias = R.dias() as number, actual = semanaActual(), fuerzaEj = (piezasGym as Fin).ver().fuerzaEj;
+  const e = usarEstado() as Fin, [dias, ponerDias] = useState(rangoElegido), actual = semanaActual(), fuerzaEj = (piezasGym as Fin).ver().fuerzaEj;
   return (
     <>
       <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
         <TituloPantalla>Progreso</TituloPantalla>
-        <Opciones nombre="Rango" activa={String(dias)} opciones={['7', '30', '90'].map((n) => [n, n + ' días'] as [string, string])} datos={(n) => ({ 'data-accion': 'prog-dias', 'data-n': n })} chica />
+        <Opciones nombre="Rango" activa={String(dias)} opciones={['7', '30', '90'].map((n) => [n, n + ' días'] as [string, string])} alElegir={(n) => { rangoElegido = Number(n); ponerDias(rangoElegido); }} datos={(n) => ({ 'data-n': n })} chica />
       </Box>
       {indicadores(e)}
       {mejora()}

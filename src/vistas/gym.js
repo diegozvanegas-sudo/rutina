@@ -8,7 +8,6 @@ import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFil
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
 import { pesos as pesosCorporales } from '../dieta.js';
-import { linea, tablaDatos } from '../graficos.js';
 import { promptEntreno } from '../analisis.js';
 import { CARDIO } from '../datos_iniciales.js';
 import { tip, registrar, toast, copiarTexto } from '../ui.js';
@@ -86,18 +85,15 @@ function rirReciente(ej, i, sem, v = varianteActual(ej)) {
   return null;
 }
 
-// abierto: sin el desplegable (en la tarjeta de Fuerza, donde ya se eligió el ejercicio)
-function historialEj(ej, sem, abierto = false, v = varianteActual(ej)) {
+// Historial de un ejercicio para el gráfico y su tabla (HistorialEjercicio en react/pantallas/GymDia.tsx); null con menos de 2 semanas
+function datosHistorial(ej, sem, v = varianteActual(ej)) {
   const hist = historial(e().semanas, e().rutina, ej, 0, sem, v);
-  if (hist.length < 2) return '';
+  if (hist.length < 2) return null;
   const u = hist[0].unidad, recs = new Set(records(hist).map((p) => p.semana));
   const etiqueta = (p) => (p.semana ? 'S' + p.semana : 'Antes');
   const puntos = hist.map((p) => ({ etiqueta: etiqueta(p), v: Math.round(p.rm * 10) / 10,
     tip: (p.semana ? 'Semana ' + p.semana : 'Antes de la app') + ': ' + formatoPeso(p.peso) + ' ' + u + ' × ' + p.reps + ' → 1RM est. ' + rm(p.rm) + (recs.has(p.semana) ? ' 🏆 récord' : '') }));
-  const cuerpo = '<p class="nota-corta">1RM estimado de la mejor serie, semana a semana: así 60 × 10 y 65 × 7 se pueden comparar.</p>' +
-    linea(puntos, { formato: rm, margenEje: 1 }) +
-    tablaDatos(['Semana', 'Peso', 'Reps', '1RM est.', ''], hist.slice().reverse().map((p) => [etiqueta(p), formatoPeso(p.peso) + ' ' + u, p.reps, rm(p.rm), recs.has(p.semana) ? '🏆' : '']));
-  return cuerpo;
+  return { puntos, filas: hist.slice().reverse().map((p) => [etiqueta(p), formatoPeso(p.peso) + ' ' + u, p.reps, rm(p.rm), recs.has(p.semana) ? '🏆' : '']) };
 }
 
 // Lo anotado de un ejercicio en una línea ("41 kg × 5 · 40 kg × 12 11"); sin nada anotado, el esquema y la meta de hoy
@@ -199,7 +195,7 @@ function prepararGym() {
 // Lo que necesita la pantalla de React (src/react/pantallas/Gym.tsx): lo que se ve y los cálculos que comparte con esta
 export const piezasGym = {
   ver: () => ({ actual: prepararGym(), semana: semanaVista, dia: diaVista, editandoObjetivos, fuerzaEj }),
-  DIAS_CORTOS, rirReciente, consejo, rm, porcentaje, historialEj,
+  DIAS_CORTOS, rirReciente, consejo, rm, porcentaje, datosHistorial,
   // El día: en qué ejercicio vas y qué está abierto (prepararDia dice si hay que bajar al ejercicio en el que vas)
   prepararDia, irAlActual, estaAbierto, verDia: () => ({ ultimoEj, actualId }), filtroEn, sufijoDe, pesoDelDia, kgCorporal,
   resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado,

@@ -15,7 +15,6 @@ import './vistas/editar.js';
 import './vistas/dieta.js';
 import './vistas/finanzas.js';
 import { alertas } from './vistas/recordatorios.js';
-import './vistas/progreso.js';
 // Acciones que ya no importa ninguna pantalla de antes (las pantallas de React las usan con data-accion)
 import './vistas/mejora.js';
 import './vistas/retos.js';

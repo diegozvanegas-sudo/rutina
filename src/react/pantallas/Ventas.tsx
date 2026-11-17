@@ -7,7 +7,6 @@ import { guardar } from '../../estado.js';
 import { iso, fechaCorta } from '../../fechas.js';
 import { toast as avisar, miles } from '../../ui.js';
 import { leerMonto } from '../../finanzas.js';
-import { barras } from '../../graficos.js';
 import { ventasDe, nuevoProducto, nuevaVenta, faltantes, resumenVentas, avanceLista, paginaVenta, pesosCOP, ESTADOS_PRODUCTO, CANALES, LISTA_LANZAMIENTO } from '../../ventas.js';
 import { PDFS } from '../../ventas-pdf.js';
 import { usarEstado } from '../usarEstado';
@@ -16,6 +15,7 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoLargo, CampoLista, DOS } from '../ui/Campo';
 import { TituloPantalla, Nota, Detalle } from '../ui/Textos';
 import { Opciones, HtmlViejo, Cifras, Avance, Marcable } from '../ui/Varios';
+import { Barras } from '../ui/Graficos';
 
 const VISTA = 'ventas';
 const toast = avisar as (mensaje: string, deshacer?: (() => void) | null) => void;
@@ -35,7 +35,6 @@ const PESTANAS: [Pestana, string][] = [['productos', '📦 Productos'], ['pagina
 const ESTADOS = ESTADOS_PRODUCTO as [string, string][], CANALES_ = CANALES as [string, string][];
 const COLOR_ESTADO: Record<string, string> = { listo: tokens.azul, venta: tokens.verde };
 const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const graficoBarras = barras as (datos: { etiqueta: string; v: number; tip: string }[], opciones?: { formato?: (n: number) => string | number }) => string;
 const pdfDe = PDFS as Record<string, (a: Autor) => string>;
 const FILA_BOTONES = { display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', my: '8px' };
 const CAMPOS = { display: 'grid', gap: '8px' };
@@ -229,8 +228,7 @@ export default function Ventas() {
           ]} />
           {r.ventas ? (
             <>
-              {/* El gráfico todavía lo dibuja graficos.js (lo usan las pantallas de antes) */}
-              <HtmlViejo html={graficoBarras(r.meses.map((m) => ({ etiqueta: mes(m.mes), v: m.monto, tip: mes(m.mes) + ': ' + pesosCOP(m.monto) + ' · ' + m.n + ' ventas' })), { formato: (n: number) => (n >= 1e6 ? Math.round(n / 1e5) / 10 + ' M' : Math.round(n / 1000) + ' k') })} />
+              <Box><Barras datos={r.meses.map((m) => ({ etiqueta: mes(m.mes), v: m.monto, tip: mes(m.mes) + ': ' + pesosCOP(m.monto) + ' · ' + m.n + ' ventas' }))} formato={(n) => (n >= 1e6 ? Math.round(n / 1e5) / 10 + ' M' : Math.round(n / 1000) + ' k')} /></Box>
               <Box component="ul" sx={{ listStyle: 'none', m: '8px 0', p: 0, display: 'grid', gap: '8px' }}>
                 {r.porProducto.map((x) => (
                   <Box component="li" key={x.producto} sx={{ display: 'grid', gridTemplateColumns: 'minmax(70px, 30%) minmax(0, 1fr) auto', gap: '8px', alignItems: 'center', fontSize: 14 }}>

@@ -8,7 +8,6 @@ import { iso, semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana } from '../../
 import { resumenSemana, progresoMes, records, historial, lineasFuerza, registrosRaros, seriesRaras, ultimoRegistro, varianteDe, nombreConVariante, metaSesion,
   varianteActual, consejoRir, formatoPeso, numero, registrosDeFila, tieneVariantes } from '../../gym.js';
 import { queTeHaceRendir, pesoCorporalEn } from '../../entrenador.js';
-import { tablaDatos } from '../../graficos.js';
 import { piezasGym, diasEnOrden, diaDeHoy } from '../../vistas/gym.js';
 import { accion } from '../acciones';
 import { tokens } from '../tema';
@@ -16,9 +15,10 @@ import { usarEstado } from '../usarEstado';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { CampoLista, CampoSolo } from '../ui/Campo';
 import { TituloPantalla, Nota } from '../ui/Textos';
-import { Opciones, Avance, HtmlViejo } from '../ui/Varios';
+import { Opciones, Avance } from '../ui/Varios';
+import { TablaDatos } from '../ui/Graficos';
 import { plan12, casa } from './GymPlan12';
-import { dia } from './GymDia';
+import { dia, HistorialEjercicio } from './GymDia';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -200,7 +200,7 @@ function graficoEjercicio(estado: Fin, hasta: number, elegido: string | null) {
     <>
       <H3>📉 Un ejercicio en el tiempo</H3>
       <CampoLista key={sel.nombre} etiqueta="Ejercicio" data-cambio="fuerza-ej" defaultValue={sel.nombre} opciones={nombres.map((x) => [x.nombre, x.nombre])} />
-      <HtmlViejo html={G.historialEj(sel.ej, hasta, true, sel.v)} />
+      <HistorialEjercicio ej={sel.ej} sem={hasta} v={sel.v} />
     </>
   );
 }
@@ -229,7 +229,7 @@ export function fuerza(estado: Fin, hasta: number, semActual: number, elegido: s
       {fuerzaRelativa(lista)}
       {queRindes()}
       {graficoEjercicio(estado, hasta, elegido)}
-      {lista.length > 0 && <HtmlViejo html={tablaDatos(['Ejercicio', 'Antes', 'Ahora', 'Cambio'], lista.map((x) => [x.nombre, formatoPeso(x.de.peso) + ' × ' + x.de.reps, formatoPeso(x.a.peso) + ' × ' + x.a.reps, G.porcentaje(x.cambio)]))} />}
+      {lista.length > 0 && <Box><TablaDatos columnas={['Ejercicio', 'Antes', 'Ahora', 'Cambio']} filas={lista.map((x) => [x.nombre, formatoPeso(x.de.peso) + ' × ' + x.de.reps, formatoPeso(x.a.peso) + ' × ' + x.a.reps, G.porcentaje(x.cambio)])} /></Box>}
     </>
   );
 }

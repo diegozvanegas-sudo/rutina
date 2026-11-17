@@ -31,7 +31,7 @@ export function Opciones<T extends string>({ opciones, activa, alElegir, datos, 
   );
 }
 
-/** HTML que todavía arma el código de antes (gráficos de graficos.js, el PDF de ventas-pdf.js). Puente temporal:
+/** HTML que todavía arma el código de antes (las figuras de figuras.js, el PDF de ventas-pdf.js). Puente temporal:
  *  cuando esa pieza se pase a React, deja de usarse. El HTML viene de la app, nunca de lo que escribe otra persona sin escapar */
 export const HtmlViejo = ({ html, clase, sx }: { html: string; clase?: string; sx?: SxProps<Theme> }) => <Box className={clase} sx={sx} dangerouslySetInnerHTML={{ __html: html }} />;
 

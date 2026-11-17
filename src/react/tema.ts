@@ -1,8 +1,8 @@
-// Tema de Material UI con los colores y las medidas de la app (los mismos de :root en src/estilos.css):
+// Tema de Material UI con los colores y las medidas de la app (los mismos de :root en armazon/estilosArmazon.ts):
 // oscuro, compacto y con botones cómodos para el dedo. Todas las pantallas de React salen de aquí
 import { createTheme } from '@mui/material/styles';
 
-// Los mismos valores de src/estilos.css
+// Los valores de siempre (los de :root, ahora en armazon/estilosArmazon.ts)
 export const tokens = {
   bg: '#101418', surface: '#181e24', surface2: '#212932', line: '#2c3640',
   ink: '#e9eef2', muted: '#93a1ad',
@@ -39,6 +39,11 @@ export const tokens = {
   // 🎓 Figuras de los cursos (dibujo): siempre sobre papel claro, como un dibujo a lápiz; los valores van del más claro al más oscuro
   figPapel: '#f3efe6', figGrafito: '#2b2925', figGuia: '#9a958b', figAcento: '#c8463d',
   figV1: '#e4dfd3', figV2: '#bdb7ab', figV3: '#8f8a80', figV4: '#5c5852', figV5: '#2b2925',
+  // Armazón: la barra de arriba del celular (translúcida), el velo y la sombra del menú abierto, la sombra del aviso y el
+  // fondo del cronómetro flotante
+  barraArriba: 'rgba(16, 20, 24, .92)', velo: 'rgba(0, 0, 0, .5)', sombraAviso: 'rgba(0, 0, 0, .4)', flotanteFondo: '#0b2a1c',
+  // 📄 Papel: la vista del PDF de Ventas y el PDF del plan al imprimir (siempre blanco con tinta oscura)
+  papelFondo: '#fff', papelTinta: '#111', papelTitulo: '#0d6b45', papelLinea: '#ddd', papelLineaImpresa: '#ccc', papelCabeza: '#f1f5f3', papelGris: '#555',
   // 📈 Gráficos de graficos.js: la línea de base, la zona al pasar encima y la pista de las barras horizontales al pasar encima
   graficoBase: '#3a4652', graficoZona: 'rgba(255, 255, 255, .06)', graficoPista: '#26303a',
   // 🏋️ Figuras de los ejercicios (figuras.js): los objetos (banco, barra), el brazo y la pierna lejanos

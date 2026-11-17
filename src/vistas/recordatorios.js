@@ -1,13 +1,13 @@
 // Recordatorios: mantenimiento de la moto por km o por tiempo (lo que pase primero), los que se agreguen desde plantillas
 // los que salen solos de Finanzas (pagos fijos y cuotas de deudas) y los eventos que no hay que perderse.
 // La pantalla está en src/react/pantallas/Recordatorios.tsx; aquí quedan lo que está abierto, las acciones, las alertas
-// (menú y Hoy) y la franja de arriba (bannerDiarios, la pinta main.js).
+// (menú y Hoy) y los pendientes de hoy de la franja de arriba (diariosDeHoy, los pinta react/armazon/Avisos.tsx).
 import { e, guardar, repintar } from '../estado.js';
 import { iso, fechaCorta } from '../fechas.js';
 import { eventosCerca, cuandoFalta } from '../eventos.js';
 import { estadoRecordatorio, proximoRecordatorio, tocaYa, recordatoriosAutomaticos, kmActual, leerMonto } from '../finanzas.js';
 import { PLANTILLAS_RECORDATORIO } from '../datos_finanzas.js';
-import { esc, registrar, toast } from '../ui.js';
+import { registrar, toast } from '../ui.js';
 import { nuevoMovimiento } from './finanzas.js';
 import { pendientesCirculo } from '../vida.js';
 
@@ -107,11 +107,6 @@ export function diariosDeHoy() {
     const cuando = p ? (p.titulo === 'Hoy' ? 'Toca hoy' : p.titulo.startsWith('Hace ') ? 'Tocaba h' + p.titulo.slice(1) : p.titulo) : '';
     return [{ id: x.id, icono: x.icono || '📌', nombre: x.nombre, detalle: [cuando, x.nota || ''].filter(Boolean).join(' · ') }];
   });
-}
-// Lo mismo en HTML, para las pantallas que siguen como antes (los respaldos de Finanzas y Gym)
-export function bannerDiarios() {
-  return diariosDeHoy().map((x) => '<div class="diario"><span>' + x.icono + ' <b>' + esc(x.nombre) + '</b>' + (x.detalle ? '<small>' + esc(x.detalle) + '</small>' : '') + '</span>' +
-    '<button type="button" class="boton primario" data-accion="rec-hoy" data-id="' + x.id + '">✓ Listo</button></div>').join('');
 }
 
 registrar({

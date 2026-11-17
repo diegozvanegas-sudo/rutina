@@ -1,7 +1,7 @@
 // 🛡️ Administrar (solo admin): el rol de cada usuario, qué ve cada rol, qué ve cada usuario, roles y "Ver como".
 // Todo se guarda en Supabase (supabase/esquema.sql, funciones rutina_admin_*). El admin nunca ve los datos de los demás.
 import { repintar } from '../estado.js';
-import { esc, registrar, toast } from '../ui.js';
+import { registrar, toast } from '../ui.js';
 import { configurada, llamar, cargarPermisos } from '../nube.js';
 import { esAdmin, catalogo, tiposCatalogo, SIEMPRE, reglaDe, permisosDe, ponerVerComo } from '../permisos.js';
 
@@ -56,9 +56,6 @@ export const piezasAdmin = {
 };
 
 // Banner mientras el admin mira la app como otro
-export const bannerVerComo = (nombre) => '<div class="ver-como">👁 Estás viendo la app como <b>' + esc(nombre) + '</b>' +
-  '<button type="button" class="boton secundario" data-accion="adm-ver-salir">Volver a mi vista</button></div>';
-
 const idDe = (nombre) => nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 registrar({

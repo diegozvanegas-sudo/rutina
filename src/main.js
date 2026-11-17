@@ -1,21 +1,20 @@
-import './estilos.css';
 import { registerSW } from 'virtual:pwa-register';
 import { e, cargar, esperarUsuario, alCambiar, guardar, empezarDePrueba, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
-import { ejecutar, registrar, prepararAudio, pct, claveDeDatos } from './ui.js';
+import { ejecutar, registrar, prepararAudio, pct } from './ui.js';
 import { revisar, sumar, detener } from './temporizador.js';
 import { resumenSemana } from './gym.js';
 import './vistas/hoy.js';
 import { textoEspera, revisarCronos } from './vistas/manana.js';
 import './vistas/metas.js';
-import { vistaGym, semanaActual, claveGym } from './vistas/gym.js';
+import { semanaActual } from './vistas/gym.js';
 import './vistas/sesiones.js';
 import './vistas/ajustes.js';
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import './vistas/editar.js';
 import './vistas/dieta.js';
-import { vistaFinanzas, claveFinanzas } from './vistas/finanzas.js';
-import { alertas, bannerDiarios } from './vistas/recordatorios.js';
+import './vistas/finanzas.js';
+import { alertas } from './vistas/recordatorios.js';
 import './vistas/progreso.js';
 // Acciones que ya no importa ninguna pantalla de antes (las pantallas de React las usan con data-accion)
 import './vistas/mejora.js';
@@ -25,7 +24,6 @@ import './vistas/estudiar.js';
 import { montarReact, desmontarReact, montarFijo } from './react/montar.js';
 import { ponerLateral, ponerSesion } from './react/armazon.js';
 import { refrescarReact } from './react/refrescar.js';
-import { leerPlegadas, alternarPlegada, basePlegable } from './plegables.js';
 import './vistas/lugares.js';
 import './vistas/suplementos.js';
 import './vistas/clientes.js';
@@ -35,20 +33,22 @@ import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
-import { bannerVerComo, ponerDatosAdmin } from './vistas/administrar.js';
+import { ponerDatosAdmin } from './vistas/administrar.js';
 
 registerSW({ immediate: true });
 // Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
 if (configurada) esperarUsuario(); else cargar();
+// Los estilos de toda la app (armazón, lo general, gráficos y figuras): React, una sola vez y antes que cualquier pantalla.
+// Hasta que llegan, index.html deja la página en el fondo de la app (sin el destello de una página sin estilos)
+const estilos = document.createElement('div');
+estilos.hidden = true;
+document.body.appendChild(estilos);
+montarFijo(estilos, () => import('./react/armazon/Estilos.tsx'));
 iniciarNube();
 iniciarHoja();
 iniciarAvisos();
 
-const PANTALLAS = {
-  finanzas: vistaFinanzas,
-  gym: vistaGym,
-};
-// Pantallas ya migradas a React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
+// Todas las pantallas son de React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
 const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
   ventas: () => import('./react/pantallas/Ventas.tsx'), recordatorios: () => import('./react/pantallas/Recordatorios.tsx'),
   dieta: () => import('./react/pantallas/Dieta.tsx'), administrar: () => import('./react/pantallas/Administrar.tsx'),
@@ -58,17 +58,12 @@ const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), co
   sesiones: () => import('./react/pantallas/Sesiones.tsx'), hoy: () => import('./react/pantallas/Hoy.tsx'),
   progreso: () => import('./react/pantallas/Progreso.tsx'), editar: () => import('./react/pantallas/Editar.tsx'),
   clientes: () => import('./react/pantallas/Clientes.tsx'), ajustes: () => import('./react/pantallas/Ajustes.tsx'),
-  entrenador: () => import('./react/pantallas/Entrenador.tsx') };
-// Secciones grandes que se migran pestaña por pestaña: las pestañas de "listas" ya son de React; las demás siguen como antes
-const REACT_POR_PESTANA = {
-  finanzas: { actual: claveFinanzas, listas: ['registrar', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'calcular', 'esperas', 'planb:desempleo', 'planb:lider', 'planb:creativo', 'planb:innovacion', 'planb:pitch'], cargar: () => import('./react/pantallas/Finanzas.tsx') },
-  gym: { actual: claveGym, listas: ['dia', 'resumen', 'plan12', 'casa'], cargar: () => import('./react/pantallas/Gym.tsx') },
-};
-const reactDe = (v) => REACT[v] || (REACT_POR_PESTANA[v] && REACT_POR_PESTANA[v].listas.includes(REACT_POR_PESTANA[v].actual()) ? REACT_POR_PESTANA[v].cargar : null);
+  entrenador: () => import('./react/pantallas/Entrenador.tsx'), finanzas: () => import('./react/pantallas/Finanzas.tsx'),
+  gym: () => import('./react/pantallas/Gym.tsx') };
 // La pestaña de un enlace (#compras/deseos) hacia una pantalla de React: se le pasa al montarla
 let pestanaReact = null;
-// Icono, nombre y pantalla. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
-const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre, PANTALLAS[k]]]));
+// Icono y nombre. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)
+const VISTAS = Object.fromEntries(Object.entries(SECCIONES).map(([k, [icono, nombre]]) => [k, [icono, nombre]]));
 // Administrar no está en el catálogo (ni se ordena ni se esconde): solo la ve el admin
 VISTAS.administrar = ['🛡️', 'Administrar'];
 // 💼 Ventas (vender los PDF): igual que Administrar, solo el admin y nunca en la vista previa de otro rol
@@ -82,11 +77,13 @@ const $ = (id) => document.getElementById(id);
 // Lo que el admin escondió no se abre ni por enlace: se va a Hoy
 const permitida = (v) => (SOLO_ADMIN.includes(v) ? esAdmin() && !viendoComo() : v === 'libros' ? veRuta([['seccion', 'estudiar'], ['area', 'libros']]) : ve('seccion', v));
 const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] && permitida(v) ? v : 'hoy'; };
+const CON_ABRIR = ['finanzas', 'gym'];
 function abrirPestana() {
   const [v, sub] = location.hash.slice(1).split('/');
   if (!sub || !VISTAS[v] || !permitida(v)) return;
-  if (REACT[v]) pestanaReact = decodeURIComponent(sub);
-  else ejecutar('abrir-' + v, { dataset: { p: decodeURIComponent(sub) } });
+  // Finanzas y Gym guardan su pestaña en su archivo de vistas (abrir-finanzas, abrir-gym); las demás la reciben al montarse
+  if (CON_ABRIR.includes(v)) ejecutar('abrir-' + v, { dataset: { p: decodeURIComponent(sub) } });
+  else pestanaReact = decodeURIComponent(sub);
   history.replaceState(null, '', '#' + v);
 }
 
@@ -134,102 +131,7 @@ function montarArmazon() {
   montarFijo($('lateral'), () => import('./react/armazon/Lateral.tsx'));
   montarFijo($('flotante'), () => import('./react/armazon/Flotante.tsx'));
   montarFijo($('reproductor'), () => import('./react/armazon/Reproductor.tsx'));
-  // Los estilos de los gráficos y las figuras (SVG en texto de graficos.js y figuras.js) y del globo de ayuda: una sola vez
-  const estilos = document.createElement('div');
-  estilos.hidden = true;
-  document.body.appendChild(estilos);
-  montarFijo(estilos, () => import('./react/armazon/Estilos.tsx'));
 }
-
-// Identidad de un campo para encontrarlo de nuevo después de repintar
-function claveCampo(el) {
-  // Los campos de un formulario que se guarda con un botón (check-in, valoración, agregar…) se reconocen por su id
-  if (el.id && !el.dataset.cambio) return 'id:' + el.id;
-  return claveDeDatos(el.dataset || {});
-}
-// Lo escrito y aún no guardado sobrevive al repintado (que también pasa solo: al sincronizar o al traer el plan del entrenador):
-// las reps de la serie, el campo donde está el cursor y lo escrito en formularios que se guardan con un botón
-function recordarCampos() {
-  const activo = document.activeElement, valores = {};
-  document.querySelectorAll('#vista [data-serie]').forEach((el) => { if (el.value) valores[claveCampo(el)] = el.value; });
-  document.querySelectorAll('#vista input[id]:not([data-cambio]):not([type=file]):not([type=checkbox]), #vista textarea[id]:not([data-cambio]), #vista select[id]:not([data-cambio])')
-    .forEach((el) => { if (el.value && el.value !== el.defaultValue) valores[claveCampo(el)] = el.value; });
-  // Un campo de archivo no se puede volver a llenar por código
-  const clave = activo && $('vista').contains(activo) && activo.type !== 'file' ? claveCampo(activo) : null;
-  if (clave) valores[clave] = activo.value;
-  return { clave, valores, cursor: clave && activo.selectionStart != null ? [activo.selectionStart, activo.selectionEnd] : null };
-}
-function restaurarCampos({ clave, valores, cursor }) {
-  document.querySelectorAll('#vista input:not([type=file]), #vista textarea, #vista select[id]:not([data-cambio])').forEach((el) => {
-    const k = claveCampo(el);
-    if (k && k in valores) el.value = valores[k];
-    if (k && k === clave) {
-      el.focus({ preventScroll: true });
-      try { if (cursor) el.setSelectionRange(cursor[0], cursor[1]); } catch (err) {}
-    }
-  });
-}
-
-// ---------- Tarjetas que se abren y cierran (toda la app) ----------
-// Cualquier tarjeta con título (h2) se puede cerrar tocando el título o su flecha; queda solo el título.
-// Cuáles están cerradas se recuerda en este equipo (no viaja a la nube: el celular y el computador pueden diferir)
-function marcarPlegable(t, cerrada) {
-  const b = t.querySelector('.plegar-t');
-  t.classList.toggle('tarjeta-cerrada', cerrada);
-  if (!b) return;
-  b.textContent = cerrada ? '▸' : '▾';
-  b.setAttribute('aria-expanded', String(!cerrada));
-  b.setAttribute('aria-label', (cerrada ? 'Abrir ' : 'Cerrar ') + (b.dataset.titulo || 'la tarjeta'));
-}
-function prepararPlegables(v) {
-  const vistos = {}, cerradas = leerPlegadas();
-  document.querySelectorAll('#vista section.tarjeta, #vista article.tarjeta, #vista div.tarjeta').forEach((t) => {
-    const cab = t.firstElementChild;
-    if (!cab || t.children.length < 2) return;
-    const h = cab.matches('h2') ? cab : cab.matches('.fila-resumen, .ed-cab, header, a.titulo-enlace') ? cab.querySelector('h2') : null;
-    if (!h) return;
-    // Sin números: "🔔 4 recordatorios" y "🔔 5 recordatorios" son la misma tarjeta
-    const titulo = h.textContent.replace(/\s+/g, ' ').trim(), base = basePlegable(v, titulo);
-    vistos[base] = (vistos[base] || 0) + 1;
-    t.dataset.plegable = base + (vistos[base] > 1 ? '#' + vistos[base] : '');
-    t.classList.add('plegable');
-    cab.classList.add('t-cab');
-    const b = document.createElement('span');
-    b.className = 'plegar-t'; b.tabIndex = 0; b.setAttribute('role', 'button'); b.dataset.titulo = titulo;
-    h.prepend(b);
-    marcarPlegable(t, cerradas.has(t.dataset.plegable));
-  });
-}
-// Filas de chips que se deslizan de lado: la activa queda a la vista y, si hay más a la derecha o a la izquierda, se nota
-function marcarFila(c) {
-  const izq = c.scrollLeft > 2, der = c.scrollLeft + c.clientWidth < c.scrollWidth - 2;
-  c.classList.toggle('mas-der', der); c.classList.toggle('mas-izq', izq);
-}
-function prepararFilas() {
-  document.querySelectorAll('#vista .chips').forEach((c) => {
-    if (c.scrollWidth <= c.clientWidth + 2) return;
-    const activo = c.querySelector('.chip.activo');
-    if (activo) { const r = activo.getBoundingClientRect(), rc = c.getBoundingClientRect(); if (r.right > rc.right || r.left < rc.left) c.scrollLeft += r.left - rc.left - (rc.width - r.width) / 2; }
-    marcarFila(c);
-    c.addEventListener('scroll', () => marcarFila(c), { passive: true });
-  });
-}
-// Al girar el celular o cambiar el tamaño de la ventana, cambia qué cabe
-window.addEventListener('resize', () => document.querySelectorAll('#vista .chips').forEach(marcarFila), { passive: true });
-function alternarPlegable(t) {
-  marcarPlegable(t, alternarPlegada(t.dataset.plegable));
-}
-// La flecha siempre pliega; el título también, si no es un enlace ni tiene un control debajo del dedo
-function plegableTocado(ev) {
-  if (ev.target.closest && ev.target.closest('#raiz-react')) return null; // las de React se pliegan solas (react/Tarjeta.tsx)
-  const el = ev.target.closest && (ev.target.closest('.plegar-t') || (!ev.target.closest('a, button, input, select, textarea, label, [data-accion]') && ev.target.closest('.plegable > h2.t-cab, .plegable > .t-cab h2')));
-  return el ? el.closest('.plegable') : null;
-}
-document.addEventListener('keydown', (ev) => {
-  if ((ev.key !== 'Enter' && ev.key !== ' ') || !ev.target.matches || !ev.target.matches('.plegar-t') || ev.target.closest('#raiz-react')) return;
-  ev.preventDefault(); ev.stopPropagation();
-  alternarPlegable(ev.target.closest('.plegable'));
-}, true);
 
 // Lo último que se tocó: si está dentro de algo con data-ancla, ese bloque no se mueve al repintar.
 // Se guardan todos los que lo envuelven, de adentro hacia afuera: si el de adentro ya no está después de repintar, vale el siguiente
@@ -265,24 +167,14 @@ function pintar() {
     if (modo === 'bloqueada' && bloqueo.auto) { bloqueo.auto = false; desbloquear(); }
     return;
   }
-  const v = actual(), y = window.scrollY, campos = v === ultimaVista ? recordarCampos() : null, ancla = v === ultimaVista ? anclaDe() : null;
+  const v = actual(), y = window.scrollY, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
-  const cargarReact = reactDe(v);
-  if (cargarReact) {
-    // La pantalla de React se monta una vez y se repinta sola (con sus avisos de arriba)
-    if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v || pestanaReact != null) {
-      desmontarReact();
-      $('vista').innerHTML = '<div id="raiz-react" data-pantalla="' + v + '"></div>';
-      montarReact($('raiz-react'), cargarReact, pestanaReact != null ? { pestana: pestanaReact } : null);
-      pestanaReact = null;
-    }
-  } else {
+  // La pantalla se monta una vez y se repinta sola (con sus avisos de arriba)
+  if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v || pestanaReact != null) {
     desmontarReact();
-    // Los avisos de arriba de las pantallas de React los pinta React (react/armazon/Avisos.tsx)
-    $('vista').innerHTML = (viendoComo() ? bannerVerComo(viendoComo()) : '') + bannerDiarios() + VISTAS[v][2]();
-    if (campos) restaurarCampos(campos);
-    prepararPlegables(v);
-    prepararFilas();
+    $('vista').innerHTML = '<div id="raiz-react" data-pantalla="' + v + '"></div>';
+    montarReact($('raiz-react'), REACT[v], pestanaReact != null ? { pestana: pestanaReact } : null);
+    pestanaReact = null;
   }
   montarArmazon();
   aplicarBarra();
@@ -319,8 +211,7 @@ document.addEventListener('pointerup', () => { clearTimeout(soltar); soltar = se
 document.addEventListener('pointercancel', () => { clearTimeout(soltar); soltar = setTimeout(vaciar, 400); }, true);
 
 document.addEventListener('click', (ev) => {
-  const plegable = plegableTocado(ev), el = plegable ? null : ev.target.closest('[data-accion]');
-  if (plegable) { ev.preventDefault(); alternarPlegable(plegable); }
+  const el = ev.target.closest('[data-accion]');
   if (el) ejecutar(el.dataset.accion, el, ev);
   if (ev.target.closest('#lateral a')) menu(false); // tocar la sección en la que ya está también cierra el menú
   clearTimeout(soltar);

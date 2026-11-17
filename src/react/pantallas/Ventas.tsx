@@ -205,7 +205,7 @@ export default function Ventas() {
           <TarjetaPlegable vista={VISTA} clave={'📄 ' + p.nombre} titulo={'📄 ' + p.nombre}>
             <Nota>El PDF de ejemplo completo (unas 20 páginas al imprimir). Toca <b>Imprimir</b> y elige «Guardar como PDF»: ese archivo es el que subes a la plataforma de pago para la entrega automática.</Nota>
             <Box sx={FILA_BOTONES}><Button onClick={() => imprimir(p)}>🖨️ Imprimir o guardar en PDF</Button></Box>
-            {/* El documento lo arma ventas-pdf.js como HTML; "vt-papel" es la hoja blanca (estilos del documento, en estilos.css) */}
+            {/* El documento lo arma ventas-pdf.js como HTML; "vt-papel" es la hoja blanca (estilos del documento, en armazon/estilosArmazon.ts) */}
             <HtmlViejo clase="vt-papel" html={pdfDe[p.pdf!](v.autor)} />
           </TarjetaPlegable>
         ) : <Aviso>Aún no hay ningún PDF escrito.</Aviso>}

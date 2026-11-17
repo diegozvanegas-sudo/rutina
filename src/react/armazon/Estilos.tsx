@@ -1,9 +1,10 @@
-// Estilos de los dibujos que todavía llegan como SVG en texto (puente HtmlViejo): los gráficos de graficos.js y las
-// figuras de los ejercicios de figuras.js, más el globo de ayuda de los gráficos (#tip, main.js). Antes vivían en
-// estilos.css; ahora salen del tema (tokens). Se monta una sola vez, como el menú (montarFijo), para que estén en toda la
-// app aunque cambie la pantalla, y las clases son las mismas que escriben esos archivos.
+// Todos los estilos que no son de un componente (antes, src/estilos.css): el armazón de la app y lo general (estilosArmazon.ts)
+// y los dibujos que todavía llegan como SVG en texto (puente HtmlViejo): los gráficos de graficos.js, las figuras de los
+// ejercicios de figuras.js y el globo de ayuda de los gráficos (#tip, main.js). Salen del tema (tokens). Se monta una sola
+// vez al abrir la app (main.js, montarFijo), antes que cualquier pantalla, y las clases son las mismas que escriben esos archivos.
 import { GlobalStyles } from '@mui/material';
 import { tokens as t } from '../tema';
+import { ARMAZON } from './estilosArmazon';
 
 const FUENTE = 'system-ui, sans-serif';
 const ESTILOS = {
@@ -69,5 +70,6 @@ const ESTILOS = {
 } as const;
 
 export default function Estilos() {
-  return <GlobalStyles styles={ESTILOS} />;
+  // Primero el armazón y lo general, después los dibujos (el mismo orden que tenían en estilos.css)
+  return <><GlobalStyles styles={ARMAZON} /><GlobalStyles styles={ESTILOS} /></>;
 }

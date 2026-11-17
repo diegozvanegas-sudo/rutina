@@ -1,6 +1,6 @@
 ---
 name: probar-rutina
-description: Prueba un cambio de pantalla de la app Rutina en Chrome sin ventana, con clics reales, celular y computador, y revisa las capturas. Úsala después de cambiar algo visible en src/vistas o src/estilos.css, o cuando pidan "pruébalo" o "míralo en el navegador". No la uses para cambios de solo lógica (basta npm test) ni para probar la versión publicada.
+description: Prueba un cambio de pantalla de la app Rutina en Chrome sin ventana, con clics reales, celular y computador, y revisa las capturas. Úsala después de cambiar algo visible en src/react o src/vistas, o cuando pidan "pruébalo" o "míralo en el navegador". No la uses para cambios de solo lógica (basta npm test) ni para probar la versión publicada.
 ---
 
 # Probar Rutina en el navegador

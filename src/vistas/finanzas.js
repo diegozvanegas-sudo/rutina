@@ -54,7 +54,6 @@ const ESTADOS_COBRO = { pagado: '✓ Cobrado', pronto: 'Pronto', vencido: 'Sin p
 // Las acciones (registrar más abajo) las siguen usando las dos
 export const pestanaFinanzas = () => pestana;
 // La pestaña con su módulo cuando es Plan B ("planb:lider"): main.js decide con esto si pinta React o la pantalla de antes
-export const claveFinanzas = () => (pestana === 'planb' ? 'planb:' + moduloPlanB() : pestana);
 export { moduloPlanB };
 export const PESTANAS_FINANZAS = { registrar: '➕ Registrar', calcular: '🧮 Calcular', mes: '📊 Mes', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h', planb: '🛟 Plan B' };
 export const piezasFinanzas = {
@@ -62,12 +61,6 @@ export const piezasFinanzas = {
   // Lo que la pantalla recuerda mientras está abierta: el formulario de Registrar, el mes que se ve y el filtro de la lista
   form, mesVista: () => mesVista, filtro: () => filtroCat, quitarFiltro: () => { filtroCat = null; },
 };
-
-export function vistaFinanzas() {
-  const tabs = PESTANAS_FINANZAS;
-  return '<h1>Finanzas</h1><nav class="chips pestanas">' + Object.entries(tabs).map(([k, t]) =>
-    '<button type="button" class="chip' + (k === pestana ? ' activo' : '') + '" data-accion="fin-pestana" data-p="' + k + '">' + t + '</button>').join('') + '</nav>';
-}
 
 // Pagos que también se usan desde Recordatorios
 export function pagarFijo(id) {
@@ -124,7 +117,7 @@ const verElegida = () => setTimeout(() => document.querySelector('.subcats, .fin
 const limpiar = () => Object.assign(form, { monto: '', nota: '', fecha: null, categoria: null, sub: null, editando: null, deuda: null });
 
 registrar({
-  'abrir-finanzas'({ p }) { pestana = p; },
+  'abrir-finanzas'({ p }) { if (PESTANAS_FINANZAS[p]) pestana = p; },
   'fin-pestana'({ p }) { pestana = p; repintar(); window.scrollTo(0, 0); if (p === 'registrar') enfocarMonto(); },
   // Lo que dio la calculadora pasa como monto al formulario de Registrar
   'calc-usar'() {

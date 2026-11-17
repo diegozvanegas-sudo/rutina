@@ -196,12 +196,6 @@ function prepararGym() {
   if (diaVista == null || diaVista === 'core') diaVista = (diaDeHoy() || {}).id || 'resumen';
   return actual;
 }
-// Qué pestaña se ve, para main.js: 'dia' (un día de entreno), 'plan12', 'casa' o 'resumen'
-export function claveGym() {
-  prepararGym();
-  if (diaVista === 'plan12' || diaVista === 'casa') return diaVista;
-  return e().rutina.some((x) => x.id === diaVista) ? 'dia' : 'resumen';
-}
 // Lo que necesita la pantalla de React (src/react/pantallas/Gym.tsx): lo que se ve y los cálculos que comparte con esta
 export const piezasGym = {
   ver: () => ({ actual: prepararGym(), semana: semanaVista, dia: diaVista, editandoObjetivos, fuerzaEj }),
@@ -210,11 +204,6 @@ export const piezasGym = {
   prepararDia, irAlActual, estaAbierto, verDia: () => ({ ultimoEj, actualId }), filtroEn, sufijoDe, pesoDelDia, kgCorporal,
   resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado,
 };
-
-// Gym entero lo pinta React (src/react/pantallas/Gym.tsx); esto queda por si main.js no la encuentra
-export function vistaGym() {
-  return '<h1>Gym</h1>';
-}
 
 // ---------- ⏱ Contador del entreno de hoy: { dia, inicio, fin? } en el día de hoy (dias[fecha].entreno) ----------
 export const entrenoHoy = () => (e().dias[iso()] || {}).entreno || null;

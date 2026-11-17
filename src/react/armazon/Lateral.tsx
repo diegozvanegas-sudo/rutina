@@ -1,5 +1,5 @@
 // Menú lateral: fijo a un lado en el computador y, en el celular, entra desde la derecha con ☰ (eso, el velo y la
-// posición del contenedor #lateral siguen en main.js y estilos.css). Aquí: la marca con "solo íconos", las secciones,
+// posición del contenedor #lateral siguen en main.js y armazon/estilosArmazon.ts). Aquí: la marca con "solo íconos", las secciones,
 // organizar (arrastrar del asa ⠿ o flechas ↑ ↓, esconder con 👁), el resumen, el estado de la nube, la cuenta y el
 // borde para cambiar el ancho. Los datos los arma main.js (react/armazon.js) y las reglas son sus acciones barra-….
 import { useState, type PointerEvent as EventoPuntero, type ReactNode } from 'react';

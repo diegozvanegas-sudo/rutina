@@ -1,5 +1,5 @@
 // Cronómetro flotante: el temporizador en curso (descanso del gym, tiempo de un hábito) abajo, sobre cualquier
-// pantalla. La caja #flotante (posición y fondo) sigue en index.html y estilos.css; aquí lo de adentro, que corre con su
+// pantalla. La caja #flotante (posición y fondo) sigue en index.html y armazon/estilosArmazon.ts; aquí lo de adentro, que corre con su
 // propio reloj de medio segundo. Las reglas son las de temporizador.js (t-sumar, t-parar en main.js).
 import { useEffect, useState } from 'react';
 import { Box, Button } from '@mui/material';

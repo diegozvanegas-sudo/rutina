@@ -8,7 +8,7 @@ import { Box, Button, ButtonBase, Card, Chip, IconButton, NativeSelect, Outlined
 import { e, semanaActual } from '../../estado.js';
 import { reloj, fechaCorta } from '../../fechas.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
-  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion } from '../../gym.js';
+  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO } from '../../gym.js';
 import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../../analisis.js';
 import { piezasGym, textoDia, sesionCalentamiento, extrasCalentamiento, entrenoHoy, minutosEntreno, entrenoQuieto, molestiaHoy, molestiaReciente } from '../../vistas/gym.js';
 import { accion } from '../acciones';
@@ -412,20 +412,37 @@ function analisis(d: Fin, sem: number) {
 
 // ⏱ Cuánto llevas de entreno hoy. Arranca solo con la primera serie (o con el botón); Terminar lo deja guardado
 const hora = (ts: number) => new Date(ts).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+const hhmm = (ts: number) => { const f = new Date(ts); return String(f.getHours()).padStart(2, '0') + ':' + String(f.getMinutes()).padStart(2, '0'); };
 // Cada día de la rutina muestra SU contador (el de la fecha en que se entrenó esa semana), no el de hoy: así al volver
 // al lunes se ve cuánto duró. Solo el de hoy tiene botones; el cardio va aparte y aquí se suma al total
 function ContadorEntreno({ d, sem }: { d: Fin; sem: number }) {
-  const hoyX = entrenoHoy() as Fin, x = hoyX && hoyX.dia === d.id ? hoyX : null, [ahora, ponerAhora] = useState(Date.now()), corre = !!(x && !x.fin);
+  const hoyX = entrenoHoy() as Fin, x = hoyX && hoyX.dia === d.id ? hoyX : null, [ahora, ponerAhora] = useState(Date.now()), corre = !!(x && !x.fin), [editar, ponerEditar] = useState(false);
   useEffect(() => { if (!corre) return undefined; const t = setInterval(() => ponerAhora(Date.now()), 1000); return () => clearInterval(t); }, [corre]);
   // Olvidaste tocar Terminar: después de 90 min sin series se cierra solo, 5 min después de la última
   const quieto = entrenoQuieto(x, ahora);
   useEffect(() => { if (quieto) accion('gym-entreno-terminar', { en: (x.ultimo || x.inicio) + 5 * 60000 }); }, [quieto]);
   const caja = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', m: '0 0 12px', p: '8px 10px', borderRadius: '10px', bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', fontSize: 14 };
   const t = tiemposDia(d, sem, e(), ahora) as Fin, cardioYTotal = t.cardio && t.fuerza ? <Box component="span" sx={GRIS}> · 🏃 cardio {duracion(t.cardio.min)} · total <b>{duracion(t.total)}</b></Box> : null;
+  // ✏️ Corregir las horas (un entreno de más de 3 h casi seguro es un error: lo avisa y abre la corrección)
+  const raro = !!(t.fuerza && !t.fuerza.enCurso && t.fuerza.min > ENTRENO_RARO), abierto = editar || raro;
+  // Abierta por el aviso, queda abierta al corregir el inicio (así se puede corregir también el fin)
+  useEffect(() => { if (raro) ponerEditar(true); }, [raro]);
+  const lapiz = t.fuerza && !t.fuerza.enCurso ? <Button size="small" color="secondary" aria-label="Corregir las horas del entreno" aria-expanded={abierto} onClick={() => ponerEditar(!abierto)} sx={MINI}>✏️</Button> : null;
+  const correccion = abierto && t.fuerza && !t.fuerza.enCurso ? (
+    <Box sx={{ flexBasis: '100%', display: 'grid', gap: '6px' }}>
+      {raro ? <Box component="p" sx={{ m: 0, color: 'warning.main' }}>⚠️ Más de 3 horas parece un error del contador (una serie anotada mucho antes o mucho después). Pon la hora real:</Box> : null}
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <Campo key={'i' + t.fuerza.inicio} etiqueta="Empecé a las" type="time" data-cambio="entreno-hora" data-f={t.fuerza.fecha} data-k="inicio" defaultValue={hhmm(t.fuerza.inicio)} />
+        <Campo key={'f' + t.fuerza.fin} etiqueta="Terminé a las" type="time" data-cambio="entreno-hora" data-f={t.fuerza.fecha} data-k="fin" defaultValue={hhmm(t.fuerza.fin)} />
+      </Box>
+    </Box>
+  ) : null;
   // Otro día (o el de hoy ya cerrado): lo que duró, para consultarlo siempre
   if (!x && t.fuerza) return (
-    <Box data-t="entreno" sx={caja}>
+    <Box data-t="entreno" sx={[caja, raro ? { borderColor: 'warning.main' } : null]}>
       <span>✓ Fuerza el {fechaCorta(t.fuerza.fecha)}: <b>{duracion(t.fuerza.min)}</b> <Box component="span" sx={GRIS}>({hora(t.fuerza.inicio)} – {hora(t.fuerza.fin)})</Box>{cardioYTotal}</span>
+      {lapiz}
+      {correccion}
     </Box>
   );
   if (sem !== semanaActual()) return null;
@@ -440,7 +457,8 @@ function ContadorEntreno({ d, sem }: { d: Fin; sem: number }) {
   if (x.fin) return (
     <Box data-t="entreno" sx={caja}>
       <span>✓ Fuerza hoy: <b>{duracion(minutosEntreno(x))}</b> <Box component="span" sx={GRIS}>({hora(x.inicio)} – {hora(x.fin)})</Box>{cardioYTotal}</span>
-      <Button size="small" color="secondary" onClick={() => accion('gym-entreno-seguir')} sx={MINI}>↺ Seguir</Button>
+      <Box sx={{ display: 'flex', gap: '6px' }}>{lapiz}<Button size="small" color="secondary" onClick={() => accion('gym-entreno-seguir')} sx={MINI}>↺ Seguir</Button></Box>
+      {correccion}
     </Box>
   );
   const s = Math.max(0, Math.floor((ahora - x.inicio) / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), dos = (n: number) => String(n).padStart(2, '0');

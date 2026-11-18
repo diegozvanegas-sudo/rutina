@@ -103,7 +103,7 @@ export default async (p) => {
   const resumen = await p.ev('window.__copiado') || '';
   falla(/⏱ Fuerza \d+ min · 🏃 Cardio 30 min · Total \d+ min/.test(resumen), 'el resumen no trae los tiempos: ' + resumen.slice(0, 200));
   // La fuerza vuelve a correr para lo que sigue
-  await p.ev(`document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));document.querySelector('[data-t=entreno] button')?.setAttribute('data-e2e','1')`);
+  await p.ev(`document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));[...document.querySelectorAll('[data-t=entreno] button')].find(b=>b.textContent.includes('Seguir'))?.setAttribute('data-e2e','1')`);
   await p.tocar('[data-e2e]');
   falla(!(await entreno()).fin, 'la fuerza no volvió a correr');
   await tocarTexto('📋 Copiar análisis completo para Claude');
@@ -161,9 +161,33 @@ export default async (p) => {
   await p.recargar();
   await abrirGym('Vie · Torso A');
   falla((await a.texto()).includes('✓ Fuerza el') && (await a.texto()).includes('1 h 12 min'), 'el otro día no muestra cuánto duró: ' + (await p.leer('[data-t=entreno]')));
-  falla(!(await p.cuantos('[data-t=entreno] button')), 'el contador de otro día no debe tener botones');
+  falla(!(await p.leer('[data-t=entreno]')).match(/Seguir|Terminar/) && await p.cuantos('[data-t=entreno] [aria-label="Corregir las horas del entreno"]') === 1, 'el contador de otro día solo debe tener ✏️');
+  falla(!(await a.texto()).includes('Más de 3 horas'), 'avisó sin ser raro');
   await p.ev(`document.querySelector('[data-t=entreno]').scrollIntoView({block:'center'})`);
   await p.foto('gymdia-otro-dia');
+  // Un contador estirado (de 2:28 a. m. a 10:03 p. m., como pasó de verdad): avisa y se corrige con las horas reales
+  await p.ev(`(()=>{const k=Object.keys(localStorage).find(k=>k.startsWith('rutina_v1')),s=JSON.parse(localStorage[k]),f=${JSON.stringify(otroDia)};
+    s.dias[f].entreno={dia:'d1',inicio:Date.parse(f+'T02:28:00'),fin:Date.parse(f+'T22:03:00')};localStorage[k]=JSON.stringify(s)})()`);
+  await p.recargar();
+  await abrirGym('Vie · Torso A');
+  let tx = await a.texto();
+  falla(tx.includes('19 h 35 min') && tx.includes('Más de 3 horas parece un error'), 'no avisó del contador estirado: ' + (await p.leer('[data-t=entreno]')));
+  await p.ev(`document.querySelector('[data-t=entreno]').scrollIntoView({block:'center'})`);
+  await p.foto('gymdia-contador-raro');
+  await p.celular();
+  await p.ev(`document.querySelector('[data-t=entreno]').scrollIntoView({block:'center'})`);
+  falla(await p.sinDesborde(), 'la corrección se sale en el celular');
+  await p.foto('gymdia-contador-raro-cel');
+  await p.computador();
+  await p.poner('[data-t=entreno] [data-k=inicio]', '20:30');
+  await p.poner('[data-t=entreno] [data-k=fin]', '21:45');
+  const corregido = (((await p.estado()).dias[otroDia]) || {}).entreno || {};
+  falla(corregido.fin - corregido.inicio === 75 * 60000, 'no corrigió las horas: ' + JSON.stringify(corregido));
+  tx = await a.texto();
+  falla(tx.includes('1 h 15 min') && !tx.includes('Más de 3 horas'), 'después de corregir sigue mal: ' + (await p.leer('[data-t=entreno]')));
+  // El fin antes del inicio no se acepta
+  await p.poner('[data-t=entreno] [data-k=fin]', '19:00');
+  falla((await a.aviso()).includes('después del inicio') && ((((await p.estado()).dias[otroDia]) || {}).entreno || {}).fin === corregido.fin, 'aceptó un fin antes del inicio');
   await abrirGym('Lun · Empuje + Bíceps');
 
   await p.foto('gymdia-pc');

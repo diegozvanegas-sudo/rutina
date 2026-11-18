@@ -24,6 +24,22 @@ export function tiemposDia(d, sem, estado, ahora = Date.now()) {
   const total = fuerza || cardio ? (fuerza ? fuerza.min : 0) + (cardio ? cardio.min : 0) : null;
   return { fuerza, cardio, total };
 }
+// Cada serie anotada hoy mueve el contador de fuerza. Si pasaron más de 90 min sin anotar nada:
+//  · lo de antes eran pocas series (menos de 5: una anotación suelta, p. ej. de madrugada) → el contador vuelve a empezar ahora
+//  · lo de antes era un entreno de verdad → ese queda cerrado 5 min después de su última serie, y anotar o corregir
+//    algo más tarde ya no lo alarga
+// n: series anotadas en ese bloque (los contadores viejos no lo tienen y se toman como entreno de verdad)
+export const SERIES_ENTRENO = 5;
+export function anotarEnEntreno(x, dia, ahora = Date.now(), quieto = 90 * 60000) {
+  const nuevo = () => ({ dia, inicio: ahora, ultimo: ahora, n: 1 });
+  if (!x) return nuevo();
+  const pocas = (x.n ?? SERIES_ENTRENO) < SERIES_ENTRENO, ultimo = x.ultimo || x.inicio;
+  if (x.fin) return ahora - x.fin > quieto && pocas ? nuevo() : x;
+  if (ahora - ultimo > quieto) return pocas ? nuevo() : { ...x, fin: ultimo + 5 * 60000 };
+  return { ...x, ultimo: ahora, n: (x.n ?? SERIES_ENTRENO) + 1 };
+}
+// Un entreno de fuerza de más de 3 horas casi seguro es un error del contador: se ofrece corregir las horas
+export const ENTRENO_RARO = 180;
 // "1 h 42 min" o "45 min"
 export const duracion = (min) => (min >= 60 ? Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + (min % 60) + ' min' : '') : min + ' min');
 // La línea para WhatsApp (texto e imagen): "⏱ Fuerza 1 h 12 min · 🏃 Cardio 30 min · Total 1 h 42 min"

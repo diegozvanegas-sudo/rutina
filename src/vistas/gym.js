@@ -4,7 +4,7 @@
 import { e, guardar, repintar, semanaActual, abrirSemana, quitarSemana, dia as diaDe } from '../estado.js';
 import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
-import { tiemposDia, lineaTiempos } from '../gym.js';
+import { tiemposDia, lineaTiempos, anotarEnEntreno } from '../gym.js';
 import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, resumenSemana, numero, formatoPeso, PIERNAS, historial, records, consejoEstancado, metaSesion, enBiserie, nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante } from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
@@ -231,10 +231,13 @@ function cambiarReps(id, texto) {
   if (ahora > antes) {
     ultimoEj = info.ej.id;
     saltados.delete(info.ej.id);
-    // El contador del entreno arranca solo con la primera serie de hoy (en la semana actual)
-    if (semanaVista === semanaActual() && !entrenoHoy()) diaDe().entreno = { dia: info.d.id, inicio: Date.now() };
-    const x = semanaVista === semanaActual() && entrenoHoy();
-    if (x && !x.fin) x.ultimo = Date.now();
+    // El contador del entreno arranca solo con la primera serie de hoy (en la semana actual); una anotación suelta
+    // horas antes no lo estira (gym.js anotarEnEntreno)
+    // (el core se anota al final del entreno del día: suma a ese contador)
+    if (semanaVista === semanaActual()) {
+      const x = entrenoHoy(), dia = x && info.d.id === 'core' ? x.dia : info.d.id;
+      if (!x || x.dia === dia) diaDe().entreno = anotarEnEntreno(x, dia);
+    }
     if (!avanceEj(info.ej, semanaVista).fila) enfocar = true; // terminó: pasa al siguiente
   }
   if (ahora > antes && ahora < info.f.series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
@@ -438,6 +441,17 @@ registrar({
       const tarjeta = [...document.querySelectorAll('[data-ancla^="ej-"]')].find((t) => t.dataset.ancla === 'ej-' + ejId), sig = tarjeta && tarjeta.querySelector('[data-serie]');
       if (sig) { sig.focus({ preventScroll: true }); sig.scrollIntoView({ block: 'nearest' }); }
     }, 80);
+  },
+  // ✏️ Corregir la hora de inicio o de fin del entreno de fuerza de un día (k: inicio | fin, el valor "HH:MM")
+  'entreno-hora'({ f, k }, el) {
+    const x = ((e().dias[f] || {}).entreno);
+    if (!x || !/^\d\d:\d\d$/.test(el.value)) return;
+    const ts = new Date(f + 'T' + el.value + ':00').getTime(), otro = k === 'inicio' ? (x.fin || x.ultimo) : x.inicio;
+    if (otro && (k === 'inicio' ? ts >= otro : ts <= otro)) { toast(k === 'inicio' ? 'El inicio tiene que ser antes del fin' : 'El fin tiene que ser después del inicio'); repintar(); return; }
+    x[k] = ts;
+    if (k === 'inicio' && !x.fin && x.ultimo && x.ultimo < ts) x.ultimo = ts;
+    guardar();
+    toast('✓ Fuerza: ' + minutosEntreno({ ...x, fin: x.fin || x.ultimo || ts }) + ' min');
   },
   'gym-entreno-empezar'({ dia: d }) { diaDe().entreno = { dia: d, inicio: Date.now() }; guardar(); toast('⏱ Entreno en marcha'); },
   // en: la hora de cierre cuando se cierra solo (sin aviso)

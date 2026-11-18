@@ -13,6 +13,7 @@ import { totalPlan, pesos, tendencia } from './dieta.js';
 import { partidos } from './registro.js';
 import { contexto, volumenSemana } from './analisis.js';
 import { focoDe } from './registro.js';
+import { lineasVida } from './mivida.js';
 
 const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO');
 const miles = (n) => Math.round(n).toLocaleString('es-CO');
@@ -246,5 +247,6 @@ export function promptSemanal(hoy = iso(), est = e()) {
     '',
     '## Recuperación y contexto',
     ...contexto(hoy, est).map((x) => '- ' + x),
+    ...lineasVida(hoy, est),
   ].join('\n');
 }

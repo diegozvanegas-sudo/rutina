@@ -27,6 +27,9 @@ export function comparativa(hoy = iso()) {
     fila('puntaje', '⭐', 'Puntaje del día', '#hoy', '/100', lados((f) => { const p = conDia(f) && puntajeDia(f); return p ? p.total : null; })),
     fila('manana', '☀️', 'Mañana cumplida', '#manana', '%', lados((f) => (conDia(f) && habitosDe(f).length ? fraccionManana(f) * 100 : null))),
     fila('sueno', '🌙', 'Horas de sueño', '#hoy', 'h', lados((f) => (conDia(f) ? horasSueno(dias[f].sueno) : null))),
+    // 🌱 Mi vida (src/mivida.js): el ánimo anotado y el trabajo profundo, contando solo los días con trabajo anotado
+    fila('animo', '😊', 'Ánimo', '#vida', '/5', lados((f) => (conDia(f) && dias[f].animo && dias[f].animo.animo > 0 ? dias[f].animo.animo : null))),
+    fila('trabajo', '💼', 'Trabajo profundo', '#vida', 'min', lados((f) => (conDia(f) && dias[f].trabajo && dias[f].trabajo.minutos > 0 ? dias[f].trabajo.minutos : null))),
   ];
   // Gym: la última semana completa frente a las 4 anteriores (la de ahora todavía no termina)
   const s = semanaDe(hoy) - 1, series = (n) => {

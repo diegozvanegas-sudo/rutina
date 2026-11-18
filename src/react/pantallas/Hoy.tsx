@@ -29,7 +29,8 @@ import { meta as filaMeta } from './Metas';
 import { comidasHoy } from './Dieta';
 import { lista as listaSuplementos } from './Suplementos';
 import { calentamiento } from './GymDia';
-import { Experimento, RetoHoy, Entrenador, Foco, EstudioHoy, SuenoPeso, Partido, Estandares, PlataHoy, CierreHoy, SemanaGym, BotonSesion, Botones, TarjetaEnlace, Tarjeta, EnPlegada } from './HoyTarjetas';
+import { Experimento, RetoHoy, Entrenador, Foco, EstudioHoy, SuenoPeso, Partido, Estandares, PlataHoy, CierreHoy, SemanaGym, BotonSesion, Botones, TarjetaEnlace, Tarjeta, EnPlegada, Animo, Trabajo } from './HoyTarjetas';
+import { porRevisar, ruedaToca, ruedaActual } from '../../mivida.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -109,6 +110,8 @@ function tarjetas(e: Fin): Record<string, () => ReactNode> {
     },
     gym: () => entrenamiento(e),
     suenoPeso: () => SuenoPeso({ e }),
+    animo: () => Animo({ e }),
+    trabajo: () => Trabajo({ e }),
     estandares: () => Estandares({ e }),
     dieta: () => <Tarjeta titulo="🥗 Comidas" lado={<Link href="#dieta" sx={{ fontSize: 14, color: 'text.secondary' }}>Ver plan →</Link>}>{comidasHoy(e, true)}</Tarjeta>,
     plata: () => PlataHoy({ e }),
@@ -192,6 +195,12 @@ function pendienteHoy(e: Fin) {
   if (x && !(estadoExperimento(x) as Fin).termino) fichas.push(['🧪', (estadoExperimento(x) as Fin).hoyListo ? 'Hecho' : 'Pendiente', '#hoy', (estadoExperimento(x) as Fin).hoyListo]);
   const reto = retoActivo() as Fin;
   if (reto) fichas.push(['🔥', (estadoRacha(reto) as Fin).hoyListo ? 'Hecho' : 'Pendiente', '#hoy', (estadoRacha(reto) as Fin).hoyListo]);
+  // 🌱 Mi vida: decisiones que ya toca revisar y la rueda vencida (la primera rueda no se pide aquí: se ofrece en Mi vida)
+  if (ve('seccion', 'vida')) {
+    const n = (porRevisar() as Fin[]).length;
+    if (n) fichas.push(['⚖️', n + (n === 1 ? ' decisión por revisar' : ' decisiones por revisar'), '#vida', false]);
+    if (ruedaActual() && ruedaToca()) fichas.push(['🎡', 'Toca tu rueda', '#vida', false]);
+  }
   void e;
   if (!fichas.length) return null;
   return (

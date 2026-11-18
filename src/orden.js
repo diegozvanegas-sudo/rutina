@@ -3,16 +3,16 @@
 // de la app y aún no esté en la lista del usuario aparece al final, visible (o debajo de su vecina, ver DESPUES).
 
 export const SECCIONES = {
-  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
+  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], vida: ['🌱', 'Mi vida'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
   dieta: ['🥗', 'Dieta'], suplementos: ['💊', 'Suplementos'], finanzas: ['💰', 'Finanzas'], compras: ['🛒', 'Compras'], recordatorios: ['🔔', 'Recordatorios'], lugares: ['🗺️', 'Lugares'], gym: ['🏋️', 'Gym'], clientes: ['👥', 'Clientes'], entrenador: ['🧑‍🏫', 'Mi entrenador'],
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
 export const TARJETAS_HOY = {
-  entrenador: '🧑‍🏫 Tu entrenador hoy', experimento: '🧪 Experimento de la semana', retos: '🔥 Reto activo', foco: '🗓️ Foco y cierre de la semana', estudio: '🎓 Estudio de hoy', manana: '☀️ Primera hora', metas: '🎯 Metas',
-  gym: '🏋️ Entrenamiento y fútbol', suenoPeso: '🌙 Sueño y peso', estandares: '🧭 Mis estándares', dieta: '🥗 Comidas', suplementos: '💊 Suplementos', semana: '📅 Semana', plata: '💰 Plata del mes', cierre: '🌙 Cierre de la noche (desde las 7 p. m.)',
+  entrenador: '🧑‍🏫 Tu entrenador hoy', experimento: '🧪 Experimento de la semana', retos: '🔥 Reto activo', foco: '🗓️ Foco y cierre de la semana', trabajo: '💼 Trabajo e ingresos', estudio: '🎓 Estudio de hoy', manana: '☀️ Primera hora', metas: '🎯 Metas',
+  gym: '🏋️ Entrenamiento y fútbol', suenoPeso: '🌙 Sueño y peso', animo: '😊 Ánimo y energía', estandares: '🧭 Mis estándares', dieta: '🥗 Comidas', suplementos: '💊 Suplementos', semana: '📅 Semana', plata: '💰 Plata del mes', cierre: '🌙 Cierre de la noche (desde las 7 p. m.)',
 };
 // Sección de la que depende cada tarjeta de Hoy: si el admin esconde la sección, la tarjeta tampoco se ve
-export const SECCION_TARJETA = { estudio: 'estudiar', manana: 'manana', metas: 'metas', gym: 'gym', dieta: 'dieta', suplementos: 'suplementos', plata: 'finanzas', semana: 'gym', entrenador: 'gym' };
+export const SECCION_TARJETA = { estudio: 'estudiar', manana: 'manana', metas: 'metas', gym: 'gym', dieta: 'dieta', suplementos: 'suplementos', plata: 'finanzas', semana: 'gym', entrenador: 'gym', animo: 'vida', trabajo: 'vida' };
 export const METAS = { agua: '💧 Agua', pasos: '👟 Pasos', calorias: '🍽️ Calorías', lectura: '📖 Lectura', pantalla: '📵 Pantalla' };
 
 export const CATALOGO = { menu: SECCIONES, hoy: TARJETAS_HOY, metas: METAS };
@@ -23,7 +23,7 @@ export const FIJAS = { menu: ['hoy', 'editar', 'ajustes'], hoy: [], metas: [] };
 // Se traducen al leer, así quien la tenía movida o escondida la sigue viendo igual
 const ANTES = { menu: { libros: 'estudiar' }, hoy: { libros: 'estudio' }, metas: {} };
 // Secciones nuevas que en un menú ya ordenado van debajo de su vecina y no al final (donde no se ven)
-const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta', clientes: 'suplementos', entrenador: 'hoy' }, hoy: { suplementos: 'dieta', retos: 'experimento' }, metas: {} };
+const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta', clientes: 'suplementos', entrenador: 'hoy', vida: 'progreso' }, hoy: { suplementos: 'dieta', retos: 'experimento', animo: 'suenoPeso', trabajo: 'foco' }, metas: {} };
 const lista = (config, que, tipo) => ((config && config[que] && config[que][tipo]) || []).map((id) => ANTES[tipo][id] || id);
 
 // Todos los ids del tipo en el orden del usuario

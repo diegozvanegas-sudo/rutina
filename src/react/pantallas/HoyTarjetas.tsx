@@ -10,6 +10,7 @@ import { horasSueno, promedioSueno, MOLESTIAS, hayPartido, semanaObjetivo, focoD
 import { rango } from '../../progreso.js';
 import { ZONAS, zonasDeMolestias } from '../../banco.js';
 import { experimentoActivo, estadoExperimento } from '../../mejora.js';
+import { animoDe, resumenAnimo, CARAS, trabajoDe, resumenTrabajo, accionesDe, ACCIONES_INGRESO, META_TRABAJO } from '../../mivida.js';
 import { RETOS, retoPorId, retoActivo, cuantosHechos, estadoRacha } from '../../retos.js';
 import { disposicion, unicoMejorar, textoCarga } from '../../entrenador.js';
 import { resumenSemana, metaSesion, ultimoRegistro, varianteActual, nombreConVariante } from '../../gym.js';
@@ -358,5 +359,48 @@ export function SemanaGym({ e, sem = semanaActual() }: { e: Fin; sem?: number })
         })}
       </Box>
     </>
+  );
+}
+
+// ---------- 😊 Ánimo y energía (src/mivida.js): dos toques al día; es lo que "Qué te sube el ánimo" compara ----------
+export function Animo({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
+  const a = animoDe(fecha, e) as Fin, sem = resumenAnimo(rango(7, fecha), e) as Fin, datos = { 'data-f': fecha };
+  const caras = (CARAS as string[]).slice(1).map((c, i) => [String(i + 1), c + ' ' + (i + 1)] as [string, string]);
+  return (
+    <Tarjeta titulo="😊 Ánimo y energía" lado={sem.dias ? <Nota sx={{ m: 0 }}><span title="Promedio de los últimos 7 días anotados">7 días: <b>{f1(Math.round(sem.animo * 10) / 10)}/5</b></span></Nota> : null}>
+      <Nota sx={{ m: 0 }}>¿Cómo te sientes hoy? (1 = muy mal · 5 = excelente)</Nota>
+      <Opciones nombre="Ánimo de hoy" activa={a.animo ? String(a.animo) : null} opciones={caras} datos={(v) => ({ 'data-accion': 'animo', ...datos, 'data-k': 'animo', 'data-v': v })} envolver sx={{ pb: '4px' }} />
+      <Nota sx={{ m: 0 }}>Energía (1 = sin pila · 5 = a tope)</Nota>
+      <Escala n={5} valor={a.energia} accion="animo" datos={{ ...datos, 'data-k': 'energia' }} etiqueta="Energía de hoy" />
+      <Campo key={'nota' + fecha} etiqueta="¿Qué marcó el día? (opcional)" data-cambio="animo-nota" data-f={fecha} defaultValue={a.nota || ''} placeholder="Ej.: buen partido, discusión, dormí mal" />
+      <Link href="#vida" sx={{ fontSize: 14, color: 'text.secondary' }}>Ver qué te sube el ánimo →</Link>
+    </Tarjeta>
+  );
+}
+
+// ---------- 💼 Trabajo e ingresos: trabajo profundo y acciones que traen plata ----------
+export function Trabajo({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
+  const t = trabajoDe(fecha, e) as Fin, sem = resumenTrabajo(rango(7, fecha), e) as Fin, hechas = accionesDe(t) as number;
+  return (
+    <Tarjeta titulo="💼 Trabajo e ingresos" lado={<Nota sx={{ m: 0 }}><span title="Últimos 7 días">7 días: <b>{f1(Math.round(sem.horas * 10) / 10)} h · {sem.acciones}</b></span></Nota>}>
+      <Ajustar etiqueta="Trabajo profundo hoy" valor={t.minutos || null} base={0} paso={15} min={0} max={960} unidad="min" accion="trabajo-min" datos={{ f: fecha }}
+        fichas={[30, 60, 90, 120].filter((n) => n !== t.minutos).map((n) => [n, n + ' min'] as [number, string])} />
+      {t.minutos ? <Avance parte={Math.min(1, t.minutos / META_TRABAJO)} /> : null}
+      <Nota sx={{ m: 0 }}>Sin celular ni redes, en lo que te acerca a ganar plata. Meta: {META_TRABAJO / 60} h al día.</Nota>
+      <Box component="p" sx={{ fontWeight: 700, mt: '4px !important' }}>Acciones hacia el ingreso hoy: {hechas}</Box>
+      <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '6px', gridTemplateColumns: { sm: '1fr 1fr' } }}>
+        {(ACCIONES_INGRESO as [string, string, string][]).map(([k, i, n]) => {
+          const v = (t.acciones || {})[k] || 0;
+          return (
+            <Box component="li" key={k} sx={{ display: 'flex', alignItems: 'center', gap: '8px', minHeight: 44, p: '2px 4px 2px 10px', borderRadius: '10px', bgcolor: v ? tokens.brandSoft : tokens.surface2 }}>
+              <Box component="span" sx={{ flex: 1, minWidth: 0 }}>{i} {n}</Box>
+              {v ? <Button variant="text" aria-label={'Quitar una: ' + n} data-accion="trabajo-sumar" data-f={fecha} data-k={k} data-n="-1" sx={{ minWidth: 40, minHeight: 40, p: 0 }}>−</Button> : null}
+              {v ? <b>{v}</b> : null}
+              <Button variant="text" aria-label={'Sumar una: ' + n} data-accion="trabajo-sumar" data-f={fecha} data-k={k} data-n="1" sx={{ minWidth: 40, minHeight: 40, p: 0, fontSize: 20 }}>＋</Button>
+            </Box>
+          );
+        })}
+      </Box>
+    </Tarjeta>
   );
 }

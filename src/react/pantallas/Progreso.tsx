@@ -82,7 +82,7 @@ function indicadores(e: Fin) {
 }
 
 // ---------- 📈 ¿Voy mejor que hace un mes? ----------
-const valor = (x: Fin, n: number) => (x.unidad === '$' ? '$ ' + Math.round(n).toLocaleString('es-CO') : x.unidad === '%' ? Math.round(n) + ' %' : (Math.round(n * 10) / 10).toLocaleString('es-CO') + (x.unidad && x.unidad !== '/100' ? ' ' + x.unidad : ''));
+const valor = (x: Fin, n: number) => (x.unidad === '$' ? '$ ' + Math.round(n).toLocaleString('es-CO') : x.unidad === '%' ? Math.round(n) + ' %' : (Math.round(n * 10) / 10).toLocaleString('es-CO') + (x.unidad === '/5' ? '/5' : x.unidad && x.unidad !== '/100' ? ' ' + x.unidad : ''));
 const MARCA: Record<string, [string, string, string]> = { mejor: ['▲', 'Mejor', 'primary.main'], peor: ['▼', 'Bajó', 'warning.main'], igual: ['＝', 'Igual', 'text.secondary'] };
 function mejora() {
   const filas = comparativa() as Fin[], con = filas.filter((x) => x.estado !== 'sin-datos'), faltan = filas.filter((x) => x.estado === 'sin-datos');

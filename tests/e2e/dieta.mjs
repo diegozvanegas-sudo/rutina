@@ -51,6 +51,22 @@ export default async (p) => {
   await p.computador();
   await tocarN('#vista [data-accion=dieta-comer]', 0);
   falla(!Object.keys((await dia()).comidas || {}).length, 'no desmarcó la comida');
+  // ✓ Comí como el plan: con una ya marcada, marca solo las que faltan (la primera conserva su hora)
+  await tocarN('#vista [data-accion=dieta-comer]', 0);
+  const primera = Object.values((await dia()).comidas)[0].ts, nComidas = await p.cuantos('#vista [data-accion=dieta-comer]');
+  falla((await a.texto()).includes('Comí como el plan (faltan ' + (nComidas - 1) + ')'), 'el botón no dice cuántas faltan');
+  await p.celular();
+  await p.ev(`document.querySelector('#vista [data-accion=dieta-comer-todo]').scrollIntoView({block:'center'})`);
+  await p.foto('dieta-comi-todo-cel');
+  await p.computador();
+  await p.tocar('#vista [data-accion=dieta-comer-todo]');
+  d = await dia();
+  falla(Object.keys(d.comidas).length === nComidas && Object.values(d.comidas)[0].ts === primera, 'no marcó todas como el plan: ' + JSON.stringify(d.comidas));
+  falla((await a.aviso()).includes((nComidas - 1) + ' comidas marcadas como el plan'), 'no avisó: ' + await a.aviso());
+  falla(!(await p.cuantos('#vista [data-accion=dieta-comer-todo]')), 'el botón sigue con todo marcado');
+  await paso('comí como el plan');
+  for (let i = 0; i < nComidas; i++) await tocarN('#vista [data-accion=dieta-comer]', i);
+  falla(!Object.keys((await dia()).comidas || {}).length, 'no desmarcó las comidas');
   // Otro plan a mano y volver al que toca
   const auto = await p.ev(`[...document.querySelectorAll('#vista [data-accion=dieta-tipo-hoy]')].find(b=>b.textContent.includes('· hoy'))?.dataset.tipo`);
   const otro = ['descanso', 'superior', 'inferior', 'futbol', 'recarga'].find((t) => t !== auto);

@@ -13,6 +13,11 @@ const r0 = (n) => Math.round(n || 0);
 const d = () => e().dieta;
 const alimento = (id) => d().alimentos.find((a) => a.id === id);
 export const TIPOS_PLAN = TIPOS;
+// Una comida marcada guarda sus calorías y macros del momento (si después cambia el plan, el día no cambia)
+function marcaComida(c) {
+  const t = totalComida(c, d().alimentos);
+  return { ts: Date.now(), nombre: c.nombre, kcal: Math.round(t.kcal), p: Math.round(t.p), c: Math.round(t.c), g: Math.round(t.g) };
+}
 // El plan que toca hoy, listo para el texto y la imagen de WhatsApp (src/imagen-dieta.js)
 function resumenDeHoy() {
   const tipo = tipoDieta(), hoy = iso();
@@ -60,9 +65,16 @@ registrar({
     const tipo = tipoDieta(), hoy = dia(), clave = tipo + ':' + i;
     hoy.comidas ??= {};
     if (hoy.comidas[clave]) { delete hoy.comidas[clave]; guardar(); return; }
-    const c = d().planes[tipo].comidas[Number(i)], t = totalComida(c, d().alimentos);
-    hoy.comidas[clave] = { ts: Date.now(), nombre: c.nombre, kcal: Math.round(t.kcal), p: Math.round(t.p), c: Math.round(t.c), g: Math.round(t.g) };
+    hoy.comidas[clave] = marcaComida(d().planes[tipo].comidas[Number(i)]);
     guardar();
+  },
+  // ✓ Comí como el plan: marca de un toque las comidas que faltan del plan de hoy (las ya marcadas no se tocan)
+  'dieta-comer-todo'() {
+    const tipo = tipoDieta(), hoy = dia(), comidas = (hoy.comidas ??= {});
+    let n = 0;
+    d().planes[tipo].comidas.forEach((c, i) => { if (!comidas[tipo + ':' + i]) { comidas[tipo + ':' + i] = marcaComida(c); n++; } });
+    guardar();
+    toast(n ? '✓ ' + n + (n === 1 ? ' comida marcada' : ' comidas marcadas') + ' como el plan' : 'Ya tenías todas marcadas');
   },
   'dieta-item'({ ruta }, el) {
     const id = el.parentNode.querySelector('select').value, a = alimento(id);

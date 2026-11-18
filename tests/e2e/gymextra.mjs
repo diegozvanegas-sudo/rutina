@@ -61,7 +61,7 @@ export default async (p) => {
   await a.dormir(500);
   const e = (await dia()).entreno;
   falla(e.fin === hace2h + 5 * 60000, 'el contador no se cerró solo: ' + JSON.stringify(e));
-  falla((await a.texto()).includes('Entreno de hoy: 35 min'), 'no muestra el entreno cerrado');
+  falla((await a.texto()).includes('Fuerza hoy: 35 min'), 'no muestra el entreno cerrado');
   await paso('contador cerrado solo');
   // Seguir después del cierre solo: el contador vuelve a correr (antes se cerraba otra vez al instante)
   await tocarTexto('↺ Seguir');

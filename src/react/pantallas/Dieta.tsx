@@ -67,6 +67,7 @@ const Barra = ({ parte }: { parte: number }) => <Avance parte={parte} />;
 export function comidasHoy(e: Fin, compacta = false) {
   const d = e.dieta, tipo = tipoDieta() as string, plan = d.planes[tipo], hechas = (e.dias[iso()] || {}).comidas || {};
   const total = totalPlan(plan, d.alimentos) as Fin, comido = comidasDelDia() as Fin, alimento = (id: string) => d.alimentos.find((a: Fin) => a.id === id);
+  const faltan = (plan.comidas as Fin[]).filter((_, i) => !hechas[tipo + ':' + i]).length;
   return (
     <>
       <Box sx={{ ...FILA, mb: '6px' }}><span>{TIPOS[tipo]}</span><span><b>{miles(comido.kcal)}</b> / {miles(total.kcal)} kcal</span></Box>
@@ -96,6 +97,7 @@ export function comidasHoy(e: Fin, compacta = false) {
           );
         })}
       </Box>
+      {faltan ? <Button fullWidth data-accion="dieta-comer-todo" sx={{ mt: '10px' }}>✓ Comí como el plan{faltan < plan.comidas.length ? ' (faltan ' + faltan + ')' : ''}</Button> : null}
     </>
   );
 }

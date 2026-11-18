@@ -1,5 +1,40 @@
 // Reglas del registro del gym (sin pantalla, para poder probarlas): series hechas, colores, peso sugerido y resúmenes.
 import { OBJETIVOS } from './datos_iniciales.js';
+import { iso, lunesDe, sumarDias } from './fechas.js';
+
+// ---------- ⏱ Cuánto duró el entreno de un día: fuerza y cardio por separado ----------
+// Fuerza: dias[fecha].entreno = { dia, inicio, fin?, ultimo? }, en la fecha en que se entrenó (se busca en los 7 días de
+// esa semana el que es de este día de la rutina). Si quedó abierto en un día que ya pasó, se cierra 5 min después de la
+// última serie, como el cierre automático. Cardio: su propio cronómetro en el registro "cardio@día" ({ inicio, fin });
+// sus minutos son los anotados (el cronómetro los llena al terminar, y se pueden corregir)
+const minutos = (a, b) => Math.max(0, Math.round((b - a) / 60000));
+export function tiemposDia(d, sem, estado, ahora = Date.now()) {
+  const hoy = iso(new Date(ahora)), lunes = lunesDe(sem);
+  let fuerza = null;
+  for (let k = 0; k < 7 && !fuerza; k++) {
+    const f = sumarDias(lunes, k), x = ((estado.dias || {})[f] || {}).entreno;
+    if (x && x.dia === d.id && x.inicio) {
+      const enCurso = !x.fin && f === hoy, fin = x.fin || (enCurso ? ahora : (x.ultimo || x.inicio) + 5 * 60000);
+      fuerza = { fecha: f, inicio: x.inicio, fin, enCurso, min: minutos(x.inicio, fin) };
+    }
+  }
+  const c = d.cardio ? ((estado.semanas || {})[sem] || {})[claveCardio(d)] || {} : {};
+  const cEnCurso = !!(c.inicio && !c.fin), cMin = c.min != null && c.min !== '' ? Number(c.min) : c.inicio ? minutos(c.inicio, c.fin || ahora) : null;
+  const cardio = cMin != null || c.inicio ? { inicio: c.inicio || null, fin: c.fin || null, enCurso: cEnCurso, min: cMin || 0 } : null;
+  const total = fuerza || cardio ? (fuerza ? fuerza.min : 0) + (cardio ? cardio.min : 0) : null;
+  return { fuerza, cardio, total };
+}
+// "1 h 42 min" o "45 min"
+export const duracion = (min) => (min >= 60 ? Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + (min % 60) + ' min' : '') : min + ' min');
+// La línea para WhatsApp (texto e imagen): "⏱ Fuerza 1 h 12 min · 🏃 Cardio 30 min · Total 1 h 42 min"
+export function lineaTiempos(t) {
+  if (!t.fuerza && !t.cardio) return '';
+  const partes = [];
+  if (t.fuerza) partes.push('⏱ Fuerza ' + duracion(t.fuerza.min) + (t.fuerza.enCurso ? ' (en curso)' : ''));
+  if (t.cardio) partes.push('🏃 Cardio ' + duracion(t.cardio.min) + (t.cardio.enCurso ? ' (en curso)' : ''));
+  if (t.fuerza && t.cardio) partes.push('Total ' + duracion(t.total));
+  return partes.join(' · ');
+}
 
 // Cardio de cada día: se guarda por semana con la clave "cardio@idDía"
 export const CAMPOS_CARDIO = [

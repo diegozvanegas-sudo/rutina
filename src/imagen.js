@@ -1,6 +1,6 @@
 // Resumen del día del gym como imagen (PNG) para compartir por WhatsApp: los mismos datos que el texto, con los colores del registro
 import { lunesDe, sumarDias, fechaCorta } from './fechas.js';
-import { estadoFila, repsDe, resumenSemana, textoCardio, claveCardio } from './gym.js';
+import { estadoFila, repsDe, resumenSemana, textoCardio, claveCardio, tiemposDia, lineaTiempos } from './gym.js';
 
 const DIAS_CORTOS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const COLORES = { vacio: '#4a5866', falta: '#f5c542', completo: '#3dd68c', sube: '#5aa9ff' };
@@ -29,6 +29,7 @@ export function resumenDia(d, sem, estado) {
     ejercicios: d.ejercicios.map((ej) => ejercicio(ej)),
     core: coreHecho.map((ej) => ejercicio(ej, sufijo)),
     cardio: c ? d.cardio + ': ' + (textoCardio(c) || '—') + (c.nota ? ' (' + c.nota + ')' : '') : '',
+    tiempos: lineaTiempos(tiemposDia(d, sem, estado)),
   };
 }
 
@@ -40,7 +41,7 @@ function cabe(ctx, texto, ancho) {
 }
 
 const W = 1080, M = 48, FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-const alto = (r) => 250 + [...r.ejercicios, ...r.core].reduce((h, ej) => h + 74 + ej.filas.length * 52, 0) + (r.core.length ? 70 : 0) + (r.cardio ? 110 : 0) + 70;
+const alto = (r) => 250 + (r.tiempos ? 44 : 0) + [...r.ejercicios, ...r.core].reduce((h, ej) => h + 74 + ej.filas.length * 52, 0) + (r.core.length ? 70 : 0) + (r.cardio ? 110 : 0) + 70;
 
 export function dibujar(canvas, r) {
   canvas.width = W; canvas.height = alto(r);
@@ -54,6 +55,7 @@ export function dibujar(canvas, r) {
   ctx.fillStyle = T.linea; ctx.beginPath(); ctx.roundRect(M, y, W - 2 * M, 14, 7); ctx.fill();
   ctx.fillStyle = T.brand; ctx.beginPath(); ctx.roundRect(M, y, Math.max(14, (W - 2 * M) * (r.plan ? r.hechas / r.plan : 0)), 14, 7); ctx.fill();
   y += 44;
+  if (r.tiempos) { f(600, 30); ctx.fillStyle = T.ink; ctx.fillText(cabe(ctx, r.tiempos, W - 2 * M), M, y + 6); y += 44; }
   const bloque = (ej) => {
     const h = 58 + ej.filas.length * 52;
     ctx.fillStyle = T.tarjeta; ctx.beginPath(); ctx.roundRect(M, y, W - 2 * M, h, 18); ctx.fill();

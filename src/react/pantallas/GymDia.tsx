@@ -6,9 +6,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Box, Button, ButtonBase, Card, Chip, IconButton, NativeSelect, OutlinedInput } from '@mui/material';
 import { e, semanaActual } from '../../estado.js';
-import { reloj } from '../../fechas.js';
+import { reloj, fechaCorta } from '../../fechas.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
-  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio } from '../../gym.js';
+  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion } from '../../gym.js';
 import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../../analisis.js';
 import { piezasGym, textoDia, sesionCalentamiento, extrasCalentamiento, entrenoHoy, minutosEntreno, entrenoQuieto, molestiaHoy, molestiaReciente } from '../../vistas/gym.js';
 import { accion } from '../acciones';
@@ -325,6 +325,34 @@ function core(d: Fin, sem: number) {
   );
 }
 
+// ⏱ Cronómetro del cardio (aparte del de fuerza): al terminar pone los minutos de abajo
+const dosDig = (n: number) => String(n).padStart(2, '0');
+const enReloj = (ms: number) => { const s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60); return (h ? h + ':' + dosDig(m) : m) + ':' + dosDig(s % 60); };
+function CronoCardio({ d, sem, c }: { d: Fin; sem: number; c: Fin }) {
+  const corre = !!(c.inicio && !c.fin), [ahora, ponerAhora] = useState(Date.now()), actual = sem === semanaActual();
+  useEffect(() => { if (!corre) return undefined; const t = setInterval(() => ponerAhora(Date.now()), 1000); return () => clearInterval(t); }, [corre]);
+  const caja = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', p: '8px 10px', borderRadius: '10px', bgcolor: 'background.default', border: '1px solid', borderColor: corre ? 'primary.main' : 'divider', fontSize: 14 };
+  if (corre) return (
+    <Box data-t="crono-cardio" sx={caja}>
+      <span>🏃 Cardio <Box component="b" role="timer" sx={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{enReloj(ahora - c.inicio)}</Box> <Box component="span" sx={GRIS}>· desde las {hora(c.inicio)}</Box></span>
+      {actual ? <Button size="small" color="secondary" onClick={() => accion('cardio-terminar', { dia: d.id })} sx={MINI}>⏹ Terminar</Button> : null}
+    </Box>
+  );
+  if (c.inicio && c.fin) return (
+    <Box data-t="crono-cardio" sx={caja}>
+      <span>✓ Cardio: <b>{c.min ?? Math.round((c.fin - c.inicio) / 60000)} min</b> <Box component="span" sx={GRIS}>({hora(c.inicio)} – {hora(c.fin)})</Box></span>
+      {actual ? <Button size="small" color="secondary" onClick={() => accion('cardio-seguir', { dia: d.id })} sx={MINI}>↺ Seguir</Button> : null}
+    </Box>
+  );
+  if (!actual || hayCardio(c)) return null;
+  return (
+    <Box data-t="crono-cardio" sx={caja}>
+      <Box component="span" sx={GRIS}>⏱ Cronómetro del cardio, aparte de la fuerza</Box>
+      <Button size="small" color="secondary" onClick={() => accion('cardio-empezar', { dia: d.id })} sx={MINI}>▶ Empezar cardio</Button>
+    </Box>
+  );
+}
+
 function cardio(d: Fin, sem: number) {
   if (!d.cardio) return null;
   const est = e() as Fin, c = regs(sem)[claveCardio(d)] || {}, ult = G.ultimoCardio(d, sem), i = est.rutina.indexOf(d), hecho = hayCardio(c), titulo = '🏃 ' + d.cardio;
@@ -332,6 +360,7 @@ function cardio(d: Fin, sem: number) {
     <TarjetaPlegable vista={VISTA} clave={titulo} titulo={titulo} sx={hecho ? { borderColor: 'primary.main' } : undefined}
       lado={hecho ? <Box component="span" sx={{ fontSize: 12, fontWeight: 800, p: '2px 8px', borderRadius: 999, bgcolor: tokens.brandSoft, color: tokens.brand, whiteSpace: 'nowrap' }}>✓ Hecho</Box> : null}>
       <Box sx={{ display: 'grid', gap: '8px' }}>
+        <CronoCardio d={d} sem={sem} c={c} />
         <Nota sx={{ m: 0 }}>Plan: {G.planCardio()}</Nota>
         {ult ? <Box component="p" sx={{ ...GRIS, m: 0 }}>Último (semana {ult.semana}): <b>{textoCardio(ult)}</b></Box> : null}
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
@@ -383,13 +412,25 @@ function analisis(d: Fin, sem: number) {
 
 // ⏱ Cuánto llevas de entreno hoy. Arranca solo con la primera serie (o con el botón); Terminar lo deja guardado
 const hora = (ts: number) => new Date(ts).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
-function ContadorEntreno({ d }: { d: Fin }) {
-  const x = entrenoHoy() as Fin, [ahora, ponerAhora] = useState(Date.now()), corre = !!(x && !x.fin);
+// Cada día de la rutina muestra SU contador (el de la fecha en que se entrenó esa semana), no el de hoy: así al volver
+// al lunes se ve cuánto duró. Solo el de hoy tiene botones; el cardio va aparte y aquí se suma al total
+function ContadorEntreno({ d, sem }: { d: Fin; sem: number }) {
+  const hoyX = entrenoHoy() as Fin, x = hoyX && hoyX.dia === d.id ? hoyX : null, [ahora, ponerAhora] = useState(Date.now()), corre = !!(x && !x.fin);
   useEffect(() => { if (!corre) return undefined; const t = setInterval(() => ponerAhora(Date.now()), 1000); return () => clearInterval(t); }, [corre]);
   // Olvidaste tocar Terminar: después de 90 min sin series se cierra solo, 5 min después de la última
   const quieto = entrenoQuieto(x, ahora);
   useEffect(() => { if (quieto) accion('gym-entreno-terminar', { en: (x.ultimo || x.inicio) + 5 * 60000 }); }, [quieto]);
   const caja = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', m: '0 0 12px', p: '8px 10px', borderRadius: '10px', bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', fontSize: 14 };
+  const t = tiemposDia(d, sem, e(), ahora) as Fin, cardioYTotal = t.cardio && t.fuerza ? <Box component="span" sx={GRIS}> · 🏃 cardio {duracion(t.cardio.min)} · total <b>{duracion(t.total)}</b></Box> : null;
+  // Otro día (o el de hoy ya cerrado): lo que duró, para consultarlo siempre
+  if (!x && t.fuerza) return (
+    <Box data-t="entreno" sx={caja}>
+      <span>✓ Fuerza el {fechaCorta(t.fuerza.fecha)}: <b>{duracion(t.fuerza.min)}</b> <Box component="span" sx={GRIS}>({hora(t.fuerza.inicio)} – {hora(t.fuerza.fin)})</Box>{cardioYTotal}</span>
+    </Box>
+  );
+  if (sem !== semanaActual()) return null;
+  // Hoy ya se entrenó otro día de la rutina: este no arranca solo
+  if (!x && hoyX) return null;
   if (!x) return (
     <Box data-t="entreno" sx={caja}>
       <Box component="span" sx={GRIS}>⏱ El contador del entreno arranca con tu primera serie</Box>
@@ -398,14 +439,14 @@ function ContadorEntreno({ d }: { d: Fin }) {
   );
   if (x.fin) return (
     <Box data-t="entreno" sx={caja}>
-      <span>✓ Entreno de hoy: <b>{minutosEntreno(x)} min</b> <Box component="span" sx={GRIS}>({hora(x.inicio)} – {hora(x.fin)})</Box></span>
+      <span>✓ Fuerza hoy: <b>{duracion(minutosEntreno(x))}</b> <Box component="span" sx={GRIS}>({hora(x.inicio)} – {hora(x.fin)})</Box>{cardioYTotal}</span>
       <Button size="small" color="secondary" onClick={() => accion('gym-entreno-seguir')} sx={MINI}>↺ Seguir</Button>
     </Box>
   );
   const s = Math.max(0, Math.floor((ahora - x.inicio) / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), dos = (n: number) => String(n).padStart(2, '0');
   return (
     <Box data-t="entreno" sx={[caja, { borderColor: 'primary.main' }]}>
-      <span>⏱ Entreno <Box component="b" role="timer" sx={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{(h ? h + ':' + dos(m) : m) + ':' + dos(s % 60)}</Box> <Box component="span" sx={GRIS}>· desde las {hora(x.inicio)}</Box></span>
+      <span>⏱ Fuerza <Box component="b" role="timer" sx={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{(h ? h + ':' + dos(m) : m) + ':' + dos(s % 60)}</Box> <Box component="span" sx={GRIS}>· desde las {hora(x.inicio)}</Box></span>
       <Button size="small" color="secondary" onClick={() => accion('gym-entreno-terminar')} sx={MINI}>⏹ Terminar</Button>
     </Box>
   );
@@ -424,7 +465,7 @@ export function dia(d: Fin, sem: number) {
       {calentamiento(d, sem)}
       <Box sx={{ ...FILA, mt: '4px', mb: '6px' }}><b>{d.nombre}</b><span>{r.hechas} / {r.plan} series</span></Box>
       <Avance parte={r.plan ? r.hechas / r.plan : 0} />
-      {sem === semanaActual() ? <ContadorEntreno d={d} /> : null}
+      <ContadorEntreno d={d} sem={sem} />
       {(gruposDia(d.ejercicios) as Fin[][]).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem)))}
       {core(d, sem)}
       {cardio(d, sem)}

@@ -4,6 +4,7 @@
 import { e, guardar, repintar, semanaActual, abrirSemana, quitarSemana, dia as diaDe } from '../estado.js';
 import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
+import { tiemposDia, lineaTiempos } from '../gym.js';
 import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, resumenSemana, numero, formatoPeso, PIERNAS, historial, records, consejoEstancado, metaSesion, enBiserie, nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante } from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
@@ -151,9 +152,9 @@ export function textoDia(d, sem, estado = e()) {
     return '  ' + (f.tipo === 'Series' ? '' : f.tipo + ' ') + f.esquema + ': ' + datos + marca;
   };
   const bloque = (ej, sufijo = '') => nombreConVariante(ej, varianteEn(ej, regs, sufijo)) + ' · ' + ej.musculo + '\n' + ej.filas.map((f) => lineaFila(f, f.id + sufijo)).join('\n');
-  const r = resumenSemana([d], regs), lineas = [
+  const r = resumenSemana([d], regs), tiempos = lineaTiempos(tiemposDia(d, sem, estado)), lineas = [
     '🏋️ ' + (d.diaSemana ? DIAS_CORTOS[d.diaSemana] + ' · ' : '') + d.nombre + ' — Semana ' + sem + ' (' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + ')',
-    'Series: ' + r.hechas + '/' + r.plan, '', ...d.ejercicios.map((ej) => bloque(ej)),
+    'Series: ' + r.hechas + '/' + r.plan, ...(tiempos ? [tiempos] : []), '', ...d.ejercicios.map((ej) => bloque(ej)),
   ];
   // Core: solo lo anotado ese día
   const core = estado.rutina.find((x) => x.id === 'core'), sufijo = '@' + d.id;
@@ -280,10 +281,31 @@ registrar({
     }
     guardar();
   },
+  // ⏱ Cronómetro del cardio, aparte del de fuerza: al empezarlo se cierra el de fuerza de ese día (la fuerza no
+  // suma el tiempo del cardio); al terminarlo pone los minutos, que se pueden corregir en "Minutos"
+  'cardio-empezar'({ dia }) {
+    const d = e().rutina.find((x) => x.id === dia), c = (registros(semanaVista)[claveCardio(d)] ??= {}), x = entrenoHoy();
+    c.inicio = Date.now(); delete c.fin;
+    const cerro = x && !x.fin && x.dia === dia;
+    if (cerro) x.fin = c.inicio;
+    guardar();
+    toast(cerro ? '⏱ Fuerza: ' + minutosEntreno(x) + ' min. Arranca el cardio' : '🏃 Cardio en marcha');
+  },
+  'cardio-terminar'({ dia }) {
+    const d = e().rutina.find((x) => x.id === dia), c = registros(semanaVista)[claveCardio(d)];
+    if (!c || !c.inicio || c.fin) return;
+    c.fin = Date.now(); c.min = Math.max(1, Math.round((c.fin - c.inicio) / 60000));
+    guardar();
+    toast('✓ Cardio de ' + c.min + ' min');
+  },
+  'cardio-seguir'({ dia }) {
+    const d = e().rutina.find((x) => x.id === dia), c = registros(semanaVista)[claveCardio(d)];
+    if (c && c.fin) { delete c.fin; delete c.min; guardar(); toast('🏃 Cardio en marcha'); }
+  },
   'cardio-repetir'({ dia }) {
     const d = e().rutina.find((x) => x.id === dia), ult = ultimoCardio(d, semanaVista);
     if (!ult) return;
-    const { semana, nota, ...datos } = ult;
+    const { semana, nota, inicio, fin, ...datos } = ult; // el cronómetro de esa vez no se copia
     registros(semanaVista)[claveCardio(d)] = { ...datos };
     guardar();
     toast('🏃 Cardio igual que la semana ' + semana);

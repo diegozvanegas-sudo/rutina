@@ -80,14 +80,32 @@ export default async (p) => {
   const core = Object.entries((await p.estado()).semanas[sem]).find(([k]) => k.endsWith('@d3'));
   falla(core && core[1].reps === '15 15', 'no guardó el core: ' + JSON.stringify(core));
   await paso('core');
-  // Cardio
+  // Cardio con su propio cronómetro: al empezarlo se cierra el de fuerza; al terminarlo pone los minutos
+  const cardioReg = async () => (Object.entries((await p.estado()).semanas[sem]).find(([k]) => k.startsWith('cardio')) || [])[1] || {};
+  await p.tocar('[data-t=crono-cardio] button');
+  falla((await entreno()).fin > 0 && (await cardioReg()).inicio > 0, 'empezar el cardio no cerró la fuerza: ' + JSON.stringify([await entreno(), await cardioReg()]));
+  falla(await p.cuantos('[data-t=crono-cardio] [role=timer]') === 1 && (await a.texto()).includes('Fuerza hoy'), 'no se ve el cronómetro del cardio');
+  await p.ev(`document.querySelector('[data-t=crono-cardio]').scrollIntoView({block:'center'})`);
+  await p.foto('gymdia-cardio-corriendo');
+  await p.ev(`document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));document.querySelector('[data-t=crono-cardio] button').setAttribute('data-e2e','1')`);
+  await p.tocar('[data-e2e]');
+  let cr = await cardioReg();
+  falla(cr.fin > 0 && cr.min === 1 && (await a.texto()).includes('✓ Cardio: 1 min'), 'terminar el cardio no puso los minutos: ' + JSON.stringify(cr));
   await escribirCampo('Minutos', '30');
-  const cardio = Object.entries((await p.estado()).semanas[sem]).find(([k]) => k.startsWith('cardio'));
-  falla(cardio && cardio[1].min === 30, 'no guardó el cardio: ' + JSON.stringify(cardio));
+  cr = await cardioReg();
+  falla(cr.min === 30, 'no guardó el cardio: ' + JSON.stringify(cr));
+  falla((await a.texto()).includes('🏃 cardio 30 min · total'), 'el contador no suma el cardio al total');
   await paso('cardio');
-  // Copiar
+  // Copiar: el resumen para WhatsApp trae fuerza, cardio y total
+  await p.ev(`navigator.clipboard.writeText=(t)=>{window.__copiado=t;return Promise.resolve()}`);
   await tocarTexto('📋 Copiar resumen del día');
   falla((await a.aviso()).includes('copiado'), 'no copió el resumen');
+  const resumen = await p.ev('window.__copiado') || '';
+  falla(/⏱ Fuerza \d+ min · 🏃 Cardio 30 min · Total \d+ min/.test(resumen), 'el resumen no trae los tiempos: ' + resumen.slice(0, 200));
+  // La fuerza vuelve a correr para lo que sigue
+  await p.ev(`document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));document.querySelector('[data-t=entreno] button')?.setAttribute('data-e2e','1')`);
+  await p.tocar('[data-e2e]');
+  falla(!(await entreno()).fin, 'la fuerza no volvió a correr');
   await tocarTexto('📋 Copiar análisis completo para Claude');
   falla((await a.aviso()).includes('Análisis copiado'), 'no copió el análisis');
   await paso('copiado');
@@ -123,7 +141,7 @@ export default async (p) => {
   await paso('dos series de una vez');
   // Terminar el entreno y seguir
   await tocarTexto('⏹ Terminar');
-  falla((await entreno()).fin > 0 && (await a.texto()).includes('Entreno de hoy'), 'no terminó el entreno');
+  falla((await entreno()).fin > 0 && (await a.texto()).includes('Fuerza hoy'), 'no terminó el entreno');
   await tocarTexto('↺ Seguir');
   falla(!(await entreno()).fin && await p.cuantos('[data-t=entreno] [role=timer]') === 1, 'no siguió el entreno');
 
@@ -136,9 +154,23 @@ export default async (p) => {
   await p.poner('[aria-label=Semana]', String(sem));
   await a.dormir(500);
 
+  // ---------- Otro día de esta semana: su contador se consulta siempre (Torso A entrenado otro día de la semana) ----------
+  const otroDia = await p.ev(`(()=>{const d=new Date();const f=x=>new Date(x.getTime()-x.getTimezoneOffset()*60000).toISOString().slice(0,10);const l=new Date(d);l.setDate(d.getDate()-((d.getDay()+6)%7));const m=new Date(l);m.setDate(l.getDate()+1);return f(l)===f(d)?f(m):f(l)})()`);
+  await p.ev(`(()=>{const k=Object.keys(localStorage).find(k=>k.startsWith('rutina_v1')),s=JSON.parse(localStorage[k]);const t=Date.parse(${JSON.stringify(otroDia)}+'T06:10:00');
+    (s.dias[${JSON.stringify(otroDia)}] ??= {habitos:{},metas:{agua:0,pasos:0,calorias:0,lectura:0},crono:{}}).entreno={dia:'d1',inicio:t,fin:t+72*60000};localStorage[k]=JSON.stringify(s)})()`);
+  await p.recargar();
+  await abrirGym('Vie · Torso A');
+  falla((await a.texto()).includes('✓ Fuerza el') && (await a.texto()).includes('1 h 12 min'), 'el otro día no muestra cuánto duró: ' + (await p.leer('[data-t=entreno]')));
+  falla(!(await p.cuantos('[data-t=entreno] button')), 'el contador de otro día no debe tener botones');
+  await p.ev(`document.querySelector('[data-t=entreno]').scrollIntoView({block:'center'})`);
+  await p.foto('gymdia-otro-dia');
+  await abrirGym('Lun · Empuje + Bíceps');
+
   await p.foto('gymdia-pc');
   await p.celular();
   await abrirGym('Lun · Empuje + Bíceps');
+  await p.ev(`document.querySelector('[data-t=entreno]')?.scrollIntoView({block:'center'})`);
+  await p.foto('gymdia-cel-contador');
   falla(await p.sinDesborde(), 'el día se desborda en el celular');
   await p.foto('gymdia-cel');
   await p.computador();

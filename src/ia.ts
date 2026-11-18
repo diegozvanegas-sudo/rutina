@@ -18,7 +18,8 @@ const SISTEMA = 'Eres el entrenador, nutricionista y mentor de vida de quien te 
   'priorizado de 3 acciones para la próxima semana, cada una con un número concreto.';
 
 /** Pide la revisión. Devuelve el texto o lanza un Error con un mensaje para mostrar tal cual */
-export async function pedirRevisionIA(texto: string, clave = claveIA()): Promise<string> {
+/** sistema: otras instrucciones (🎙️ Audio a texto la usa para ordenar y resumir una nota) */
+export async function pedirRevisionIA(texto: string, clave = claveIA(), sistema = SISTEMA): Promise<string> {
   if (!clave) throw new Error('Primero pega tu clave de la API de Anthropic.');
   if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Sin internet. La revisión con IA necesita conexión; todo lo demás sigue funcionando.');
   const { default: Cliente } = await import('@anthropic-ai/sdk');
@@ -28,7 +29,7 @@ export async function pedirRevisionIA(texto: string, clave = claveIA()): Promise
     const r = await cliente.beta.messages.create({
       model: MODELO,
       max_tokens: 16000,
-      system: SISTEMA,
+      system: sistema,
       output_config: { effort: 'medium' },
       // Si el modelo declina, la API reintenta sola con otro modelo (refusal fallback)
       betas: ['server-side-fallback-2026-07-01'],

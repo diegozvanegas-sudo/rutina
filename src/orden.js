@@ -3,7 +3,7 @@
 // de la app y aún no esté en la lista del usuario aparece al final, visible (o debajo de su vecina, ver DESPUES).
 
 export const SECCIONES = {
-  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], vida: ['🌱', 'Mi vida'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
+  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], vida: ['🌱', 'Mi vida'], voz: ['🎙️', 'Audio a texto'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
   dieta: ['🥗', 'Dieta'], suplementos: ['💊', 'Suplementos'], finanzas: ['💰', 'Finanzas'], compras: ['🛒', 'Compras'], recordatorios: ['🔔', 'Recordatorios'], lugares: ['🗺️', 'Lugares'], gym: ['🏋️', 'Gym'], clientes: ['👥', 'Clientes'], entrenador: ['🧑‍🏫', 'Mi entrenador'],
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
@@ -23,7 +23,7 @@ export const FIJAS = { menu: ['hoy', 'editar', 'ajustes'], hoy: [], metas: [] };
 // Se traducen al leer, así quien la tenía movida o escondida la sigue viendo igual
 const ANTES = { menu: { libros: 'estudiar' }, hoy: { libros: 'estudio' }, metas: {} };
 // Secciones nuevas que en un menú ya ordenado van debajo de su vecina y no al final (donde no se ven)
-const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta', clientes: 'suplementos', entrenador: 'hoy', vida: 'progreso' }, hoy: { suplementos: 'dieta', retos: 'experimento', animo: 'suenoPeso', trabajo: 'foco' }, metas: {} };
+const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta', clientes: 'suplementos', entrenador: 'hoy', vida: 'progreso', voz: 'vida' }, hoy: { suplementos: 'dieta', retos: 'experimento', animo: 'suenoPeso', trabajo: 'foco' }, metas: {} };
 const lista = (config, que, tipo) => ((config && config[que] && config[que][tipo]) || []).map((id) => ANTES[tipo][id] || id);
 
 // Todos los ids del tipo en el orden del usuario

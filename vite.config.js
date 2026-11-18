@@ -20,6 +20,8 @@ export default defineConfig({
       },
     },
   },
+  // 🎙️ Audio a texto: el trabajador de Whisper (src/voz-trabajador.js) es un módulo (baja la librería con import())
+  worker: { format: 'es' },
   plugins: [
     // Solo para las pantallas migradas a React (src/react)
     react({ include: /src[\\/]react[\\/].*\.[jt]sx?$/ }),
@@ -46,6 +48,13 @@ export default defineConfig({
         // Todo queda guardado al instalar: la app funciona completa sin señal en el gym
         globPatterns: ['**/*.{html,js,css,png,svg,webp,woff2}'],
         navigateFallback: null,
+        // 🎙️ La librería de Whisper (transformers.js y su motor wasm, de jsDelivr con versión fija) queda guardada la
+        // primera vez que se usa, para pasar audios a texto sin señal. El modelo lo guarda la librería en su propia caché
+        runtimeCaching: [{
+          urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/npm\/(@huggingface\/transformers|onnxruntime-web)@/,
+          handler: 'CacheFirst',
+          options: { cacheName: 'voz-libreria', expiration: { maxEntries: 30 }, cacheableResponse: { statuses: [0, 200] } },
+        }],
       },
     }),
   ],

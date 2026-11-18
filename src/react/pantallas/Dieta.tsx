@@ -19,6 +19,7 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoLista, CampoSolo, DOS } from '../ui/Campo';
 import { TituloPantalla, Nota } from '../ui/Textos';
 import { Opciones, Avance, Cifras } from '../ui/Varios';
+import { Ajustar } from '../ui/Rapido';
 import { Barras } from '../ui/Graficos';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -249,7 +250,12 @@ function peso(e: Fin) {
   return (
     <>
       <Card component="section" sx={{ mb: '14px' }}>
-        <Campo etiqueta="Peso de hoy (kg)" inputMode="decimal" min={0} step="0.1" data-cambio="dieta-peso" defaultValue={hoy || ''} placeholder={String(ultimo || c.pesoBase)} style={{ fontSize: 28, fontWeight: 800, height: 60 }} />
+        {(() => {
+          // − y + arrancan del último peso antes de hoy; "igual que la última" lo repite de un toque
+          const antes = (lista.filter((x) => x.fecha < iso()).pop() || {}).peso as number | undefined;
+          return <Ajustar etiqueta="Peso de hoy" valor={hoy > 0 ? hoy : null} base={antes || c.pesoBase} paso={0.1} decimales={1} min={20} max={300} unidad="kg" accion="dieta-peso"
+            fichas={antes && hoy !== antes ? [[antes, 'Igual que la última · ' + f1(antes) + ' kg']] : []} />;
+        })()}
         <Nota>Mejor en ayunas, después del baño. El promedio de 7 días es el que se usa para recalcular.</Nota>
       </Card>
       <Card component="section" sx={{ mb: '14px' }}>

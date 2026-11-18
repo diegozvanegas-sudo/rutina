@@ -182,9 +182,17 @@ export default function Calendario() {
             </Box>
           ))}
         </Box>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: '10px', mb: '6px' }}>
-          <Box component="span" sx={{ color: 'error.main' }}>Rojo</Box>: domingo o festivo · gym <PuntoGym estado="hecho" /> hecho <PuntoGym estado="falto" /> no fuiste <PuntoGym estado="pendiente" /> por hacer · ⚽ fútbol · 🌑🌓🌕🌗 luna · 🌱☀️🍂❄️ estación
-        </Typography>
+        {/* Leyenda: cada señal con lo que quiere decir, en fichas que se acomodan (antes era una sola línea corrida) */}
+        <Box component="ul" aria-label="Qué significa cada señal" sx={{ listStyle: 'none', p: 0, m: '10px 0 6px', display: 'flex', flexWrap: 'wrap', gap: '6px 14px', fontSize: 13, color: 'text.secondary',
+          '& li': { display: 'inline-flex', alignItems: 'center', gap: '5px' } }}>
+          <li><Box component="b" sx={{ color: 'error.main' }}>15</Box> domingo o festivo</li>
+          <li><PuntoGym estado="hecho" /> gym hecho</li>
+          <li><PuntoGym estado="falto" /> no fuiste</li>
+          <li><PuntoGym estado="pendiente" /> gym por hacer</li>
+          <li>⚽ fútbol</li>
+          <li>🌑🌕 luna</li>
+          <li>🌱☀️🍂❄️ estación</li>
+        </Box>
         <Constancia mes={mes} />
       </Card>
       <Detalle f={elegido} gymDe={gymDe} />

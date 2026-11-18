@@ -192,6 +192,62 @@ revoke execute on function public.rutina_guardar(jsonb, bigint) from public, ano
 grant execute on function public.rutina_leer() to authenticated;
 grant execute on function public.rutina_guardar(jsonb, bigint) to authenticated;
 
+-- ---------- Sincronizar sin mover todo (17 nov 2026) ----------
+-- Antes, con la app abierta se bajaba el estado entero cada 20 s y cada cambio subía el estado entero (~140 kB).
+-- Ahora la app pregunta primero la versión (unos bytes) y baja todo solo si cambió; y sube solo las partes que cambiaron.
+
+-- Versión de lo que hay en la nube (null si el usuario todavía no ha subido nada)
+create or replace function public.rutina_version()
+returns bigint
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  perform rutina.exigir_acceso();
+  return (select e.version from rutina.estado e where e.usuario = auth.uid());
+end;
+$$;
+
+-- Sube solo lo que cambió desde la versión p_base, la última que este equipo sincronizó.
+-- p_partes: [{ "ruta": ["dias", "2026-11-17"], "valor": {...} }, { "ruta": ["config"], "valor": {...} }]: cada una
+-- reemplaza esa parte (una llave de arriba, o una de segundo nivel como un día o una semana del gym).
+-- p_quitar: rutas que se borran, con la misma forma.
+-- Si la nube ya no está en p_base (otro equipo guardó en el medio) no cambia nada y devuelve la versión de la nube: la app
+-- baja todo y combina como siempre. Lo armado pasa por rutina_guardar, con las mismas protecciones y el mismo historial.
+create or replace function public.rutina_guardar_partes(p_partes jsonb, p_quitar jsonb, p_base bigint, p_version bigint)
+returns bigint
+language plpgsql security definer set search_path = ''
+as $$
+declare d jsonb; v bigint; parte jsonb; ruta text[];
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
+  perform rutina.exigir_acceso();
+  if jsonb_typeof(p_partes) is distinct from 'array' or jsonb_typeof(p_quitar) is distinct from 'array' then
+    raise exception 'Protección: lo que llegó no son cambios de la app. No se subió; la nube sigue igual.';
+  end if;
+  select e.datos, e.version into d, v from rutina.estado e where e.usuario = auth.uid() for update;
+  if d is null or v is distinct from p_base then return coalesce(v, 0); end if;
+  for parte in select x from jsonb_array_elements(p_quitar) x loop
+    ruta := array(select jsonb_array_elements_text(parte));
+    if cardinality(ruta) not between 1 and 2 then raise exception 'Protección: ruta no válida. No se subió; la nube sigue igual.'; end if;
+    d := d #- ruta;
+  end loop;
+  for parte in select x from jsonb_array_elements(p_partes) x loop
+    ruta := array(select jsonb_array_elements_text(parte->'ruta'));
+    if cardinality(ruta) not between 1 and 2 or not (parte ? 'valor') then
+      raise exception 'Protección: ruta no válida. No se subió; la nube sigue igual.';
+    end if;
+    if cardinality(ruta) = 2 and jsonb_typeof(d->ruta[1]) is distinct from 'object' then d := jsonb_set(d, array[ruta[1]], '{}'::jsonb); end if;
+    d := jsonb_set(d, ruta, parte->'valor', true);
+  end loop;
+  return public.rutina_guardar(d, p_version);
+end;
+$$;
+
+revoke execute on function public.rutina_version() from public, anon;
+revoke execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) from public, anon;
+grant execute on function public.rutina_version() to authenticated;
+grant execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) to authenticated;
+
 -- ---------- Roles y permisos: quién ve qué (⚙️ Administrar) ----------
 -- Solo esconden partes de la app: cada usuario sigue viendo y guardando únicamente sus propios datos, y el admin
 -- nunca puede leer los datos de otro (ninguna función de aquí toca rutina.estado).

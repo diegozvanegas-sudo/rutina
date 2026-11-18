@@ -52,7 +52,7 @@ export default async (p) => {
   await a.esperar('#vista h1');
   await tocarTexto('Anotar mi peso →');
   const kcalAntes = (await est()).dieta.planes.descanso.comidas.flatMap((c) => c.items).length;
-  await a.escribirCampo('Peso de hoy (kg)', '64,5');
+  await a.escribirCampo('Peso de hoy', '64,5');
   const dt = (await est()).dieta;
   falla(dt.config.pesoInicio === 64.5 && dt.config.pesoBase === 64.5, 'el primer peso no quedó como el de inicio: ' + JSON.stringify(dt.config));
   falla((await a.aviso()).includes('64,5 kg'), 'no avisó que calculó los planes: ' + await a.aviso());

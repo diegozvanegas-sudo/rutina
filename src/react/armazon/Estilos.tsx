@@ -10,6 +10,8 @@ const FUENTE = 'system-ui, sans-serif';
 const ESTILOS = {
   // ---------- Gráficos (ui/Graficos.tsx) ----------
   '.grafico': { width: '100%', height: 'auto', display: 'block', overflow: 'visible' },
+  // El dibujo mide 360 de ancho y se estira a la tarjeta: en una tarjeta ancha del computador los números quedaban enormes
+  '.grafico:not(.calendario)': { maxWidth: 560, marginLeft: 'auto', marginRight: 'auto' },
   '.grafico .guia': { stroke: t.line, strokeWidth: 1 },
   '.grafico .base': { stroke: t.graficoBase, strokeWidth: 1 },
   '.grafico .eje': { fill: t.muted, fontSize: '9.5px' },

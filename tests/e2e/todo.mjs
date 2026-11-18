@@ -30,7 +30,9 @@ import reproductor from './reproductor.mjs';
 import entrar from './entrar.mjs';
 import nuevo from './nuevo.mjs';
 import prediccion from './prediccion.mjs';
+// Al final: cambia la nube por una de mentira y la cuenta por una de prueba
+import nube from './nube.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo, prediccion]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo, prediccion, nube]) await recorrido(p);
 };

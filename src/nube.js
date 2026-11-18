@@ -2,12 +2,12 @@
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
 import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual } from './estado.js';
-import { combinarEstado, difiereDeLaNube, tieneDatosPropios } from './combinar.js';
+import { combinarEstado, difiereDeLaNube, tieneDatosPropios, cambiosParaNube } from './combinar.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos, esSinAcceso } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const configurada = !!(url && llave);
-const supabase = configurada ? createClient(url, llave, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'rutina-sesion' } }) : null;
+let supabase = configurada ? createClient(url, llave, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'rutina-sesion' } }) : null;
 
 // estado: sin-sesion · sincronizando · al-dia · pendiente · sin-conexion · error
 // lista: ya se sabe si hay sesión guardada (al abrir, Supabase la lee un instante después)
@@ -26,6 +26,25 @@ async function rechazar(mensaje) {
 }
 
 let corriendo = null, otraVez = false, espera = null;
+// Sincronizar sin mover todo (rutina_version y rutina_guardar_partes, supabase/esquema.sql): se pregunta la versión y se baja
+// todo solo si cambió; y se sube solo lo que cambió. sinPartes: la nube todavía no tiene esas funciones (se usa lo de antes).
+// porPartes: la primera subida de cada vez que se abre la app va completa, por si la copia de base de este equipo quedó
+// distinta de la nube; desde ahí, por partes
+let sinPartes = false, porPartes = false;
+const noExiste = (error) => !!error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message || ''));
+async function leerTodo() {
+  const { data, error } = await supabase.rpc('rutina_leer');
+  if (error) throw error;
+  return (data && data[0]) || null;
+}
+// La versión de la nube (null si no hay nada); undefined si la nube no sabe responderla
+async function versionNube() {
+  if (sinPartes) return undefined;
+  const { data, error } = await supabase.rpc('rutina_version');
+  if (noExiste(error)) { sinPartes = true; return undefined; }
+  if (error) throw error;
+  return data == null ? null : Number(data);
+}
 
 // La cuenta con la que empezó la sincronización. Si mientras se espera a la nube se cambia de cuenta (Salir y entrar con
 // otra), lo que llega no se mezcla con los datos de la otra cuenta: se corta y la siguiente vuelta empieza de nuevo
@@ -43,24 +62,31 @@ export async function sincronizar(silencio = false) {
     if (!silencio) poner('sincronizando');
     const cuenta = cuentaDe();
     try {
-      const { data, error } = await supabase.rpc('rutina_leer');
-      if (error) throw error;
+      // Primero solo la versión: si nada cambió allá, no se baja nada
+      const version = await versionNube();
       seguir(cuenta);
-      const remoto = data && data[0];
+      let remoto = version === undefined ? await leerTodo() : null;
+      seguir(cuenta);
       const local = e(), base = local.nube && local.nube.usuario === nube.usuario.id ? local.nube.base : null;
-      const cambioRemoto = remoto ? Number(remoto.version) : 0;
+      const cambioRemoto = version === undefined ? (remoto ? Number(remoto.version) : null) : version;
+      const hayRemoto = cambioRemoto != null;
       const cambiosAqui = base == null ? tieneDatos(local) : local.cambio > base;
-      const cambiosAlla = remoto && (base == null || cambioRemoto > base);
+      const cambiosAlla = hayRemoto && (base == null || cambioRemoto > base);
+      if (cambiosAlla && !remoto) { remoto = await leerTodo(); seguir(cuenta); }
 
-      if (cambiosAlla && cambiosAqui) {
+      if (cambiosAlla && remoto && cambiosAqui) {
         // Los dos lados cambiaron desde la última vez: se combinan, y solo en lo que chocan gana lo último guardado
-        const aqui = datosParaNube();
+        const aqui = datosParaNube(), vRemoto = Number(remoto.version);
         guardarAntes(aqui);
-        reemplazar(combinarEstado(leerBase(), aqui, remoto.datos, (local.cambio || 0) > cambioRemoto));
-        marcarCambio(Math.max(Date.now(), cambioRemoto + 1));
-        await subir(e(), cuenta);
-      } else if (cambiosAlla) bajar(remoto);
-      else if (cambiosAqui || !remoto) await subir(local, cuenta);
+        reemplazar(combinarEstado(leerBase(), aqui, remoto.datos, (local.cambio || 0) > vRemoto));
+        marcarCambio(Math.max(Date.now(), vRemoto + 1));
+        await subir(e(), cuenta, { version: vRemoto, datos: remoto.datos });
+      } else if (cambiosAlla && remoto) bajar(remoto);
+      else if (cambiosAqui || !hayRemoto || (cambiosAlla && !remoto)) {
+        // Allá no cambió nada: basta subir la diferencia con la última copia sincronizada
+        const previo = hayRemoto && cambioRemoto === base && leerBase();
+        await subir(local, cuenta, previo ? { version: base, datos: previo } : null);
+      }
       nube.ultima = Date.now();
       if (!silencio || nube.estado !== 'al-dia') poner('al-dia');
     } catch (err) {
@@ -80,15 +106,30 @@ export async function sincronizar(silencio = false) {
 // Hay algo propio en este celular (más allá de lo que trae la app de entrada y de los días vacíos que crea al pintar)
 const tieneDatos = tieneDatosPropios;
 function bajar(remoto) {
+  porPartes = true;
   reemplazar(remoto.datos);
   marcarNube({ usuario: nube.usuario.id, base: Number(remoto.version) });
   guardarBase(remoto.datos);
 }
-async function subir(local, cuenta) {
+// previo: { version, datos } lo que tiene la nube ahora, para subir solo la diferencia (sin previo, se sube todo)
+async function subir(local, cuenta, previo = null) {
   seguir(cuenta);
   const cambio = local.cambio || Date.now();
   const datos = datosParaNube();
-  const { data, error } = await supabase.rpc('rutina_guardar', { p_datos: datos, p_version: cambio });
+  let respuesta = null;
+  if (previo && porPartes && !sinPartes) {
+    const { partes, quitar } = cambiosParaNube(previo.datos, datos);
+    respuesta = await supabase.rpc('rutina_guardar_partes', { p_partes: partes, p_quitar: quitar, p_base: previo.version, p_version: cambio });
+    if (noExiste(respuesta.error)) { sinPartes = true; respuesta = null; }
+    else if (!respuesta.error && Number(respuesta.data) !== cambio) {
+      // La nube ya no estaba en esa versión (otro equipo guardó en el medio) y no cambió nada: otra vuelta para combinar
+      seguir(cuenta);
+      otraVez = true;
+      return;
+    }
+  }
+  respuesta ??= await supabase.rpc('rutina_guardar', { p_datos: datos, p_version: cambio });
+  const { data, error } = respuesta;
   if (error) throw error;
   seguir(cuenta);
   if (Number(data) > cambio) {
@@ -96,6 +137,7 @@ async function subir(local, cuenta) {
     otraVez = true;
     return;
   }
+  porPartes = true;
   marcarNube({ usuario: nube.usuario.id, base: cambio });
   guardarBase(datos);
 }
@@ -191,7 +233,7 @@ export function iniciarNube() {
     const antes = nube.usuario && nube.usuario.id;
     nube.usuario = sesion ? { id: sesion.user.id, correo: sesion.user.email } : null;
     nube.lista = true;
-    if ((nube.usuario && nube.usuario.id) !== antes) nube.proteccion = false;
+    if ((nube.usuario && nube.usuario.id) !== antes) { nube.proteccion = false; porPartes = false; }
     if (!nube.usuario) { nube.ultima = null; quitarPermisos(); esperarUsuario(); poner('sin-sesion'); return; }
     // Cada usuario con sus propios datos (y sus permisos) en este equipo
     if (antes !== nube.usuario.id) { nube.ultima = null; usarUsuario(nube.usuario.id); permisosGuardados(nube.usuario.id); }
@@ -214,6 +256,17 @@ export function iniciarNube() {
     if (document.visibilityState !== 'visible' || corriendo || revisarSinSubir() || nube.estado === 'pendiente') return;
     sincronizar(true);
   }, 20000);
+}
+
+// Solo en desarrollo (tests/e2e/nube.mjs): una nube de mentira con las mismas funciones rutina_*, para probar la
+// sincronización con clics reales y sin Supabase. No llega a la versión publicada
+let dePrueba = false;
+export function nubeDePrueba(cliente, usuario) {
+  if (!import.meta.env.DEV) return;
+  supabase = cliente; sinPartes = false; porPartes = false; corriendo = null; otraVez = false; nube.proteccion = false;
+  nube.usuario = usuario; nube.lista = true; nube.estado = 'pendiente';
+  usarUsuario(usuario.id);
+  if (!dePrueba) { dePrueba = true; alGuardarse(programar); }
 }
 
 export function textoNube() {

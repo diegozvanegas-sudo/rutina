@@ -2,7 +2,7 @@
 // foco de la semana, estudio de hoy, sueño y peso, el partido, mis estándares, la plata del mes, el cierre de la noche y la
 // semana del gym. React pinta; las reglas son las de siempre (exp-…, reto-…, sueno…, partido…, estandar…, check-…).
 // Progreso usa también el bloque del reto activo.
-import type { ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { Box, Button, ButtonBase, Card, Chip, Link } from '@mui/material';
 import { hayFutbol, prioridadesDe, semanaActual } from '../../estado.js';
 import { iso, sumarDias, fechaCorta, semanaDe, diaSemana } from '../../fechas.js';
@@ -26,6 +26,7 @@ import { tokens } from '../tema';
 import { Campo, CampoLargo, CampoSolo, DOS } from '../ui/Campo';
 import { Nota } from '../ui/Textos';
 import { Avance, Opciones } from '../ui/Varios';
+import { Ajustar, Hora, horasDeSiempre } from '../ui/Rapido';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Paso, Pasos } from '../ui/Lectura';
 
@@ -35,9 +36,22 @@ const FILA = { display: 'flex', justifyContent: 'space-between', alignItems: 'ce
 const DIAS_CORTOS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const f1 = (n: number) => String(n).replace('.', ',');
 // Con título, la tarjeta se pliega tocándolo y se recuerda en este equipo (las mismas claves de la pantalla de antes)
-export const Tarjeta = ({ children, sx, datos, titulo, lado }: { children: ReactNode; sx?: object; datos?: Record<string, string>; titulo?: string; lado?: ReactNode }) => (titulo
-  ? <TarjetaPlegable vista="hoy" clave={titulo} titulo={titulo} lado={lado} sx={sx}><Box {...datos} sx={{ display: 'grid', gap: '8px', '& p': { m: 0 } }}>{children}</Box></TarjetaPlegable>
-  : <Card component="section" {...datos} sx={{ mb: '14px', display: 'grid', gap: '8px', '& p': { m: 0 }, ...sx }}>{children}</Card>);
+// Dentro de una tarjeta que Hoy ya pliega (Plegada en Hoy.tsx, que da su nombre): si el título es el mismo, va sin título ni
+// pliegue propios, para que no salga dos veces con dos flechas. Las de otro título (Calentamiento dentro de Entrenamiento) quedan
+export const EnPlegada = createContext('');
+const soloLetras = (t: string) => t.normalize('NFD').replace(/[^\p{L}\p{N} ]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
+export function Tarjeta({ children, sx, datos, titulo, lado }: { children: ReactNode; sx?: object; datos?: Record<string, string>; titulo?: string; lado?: ReactNode }) {
+  const plegada = useContext(EnPlegada);
+  if (titulo && plegada && soloLetras(titulo) === soloLetras(plegada)) return (
+    <Box {...datos} sx={{ display: 'grid', gap: '8px', '& p': { m: 0 } }}>
+      {lado ? <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: '-4px' }}>{lado}</Box> : null}
+      {children}
+    </Box>
+  );
+  return titulo
+    ? <TarjetaPlegable vista="hoy" clave={titulo} titulo={titulo} lado={lado} sx={sx}><Box {...datos} sx={{ display: 'grid', gap: '8px', '& p': { m: 0 } }}>{children}</Box></TarjetaPlegable>
+    : <Card component="section" {...datos} sx={{ mb: '14px', display: 'grid', gap: '8px', '& p': { m: 0 }, ...sx }}>{children}</Card>;
+}
 export const H2 = ({ children }: { children: ReactNode }) => <Box component="h2" sx={{ m: 0, fontSize: 17, fontWeight: 700 }}>{children}</Box>;
 export const Aviso = ({ children }: { children: ReactNode }) => <Box component="p" sx={{ color: 'warning.main', bgcolor: tokens.amarilloFondo, borderRadius: '10px', p: '8px 10px', fontSize: 14 }}>{children}</Box>;
 const Titulo = ({ children }: { children: ReactNode }) => <Box component="p" sx={{ fontSize: 17, fontWeight: 700, '& small': { fontSize: 14, fontWeight: 400 } }}>{children}</Box>;
@@ -62,13 +76,16 @@ export const Botones = ({ children }: { children: ReactNode }) => <Box sx={{ dis
 
 // ---------- 🧪 Experimento de la semana ----------
 export function Experimento({ hoy = iso() }: { hoy?: string }) {
-  const x = experimentoActivo() as Fin;
+  const x = experimentoActivo() as Fin, [probando, ponerProbando] = useState(false);
+  // Sin experimento: una fila con el botón; el formulario sale al tocarlo (antes ocupaba ~320 px de Hoy todos los días)
   if (!x) return (
     <Tarjeta titulo="🧪 Experimento de la semana" datos={{ 'data-experimento': '' }}>
       <Nota sx={{ m: 0 }}>Un solo cambio pequeño, 7 días. Al final decides si se queda.</Nota>
-      <Campo etiqueta="¿Qué vas a probar?" name="cambio" placeholder="Ej.: acostarme 30 minutos antes" />
-      <Campo etiqueta="¿Cómo sabrás si funcionó?" name="medida" placeholder="Ej.: dormir 7 horas o más" />
-      <Button fullWidth data-accion="exp-empezar">Empezar hoy</Button>
+      {probando ? <>
+        <Campo etiqueta="¿Qué vas a probar?" name="cambio" placeholder="Ej.: acostarme 30 minutos antes" autoFocus />
+        <Campo etiqueta="¿Cómo sabrás si funcionó?" name="medida" placeholder="Ej.: dormir 7 horas o más" />
+        <Button fullWidth data-accion="exp-empezar">Empezar hoy</Button>
+      </> : <Button color="secondary" sx={{ justifySelf: 'start' }} onClick={() => ponerProbando(true)}>＋ Probar un cambio</Button>}
     </Tarjeta>
   );
   const s = estadoExperimento(x, hoy) as Fin;
@@ -205,17 +222,20 @@ export function EstudioHoy({ e }: { e: Fin }) {
 // ---------- 🌙 Sueño y ⚖️ peso ----------
 export function SuenoPeso({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
   const d = e.dias[fecha] || {}, s = d.sueno || {}, h = horasSueno(s) as number | null, prom = promedioSueno(e.dias, rango(7, fecha)) as Fin;
-  const ultimoPeso = Object.keys(e.dias).sort().reverse().map((f) => e.dias[f].peso).find((p) => p > 0);
+  // El último peso antes de hoy: desde ahí arrancan − y +, y "igual que la última" lo repite de un toque
+  const ultimoPeso = Object.keys(e.dias).filter((f) => f < fecha).sort().reverse().map((f) => e.dias[f].peso).find((p) => p > 0) as number | undefined;
+  const noches = (rango(14, sumarDias(fecha, -1)) as string[]).map((f) => (e.dias[f] || {}).sueno || {});
   return (
     <Tarjeta titulo="🌙 Sueño y ⚖️ peso" lado={prom ? <Nota sx={{ m: 0 }}><span title="Promedio de las últimas noches anotadas">7 días: <b>{f1(prom.horas)} h</b></span></Nota> : null}>
-      <Box sx={DOS}>
-        <Campo etiqueta="Me acosté" type="time" data-cambio="sueno" data-f={fecha} data-k="acoste" defaultValue={s.acoste || ''} />
-        <Campo etiqueta="Me levanté" type="time" data-cambio="sueno" data-f={fecha} data-k="levante" defaultValue={s.levante || ''} />
+      <Box sx={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', minWidth: 0 }}>
+        <Hora etiqueta="Me acosté" valor={s.acoste} porDefecto="23:00" accion="sueno" datos={{ f: fecha, k: 'acoste' }} siempre={horasDeSiempre(noches.map((x: Fin) => x.acoste))} />
+        <Hora etiqueta="Me levanté" valor={s.levante} porDefecto="06:00" accion="sueno" datos={{ f: fecha, k: 'levante' }} siempre={horasDeSiempre(noches.map((x: Fin) => x.levante))} />
       </Box>
       {h != null ? (h < 7 ? <Aviso>Dormiste <b>{f1(h)} h</b>. Menos de 7 h frena la recuperación y la fuerza: hoy acuéstate más temprano.</Aviso> : <Nota sx={{ m: 0 }}>Dormiste <b>{f1(h)} h</b>. ¡Bien!</Nota>) : null}
       <Nota sx={{ m: 0 }}>¿Cómo dormiste? (1 = muy mal · 5 = excelente)</Nota>
       <Escala n={5} valor={s.calidad} accion="sueno-calidad" datos={{ 'data-f': fecha }} etiqueta="Calidad del sueño" />
-      <Campo etiqueta="Peso en ayunas (kg)" inputMode="decimal" min={0} step="0.1" data-cambio="dieta-peso" defaultValue={d.peso || ''} placeholder={String(ultimoPeso || '')} />
+      <Ajustar etiqueta="Peso en ayunas" valor={d.peso > 0 ? d.peso : null} base={ultimoPeso} paso={0.1} decimales={1} min={20} max={300} unidad="kg" accion="dieta-peso"
+        fichas={ultimoPeso && d.peso !== ultimoPeso ? [[ultimoPeso, 'Igual que la última · ' + f1(ultimoPeso) + ' kg']] : []} />
       <Link href="#dieta/peso" sx={{ fontSize: 14, color: 'text.secondary' }}>Ver la tendencia del peso →</Link>
     </Tarjeta>
   );
@@ -227,7 +247,8 @@ export function Partido({ e, fecha }: { e: Fin; fecha: string }) {
   return (
     <Tarjeta titulo={'⚽ ¿Cómo te fue' + (fecha === iso() ? ' hoy' : ' ayer') + '?'} sx={hecho ? { borderColor: 'primary.main' } : undefined} lado={hecho ? <Box component="span" sx={{ fontSize: 12, fontWeight: 800, p: '2px 8px', borderRadius: 999, bgcolor: tokens.brandSoft, color: tokens.brand }}>✓ Anotado</Box> : null}>
       {fecha === iso() && !hecho ? <Nota sx={{ m: 0 }}>Anótalo después del partido (o mañana). Con esto se ve si la pierna te deja cansado para jugar.</Nota> : null}
-      <Campo etiqueta="Minutos jugados" type="number" inputMode="numeric" min={0} max={200} data-cambio="partido" data-f={fecha} data-k="minutos" defaultValue={p.minutos || ''} placeholder="Ej.: 70" />
+      <Ajustar etiqueta="Minutos jugados" valor={p.minutos || null} base={60} paso={5} min={0} max={200} unidad="min" accion="partido" datos={{ f: fecha, k: 'minutos' }}
+        fichas={[60, 70, 90].filter((n) => n !== p.minutos).map((n) => [n, n + ' min'] as [number, string])} />
       <Nota sx={{ m: 0 }}>Esfuerzo (1 = suave · 10 = al máximo)</Nota>
       <Escala n={10} valor={p.rpe} accion="partido-punto" datos={{ ...datos, 'data-k': 'rpe' }} etiqueta="Esfuerzo del partido" />
       <Nota sx={{ m: 0 }}>Energía de las piernas (1 = sin piernas · 5 = volando)</Nota>

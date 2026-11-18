@@ -27,7 +27,7 @@ import './vistas/lugares.js';
 import './vistas/suplementos.js';
 import './vistas/clientes.js';
 import { tieneEntrenador } from './vistas/entrenador.js';
-import { iniciarNube, nube, textoNube, configurada } from './nube.js';
+import { iniciarNube, nube, textoNube, configurada, sincronizar, nubeDePrueba } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
@@ -355,6 +355,8 @@ if (import.meta.env.DEV) {
     permisos: (p) => { ponerPermisos('prueba', p); pintar(); }, admin: (d) => { ponerDatosAdmin(d); pintar(); },
     // Empezar como una cuenta nueva (vacía) o con los datos de ejemplo (así arrancan los recorridos de prueba)
     nuevo: () => empezarDePrueba(false), ejemplo: () => empezarDePrueba(true),
+    // Sincronizar con una nube de mentira (tests/e2e/nube.mjs): cliente = { rpc(nombre, args) }
+    nube: (cliente, usuario) => nubeDePrueba(cliente, usuario), sincronizar: () => sincronizar(), estadoNube: () => ({ ...nube }),
     // modo: 'entrar' | 'bloqueada' | null (volver). cargando, rechazo: la pantalla de entrar; correo, error, intentando: el candado
     sesion: (o = {}) => {
       prueba.modo = o.modo || null;

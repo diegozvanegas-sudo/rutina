@@ -84,7 +84,7 @@ export default async (p) => {
   // ⚖️ Peso
   await pestana('peso');
   await paso('peso');
-  await escribirCampo('Peso de hoy (kg)', '80,5');
+  await escribirCampo('Peso de hoy', '80,5');
   falla((await dia()).peso === 80.5, 'no guardó el peso: ' + (await dia()).peso);
   await p.tocar('#vista [data-accion=dieta-senal][data-k=energia][data-n="4"]');
   await p.tocar('#vista [data-accion=dieta-senal][data-k=hambre][data-n="2"]');

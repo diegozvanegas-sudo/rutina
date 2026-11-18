@@ -13,6 +13,7 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, DOS } from '../ui/Campo';
 import { TituloPantalla, Nota, Parrafo } from '../ui/Textos';
 import { Avance } from '../ui/Varios';
+import { Ajustar } from '../ui/Rapido';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -39,7 +40,8 @@ function controles(e: Fin, k: string) {
       <Button color="secondary" data-accion="agua" data-ml="-250" aria-label="Quitar 250 ml" sx={{ minWidth: 56 }}>−</Button>
     </Box>
   );
-  if (k === 'pasos') return <Campo etiqueta="Pasos de hoy" type="number" inputMode="numeric" min={0} step={100} data-cambio="meta" data-k="pasos" defaultValue={m.pasos || ''} placeholder="0" />;
+  if (k === 'pasos') return <Ajustar etiqueta="Pasos de hoy" valor={m.pasos || null} base={0} paso={1000} max={100000} accion="meta" datos={{ k: 'pasos' }}
+    fichas={[['+500', 500], ['+2.000', 2000], ['+5.000', 5000]].map(([t, n]) => [(m.pasos || 0) + (n as number), t] as [number, string])} />;
   if (k === 'calorias') return (
     <>
       <Box sx={DOS}>

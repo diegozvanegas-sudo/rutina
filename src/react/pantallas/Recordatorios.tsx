@@ -70,14 +70,17 @@ type Fila = { id: string; estado: string; activa: boolean; abrir: boolean; ic: R
 function fila(f: Fila) {
   const celda = { gridArea: 'ic', fontSize: 20, textAlign: 'center' };
   const rejilla = f.sug
-    ? { gridTemplateColumns: { xs: '30px minmax(0, 1fr)', [PC]: '30px minmax(0, 1.2fr) minmax(0, 1.2fr) 110px' }, gridTemplateAreas: { xs: '"ic nombre" "ic estado" "ic cuando"', [PC]: '"ic nombre cuando estado"' }, rowGap: { xs: '4px' } }
+    // Sugerencias en el celular: nombre y la idea en una línea (completa al pasar encima); cada cuánto ya lo dice la pestaña elegida
+    ? { gridTemplateColumns: { xs: '30px minmax(0, 1fr)', [PC]: '30px minmax(0, 1.2fr) minmax(0, 1.2fr) 110px' }, gridTemplateAreas: { xs: '"ic nombre" "ic cuando"', [PC]: '"ic nombre cuando estado"' }, rowGap: { xs: '2px' } }
     : { gridTemplateColumns: { xs: '30px auto minmax(0, 1fr) 14px', [PC]: '30px minmax(0, 1.2fr) minmax(0, 1.2fr) 110px 14px' }, gridTemplateAreas: { xs: '"ic nombre nombre flecha" "ic estado cuando flecha"', [PC]: '"ic nombre cuando estado flecha"' } };
   const cuerpo = (
     <>
       <Box component="span" aria-hidden="true" sx={celda}>{f.ic}</Box>
       <Box component="b" sx={{ gridArea: 'nombre', minWidth: 0, overflowWrap: 'anywhere', '& small': { fontWeight: 400, color: 'text.secondary' } }}>{f.nombre}</Box>
-      <Box component="span" sx={{ gridArea: 'estado', justifySelf: 'start', '& > span': f.sug ? { whiteSpace: 'normal' } : null }}>{f.etiqueta}</Box>
-      <Box component="span" sx={{ gridArea: 'cuando', color: 'text.secondary', fontSize: f.sug ? 13 : 14, minWidth: 0, overflowWrap: 'break-word', '& b': { color: 'text.primary' } }}>{f.cuando}</Box>
+      <Box component="span" sx={{ gridArea: 'estado', justifySelf: 'start', '& > span': f.sug ? { whiteSpace: 'normal' } : null, display: f.sug ? { xs: 'none', [PC]: 'block' } : undefined }}>{f.etiqueta}</Box>
+      <Box component="span" title={f.sug && typeof f.cuando === 'string' ? f.cuando : undefined}
+        sx={{ gridArea: 'cuando', color: 'text.secondary', fontSize: f.sug ? 13 : 14, minWidth: 0, overflowWrap: 'break-word', '& b': { color: 'text.primary' },
+          ...(f.sug ? { display: '-webkit-box', WebkitLineClamp: { xs: 1, [PC]: 2 }, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : null) }}>{f.cuando}</Box>
       {f.abrir ? <Box component="span" aria-hidden="true" sx={{ gridArea: 'flecha', color: 'text.secondary' }}>{f.activa ? '▾' : '▸'}</Box> : null}
     </>
   );

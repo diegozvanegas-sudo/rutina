@@ -345,7 +345,9 @@ function escribir() {
 }
 // Cada cambio real queda marcado con la hora (cambio) y avisa a la nube y a la hoja (alGuardarse)
 export function guardar(conRepintar = true) {
-  estado.cambio = Date.now();
+  // Siempre más nuevo que lo último sincronizado: si el reloj de otro equipo va adelantado, un cambio hecho aquí justo
+  // después de bajar lo suyo quedaba "más viejo" que la nube y se perdía en la siguiente bajada
+  estado.cambio = Math.max(Date.now(), ((estado.nube && estado.nube.base) || 0) + 1, (estado.cambio || 0) + 1);
   escribir();
   alGuardar.forEach((f) => f());
   if (conRepintar) repintar();

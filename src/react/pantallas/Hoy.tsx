@@ -29,7 +29,7 @@ import { meta as filaMeta } from './Metas';
 import { comidasHoy } from './Dieta';
 import { lista as listaSuplementos } from './Suplementos';
 import { calentamiento } from './GymDia';
-import { Experimento, RetoHoy, Entrenador, Foco, EstudioHoy, SuenoPeso, Partido, Estandares, PlataHoy, CierreHoy, SemanaGym, BotonSesion, Botones, TarjetaEnlace, Tarjeta } from './HoyTarjetas';
+import { Experimento, RetoHoy, Entrenador, Foco, EstudioHoy, SuenoPeso, Partido, Estandares, PlataHoy, CierreHoy, SemanaGym, BotonSesion, Botones, TarjetaEnlace, Tarjeta, EnPlegada } from './HoyTarjetas';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -90,7 +90,7 @@ function entrenamiento(e: Fin) {
 // ---------- Las tarjetas del tablero (cada una devuelve null si no tiene nada que mostrar) ----------
 function tarjetas(e: Fin): Record<string, () => ReactNode> {
   return {
-    experimento: () => Experimento({}),
+    experimento: () => <Experimento />,
     retos: () => RetoHoy(),
     entrenador: () => Entrenador({ e }),
     foco: () => Foco({ e }),
@@ -141,7 +141,7 @@ function Plegada({ k, children }: { k: string; children: ReactNode }) {
       <ButtonBase data-accion="hoy-plegar" data-k={k} aria-expanded={abierta} sx={{ width: '100%', justifyContent: 'flex-start', gap: '6px', minHeight: 40, font: 'inherit', fontWeight: 700, fontSize: 17, color: 'text.primary', textAlign: 'left' }}>
         <Flecha abierta={abierta} />{NOMBRES[k]}
       </ButtonBase>
-      <Collapse in={abierta} timeout={150}><Box sx={{ pt: '8px' }}>{children}</Box></Collapse>
+      <Collapse in={abierta} timeout={150}><Box sx={{ pt: '8px' }}><EnPlegada.Provider value={NOMBRES[k]}>{children}</EnPlegada.Provider></Box></Collapse>
     </Box>
   );
 }

@@ -91,3 +91,32 @@ export function limpiarRepetidos(x) {
   }
   return x;
 }
+
+// Lo que cambió entre la última copia sincronizada (base) y lo de ahora, para subir solo eso (rutina_guardar_partes en
+// supabase/esquema.sql). Los días y las semanas del gym van uno por uno; lo demás, cada parte de arriba entera.
+// partes: [{ ruta: ['dias', '2026-11-17'], valor }] · quitar: [['dias', '2026-11-10']]
+const POR_PARTES = ['dias', 'semanas'];
+const tiene = (o, k) => Object.prototype.hasOwnProperty.call(o, k) && o[k] !== undefined;
+export function cambiosParaNube(base, ahora) {
+  const partes = [], quitar = [];
+  for (const k of new Set([...Object.keys(base), ...Object.keys(ahora)])) {
+    if (!tiene(ahora, k)) { if (tiene(base, k)) quitar.push([k]); continue; }
+    if (POR_PARTES.includes(k) && esObjeto(base[k]) && esObjeto(ahora[k])) {
+      for (const j of new Set([...Object.keys(base[k]), ...Object.keys(ahora[k])])) {
+        if (!tiene(ahora[k], j)) { if (tiene(base[k], j)) quitar.push([k, j]); }
+        else if (!tiene(base[k], j) || !igual(base[k][j], ahora[k][j])) partes.push({ ruta: [k, j], valor: ahora[k][j] });
+      }
+    } else if (!tiene(base, k) || !igual(base[k], ahora[k])) partes.push({ ruta: [k], valor: ahora[k] });
+  }
+  return { partes, quitar };
+}
+// Lo mismo que hace la nube con esos cambios (para las pruebas y para revisar antes de subir)
+export function aplicarCambios(base, { partes, quitar }) {
+  const d = JSON.parse(JSON.stringify(base));
+  for (const [a, b] of quitar) { if (b == null) delete d[a]; else if (esObjeto(d[a])) delete d[a][b]; }
+  for (const { ruta: [a, b], valor } of partes) {
+    if (b == null) d[a] = valor;
+    else { if (!esObjeto(d[a])) d[a] = {}; d[a][b] = valor; }
+  }
+  return d;
+}

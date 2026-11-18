@@ -52,10 +52,10 @@ export default async (p) => {
   // Check-in: primero con errores, luego bien
   await tocarTexto('📤 Mandar check-in');
   falla((await a.aviso()).includes('Responde al menos una pregunta'), 'no avisó que falta responder: ' + await a.aviso());
-  await escribirCampo('Peso en ayunas (kg)', '10');
+  await escribirCampo('Peso en ayunas', '10');
   await tocarTexto('📤 Mandar check-in');
   falla((await a.aviso()).includes('Revisa el peso'), 'no avisó el peso raro');
-  await escribirCampo('Peso en ayunas (kg)', '72,5');
+  await escribirCampo('Peso en ayunas', '72,5');
   await escribirCampo('Sueño (1-5)', '7');
   await tocarTexto('📤 Mandar check-in');
   falla((await a.aviso()).includes('Sueño y energía'), 'no avisó el sueño fuera de rango');

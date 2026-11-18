@@ -42,7 +42,7 @@ export default async (p) => {
   await p.tocar('#vista [data-accion=sueno-calidad][data-v="4"]');
   let x = (await d()).sueno || {};
   falla(x.acoste === '23:00' && x.levante === '07:00' && x.calidad === 4, 'no guardó el sueño: ' + JSON.stringify(x));
-  await escribirCampo('Peso en ayunas (kg)', '80');
+  await escribirCampo('Peso en ayunas', '80');
   falla((await d()).peso === 80, 'no guardó el peso');
   await paso('sueño y peso');
   // Comidas
@@ -67,7 +67,11 @@ export default async (p) => {
     falla(((await d()).estandares || {})[est[0].id], 'no marcó el estándar');
     await paso('estándares');
   }
-  // Experimento de la semana
+  // Experimento de la semana: sin uno activo es una fila con un botón, y el formulario sale al tocarlo
+  if (await a.marcar('＋ Probar un cambio', 'button')) {
+    falla(!(await hay('[data-accion=exp-empezar]')), 'el formulario del experimento ya estaba abierto');
+    await tocarTexto('＋ Probar un cambio', 'button');
+  }
   if (await hay('[data-accion=exp-empezar]')) {
     await escribirCampo('¿Qué vas a probar?', 'Acostarme 30 min antes');
     await tocarTexto('Empezar hoy');

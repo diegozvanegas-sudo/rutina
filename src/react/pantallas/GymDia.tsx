@@ -422,7 +422,7 @@ function ContadorEntreno({ d, sem }: { d: Fin; sem: number }) {
   const quieto = entrenoQuieto(x, ahora);
   useEffect(() => { if (quieto) accion('gym-entreno-terminar', { en: (x.ultimo || x.inicio) + 5 * 60000 }); }, [quieto]);
   const caja = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', m: '0 0 12px', p: '8px 10px', borderRadius: '10px', bgcolor: 'background.default', border: '1px solid', borderColor: 'divider', fontSize: 14 };
-  const t = tiemposDia(d, sem, e(), ahora) as Fin, cardioYTotal = t.cardio && t.fuerza ? <Box component="span" sx={GRIS}> · 🏃 cardio {duracion(t.cardio.min)} · total <b>{duracion(t.total)}</b></Box> : null;
+  const t = tiemposDia(d, sem, e(), ahora) as Fin, cardioYTotal = t.cardio && t.fuerza ? <Box component="span" sx={GRIS}> · 🏃 cardio {duracion(t.cardio.min)} · total <b>{duracion(t.total)}</b>{t.gym && t.gym.min - t.total >= 5 ? <> · en el gym {duracion(t.gym.min)} ({hora(t.gym.inicio)} – {hora(t.gym.fin)})</> : null}</Box> : null;
   // ✏️ Corregir las horas (un entreno de más de 3 h casi seguro es un error: lo avisa y abre la corrección)
   const raro = !!(t.fuerza && !t.fuerza.enCurso && t.fuerza.min > ENTRENO_RARO), abierto = editar || raro;
   // Abierta por el aviso, queda abierta al corregir el inicio (así se puede corregir también el fin)
@@ -456,12 +456,13 @@ function ContadorEntreno({ d, sem }: { d: Fin; sem: number }) {
   );
   if (x.fin) return (
     <Box data-t="entreno" sx={caja}>
-      <span>✓ Fuerza hoy: <b>{duracion(minutosEntreno(x))}</b> <Box component="span" sx={GRIS}>({hora(x.inicio)} – {hora(x.fin)})</Box>{cardioYTotal}</span>
+      <span>✓ Fuerza hoy: <b>{duracion(t.fuerza ? t.fuerza.min : minutosEntreno(x))}</b> <Box component="span" sx={GRIS}>({hora(x.inicio)} – {hora(x.fin)})</Box>{cardioYTotal}</span>
       <Box sx={{ display: 'flex', gap: '6px' }}>{lapiz}<Button size="small" color="secondary" onClick={() => accion('gym-entreno-seguir')} sx={MINI}>↺ Seguir</Button></Box>
       {correccion}
     </Box>
   );
-  const s = Math.max(0, Math.floor((ahora - x.inicio) / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), dos = (n: number) => String(n).padStart(2, '0');
+  // Sin el rato del cardio (si después del cardio tocaste "↺ Seguir")
+  const s = Math.max(0, Math.floor((t.fuerza ? t.fuerza.ms : ahora - x.inicio) / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), dos = (n: number) => String(n).padStart(2, '0');
   return (
     <Box data-t="entreno" sx={[caja, { borderColor: 'primary.main' }]}>
       <span>⏱ Fuerza <Box component="b" role="timer" sx={{ fontSize: 18, fontVariantNumeric: 'tabular-nums' }}>{(h ? h + ':' + dos(m) : m) + ':' + dos(s % 60)}</Box> <Box component="span" sx={GRIS}>· desde las {hora(x.inicio)}</Box></span>

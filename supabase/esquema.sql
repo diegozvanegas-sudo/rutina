@@ -248,6 +248,148 @@ revoke execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bi
 grant execute on function public.rutina_version() to authenticated;
 grant execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) to authenticated;
 
+-- ---------- Guardar por partes (paso 1 de 3, 2026-11-18) ----------
+-- Hasta aquí todo el estado de un usuario vive en una sola fila (rutina.estado.datos, ~140 kB): cuando otro equipo cambia
+-- algo, este baja la fila entera. Para crecer a muchos usuarios el estado pasa a guardarse por partes: cada día, cada
+-- semana del gym y cada parte de arriba (config, rutina, finanzas…) en su propia fila de rutina.partes.
+-- Paso 1 (este): rutina.estado sigue siendo lo que manda y nada de lo anterior cambia (protección, historial, restaurar).
+--   Un disparador copia a rutina.partes solo lo que cambió en cada guardado, con la versión de ese guardado, y lo que se
+--   borra queda con valor null (para que los otros equipos sepan que se borró). La app baja solo lo que cambió desde su
+--   última versión (rutina_cambios). rutina.partes_revisar() dice si las partes arman exactamente lo mismo que la fila.
+-- Paso 2: cuando las partes coincidan siempre, guardar escribe solo en rutina.partes y el historial guarda solo las partes
+--   cambiadas (no copias completas). Paso 3: rutina.estado queda con la versión y los conteos, sin datos.
+create table if not exists rutina.partes (
+  usuario uuid not null references auth.users(id) on delete cascade,
+  grupo   text not null,               -- la llave de arriba: dias, semanas, config, rutina, finanzas…
+  clave   text not null default '',    -- en dias y semanas, el día o la semana; '' para la parte entera
+  valor   jsonb,                       -- null: se borró
+  version bigint not null,             -- la versión del guardado que la cambió por última vez
+  primary key (usuario, grupo, clave)
+);
+create index if not exists partes_por_version on rutina.partes (usuario, version);
+alter table rutina.partes enable row level security;
+-- Desde qué versión las partes de un usuario están completas (antes de eso no hay registro de lo borrado)
+alter table rutina.estado add column if not exists partes_desde bigint;
+
+-- Los días y las semanas del gym van uno por uno; lo demás, cada parte de arriba entera (como cambiosParaNube en combinar.js)
+create or replace function rutina.en_partes(d jsonb)
+returns table (grupo text, clave text, valor jsonb)
+language sql immutable set search_path = ''
+as $$
+  -- dias y semanas dejan en clave '' un {} que dice que existen (aunque estén vacíos); sus días y semanas van aparte
+  select t.key, '', case when t.key in ('dias', 'semanas') and jsonb_typeof(t.value) = 'object' then '{}'::jsonb else t.value end
+    from jsonb_each(case when jsonb_typeof(d) = 'object' then d else '{}'::jsonb end) t
+  union all
+  select t.key, s.key, s.value from jsonb_each(case when jsonb_typeof(d) = 'object' then d else '{}'::jsonb end) t
+    cross join lateral jsonb_each(t.value) s
+    where t.key in ('dias', 'semanas') and jsonb_typeof(t.value) = 'object';
+$$;
+
+-- Lo que cambió entre dos estados se escribe en rutina.partes (null en lo que ya no está)
+create or replace function rutina.anotar_partes(p_usuario uuid, antes jsonb, ahora jsonb, p_version bigint)
+returns void
+language sql set search_path = ''
+as $$
+  insert into rutina.partes (usuario, grupo, clave, valor, version)
+  select p_usuario, coalesce(n.grupo, v.grupo), coalesce(n.clave, v.clave), n.valor, p_version
+  from rutina.en_partes(ahora) n full join rutina.en_partes(antes) v on v.grupo = n.grupo and v.clave = n.clave
+  where n.valor is distinct from v.valor
+  on conflict (usuario, grupo, clave) do update set valor = excluded.valor, version = excluded.version;
+$$;
+
+-- Cualquier escritura de rutina.estado (rutina_guardar, rutina_guardar_partes, rutina_restaurar, a mano) queda en las partes
+create or replace function rutina.estado_a_partes()
+returns trigger
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if tg_op = 'UPDATE' and new.datos is not distinct from old.datos then return new; end if;
+  perform rutina.anotar_partes(new.usuario, case when tg_op = 'UPDATE' then old.datos end, new.datos, new.version);
+  return new;
+end;
+$$;
+-- Un usuario nuevo empieza con partes completas desde su primera versión
+create or replace function rutina.estado_partes_desde()
+returns trigger
+language plpgsql set search_path = ''
+as $$
+begin
+  if new.partes_desde is null then new.partes_desde := new.version; end if;
+  return new;
+end;
+$$;
+drop trigger if exists partes_desde on rutina.estado;
+create trigger partes_desde before insert on rutina.estado for each row execute function rutina.estado_partes_desde();
+drop trigger if exists a_partes on rutina.estado;
+create trigger a_partes after insert or update of datos on rutina.estado for each row execute function rutina.estado_a_partes();
+revoke all on function rutina.estado_a_partes() from public, anon, authenticated;
+revoke all on function rutina.estado_partes_desde() from public, anon, authenticated;
+revoke all on function rutina.anotar_partes(uuid, jsonb, jsonb, bigint) from public, anon, authenticated;
+
+-- Los usuarios que ya tenían datos: sus partes de hoy, completas desde su versión de ahora (se puede correr varias veces)
+do $$
+declare r record;
+begin
+  for r in select e.usuario, e.datos, e.version from rutina.estado e where e.partes_desde is null loop
+    delete from rutina.partes p where p.usuario = r.usuario;
+    perform rutina.anotar_partes(r.usuario, null, r.datos, r.version);
+    update rutina.estado set partes_desde = r.version where usuario = r.usuario;
+  end loop;
+end;
+$$;
+
+-- El estado completo armado desde las partes (lo que va a reemplazar a rutina.estado.datos en el paso 2)
+create or replace function rutina.armar(p_usuario uuid)
+returns jsonb
+language sql stable set search_path = ''
+as $$
+  select coalesce(jsonb_object_agg(g.grupo, g.valor), '{}'::jsonb) from (
+    select a.grupo, case when a.grupo in ('dias', 'semanas') and a.valor = '{}'::jsonb
+      then coalesce((select jsonb_object_agg(p.clave, p.valor) from rutina.partes p
+                     where p.usuario = p_usuario and p.grupo = a.grupo and p.clave <> '' and p.valor is not null), '{}'::jsonb)
+      else a.valor end as valor
+    from rutina.partes a where a.usuario = p_usuario and a.clave = '' and a.valor is not null
+  ) g;
+$$;
+revoke all on function rutina.armar(uuid) from public, anon, authenticated;
+
+-- Lo que cambió en la nube desde la versión p_desde (la última que este equipo sincronizó), con la misma forma que sube la
+-- app: { version, partes: [{ ruta, valor }], quitar: [ruta] }. null si con eso no alcanza (el equipo quedó de antes de
+-- que existieran las partes): entonces la app baja todo con rutina_leer. Las partes enteras van primero: si dias o
+-- semanas aparecen como {} es que se crearon después de p_desde, y todos sus días y semanas vienen detrás
+create or replace function public.rutina_cambios(p_desde bigint)
+returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+declare v bigint; desde bigint;
+begin
+  perform rutina.exigir_acceso();
+  select e.version, e.partes_desde into v, desde from rutina.estado e where e.usuario = auth.uid();
+  if v is null or desde is null or p_desde is null or p_desde < desde then return null; end if;
+  return jsonb_build_object(
+    'version', v,
+    'partes', coalesce((select jsonb_agg(jsonb_build_object('ruta', case when p.clave = '' then jsonb_build_array(p.grupo) else jsonb_build_array(p.grupo, p.clave) end, 'valor', p.valor)
+                                  order by p.clave <> '', p.grupo, p.clave)
+                        from rutina.partes p where p.usuario = auth.uid() and p.version >= p_desde and p.valor is not null), '[]'::jsonb),
+    'quitar', coalesce((select jsonb_agg(case when p.clave = '' then jsonb_build_array(p.grupo) else jsonb_build_array(p.grupo, p.clave) end)
+                        from rutina.partes p where p.usuario = auth.uid() and p.version >= p_desde and p.valor is null), '[]'::jsonb));
+end;
+$$;
+revoke execute on function public.rutina_cambios(bigint) from public, anon;
+grant execute on function public.rutina_cambios(bigint) to authenticated;
+
+-- Para pasar al paso 2 con calma: por usuario, si las partes arman exactamente lo mismo que su fila (debe ser siempre sí).
+-- Solo desde la base de datos (npm run db:partes), no desde la app
+create or replace function rutina.partes_revisar()
+returns table (usuario uuid, igual boolean, kb_fila int, filas_partes int)
+language sql stable set search_path = ''
+as $$
+  select e.usuario, rutina.armar(e.usuario) = e.datos, (octet_length(e.datos::text) / 1024)::int,
+    (select count(*)::int from rutina.partes p where p.usuario = e.usuario)
+  from rutina.estado e;
+$$;
+revoke all on function rutina.partes_revisar() from public, anon, authenticated;
+
 -- ---------- Roles y permisos: quién ve qué (⚙️ Administrar) ----------
 -- Solo esconden partes de la app: cada usuario sigue viendo y guardando únicamente sus propios datos, y el admin
 -- nunca puede leer los datos de otro (ninguna función de aquí toca rutina.estado).

@@ -106,6 +106,15 @@ export default async (p) => {
   await p.ev(`document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));[...document.querySelectorAll('[data-t=entreno] button')].find(b=>b.textContent.includes('Seguir'))?.setAttribute('data-e2e','1')`);
   await p.tocar('[data-e2e]');
   falla(!(await entreno()).fin, 'la fuerza no volvió a correr');
+  // Fuerza y cardio no corren a la vez: "↺ Seguir" en el cardio cierra la fuerza, y "↺ Seguir" en la fuerza cierra el cardio
+  await p.ev(`document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));[...document.querySelectorAll('[data-t=crono-cardio] button')].find(b=>b.textContent.includes('Seguir'))?.setAttribute('data-e2e','1')`);
+  await p.tocar('[data-e2e]');
+  falla((await entreno()).fin > 0 && (await cardioReg()).inicio > 0 && !(await cardioReg()).fin, 'seguir el cardio no cerró la fuerza: ' + JSON.stringify([await entreno(), await cardioReg()]));
+  await p.ev(`document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));[...document.querySelectorAll('[data-t=entreno] button')].find(b=>b.textContent.includes('Seguir'))?.setAttribute('data-e2e','1')`);
+  await p.tocar('[data-e2e]');
+  falla(!(await entreno()).fin && (await cardioReg()).fin > 0 && (await a.aviso()).includes('Fuerza en marcha'), 'seguir la fuerza no cerró el cardio: ' + JSON.stringify([await entreno(), await cardioReg()]));
+  await p.ev(`document.querySelector('[data-t=entreno]').scrollIntoView({block:'center'})`);
+  await p.foto('gymdia-fuerza-tras-cardio');
   await tocarTexto('📋 Copiar análisis completo para Claude');
   falla((await a.aviso()).includes('Análisis copiado'), 'no copió el análisis');
   await paso('copiado');

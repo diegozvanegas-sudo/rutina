@@ -7,14 +7,19 @@ import { ayudas } from './ayudas.mjs';
 import { iso } from '../../src/fechas.js';
 
 const NUBE = `(() => {
-  const s = { fila: null, llamadas: [], vieja: false };
+  // versiones: lo que había en cada versión guardada, para responder rutina_cambios (lo que cambió desde una versión)
+  const s = { fila: null, llamadas: [], vieja: false, versiones: {} };
   const copia = (x) => JSON.parse(JSON.stringify(x));
-  const guardar = (datos, version) => { if (!s.fila || s.fila.version <= version) s.fila = { datos: copia(datos), version }; return s.fila.version; };
+  const guardar = (datos, version) => { if (!s.fila || s.fila.version <= version) { s.fila = { datos: copia(datos), version }; s.versiones[version] = copia(datos); } return s.fila.version; };
   const rpc = async (nombre, args = {}) => {
     await new Promise((r) => setTimeout(r, 30));
     let data = null, error = null;
-    if (s.vieja && (nombre === 'rutina_version' || nombre === 'rutina_guardar_partes')) error = { code: 'PGRST202', message: 'Could not find the function public.' + nombre };
+    if (s.vieja && (nombre === 'rutina_version' || nombre === 'rutina_guardar_partes' || nombre === 'rutina_cambios')) error = { code: 'PGRST202', message: 'Could not find the function public.' + nombre };
     else if (nombre === 'rutina_version') data = s.fila ? s.fila.version : null;
+    else if (nombre === 'rutina_cambios') {
+      const antes = s.versiones[args.p_desde];
+      data = s.fila && antes ? { version: s.fila.version, ...(await import('/src/combinar.js')).cambiosParaNube(antes, s.fila.datos) } : null;
+    }
     else if (nombre === 'rutina_leer') data = s.fila ? [copia(s.fila)] : [];
     else if (nombre === 'rutina_guardar') data = guardar(args.p_datos, args.p_version);
     else if (nombre === 'rutina_guardar_partes') {
@@ -76,16 +81,20 @@ export default async (p) => {
   await p.ev(`(() => { const f = window.__nube.s.fila; f.datos.config.nombre = 'Desde el otro'; f.version += 5000; f.datos.cambio = f.version; })()`);
   await sincronizar();
   ls = await llamadas();
-  falla(nombres(ls) === 'rutina_version rutina_leer', 'cambio en otro equipo: ' + nombres(ls));
+  // Baja solo lo que cambió (rutina_cambios), no todo
+  falla(nombres(ls) === 'rutina_version rutina_cambios', 'cambio en otro equipo: ' + nombres(ls));
   falla((await p.estado()).config.nombre === 'Desde el otro', 'no bajó el cambio del otro equipo');
-  console.log('✓ lo de otro equipo baja');
+  const bajo = ls.find((x) => x.nombre === 'rutina_cambios').baja;
+  falla(bajo * 10 < todo, 'lo que cambió en el otro equipo pesó ' + bajo + ' de ' + todo + ' bytes');
+  falla(JSON.stringify(await enNube()) === JSON.stringify(await p.ev(`(async () => (await import('/src/estado.js')).datosParaNube())()`)), 'este equipo quedó distinto de la nube');
+  console.log('✓ lo de otro equipo baja: ' + bajo + ' bytes (antes ' + Math.round(todo / 1024) + ' kB)');
 
   // 5. Los dos cambiaron: este equipo toca y el otro guarda antes de que suba → se combinan, nada se pierde
   await tocarTexto('+250 ml');
   await p.ev(`(() => { const f = window.__nube.s.fila; f.datos.config.otro = 'sí'; f.version += 1; f.datos.cambio = f.version; })()`);
   await esperarSubida();
   ls = await llamadas();
-  falla(ls.some((x) => x.nombre === 'rutina_leer'), 'con los dos cambiados no bajó para combinar: ' + nombres(ls));
+  falla(ls.some((x) => x.nombre === 'rutina_cambios'), 'con los dos cambiados no bajó para combinar: ' + nombres(ls));
   const n = await enNube();
   falla(n.config.otro === 'sí' && n.dias[iso()].metas.agua === 500, 'se perdió algo al combinar: ' + JSON.stringify({ otro: n.config.otro, agua: n.dias[iso()].metas.agua }));
   falla((await p.estado()).config.otro === 'sí', 'este equipo no tiene lo del otro');
@@ -97,7 +106,7 @@ export default async (p) => {
   await tocarTexto('+250 ml');
   await esperarSubida();
   ls = await llamadas();
-  falla(nombres(ls).endsWith('rutina_leer rutina_guardar'), 'con la nube de antes: ' + nombres(ls));
+  falla(/rutina_leer rutina_guardar$/.test(nombres(ls)), 'con la nube de antes: ' + nombres(ls));
   falla((await agua()) === 750, 'con la nube de antes no subió: ' + (await agua()));
   await sincronizar();
   ls = await llamadas();

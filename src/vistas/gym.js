@@ -205,6 +205,8 @@ export const piezasGym = {
 // ---------- ⏱ Contador del entreno de hoy: { dia, inicio, fin? } en el día de hoy (dias[fecha].entreno) ----------
 export const entrenoHoy = () => (e().dias[iso()] || {}).entreno || null;
 export const minutosEntreno = (x, ahora = Date.now()) => Math.max(0, Math.round(((x.fin || ahora) - x.inicio) / 60000));
+// Los minutos de fuerza de hoy sin el rato del cardio (para los avisos)
+const fuerzaHoy = (x) => { const d = e().rutina.find((r) => r.id === x.dia), t = d && tiemposDia(d, semanaActual(), e()).fuerza; return t ? t.min : minutosEntreno(x); };
 // Si pasan 90 minutos sin anotar nada, el entreno se da por terminado 5 minutos después de la última serie
 export const ENTRENO_QUIETO = 90 * 60000;
 export const entrenoQuieto = (x, ahora = Date.now()) => !!(x && !x.fin && ahora - (x.ultimo || x.inicio) > ENTRENO_QUIETO);
@@ -292,7 +294,7 @@ registrar({
     const cerro = x && !x.fin && x.dia === dia;
     if (cerro) x.fin = c.inicio;
     guardar();
-    toast(cerro ? '⏱ Fuerza: ' + minutosEntreno(x) + ' min. Arranca el cardio' : '🏃 Cardio en marcha');
+    toast(cerro ? '⏱ Fuerza: ' + fuerzaHoy(x) + ' min. Arranca el cardio' : '🏃 Cardio en marcha');
   },
   'cardio-terminar'({ dia }) {
     const d = e().rutina.find((x) => x.id === dia), c = registros(semanaVista)[claveCardio(d)];
@@ -303,7 +305,12 @@ registrar({
   },
   'cardio-seguir'({ dia }) {
     const d = e().rutina.find((x) => x.id === dia), c = registros(semanaVista)[claveCardio(d)];
-    if (c && c.fin) { delete c.fin; delete c.min; guardar(); toast('🏃 Cardio en marcha'); }
+    if (!c || !c.fin) return;
+    delete c.fin; delete c.min;
+    // Igual que al empezarlo: la fuerza de ese día que esté corriendo se cierra
+    const x = entrenoHoy();
+    if (x && !x.fin && x.dia === dia) x.fin = Date.now();
+    guardar(); toast('🏃 Cardio en marcha');
   },
   'cardio-repetir'({ dia }) {
     const d = e().rutina.find((x) => x.id === dia), ult = ultimoCardio(d, semanaVista);
@@ -460,7 +467,7 @@ registrar({
     if (!x || x.fin) return;
     x.fin = en ? Number(en) : Date.now();
     guardar();
-    if (!en) toast('✓ Entreno de ' + minutosEntreno(x) + ' min', () => { delete x.fin; guardar(); });
+    if (!en) toast('✓ Fuerza: ' + fuerzaHoy(x) + ' min', () => { delete x.fin; guardar(); });
   },
   'gym-ocupada'({ ej }) {
     saltados.add(ej);
@@ -477,7 +484,16 @@ registrar({
   },
   // Seguir cuenta como actividad: sin esto, si la última serie fue hace más de 90 min, el cierre automático
   // (entrenoQuieto) lo volvía a terminar al instante y el contador se quedaba en "Seguir"
-  'gym-entreno-seguir'() { const x = entrenoHoy(); if (x) { delete x.fin; x.ultimo = Date.now(); guardar(); toast('⏱ Entreno en marcha'); } },
+  // Si el cardio de ese día está corriendo, se cierra (fuerza y cardio no corren a la vez; el rato del cardio no se le
+  // cuenta a la fuerza, ver tiemposDia)
+  'gym-entreno-seguir'() {
+    const x = entrenoHoy();
+    if (!x) return;
+    const d = e().rutina.find((r) => r.id === x.dia), c = d && d.cardio ? registros(semanaActual())[claveCardio(d)] : null, ahora = Date.now();
+    let cardio = '';
+    if (c && c.inicio && !c.fin) { c.fin = ahora; c.min = Math.max(1, Math.round((c.fin - c.inicio) / 60000)); cardio = '🏃 Cardio: ' + c.min + ' min. '; }
+    delete x.fin; x.ultimo = ahora; guardar(); toast(cardio + '⏱ Fuerza en marcha');
+  },
   nota({ ej: id }, el) {
     for (const d of e().rutina) for (const ej of d.ejercicios) if (ej.id === id) ej.nota = el.value.trim();
     guardar(false);

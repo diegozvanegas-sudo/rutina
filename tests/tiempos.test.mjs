@@ -39,6 +39,24 @@ test('tiempos: el cardio va aparte (minutos anotados o su cronómetro) y suma al
   assert.equal(lineaTiempos(tiemposDia({ id: 'x' }, 6, { dias: {}, semanas: {} })), '');
 });
 
+test('tiempos: "↺ Seguir" en fuerza después del cardio no le suma el cardio a la fuerza; completo = en el gym', () => {
+  // Fuerza 6:00–7:00, cardio 7:00–7:30, Seguir fuerza 7:35–7:55 → fuerza 6:00–7:55 menos el cardio = 85 min
+  const estado = { dias: { [lunes]: { entreno: { dia: 'd1', inicio: h(lunes, 6, 0), fin: h(lunes, 7, 55) } } }, semanas: { 6: { 'cardio@d1': { inicio: h(lunes, 7, 0), fin: h(lunes, 7, 30), min: 30 } } } };
+  const t = tiemposDia(d, 6, estado, h(miercoles, 9, 0));
+  assert.deepEqual([t.fuerza.min, t.cardio.min, t.total, t.gym.min], [85, 30, 115, 115]);
+  assert.equal(lineaTiempos(t), '⏱ Fuerza 1 h 25 min · 🏃 Cardio 30 min · Total 1 h 55 min');
+  // En curso: el contador de fuerza tampoco cuenta el cardio
+  estado.dias[lunes].entreno = { dia: 'd1', inicio: h(lunes, 6, 0) };
+  const ahora = tiemposDia(d, 6, estado, h(lunes, 7, 40));
+  assert.deepEqual([ahora.fuerza.min, ahora.fuerza.enCurso, ahora.fuerza.ms], [70, true, 70 * 60000]);
+  // Un rato entre la fuerza y el cardio: el total es la suma y "en el gym" lo dice aparte
+  estado.dias[lunes].entreno = { dia: 'd1', inicio: h(lunes, 6, 0), fin: h(lunes, 7, 0) };
+  estado.semanas[6]['cardio@d1'] = { inicio: h(lunes, 7, 15), fin: h(lunes, 7, 45), min: 30 };
+  const r = tiemposDia(d, 6, estado, h(miercoles, 9, 0));
+  assert.deepEqual([r.fuerza.min, r.total, r.gym.min], [60, 90, 105]);
+  assert.equal(lineaTiempos(r), '⏱ Fuerza 1 h · 🏃 Cardio 30 min · Total 1 h 30 min (en el gym 1 h 45 min)');
+});
+
 test('contador: una anotación suelta de madrugada no estira el entreno de la noche', async () => {
   const { anotarEnEntreno } = await import('../src/gym.js');
   const f = '2026-11-16';

@@ -8,21 +8,34 @@ import { iso, lunesDe, sumarDias } from './fechas.js';
 // última serie, como el cierre automático. Cardio: su propio cronómetro en el registro "cardio@día" ({ inicio, fin });
 // sus minutos son los anotados (el cronómetro los llena al terminar, y se pueden corregir)
 const minutos = (a, b) => Math.max(0, Math.round((b - a) / 60000));
+// Lo que se cruzan dos tramos [a1, b1] y [a2, b2], en ms
+const cruce = (a1, b1, a2, b2) => Math.max(0, Math.min(b1, b2) - Math.max(a1, a2));
+// Separado y completo: fuerza y cardio por separado (la fuerza NO cuenta el rato en que corría el cardio, p. ej. si
+// tocaste "↺ Seguir" en fuerza después del cardio), total = fuerza + cardio, y "en el gym" = de la primera hora de
+// inicio a la última de fin (con lo que hubo entre uno y otro)
 export function tiemposDia(d, sem, estado, ahora = Date.now()) {
   const hoy = iso(new Date(ahora)), lunes = lunesDe(sem);
+  const c = d.cardio ? ((estado.semanas || {})[sem] || {})[claveCardio(d)] || {} : {};
+  const cEnCurso = !!(c.inicio && !c.fin), cMin = c.min != null && c.min !== '' ? Number(c.min) : c.inicio ? minutos(c.inicio, c.fin || ahora) : null;
+  const cardio = cMin != null || c.inicio ? { inicio: c.inicio || null, fin: c.fin || (cEnCurso ? ahora : null), enCurso: cEnCurso, min: cMin || 0 } : null;
   let fuerza = null;
   for (let k = 0; k < 7 && !fuerza; k++) {
     const f = sumarDias(lunes, k), x = ((estado.dias || {})[f] || {}).entreno;
     if (x && x.dia === d.id && x.inicio) {
       const enCurso = !x.fin && f === hoy, fin = x.fin || (enCurso ? ahora : (x.ultimo || x.inicio) + 5 * 60000);
-      fuerza = { fecha: f, inicio: x.inicio, fin, enCurso, min: minutos(x.inicio, fin) };
+      const menos = cardio && cardio.inicio && cardio.fin ? cruce(x.inicio, fin, cardio.inicio, cardio.fin) : 0;
+      const ms = Math.max(0, fin - x.inicio - menos);
+      fuerza = { fecha: f, inicio: x.inicio, fin, enCurso, ms, min: Math.round(ms / 60000) };
     }
   }
-  const c = d.cardio ? ((estado.semanas || {})[sem] || {})[claveCardio(d)] || {} : {};
-  const cEnCurso = !!(c.inicio && !c.fin), cMin = c.min != null && c.min !== '' ? Number(c.min) : c.inicio ? minutos(c.inicio, c.fin || ahora) : null;
-  const cardio = cMin != null || c.inicio ? { inicio: c.inicio || null, fin: c.fin || null, enCurso: cEnCurso, min: cMin || 0 } : null;
   const total = fuerza || cardio ? (fuerza ? fuerza.min : 0) + (cardio ? cardio.min : 0) : null;
-  return { fuerza, cardio, total };
+  // Completo: solo si hay los dos con horas (si no, es igual al total)
+  let gym = null;
+  if (fuerza && cardio && cardio.inicio && cardio.fin) {
+    const desde = Math.min(fuerza.inicio, cardio.inicio), hasta = Math.max(fuerza.fin, cardio.fin);
+    gym = { inicio: desde, fin: hasta, min: minutos(desde, hasta) };
+  }
+  return { fuerza, cardio, total, gym };
 }
 // Cada serie anotada hoy mueve el contador de fuerza. Si pasaron más de 90 min sin anotar nada:
 //  · lo de antes eran pocas series (menos de 5: una anotación suelta, p. ej. de madrugada) → el contador vuelve a empezar ahora
@@ -43,12 +56,13 @@ export const ENTRENO_RARO = 180;
 // "1 h 42 min" o "45 min"
 export const duracion = (min) => (min >= 60 ? Math.floor(min / 60) + ' h' + (min % 60 ? ' ' + (min % 60) + ' min' : '') : min + ' min');
 // La línea para WhatsApp (texto e imagen): "⏱ Fuerza 1 h 12 min · 🏃 Cardio 30 min · Total 1 h 42 min"
+// (+ " (en el gym 1 h 55 min)" si entre la fuerza y el cardio hubo 5 min o más de otra cosa)
 export function lineaTiempos(t) {
   if (!t.fuerza && !t.cardio) return '';
   const partes = [];
   if (t.fuerza) partes.push('⏱ Fuerza ' + duracion(t.fuerza.min) + (t.fuerza.enCurso ? ' (en curso)' : ''));
   if (t.cardio) partes.push('🏃 Cardio ' + duracion(t.cardio.min) + (t.cardio.enCurso ? ' (en curso)' : ''));
-  if (t.fuerza && t.cardio) partes.push('Total ' + duracion(t.total));
+  if (t.fuerza && t.cardio) partes.push('Total ' + duracion(t.total) + (t.gym && t.gym.min - t.total >= 5 ? ' (en el gym ' + duracion(t.gym.min) + ')' : ''));
   return partes.join(' · ');
 }
 

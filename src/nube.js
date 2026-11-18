@@ -2,7 +2,7 @@
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
 import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual } from './estado.js';
-import { combinarEstado, difiereDeLaNube, tieneDatosPropios, cambiosParaNube } from './combinar.js';
+import { combinarEstado, difiereDeLaNube, tieneDatosPropios, cambiosParaNube, aplicarCambios } from './combinar.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos, esSinAcceso } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -30,12 +30,26 @@ let corriendo = null, otraVez = false, espera = null;
 // todo solo si cambió; y se sube solo lo que cambió. sinPartes: la nube todavía no tiene esas funciones (se usa lo de antes).
 // porPartes: la primera subida de cada vez que se abre la app va completa, por si la copia de base de este equipo quedó
 // distinta de la nube; desde ahí, por partes
-let sinPartes = false, porPartes = false;
+// sinCambios: la nube todavía no tiene rutina_cambios (bajar solo lo que cambió): se baja todo como antes
+let sinPartes = false, porPartes = false, sinCambios = false;
 const noExiste = (error) => !!error && (error.code === 'PGRST202' || /could not find the function/i.test(error.message || ''));
 async function leerTodo() {
   const { data, error } = await supabase.rpc('rutina_leer');
   if (error) throw error;
   return (data && data[0]) || null;
+}
+// Bajar solo lo que cambió allá desde la última versión sincronizada (rutina_cambios, supabase/esquema.sql): se aplica a la
+// copia de base de este equipo y queda lo mismo que tiene la nube. null si no se puede (sin copia de base, la primera vez
+// de cada vez que se abre la app, o la nube no sabe): entonces se baja todo
+async function leerCambios(base) {
+  if (sinCambios || !porPartes || base == null) return null;
+  const previo = leerBase();
+  if (!previo) return null;
+  const { data, error } = await supabase.rpc('rutina_cambios', { p_desde: base });
+  if (noExiste(error)) { sinCambios = true; return null; }
+  if (error) throw error;
+  if (!data) return null;
+  return { version: Number(data.version), datos: aplicarCambios(previo, data) };
 }
 // La versión de la nube (null si no hay nada); undefined si la nube no sabe responderla
 async function versionNube() {
@@ -72,7 +86,7 @@ export async function sincronizar(silencio = false) {
       const hayRemoto = cambioRemoto != null;
       const cambiosAqui = base == null ? tieneDatos(local) : local.cambio > base;
       const cambiosAlla = hayRemoto && (base == null || cambioRemoto > base);
-      if (cambiosAlla && !remoto) { remoto = await leerTodo(); seguir(cuenta); }
+      if (cambiosAlla && !remoto) { remoto = (await leerCambios(base)) || (seguir(cuenta), await leerTodo()); seguir(cuenta); }
 
       if (cambiosAlla && remoto && cambiosAqui) {
         // Los dos lados cambiaron desde la última vez: se combinan, y solo en lo que chocan gana lo último guardado
@@ -263,7 +277,7 @@ export function iniciarNube() {
 let dePrueba = false;
 export function nubeDePrueba(cliente, usuario) {
   if (!import.meta.env.DEV) return;
-  supabase = cliente; sinPartes = false; porPartes = false; corriendo = null; otraVez = false; nube.proteccion = false;
+  supabase = cliente; sinPartes = false; porPartes = false; sinCambios = false; corriendo = null; otraVez = false; nube.proteccion = false;
   nube.usuario = usuario; nube.lista = true; nube.estado = 'pendiente';
   usarUsuario(usuario.id);
   if (!dePrueba) { dePrueba = true; alGuardarse(programar); }

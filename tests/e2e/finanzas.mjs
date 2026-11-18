@@ -231,9 +231,43 @@ export default async (p) => {
   falla(await a.valor('#calc-expr') === '56', 'el igual no dejó el resultado: ' + await a.valor('#calc-expr'));
   await escribirCampo('Valor', '200000');
   await escribirCampo('Total', '90000');
-  await escribirCampo('Propina %', '10');
+  await escribirCampo('Propina (% o $)', '10');
   await escribirCampo('Te prestan', '1000000');
   await paso('calcular con datos');
+  // Tecla por tecla, como una persona: los puntos de miles aparecen mientras se escribe y la cuenta debe salir bien
+  // (antes "69000" se leía como 6,9 a mitad del formato y todos los cálculos salían mal)
+  const teclear = async (etiqueta, texto) => {
+    const s = await a.campo(etiqueta);
+    await a.escribir(s, '');
+    for (const ch of texto) { await p.cdp('Input.insertText', { text: ch }); await a.dormir(40); }
+    await a.salir();
+  };
+  await teclear('Valor', '200000');
+  await teclear('Porcentaje %', '19');
+  let tc = await a.texto();
+  falla(tc.includes('19 % de $ 200.000') && tc.includes('$ 38.000') && tc.includes('$ 238.000'), 'porcentajes mal al teclear: ' + tc.slice(tc.indexOf('Porcentajes'), tc.indexOf('Porcentajes') + 300));
+  await teclear('Total', '69000');
+  await teclear('Personas', '3');
+  await teclear('Propina (% o $)', '10');
+  tc = await a.texto();
+  falla(tc.includes('$ 6.900') && tc.includes('$ 75.900') && tc.includes('$ 25.300'), 'dividir la cuenta mal al teclear: ' + tc.slice(tc.indexOf('Dividir'), tc.indexOf('Dividir') + 300));
+  await teclear('Propina (% o $)', '10000');
+  tc = await a.texto();
+  falla(tc.includes('Tomé $ 10.000 como la propina en pesos') && tc.includes('$ 79.000'), 'la propina en pesos no salió: ' + tc.slice(tc.indexOf('Dividir'), tc.indexOf('Dividir') + 300));
+  await teclear('Te prestan', '1000000');
+  tc = await a.texto();
+  falla(tc.includes('$ 94.56'), 'la cuota del crédito mal al teclear (1.000.000 a 12 meses al 2 %): ' + tc.slice(tc.indexOf('Cuota de un'), tc.indexOf('Cuota de un') + 300));
+  await teclear('Monto que sale de la cuenta', '500000');
+  tc = await a.texto();
+  falla(tc.includes('4x1000 de $ 500.000') && tc.includes('$ 2.000'), 'el 4x1000 mal al teclear');
+  await p.ev(`[...document.querySelectorAll('#vista label')].find(l=>l.textContent.startsWith('Propina'))?.scrollIntoView({block:'center'})`);
+  await p.foto('finanzas-calculos-pc');
+  await p.celular();
+  falla(await p.sinDesborde(), 'Calcular se sale de la pantalla en el celular');
+  await p.ev(`[...document.querySelectorAll('#vista label')].find(l=>l.textContent.startsWith('Propina'))?.scrollIntoView({block:'center'})`);
+  await p.foto('finanzas-calculos-cel');
+  await p.computador();
+  await escribirCampo('Te prestan', '1000000');
   await p.poner(await a.campo('La tasa es'), 'anual');
   await paso('tasa anual');
   await escribirCampo('Monto que sale de la cuenta', '500000');

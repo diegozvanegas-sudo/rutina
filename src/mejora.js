@@ -1,5 +1,5 @@
 // Mejorar un poco cada día: tendencia frente al último mes, qué te funciona, experimento de la semana e inglés con horas reales.
-import { e, avanceMetas, fraccionManana, habitosDe, mananaCompleta, comidasDelDia, planDieta } from './estado.js';
+import { e, avanceMetas, fraccionManana, habitosDe, mananaCompleta, comidasDelDia, planDieta, avancePrioridades } from './estado.js';
 import { iso, sumarDias, semanaDe, diasEntre } from './fechas.js';
 import { resumenSemana } from './gym.js';
 import { pesos as pesosCorporales, tendencia } from './dieta.js';
@@ -30,6 +30,8 @@ export function comparativa(hoy = iso()) {
     // 🌱 Mi vida (src/mivida.js): el ánimo anotado y el trabajo profundo, contando solo los días con trabajo anotado
     fila('animo', '😊', 'Ánimo', '#vida', '/5', lados((f) => (conDia(f) && dias[f].animo && dias[f].animo.animo > 0 ? dias[f].animo.animo : null))),
     fila('trabajo', '💼', 'Trabajo profundo', '#vida', 'min', lados((f) => (conDia(f) && dias[f].trabajo && dias[f].trabajo.minutos > 0 ? dias[f].trabajo.minutos : null))),
+    // Las 3 prioridades del día: cuántas se cumplieron, solo los días que tenían prioridades escritas
+    fila('prioridades', '🎯', 'Prioridades cumplidas', '#manana', '%', lados((f) => { const p = conDia(f) && avancePrioridades(dias[f]); return p && p.total ? (p.hechas / p.total) * 100 : null; })),
   ];
   // Gym: la última semana completa frente a las 4 anteriores (la de ahora todavía no termina)
   const s = semanaDe(hoy) - 1, series = (n) => {

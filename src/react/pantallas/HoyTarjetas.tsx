@@ -4,7 +4,7 @@
 // Progreso usa también el bloque del reto activo.
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { Box, Button, ButtonBase, Card, Chip, Link } from '@mui/material';
-import { hayFutbol, prioridadesDe, semanaActual } from '../../estado.js';
+import { hayFutbol, prioridadesDe, avancePrioridades, semanaActual } from '../../estado.js';
 import { iso, sumarDias, fechaCorta, semanaDe, diaSemana } from '../../fechas.js';
 import { horasSueno, promedioSueno, MOLESTIAS, hayPartido, semanaObjetivo, focoDe, horaCama, minutosTarde } from '../../registro.js';
 import { rango } from '../../progreso.js';
@@ -324,6 +324,7 @@ export function CierreHoy({ e, ahora = new Date() }: { e: Fin; ahora?: Date }) {
   if (!s) return null;
   const S = piezasSesiones as Fin, marcas = S.marcasDe(s.id), a = S.avanceChecklist(s, marcas) as Fin, hoy = iso(ahora);
   const cama = horaCama(e.config) as string, acoste = ((e.dias[hoy] || {}).sueno || {}).acoste, tarde = minutosTarde(acoste, cama) as number, manana = sumarDias(hoy, 1) as string;
+  const pr = avancePrioridades(e.dias[hoy]) as Fin;
   return (
     <Tarjeta>
       <Box sx={FILA}><b>🌙 {s.nombre}</b><Box component="span" sx={a.completa ? { color: 'success.main' } : null}>{a.completa ? '✓ Lista' : a.hechos + ' / ' + a.total + ' hoy'}</Box></Box>
@@ -331,6 +332,8 @@ export function CierreHoy({ e, ahora = new Date() }: { e: Fin; ahora?: Date }) {
       <Box sx={{ display: 'grid', gap: '8px' }}>
         <Box component="p" sx={{ fontSize: 16 }}>🛏️ A la cama a las <b>{cama}</b>{acoste ? <Box component="small" sx={{ color: 'text.secondary' }}> · anoche {acoste}{tarde > 10 ? ', ' + tarde + ' min tarde' : ' ✓'}</Box> : null} <Link href="#ajustes" sx={{ fontSize: 14, color: 'text.secondary' }}>cambiar</Link></Box>
         {hayFutbol(hoy) ? <Aviso>⚽ Noche de partido: al llegar, ducha, cena de recuperación y cero pantallas. Mañana va la versión corta.</Aviso> : null}
+        {pr.total ? <Box sx={{ ...FILA, color: 'text.secondary', fontSize: 14 }}><span>🎯 Prioridades de hoy cumplidas</span><Box component="b" sx={pr.hechas === pr.total ? { color: 'success.main' } : null}>{pr.hechas}/{pr.total}</Box></Box> : null}
+        <Campo key={'mejora' + hoy} etiqueta="📈 Mi mejora del 1 % de hoy" data-cambio="mejora-uno" data-f={hoy} defaultValue={(e.dias[hoy] || {}).mejoraUno || ''} placeholder="Ej.: me acosté 15 min antes · una llamada más" />
         <CampoLargo etiqueta="🎯 Mis 3 prioridades de mañana" filas={3} data-cambio="prioridades" data-f={manana} placeholder={'1. …\n2. …\n3. …'} defaultValue={prioridadesDe(manana)} />
       </Box>
       {s.pasos.length ? (

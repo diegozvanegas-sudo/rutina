@@ -121,7 +121,13 @@ function hoyDieta(e: Fin) {
       {manual
         ? <Nota>Elegiste el plan a mano. <Enlace href="#dieta" accion="dieta-tipo-hoy" datos={{ 'data-tipo': auto }}>Volver al que toca hoy</Enlace></Nota>
         : <Nota>El plan sale del gym y del fútbol de hoy. Toca otro si hoy comes distinto.</Nota>}
-      <Card component="section" sx={{ mb: '14px' }}>{comidasHoy(e)}</Card>
+      <Card component="section" sx={{ mb: '14px' }}>
+        {comidasHoy(e)}
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', mt: '10px' }}>
+          <Button color="secondary" data-accion="dieta-copiar" aria-label="Copiar el plan para WhatsApp">📋 Copiar texto</Button>
+          <Button color="secondary" data-accion="dieta-imagen" aria-label="Imagen del plan para WhatsApp">🖼️ Imagen</Button>
+        </Box>
+      </Card>
       {proteina()}
     </>
   );

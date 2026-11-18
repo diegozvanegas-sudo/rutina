@@ -25,6 +25,12 @@ registrar({
     if (t) a.nota = t; else delete a.nota;
     guardar();
   },
+  // 📈 Mi mejora del 1 % de hoy (en el cierre de la noche)
+  'mejora-uno'({ f }, el) {
+    const d = dia(f), t = el.value.trim();
+    if (t) d.mejoraUno = t; else delete d.mejoraUno;
+    guardar(false);
+  },
   // 💼 Trabajo e ingresos
   'trabajo-min'({ f }, el) {
     const t = (dia(f).trabajo ??= {}), n = Math.round(Number(String(el.value).replace(',', '.')));

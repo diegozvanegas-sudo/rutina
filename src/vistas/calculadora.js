@@ -11,8 +11,12 @@ function resultadoCalc() {
   const r = evaluar(calc.expr);
   return calc.expr.trim() ? (isFinite(r) ? '= ' + numero(r) : '…') : '0';
 }
-// Para la pantalla: lo escrito y el resultado de la cuenta
-export const piezasCalculadora = { calc, resultadoCalc };
+// Lo escrito en un campo, listo para leerlo. Los campos de plata se leen mientras main.js les pone los puntos de miles
+// y pueden llegar a medio formatear ("6.9000", que se leía como 6,9 en vez de 69.000): sin k, M ni coma, sus puntos
+// solo son de miles y se quitan
+export const valorCampo = (el) => (el.dataset && 'pesos' in el.dataset && !/[kKmM,]/.test(el.value) ? el.value.replace(/\./g, '') : el.value);
+// Para la pantalla: lo escrito, el resultado de la cuenta y cómo leer un campo
+export const piezasCalculadora = { calc, resultadoCalc, valorCampo };
 
 function tecla(t) {
   const el = document.getElementById('calc-expr');
@@ -34,7 +38,7 @@ if (typeof document !== 'undefined') {
   // Cada campo de la calculadora lleva data-calc="nombre": lo escrito queda en calc
   document.addEventListener('input', (ev) => {
     const el = ev.target;
-    if (el.matches && el.matches('[data-calc]')) calc[el.dataset.calc] = el.value;
+    if (el.matches && el.matches('[data-calc]')) calc[el.dataset.calc] = valorCampo(el);
   });
   document.addEventListener('change', (ev) => {
     const el = ev.target;

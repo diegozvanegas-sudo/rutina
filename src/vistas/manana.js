@@ -48,6 +48,15 @@ registrar({
     if (h) { ponerTextoHabito(dia(), h, el.value.trim()); guardar(false); }
   },
   prioridades({ f }, el) { dia(f).prioridades = el.value.trim(); guardar(false); },
+  // Marcar una de las 3 prioridades como hecha (guarda la hora); tocarla otra vez la desmarca
+  prioridad({ f, t }) {
+    const d = dia(f), h = (d.prioridadesHechas ??= {});
+    if (h[t]) delete h[t]; else h[t] = Date.now();
+    if (!Object.keys(h).length) delete d.prioridadesHechas;
+    guardar();
+  },
+  // 🧭 Al despertar: leí mi propósito y mi meta (Seminario Fénix)
+  vision({ f }) { const d = dia(f); if (d.vision) delete d.vision; else d.vision = Date.now(); guardar(); },
   'manana-tipo'(ds, el) { tipoNuevo = el.value; },
   'manana-nuevo'(ds, el) {
     const nombre = el.value.trim();

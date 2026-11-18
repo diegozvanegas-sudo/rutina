@@ -4,7 +4,8 @@
 import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto } from '../estado.js';
 import { iso } from '../fechas.js';
 import { totalComida, objetivo, recalcular, pesos, tendencia, ajusteCarbos } from '../dieta.js';
-import { registrar, toast, miles } from '../ui.js';
+import { registrar, toast, miles, copiarTexto } from '../ui.js';
+import { resumenDieta, textoDieta, compartirDieta } from '../imagen-dieta.js';
 
 let pestana = 'hoy', planVista = null;
 const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', recarga: '🍚 Recarga', descanso: '😌 Descanso' };
@@ -12,6 +13,11 @@ const r0 = (n) => Math.round(n || 0);
 const d = () => e().dieta;
 const alimento = (id) => d().alimentos.find((a) => a.id === id);
 export const TIPOS_PLAN = TIPOS;
+// El plan que toca hoy, listo para el texto y la imagen de WhatsApp (src/imagen-dieta.js)
+function resumenDeHoy() {
+  const tipo = tipoDieta(), hoy = iso();
+  return resumenDieta({ plan: d().planes[tipo], alimentos: d().alimentos, hechas: (e().dias[hoy] || {}).comidas || {}, tipo, titulo: TIPOS[tipo], fecha: hoy });
+}
 
 // Peso para los cálculos: el promedio de los últimos 7 registros; si no hay, el de partida
 export function pesoActual() {
@@ -41,6 +47,14 @@ registrar({
     const hoy = dia();
     if (tipo === tipoDietaAuto()) delete hoy.dieta; else hoy.dieta = tipo;
     guardar();
+  },
+  // 📲 El plan de hoy para WhatsApp: como texto o como imagen
+  'dieta-copiar'() { copiarTexto(textoDieta(resumenDeHoy()), 'Plan de comida copiado: pégalo en WhatsApp'); },
+  async 'dieta-imagen'() {
+    try {
+      const r = await compartirDieta(resumenDeHoy(), iso());
+      if (r === 'descargada') toast('🖼️ Imagen descargada');
+    } catch (err) { toast('No se pudo crear la imagen'); }
   },
   'dieta-comer'({ i }) {
     const tipo = tipoDieta(), hoy = dia(), clave = tipo + ':' + i;

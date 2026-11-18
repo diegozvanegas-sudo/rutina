@@ -28,6 +28,7 @@ import menu from './menu.mjs';
 import flotante from './flotante.mjs';
 import reproductor from './reproductor.mjs';
 import entrar from './entrar.mjs';
+import diario from './diario.mjs';
 import nuevo from './nuevo.mjs';
 import prediccion from './prediccion.mjs';
 import mivida from './mivida.mjs';
@@ -35,5 +36,5 @@ import mivida from './mivida.mjs';
 import nube from './nube.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo, prediccion, mivida, nube]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo, prediccion, mivida, diario, nube]) await recorrido(p);
 };

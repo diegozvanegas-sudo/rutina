@@ -3,9 +3,10 @@
 // reglas son las de src/vistas/manana.js (marcar, marcar-minimo, cuenta, crono, habito-texto, prioridades, manana-…).
 // CabeceraManana y ListaManana quedan listas para cuando Hoy se pase a React; mientras, Hoy usa las de HTML de allá.
 import { useEffect, useState, type ReactNode } from 'react';
-import { Box, Button, ButtonBase, Card, NativeSelect, OutlinedInput } from '@mui/material';
-import { dia, racha, habitosDe, hechosManana, fraccionManana, segundosCrono, textoHabito, pastillaDe, mananaCorta, prioridadesDe } from '../../estado.js';
-import { iso, hora, reloj } from '../../fechas.js';
+import { Box, Button, ButtonBase, Card, Link, NativeSelect, OutlinedInput } from '@mui/material';
+import { dia, racha, habitosDe, hechosManana, fraccionManana, segundosCrono, textoHabito, pastillaDe, mananaCorta, prioridadesDe, avancePrioridades } from '../../estado.js';
+import { iso, hora, reloj, fechaCorta } from '../../fechas.js';
+import { brujula } from '../../mivida.js';
 import { IDEAS_HABITOS } from '../../datos_iniciales.js';
 import { textoEspera, piezasManana } from '../../vistas/manana.js';
 import { tokens } from '../tema';
@@ -13,6 +14,7 @@ import { usarEstado } from '../usarEstado';
 import { CampoLargo, CampoLargoSolo, CampoSolo } from '../ui/Campo';
 import { TituloPantalla, Nota } from '../ui/Textos';
 import { Avance } from '../ui/Varios';
+import { Paso, Pasos } from '../ui/Lectura';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -92,6 +94,40 @@ export function CabeceraManana({ fecha = iso() }: { fecha?: string }) {
   );
 }
 
+// 🧭 Al despertar (Seminario Fénix): tu propósito y tu meta principal para leerlos; ya leídos, queda una fila
+function Brujula({ e, fecha }: { e: Fin; fecha: string }) {
+  if (!e.libros || !e.libros.fenix) return null;
+  const b = brujula(fecha, e) as Fin, datos = { 'data-accion': 'vision', 'data-f': fecha };
+  if (b.leido) return <Box sx={{ mb: '10px' }}><Paso hecho datos={datos}>🧭 Leí mi propósito y mi meta · {hora(b.leido)}</Paso></Box>;
+  if (!b.proposito && !b.meta) return <Nota sx={{ mt: 0 }}>🧭 Escribe <Link href="#libros/fenix">tu propósito y tu meta principal</Link> en Libros → Fénix → Herramientas y los leerás aquí cada mañana.</Nota>;
+  return (
+    <Box sx={{ display: 'grid', gap: '8px', mb: '10px' }}>
+      <Box sx={{ borderLeft: '3px solid', borderColor: 'primary.main', pl: '10px', display: 'grid', gap: '4px' }}>
+        {b.proposito ? <Box component="p" sx={{ m: 0, fontSize: 17, fontWeight: 600 }}>🧭 {b.proposito}</Box> : null}
+        {b.meta ? <Box component="p" sx={{ m: 0 }}>🎯 {b.meta}{b.limite ? <Box component="small" sx={{ color: 'text.secondary' }}> · hasta el {fechaCorta(b.limite)}</Box> : null}</Box> : null}
+      </Box>
+      <Paso hecho={false} datos={datos}>Lo leí y me vi lográndolo (1 min)</Paso>
+    </Box>
+  );
+}
+
+// 🎯 Las 3 prioridades de hoy (se escriben la noche anterior): escritas, se marcan una por una; ✏️ vuelve al texto
+function Prioridades({ fecha }: { fecha: string }) {
+  const [editando, setEditando] = useState(false), d = dia(fecha) as Fin, p = avancePrioridades(d) as Fin;
+  if (editando || !p.total) return (
+    <Box sx={{ mb: '10px', display: 'grid', gap: '6px' }}>
+      <CampoLargo etiqueta="🎯 Mis 3 prioridades de hoy" filas={3} data-cambio="prioridades" data-f={fecha} placeholder={'1. …\n2. …\n3. …'} defaultValue={prioridadesDe(fecha)} />
+      {editando ? <Button color="secondary" onClick={() => setEditando(false)} sx={{ justifySelf: 'start' }}>✓ Listo</Button> : null}
+    </Box>
+  );
+  return (
+    <Box sx={{ mb: '10px', display: 'grid', gap: '6px' }}>
+      <Box sx={FILA}><b>🎯 Mis prioridades de hoy</b><Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: '4px' }}><b>{p.hechas}/{p.total}</b><Button variant="text" onClick={() => setEditando(true)} aria-label="Cambiar las prioridades" sx={{ minWidth: 44, minHeight: 40, p: 0 }}>✏️</Button></Box></Box>
+      <Pasos>{(p.lista as Fin[]).map((x, i) => <Paso key={x.texto} hecho={!!x.hecha} marca={i + 1} datos={{ 'data-accion': 'prioridad', 'data-f': fecha, 'data-t': x.texto }}>{x.texto}{x.hecha ? <Box component="small" sx={{ color: 'text.secondary', fontSize: 13 }}> · {hora(x.hecha)}</Box> : null}</Paso>)}</Pasos>
+    </Box>
+  );
+}
+
 export function ListaManana({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
   const d = dia(fecha) as Fin;
   if (!e.habitos.length) return <><Nota>Aún no tienes hábitos de mañana. Agrega el primero aquí abajo.</Nota><Agregar e={e} /></>;
@@ -102,7 +138,8 @@ export function ListaManana({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
     <>
       {corta === 'hoy' ? <Aviso>⚽ Hoy juegas: con 20 min suaves de caminata basta, llega fresco al partido.</Aviso> : null}
       {corta === 'ayer' ? <Aviso>⚽ Ayer jugaste: hoy va la versión corta. Lo que no se negocia: pastilla, desayuno, estirar y tus 3 prioridades. La caminata con 20 min suaves basta.</Aviso> : null}
-      <Box sx={{ mb: '10px' }}><CampoLargo etiqueta="🎯 Mis 3 prioridades de hoy" filas={3} data-cambio="prioridades" data-f={fecha} placeholder={'1. …\n2. …\n3. …'} defaultValue={prioridadesDe(fecha)} /></Box>
+      <Brujula e={e} fecha={fecha} />
+      <Prioridades fecha={fecha} />
       <Box component="ol" sx={{ listStyle: 'none', m: '8px 0 0', p: 0, display: 'grid', gap: '8px' }}>
         {lista.map((h, i) => {
           const reg = d.habitos[h.id], partido = !reg && corta && esCaminata(h);

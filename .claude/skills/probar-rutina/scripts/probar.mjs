@@ -78,6 +78,8 @@ try {
   };
   await cdp('Page.enable');
   await cdp('Runtime.enable');
+  // Lo que descargan los botones (Exportar, CSV, calendario) va al perfil temporal y se borra al final, no a Descargas
+  await cdp('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: join(perfil, 'descargas') });
   // Los diálogos nativos bloquearían la prueba: se aceptan solos
   await cdp('Page.addScriptToEvaluateOnNewDocument', { source: 'window.confirm=()=>true;window.alert=()=>{};' });
   await p.computador();

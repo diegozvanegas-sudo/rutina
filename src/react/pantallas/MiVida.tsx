@@ -7,7 +7,7 @@ import { iso, fechaCorta, sumarDias } from '../../fechas.js';
 import { rango } from '../../progreso.js';
 import {
   resumenAnimo, resumenTrabajo, ACCIONES_INGRESO, META_TRABAJO, AREAS, IDEAS_AREA, ruedaActual, ruedaAnterior, ruedaToca, areaMasBaja, promedioRueda, CADA_RUEDA,
-  decisiones, porRevisar, criterio, REVISAR_EN, anio, meses, vidaEnSemanas, ANIOS_VIDA, curvaUno, tuCurva, queTeSube,
+  decisiones, porRevisar, criterio, REVISAR_EN, anio, meses, vidaEnSemanas, ANIOS_VIDA, curvaUno, tuCurva, queTeSube, mejorasUno,
 } from '../../mivida.js';
 import { experimentoActivo } from '../../mejora.js';
 import { piezasVida, revisionesIA } from '../../vistas/mivida.js';
@@ -83,7 +83,7 @@ function TuAnio({ e }: { e: Fin }) {
 
 // ---------- 📈 La curva del 1 % ----------
 function curva(e: Fin) {
-  const c = tuCurva(iso(), e) as Fin, puntos = Array.from({ length: 13 }, (_, i) => ({ etiqueta: i ? i + 'm' : 'hoy', v: Math.round(curvaUno(i * 30) * 100) / 100, tip: 'En ' + i * 30 + ' días: ' + f1(curvaUno(i * 30)) + ' veces' }));
+  const c = tuCurva(iso(), e) as Fin, mu = mejorasUno(iso(), e) as Fin, puntos = Array.from({ length: 13 }, (_, i) => ({ etiqueta: i ? i + 'm' : 'hoy', v: Math.round(curvaUno(i * 30) * 100) / 100, tip: 'En ' + i * 30 + ' días: ' + f1(curvaUno(i * 30)) + ' veces' }));
   return (
     <Plegable titulo="📈 La curva del 1 %">
       <Box sx={{ display: 'grid', gap: '8px', gridTemplateColumns: '1fr 1fr' }}>
@@ -95,6 +95,10 @@ function curva(e: Fin) {
         <p>Tu puntaje: <b>{Math.round(c.inicio)}/100</b> en tus primeros {c.n} días → <b>{Math.round(c.ahora)}/100</b> en los últimos {c.n} ({c.cambio >= 0 ? '+' : ''}{Math.round(c.cambio * 100)} %).</p>
         {c.diario != null ? <Nota sx={{ m: 0 }}>Eso es {c.diario >= 0 ? 'mejorar' : 'empeorar'} un <b>{f1(Math.abs(c.diario) * 100)} %</b> al día desde el {fechaCorta(c.desde)}. {c.diario >= 0.01 ? '¡Vas al ritmo del 1 %!' : c.diario > 0 ? 'Vas subiendo; el 1 % diario es la meta.' : 'Vas bajando: elige un solo cambio y pruébalo 7 días.'}</Nota> : null}
       </Caja> : <Nota>Con 20 días anotados te muestro tu propia curva (llevas {c.dias}).</Nota>}
+      {mu.dias ? <Caja>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}><b>📈 Tus mejoras del 1 %</b><span><b>{mu.dias}</b> de {mu.de} días</span></Box>
+        <Box component="ul" sx={{ m: 0, pl: '18px', display: 'grid', gap: '4px' }}>{(mu.lista as Fin[]).slice(0, 7).map((x) => <li key={x.fecha}><Box component="small" sx={{ color: 'text.secondary' }}>{fechaCorta(x.fecha)}:</Box> {x.texto}</li>)}</Box>
+      </Caja> : <Nota>Cada noche, en 🌙 Cierre de la noche, anota tu mejora del 1 % de ese día y aquí verás todas juntas.</Nota>}
       <Nota>El 1 % no es hacer más: es hacer un poquito mejor lo de siempre, todos los días, y medirlo.</Nota>
     </Plegable>
   );

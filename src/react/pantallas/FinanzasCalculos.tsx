@@ -21,7 +21,7 @@ const VISTA = 'finanzas';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
 type Calc = Record<'expr' | 'monto' | 'pct' | 'parte' | 'total' | 'cuenta' | 'personas' | 'propina' | 'credito' | 'tasa' | 'tipoTasa' | 'meses' | 'gmf', string>;
-const { calc, resultadoCalc } = piezasCalculadora as { calc: Calc; resultadoCalc: () => string };
+const { calc, resultadoCalc, valorCampo } = piezasCalculadora as { calc: Calc; resultadoCalc: () => string; valorCampo: (el: HTMLInputElement | HTMLSelectElement) => string };
 const { espera, SENALES } = piezasEsperas as { espera: { tipo: string }; SENALES: string[] };
 
 // ---------- 🧮 Calcular ----------
@@ -45,9 +45,12 @@ function salidaProporcion() {
   return a && b ? <Lista filas={[fila('es', pesos(a) + ' es de ' + pesos(b), numero(queTanto(a, b), 1) + ' %')]} /> : null;
 }
 function salidaDividir() {
-  const t = num('cuenta'), n = Math.max(1, Math.floor(num('personas') || 1)), d = dividir(t, n, num('propina')) as { propina: number; total: number; porPersona: number };
+  // La propina: hasta 100 es un porcentaje; más de 100 son pesos ("10.000" = $ 10.000 de propina, no el 10.000 %)
+  const t = num('cuenta'), n = Math.max(1, Math.floor(num('personas') || 1)), escrita = num('propina'), enPesos = escrita > 100;
+  const d = dividir(t, n, enPesos && t ? (escrita / t) * 100 : escrita) as { propina: number; total: number; porPersona: number };
   if (!t) return <Nota>Escribe el total de la cuenta.</Nota>;
   return <Lista filas={[
+    ...(enPesos ? [fila('nota', <Chico>Tomé {pesos(escrita)} como la propina en pesos ({numero((escrita / t) * 100, 1)} %)</Chico>, '')] : []),
     ...(d.propina ? [fila('propina', 'Propina', pesos(d.propina)), fila('total', 'Total con propina', pesos(d.total))] : []),
     fila('cada', 'Cada uno (' + n + ')', pesos(d.porPersona), tokens.verde),
   ]} />;
@@ -83,7 +86,8 @@ export function Calcular() {
   const [, pintar] = useState(0), repintar = () => pintar((n) => n + 1);
   const alEscribir = (ev: FormEvent<HTMLElement>) => {
     const el = ev.target as HTMLInputElement | HTMLSelectElement, k = el.dataset && el.dataset.calc as keyof Calc | undefined;
-    if (k) { calc[k] = el.value; repintar(); }
+    // Los campos de plata pueden llegar a medio formatear (valorCampo en src/vistas/calculadora.js lo resuelve)
+    if (k) { calc[k] = valorCampo(el); repintar(); }
   };
   const campo = (titulo: string, k: keyof Calc, dinero = true) => (
     <Campo etiqueta={titulo} inputMode={dinero ? 'numeric' : 'decimal'} {...(dinero ? { 'data-pesos': '' } : null)} data-calc={k} defaultValue={calc[k]} />
@@ -115,7 +119,7 @@ export function Calcular() {
       <TarjetaPlegable vista={VISTA} clave="🍽️ Dividir la cuenta" titulo="🍽️ Dividir la cuenta">
         <Box sx={{ display: 'grid', gap: '8px' }}>
           <Box sx={DOS}>{campo('Total', 'cuenta')}{campo('Personas', 'personas', false)}</Box>
-          {campo('Propina %', 'propina', false)}
+          {campo('Propina (% o $)', 'propina', false)}
         </Box>
         {salidaDividir()}
       </TarjetaPlegable>

@@ -493,6 +493,13 @@ export const hayFutbol = (fecha = iso()) => juegaEl(e().config, fecha);
 export const mananaCorta = (fecha = iso()) => (hayFutbol(fecha) ? 'hoy' : hayFutbol(sumarDias(fecha, -1)) ? 'ayer' : null);
 // Las 3 prioridades de un día: se escriben la noche anterior en el Cierre de la noche (dias[fecha].prioridades)
 export const prioridadesDe = (fecha = iso()) => (e().dias[fecha] || {}).prioridades || '';
+// Cada línea es una prioridad (sin el "1." o el "-" del principio). Se marcan hechas por su texto en
+// dias[fecha].prioridadesHechas = { texto: hora }, así cambiar el orden o corregir otra línea no mueve las marcas
+export const listaPrioridades = (texto) => String(texto || '').split('\n').map((t) => t.replace(/^\s*(\d+\s*[.)-]|[-•*])\s*/, '').trim()).filter(Boolean);
+export function avancePrioridades(d) {
+  const hechas = (d && d.prioridadesHechas) || {}, lista = listaPrioridades(d && d.prioridades).map((texto) => ({ texto, hecha: hechas[texto] || null }));
+  return { lista, hechas: lista.filter((x) => x.hecha).length, total: lista.length };
+}
 
 // ---------- Dieta ----------
 // Plan que toca por el día: partido → fútbol, pierna → inferior, resto → superior, sin entreno → descanso o recarga si mañana hay partido

@@ -4,7 +4,7 @@ import { e } from '../src/estado.js';
 import { sumarDias } from '../src/fechas.js';
 import {
   resumenAnimo, resumenTrabajo, accionesDe, ruedaToca, ruedaDeHoy, areaMasBaja, promedioRueda, AREAS, nuevaDecision, porRevisar, criterio,
-  vidaEnSemanas, curvaUno, anio, queTeSube, lineasVida,
+  vidaEnSemanas, curvaUno, anio, queTeSube, lineasVida, brujula, mejorasUno,
 } from '../src/mivida.js';
 import { promptSemanal } from '../src/prediccion.js';
 import { comparativa } from '../src/mejora.js';
@@ -97,4 +97,41 @@ test('la revisión para la IA trae la sección de vida y la comparativa el ánim
   assert.match(l, /venta o cobro 1/);
   assert.match(promptSemanal('2026-11-18', est), /## Ánimo, trabajo y vida/);
   assert.ok(comparativa('2026-11-18').some((x) => x.id === 'animo'));
+}));
+
+// ---------- Diario Fénix: prioridades marcables, propósito al despertar y mejora del 1 % ----------
+test('prioridades: cada línea sin su número; las marcas van por texto', async () => {
+  const { listaPrioridades, avancePrioridades } = await import('../src/estado.js');
+  assert.deepEqual(listaPrioridades('1. Llamar a Ana\n2) Enviar propuesta\n\n- Gym\n• Leer'), ['Llamar a Ana', 'Enviar propuesta', 'Gym', 'Leer']);
+  const p = avancePrioridades({ prioridades: '1. A\n2. B\n3. C', prioridadesHechas: { B: 1, Z: 2 } });
+  assert.deepEqual([p.hechas, p.total, p.lista[1].hecha], [1, 3, 1]);
+  assert.deepEqual(avancePrioridades(undefined), { lista: [], hechas: 0, total: 0 });
+});
+
+test('brújula: propósito y la meta con la fecha más cercana por delante', () => conEstado((est) => {
+  const antes = est.libros;
+  est.libros = { fenix: { perfil: { proposito: ' Servir ' }, fichas: { metas: [
+    { id: 'a', fecha: '2026-11-18', meta: 'Recién creada' }, { id: 'b', fecha: '2027-06-01', meta: 'Lejana' }, { id: 'c', fecha: '2026-12-31', meta: 'Cercana' }, { id: 'd', fecha: '2027-01-01', meta: '' },
+  ] } } };
+  dia(est, '2026-11-18', { vision: 123 });
+  try {
+    const b = brujula('2026-11-18', est);
+    assert.deepEqual([b.proposito, b.meta, b.limite, b.leido], ['Servir', 'Cercana', '2026-12-31', 123]);
+    est.libros.fenix.fichas.metas = [{ id: 'x', fecha: '2026-01-01', meta: 'Vieja' }];
+    assert.deepEqual([brujula('2026-11-18', est).meta, brujula('2026-11-18', est).limite], ['Vieja', '']);
+    est.libros = {};
+    assert.deepEqual([brujula('2026-11-18', est).proposito, brujula('2026-11-18', est).meta], ['', '']);
+  } finally { est.libros = antes; }
+}));
+
+test('mejora del 1 %: las últimas primero y entran en la revisión y en la comparativa', () => conEstado((est) => {
+  dia(est, '2026-11-16', { mejoraUno: 'Me acosté antes', prioridades: '1. A\n2. B', prioridadesHechas: { A: 1 } });
+  dia(est, '2026-11-18', { mejoraUno: ' Una llamada más ' });
+  dia(est, '2026-11-17', { mejoraUno: '   ' });
+  const m = mejorasUno('2026-11-18', est);
+  assert.deepEqual([m.dias, m.lista[0].texto, m.lista[1].fecha], [2, 'Una llamada más', '2026-11-16']);
+  const texto = lineasVida('2026-11-18', est).join('\n');
+  assert.match(texto, /Prioridades del día cumplidas: 1 de 2/);
+  assert.match(texto, /Mi mejora del 1 % \(2 de 7 días\)/);
+  assert.ok(comparativa('2026-11-18').some((x) => x.id === 'prioridades'));
 }));

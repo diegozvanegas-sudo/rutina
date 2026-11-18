@@ -25,6 +25,30 @@ export default async (p) => {
   let d = await dia();
   falla(Object.keys(d.comidas || {}).length === 1, 'no marcó la comida: ' + JSON.stringify(d.comidas));
   await paso('comida marcada');
+  // 📲 Para WhatsApp: el texto copiado y la imagen (se guarda junto a las capturas para revisarla)
+  await p.ev(`navigator.clipboard.writeText=(t)=>{window.__copiado=t;return Promise.resolve()};
+    navigator.canShare=()=>true; navigator.share=(d)=>{window.__compartido=d.files.map(f=>f.name+' '+f.type).join(',');return Promise.resolve()};
+    window.__toBlob ??= HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob=function(...x){window.__imagen=this.toDataURL('image/png');window.__alto=this.height;return window.__toBlob.apply(this,x)}`);
+  await tocarTexto('📋 Copiar texto');
+  const copiado = await p.ev('window.__copiado') || '';
+  falla(copiado.startsWith('🍽️ *Mi plan de comida') && copiado.includes('kcal*') && copiado.includes('✅ *') && copiado.includes('⬜ *'), 'no copió el plan: ' + copiado.slice(0, 200));
+  falla((await a.aviso()).includes('Plan de comida copiado'), 'no avisó que copió');
+  console.log('texto para WhatsApp:\n' + copiado);
+  await tocarTexto('🖼️ Imagen');
+  await a.dormir(600);
+  const imagen = await p.ev('window.__imagen') || '';
+  falla(imagen.startsWith('data:image/png') && (await p.ev('window.__alto')) > 600, 'no creó la imagen');
+  const compartido = await p.ev('window.__compartido') || '';
+  falla(/^plan-de-comida-\d{4}-\d\d-\d\d\.png image\/png$/.test(compartido), 'no compartió la imagen: ' + compartido);
+  const { writeFileSync } = await import('node:fs'), { join } = await import('node:path');
+  if (process.argv[3]) { writeFileSync(join(process.argv[3], 'dieta-imagen.png'), Buffer.from(imagen.split(',')[1], 'base64')); console.log('📷', join(process.argv[3], 'dieta-imagen.png')); }
+  await p.celular();
+  falla(await p.sinDesborde(), 'Dieta se sale de la pantalla en el celular');
+  await p.ev(`document.querySelector('#vista [data-accion=dieta-imagen]').scrollIntoView({block:'center'})`);
+  await a.dormir(2600);
+  await p.foto('dieta-whatsapp-cel');
+  await p.computador();
   await tocarN('#vista [data-accion=dieta-comer]', 0);
   falla(!Object.keys((await dia()).comidas || {}).length, 'no desmarcó la comida');
   // Otro plan a mano y volver al que toca

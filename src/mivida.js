@@ -5,7 +5,8 @@
 //   · Rueda de la vida cada 3 meses: est.rueda = [{ fecha, notas: { salud: 1-10, … } }]
 //   · Diario de decisiones: est.decisiones = [{ id, fecha, texto, espero, confianza, revisar, resultado, salio }]
 //   · Tu año en cuadritos, tu vida en semanas (est.vida.nacimiento) y la curva del 1 %
-import { e, mananaCompleta, habitosDe, avanceMetas } from './estado.js';
+//   · Del Seminario Fénix: tu propósito y meta al despertar (est.dias[f].vision) y la mejora del 1 % (est.dias[f].mejoraUno)
+import { e, mananaCompleta, habitosDe, avanceMetas, avancePrioridades } from './estado.js';
 import { iso, sumarDias, diasEntre, diaSemana, fechaCorta } from './fechas.js';
 import { horasSueno } from './registro.js';
 import { puntajeDia, rango } from './progreso.js';
@@ -34,6 +35,24 @@ export function resumenTrabajo(fechas, est = e()) {
   const ts = fechas.map((f) => trabajoDe(f, est)), minutos = ts.reduce((s, t) => s + (Number(t.minutos) || 0), 0);
   const porTipo = Object.fromEntries(ACCIONES_INGRESO.map(([k]) => [k, ts.reduce((s, t) => s + (Number((t.acciones || {})[k]) || 0), 0)]));
   return { minutos, horas: minutos / 60, acciones: Object.values(porTipo).reduce((a, b) => a + b, 0), porTipo, dias: ts.filter((t) => t.minutos > 0 || accionesDe(t) > 0).length };
+}
+
+// ---------- 🧭 Al despertar (Seminario Fénix, días 9, 15 y 24): leer tu propósito y tu meta principal ----------
+// El propósito sale de Libros → Fénix → Mi perfil; la meta, de sus fichas "Mis metas (12 pasos)": la de fecha más
+// cercana que no ha pasado (en esas fichas "fecha" es la de creación hasta que se escribe la fecha límite, que la reemplaza)
+// y, si ninguna está por delante, la última creada (van primero). Marcarlo guarda la hora en est.dias[f].vision
+export function brujula(hoy = iso(), est = e()) {
+  const fenix = (est.libros && est.libros.fenix) || {}, proposito = String((fenix.perfil || {}).proposito || '').trim();
+  const metas = ((fenix.fichas || {}).metas || []).filter((m) => String(m.meta || '').trim());
+  const futuras = metas.filter((m) => (m.fecha || '') > hoy).sort((a, b) => (a.fecha < b.fecha ? -1 : 1));
+  const m = futuras[0] || metas[0] || null;
+  return { proposito, meta: m ? String(m.meta).trim() : '', limite: m && m.fecha > hoy ? m.fecha : '', leido: ((est.dias[hoy] || {}).vision) || null };
+}
+
+// ---------- 📈 Mi mejora del 1 % (Fénix, día 19): una línea en el cierre de la noche, en est.dias[f].mejoraUno ----------
+export function mejorasUno(hoy = iso(), est = e(), dias = 30) {
+  const lista = rango(dias, hoy).map((f) => ({ fecha: f, texto: String((est.dias[f] || {}).mejoraUno || '').trim() })).filter((x) => x.texto);
+  return { lista: lista.reverse(), dias: lista.length, de: dias };
 }
 
 // ---------- 🎡 Rueda de la vida ----------
@@ -185,6 +204,11 @@ export function lineasVida(hoy = iso(), est = e()) {
   if (r) lineas.push('- Rueda de la vida (' + r.fecha + '): ' + AREAS.filter(([k]) => r.notas[k] > 0).map(([k, , n]) => n + ' ' + r.notas[k]).join(', ') + (baja ? ' · la más baja: ' + AREAS.find(([k]) => k === baja)[2] : ''));
   if (c) lineas.push('- Decisiones revisadas: ' + c.revisadas + ', salieron como esperaba el ' + Math.round(c.aciertos * 100) + ' % con una confianza promedio del ' + Math.round(c.confianza * 100) + ' %');
   if (pend.length) lineas.push('- Decisiones por revisar: ' + pend.map((d) => d.texto).join(' · '));
+  // Diario Fénix: las 3 prioridades cumplidas y la mejora del 1 % de cada noche
+  const pr = sem.map((f) => avancePrioridades(est.dias[f])).filter((p) => p.total);
+  if (pr.length) lineas.push('- Prioridades del día cumplidas: ' + pr.reduce((s, p) => s + p.hechas, 0) + ' de ' + pr.reduce((s, p) => s + p.total, 0) + ' (' + pr.length + ' días con prioridades)');
+  const mu = mejorasUno(hoy, est, 7);
+  if (mu.dias) lineas.push('- Mi mejora del 1 % (' + mu.dias + ' de 7 días): ' + mu.lista.slice().reverse().map((x) => fechaCorta(x.fecha) + ': ' + x.texto).join(' · '));
   lineas.push('', 'Además de lo de arriba: 7. Mira mi ánimo, mi trabajo y el área más baja de mi rueda. ¿Qué es lo que más me está frenando en la vida y cuál es el 1 % que haría esta semana para mejorarlo?');
   return lineas;
 }

@@ -51,7 +51,7 @@ export const tokens = {
   prSombra: 'rgba(0, 0, 0, .35)', prSombraFuerte: 'rgba(0, 0, 0, .45)', prBrilloInterno: 'rgba(255, 255, 255, .04)',
   radio: 14,
 };
-const FUENTE = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+const FUENTE = '"Twemoji Country Flags", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 export const tema = createTheme({
   palette: {

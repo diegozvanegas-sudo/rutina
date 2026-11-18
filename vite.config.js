@@ -44,7 +44,7 @@ export default defineConfig({
       },
       workbox: {
         // Todo queda guardado al instalar: la app funciona completa sin señal en el gym
-        globPatterns: ['**/*.{html,js,css,png,svg,webp}'],
+        globPatterns: ['**/*.{html,js,css,png,svg,webp,woff2}'],
         navigateFallback: null,
       },
     }),

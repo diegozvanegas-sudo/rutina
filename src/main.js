@@ -1,4 +1,9 @@
 import { registerSW } from 'virtual:pwa-register';
+// Banderas (🇨🇴) en Chrome y Edge de Windows, que las muestran como letras ("CO"): solo ahí se carga una fuente con las
+// banderas, guardada dentro de la app (funciona sin internet). En el celular no hace nada
+import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
+import fuenteBanderas from 'country-flag-emoji-polyfill/dist/TwemojiCountryFlags.woff2?url';
+polyfillCountryFlagEmojis('Twemoji Country Flags', fuenteBanderas);
 import { e, cargar, esperarUsuario, alCambiar, guardar, empezarDePrueba, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct } from './ui.js';

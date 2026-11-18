@@ -24,7 +24,7 @@ export const ARMAZON = `:root {
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; background: transparent; }
-body { visibility: visible; margin: 0; background: ${t.bg}; color: ${t.ink}; font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+body { visibility: visible; margin: 0; background: ${t.bg}; color: ${t.ink}; font: 16px/1.4 "Twemoji Country Flags", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
 h1 { font-size: 26px; margin: 4px 0 12px; }
 h2 { font-size: 17px; margin: 0 0 10px; }
 h3 { font-size: 17px; margin: 0; }

@@ -54,8 +54,36 @@ export const piezasClientes = {
 };
 
 const cliente = () => lista()[idx()];
+
+// 📲 Publicar el plan de un cliente con tu marca. Queda anotada la firma de lo publicado (c.publicado) para saber después
+// si lo que tienes armado es lo mismo que él usa
+async function publicar(c) {
+  const plan = planParaPublicar(c, e().dieta, iso(), e().config.marca);
+  await llamar('rutina_coach_publicar', { p_local: c.id, p_plan: plan });
+  c.publicado = { firma: plan.firma, fecha: iso() };
+  guardar();
+  return plan;
+}
+// 💳📊🎨 Pagos, valoraciones y marca al día en la app del cliente: se vuelve a publicar solo si ya tiene un plan tuyo y
+// lo que tienes armado es lo mismo que publicaste (así nunca le llega a medias una rutina que estás editando). Sin nube o
+// sin conexión no hace nada; lo nuevo le llega con la próxima publicación
+export async function actualizarExtras(c) {
+  if (!nube.usuario || !c || !c.publicado || !navigator.onLine) return false;
+  if (planParaPublicar(c, e().dieta).firma !== c.publicado.firma) return false;
+  try { await publicar(c); return true; } catch (err) { return false; }
+}
+// A todos los que tienen un plan tuyo publicado (al cambiar la marca). Devuelve a cuántos les llegó
+export async function actualizarTodos() {
+  let n = 0;
+  for (const c of lista()) if (await actualizarExtras(c)) n++;
+  return n;
+}
 registrar({
-  'abrir-clientes'({ p }) { if (lista().some((c) => c.id === p)) { abierto = p; pestana = 'datos'; } },
+  // "#clientes/<id>" abre ese cliente; "#clientes/<id>:cobro" también en esa pestaña (lo usa el 🧑‍💼 Panel)
+  'abrir-clientes'({ p }) {
+    const [id, pes] = String(p || '').split(':');
+    if (lista().some((c) => c.id === id)) { abierto = id; pestana = pes || 'datos'; }
+  },
   'cl-agregar'() {
     const campo = document.getElementById('cl-nombre'), nombre = campo ? campo.value.trim() : '';
     if (!nombre) { toast('Escribe el nombre del cliente'); if (campo) campo.focus(); return; }
@@ -84,7 +112,7 @@ registrar({
   async 'cl-publicar'() {
     const c = cliente();
     if (!c.rutina.length && !Object.keys(c.dieta.planes || {}).length) { toast('Primero arma su rutina o sus comidas'); return; }
-    try { await llamar('rutina_coach_publicar', { p_local: c.id, p_plan: planParaPublicar(c, e().dieta) }); await cargarRemotos(); toast('📲 Plan publicado: le llega a ' + c.nombre + ' al abrir la app'); } catch (err) { toast('⚠️ ' + err.message); }
+    try { await publicar(c); await cargarRemotos(); toast('📲 Plan publicado: le llega a ' + c.nombre + ' al abrir la app'); } catch (err) { toast('⚠️ ' + err.message); }
   },
   async 'cl-terminar'() {
     const c = cliente();
@@ -119,12 +147,14 @@ registrar({
     }
     guardar();
     toast('✓ Pago de ' + c.nombre + ': ' + pesos(kb.precio) + (aFin && aFin.checked ? ' (también en Finanzas)' : ''));
+    actualizarExtras(c);
   },
   'cl-pago-borrar'({ i }) {
     const kb = cliente().cobro, p = kb.pagos[Number(i)];
     if (!p || !confirm('¿Borrar el pago del ' + fechaCorta(p.fecha) + '? Si lo anotaste en Finanzas, bórralo también allá.')) return;
     kb.pagos.splice(Number(i), 1);
     guardar();
+    actualizarExtras(cliente());
   },
   // Ciclo
   'cl-ciclo-crear'() { const campo = document.getElementById('cl-ciclo-inicio'); const ciclo = nuevoCiclo(campo && campo.value ? campo.value : undefined); ciclo.fases = fasesDeTipo(tipoElegido()); cliente().ciclo = ciclo; guardar(); toast('📆 Ciclo ' + TIPOS_CICLO[tipoElegido()].nombre + ' listo: mira el gráfico y ajusta las fases'); },
@@ -173,11 +203,13 @@ registrar({
     if (x.peso) c.peso = x.peso;
     guardar();
     toast('📏 Valoración guardada');
+    actualizarExtras(c);
   },
   'cl-registro-borrar'({ lista: que, i }) {
-    const arr = cliente()[que], k = Number(i), x = arr && arr[k];
+    const c = cliente(), arr = c[que], k = Number(i), x = arr && arr[k];
     if (!x) return;
     arr.splice(k, 1); guardar();
+    if (que === 'valoraciones') actualizarExtras(c);
     toast('Borrado el del ' + fechaCorta(x.fecha), () => { arr.splice(k, 0, x); guardar(); });
   },
   // Plantillas y PDF

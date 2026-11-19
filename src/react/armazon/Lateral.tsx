@@ -9,6 +9,7 @@ import { tokens } from '../tema';
 import { accion } from '../acciones';
 import { usarEstado } from '../usarEstado';
 import { Ordenable } from '../ui/Ordenable';
+import { MarcaCabecera } from '../ui/Marca';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -94,14 +95,36 @@ function Organizar({ d, pc }: { d: Fin; pc: boolean }) {
   );
 }
 
-function Secciones({ d, chica }: { d: Fin; chica: boolean }) {
+// Título de un grupo del menú ("Tu negocio", "Tu app")
+const Grupo = ({ children }: { children: ReactNode }) => (
+  <Box component="span" sx={{ fontSize: 12, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: 'text.secondary', p: '6px 14px 0' }}>{children}</Box>
+);
+// "Más de la app" (lo que el cliente no usa a diario): plegado hasta que lo abra
+function Mas({ d, chica }: { d: Fin; chica: boolean }) {
+  const [abierto, ponerAbierto] = useState(false), aqui = (d.mas as Fin[]).some((x) => x.actual);
+  if (!d.mas.length) return null;
+  const ver = abierto || aqui;
   return (
-    <Box component="nav" aria-label="Secciones" sx={{ display: 'grid', gap: '4px' }}>
-      {(d.enlaces as Fin[]).map((x) => (
+    <>
+      <ButtonBase data-t="mas" aria-expanded={ver} onClick={() => ponerAbierto(!ver)} title="Más de la app" sx={{ ...SUAVE, justifyContent: chica ? 'center' : 'flex-start' }}>
+        {ver ? '▾' : '▸'}{chica ? null : ' Más de la app (' + d.mas.length + ')'}
+      </ButtonBase>
+      {ver ? <Secciones d={d} chica={chica} lista={d.mas} nombre="Más secciones" /> : null}
+    </>
+  );
+}
+
+function Secciones({ d, chica, lista, nombre = 'Secciones' }: { d: Fin; chica: boolean; lista?: Fin[]; nombre?: string }) {
+  // En el portal del cliente, la sección abierta lleva el color de su entrenador
+  const acento = d.marca && d.marca.color ? d.marca.color : null;
+  return (
+    <Box component="nav" aria-label={nombre} sx={{ display: 'grid', gap: '4px' }}>
+      {((lista || d.enlaces) as Fin[]).map((x) => (
         <Box component="a" key={x.k} href={'#' + x.k} title={x.nombre} aria-current={x.actual ? 'page' : undefined}
           sx={[{ display: 'flex', alignItems: 'center', gap: '14px', minHeight: { xs: 56, md: 0 }, p: '12px 14px', borderRadius: '12px', color: 'text.primary', textDecoration: 'none', fontWeight: 600, fontSize: { xs: 18, md: 16 },
             '&:hover': { bgcolor: tokens.surface2 }, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } },
             x.actual ? { bgcolor: tokens.brandSoft, color: 'primary.main', '&:hover': { bgcolor: tokens.brandSoft } } : null,
+            x.actual && acento ? { bgcolor: tokens.surface2, color: 'text.primary', boxShadow: 'inset 4px 0 0 ' + acento, '&:hover': { bgcolor: tokens.surface2 } } : null,
             chica ? { position: 'relative', justifyContent: 'center', p: '10px', gap: 0 } : null]}>
           <Box component="span" aria-hidden="true" sx={{ fontSize: 22, width: 28, textAlign: 'center' }}>{x.icono}</Box>
           {chica ? null : <span>{x.nombre}</span>}
@@ -127,7 +150,8 @@ export default function Lateral() {
     <>
       {pc && !chica ? <Borde lado={d.lado} /> : null}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 18, justifyContent: chica ? 'center' : undefined }}>
-        {chica ? null : <><Box component="span" aria-hidden="true" sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: tokens.brandSoft, display: 'grid', placeItems: 'center', fontSize: 18 }}>🏋️</Box><b>Rutina</b></>}
+        {d.marca ? <Box sx={{ flex: 1, minWidth: 0 }}><MarcaCabecera marca={d.marca} chica={chica} sub={d.modo === 'cliente' ? 'Tu entrenador' + (d.marca.correo && !d.marca.negocio ? ' · ' + d.marca.correo : '') : 'Tu negocio · Rutina'} /></Box>
+          : chica ? null : <><Box component="span" aria-hidden="true" sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: tokens.brandSoft, display: 'grid', placeItems: 'center', fontSize: 18 }}>🏋️</Box><b>Rutina</b></>}
         {pc ? (
           <ButtonBase data-accion="barra-compacta" aria-pressed={!!d.compacta} aria-label={plegar} title={plegar}
             sx={{ ml: chica ? 0 : 'auto', minWidth: 44, minHeight: 44, borderRadius: '12px', fontSize: 20, color: 'text.primary', '&:hover': { bgcolor: tokens.surface2 }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }}>{hacia}</ButtonBase>
@@ -135,7 +159,9 @@ export default function Lateral() {
       </Box>
       {d.organizando ? <Organizar d={d} pc={pc} /> : (
         <>
+          {d.negocio.length ? <>{chica ? null : <Grupo>Tu negocio</Grupo>}<Secciones d={d} chica={chica} lista={d.negocio} nombre="Tu negocio" />{chica ? null : <Grupo>Tu app</Grupo>}</> : null}
           <Secciones d={d} chica={chica} />
+          <Mas d={d} chica={chica} />
           {chica ? null : <ButtonBase data-accion="barra-organizar" sx={SUAVE}>✋ Organizar menú</ButtonBase>}
         </>
       )}

@@ -43,7 +43,11 @@ test('coach: el cliente usa el plan, conserva su core, recibe los alimentos que 
   assert.ok(est.rutina.some((d) => d.id === 'core')); // su core se queda
   assert.ok(est.dieta.alimentos.some((x) => x.id === 'propio'));
   assert.equal(planNuevo(est, a), false);
-  assert.equal(planNuevo(est, { ...a, plan_version: 101 }), true); // el entrenador publicó otra versión
+  // Otra versión con lo mismo (solo cambió un pago o la marca) no es plan nuevo; con otra rutina sí
+  assert.equal(planNuevo(est, { ...a, plan_version: 101 }), false);
+  assert.equal(planNuevo(est, { ...a, plan_version: 101, plan: { ...a.plan, firma: 'otra' } }), true);
+  // Un plan de antes (sin firma): cualquier versión nueva cuenta
+  assert.equal(planNuevo(est, { ...a, plan_version: 101, plan: { ...a.plan, firma: undefined } }), true);
   // Usar otra versión no pisa la copia de lo de antes
   aplicarPlan(est, { ...a, plan_version: 101 });
   assert.ok(volverAntes(est));

@@ -18,7 +18,7 @@ import { TituloPantalla, Nota } from '../ui/Textos';
 import { Opciones, Avance } from '../ui/Varios';
 import { TablaDatos } from '../ui/Graficos';
 import { plan12, casa } from './GymPlan12';
-import { dia, HistorialEjercicio } from './GymDia';
+import { dia, HistorialEjercicio, ChequeoMensual } from './GymDia';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -271,6 +271,7 @@ function progreso(estado: Fin, sem: number) {
 function resumen(estado: Fin, sem: number, semActual: number, ver: Fin) {
   return (
     <>
+      {sem === semActual ? <ChequeoMensual /> : null}
       <Button fullWidth onClick={() => accion('gym-imagen-rutina')} sx={{ mb: '14px' }}>🖼️ Crear imagen de mi rutina semanal</Button>
       <Card component="section" sx={{ mb: '14px' }}>{semana(estado, sem, ver.editandoObjetivos)}</Card>
       <TarjetaPlegable vista={VISTA} clave="💪 Fuerza" titulo="💪 Fuerza">{fuerza(estado, sem, semActual, ver.fuerzaEj)}</TarjetaPlegable>

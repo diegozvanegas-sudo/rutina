@@ -33,11 +33,14 @@ import './vistas/lugares.js';
 import './vistas/suplementos.js';
 import './vistas/clientes.js';
 import { tieneEntrenador } from './vistas/entrenador.js';
+import { pestanaPanel, marca as miMarca } from './vistas/panel.js';
+import { modoPortal, repartirMenu, MENU_NEGOCIO, iniciales, tintaSobre } from './marca.js';
+import { marcaDeMiEntrenador } from './coach.js';
 import { iniciarNube, nube, textoNube, configurada, sincronizar, nubeDePrueba } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
 import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
-import { ve, veRuta, esAdmin, viendoComo, ponerPermisos } from './permisos.js';
+import { ve, veRuta, esAdmin, viendoComo, ponerPermisos, rolVisto } from './permisos.js';
 import { ponerDatosAdmin } from './vistas/administrar.js';
 
 registerSW({ immediate: true });
@@ -64,7 +67,7 @@ const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), co
   progreso: () => import('./react/pantallas/Progreso.tsx'), editar: () => import('./react/pantallas/Editar.tsx'),
   clientes: () => import('./react/pantallas/Clientes.tsx'), ajustes: () => import('./react/pantallas/Ajustes.tsx'),
   entrenador: () => import('./react/pantallas/Entrenador.tsx'), finanzas: () => import('./react/pantallas/Finanzas.tsx'),
-  gym: () => import('./react/pantallas/Gym.tsx'), vida: () => import('./react/pantallas/MiVida.tsx'),
+  gym: () => import('./react/pantallas/Gym.tsx'), vida: () => import('./react/pantallas/MiVida.tsx'), panel: () => import('./react/pantallas/Panel.tsx'),
   voz: () => import('./react/pantallas/Voz.tsx') };
 // La pestaña de un enlace (#compras/deseos) hacia una pantalla de React: se le pasa al montarla
 let pestanaReact = null;
@@ -81,9 +84,12 @@ const DENTRO = { libros: 'estudiar' };
 const $ = (id) => document.getElementById(id);
 // "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta".
 // Lo que el admin escondió no se abre ni por enlace: se va a Hoy
-const permitida = (v) => (SOLO_ADMIN.includes(v) ? esAdmin() && !viendoComo() : v === 'libros' ? veRuta([['seccion', 'estudiar'], ['area', 'libros']]) : ve('seccion', v));
+// 🧑‍💼 Panel: del entrenador y del admin; sin nube (sin roles), de quien ya tiene clientes
+const entrena = () => { const r = rolVisto(); return r === 'admin' || r === 'entrenador' || (r == null && !!(e().clientes || []).length); };
+const permitida = (v) => (SOLO_ADMIN.includes(v) ? esAdmin() && !viendoComo() : v === 'libros' ? veRuta([['seccion', 'estudiar'], ['area', 'libros']])
+  : v === 'panel' ? entrena() && ve('seccion', v) : ve('seccion', v));
 const actual = () => { const v = location.hash.slice(1).split('/')[0]; return VISTAS[v] && permitida(v) ? v : 'hoy'; };
-const CON_ABRIR = ['finanzas', 'gym'];
+const CON_ABRIR = ['finanzas', 'gym', 'panel'];
 function abrirPestana() {
   const [v, sub] = location.hash.slice(1).split('/');
   if (!sub || !VISTAS[v] || !permitida(v)) return;
@@ -113,11 +119,20 @@ function datosLateral() {
   const c = e().config, b = ajustesBarra(), avisos = alertas().length, v = actual();
   if (b.compacta) organizandoMenu = false;
   // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
-  const ids = visibles(c, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || v === 'entrenador')).concat(SOLO_ADMIN.filter(permitida));
+  const ids = visibles(c, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || v === 'entrenador') && (k !== 'panel' || permitida('panel'))).concat(SOLO_ADMIN.filter(permitida));
   const total = habitosDe().length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {});
+  const enlaces = ids.map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], actual: k === (DENTRO[v] || v), insignia: k === 'recordatorios' ? avisos : 0 }));
+  // 🎨 Cada lado ve su portal (src/marca.js): el cliente, lo suyo primero con la marca de su entrenador y lo demás en "Más";
+  // el entrenador, su negocio arriba (Panel, Pagos, Valoraciones, Clientes) con su marca. El admin, como siempre
+  const modo = modoPortal({ rol: rolVisto(), tieneEntrenador: tieneEntrenador() }), menu = repartirMenu(enlaces, modo);
+  const actualNegocio = (ruta) => (ruta.startsWith('panel') ? v === 'panel' && (ruta.split('/')[1] || 'inicio') === pestanaPanel() : ruta === v);
+  const negocio = modo === 'entrenador' ? MENU_NEGOCIO.filter(([ruta]) => permitida(ruta.split('/')[0])).map(([ruta, icono, nombre]) => ({ k: ruta, icono, nombre, actual: actualNegocio(ruta) })) : [];
+  const enNegocio = new Set(negocio.map((x) => x.k.split('/')[0]));
+  const propia = miMarca(), marcaVista = modo === 'cliente' ? marcaDeMiEntrenador(e()) : propia.negocio || propia.logo ? { ...propia } : null;
   return {
     compacta: !!b.compacta, lado: b.lado === 'izquierda' ? 'izquierda' : 'derecha', resumenAbierto: b.resumen !== false, organizando: organizandoMenu,
-    enlaces: ids.map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], actual: k === (DENTRO[v] || v), insignia: k === 'recordatorios' ? avisos : 0 })),
+    modo, marca: marcaVista, negocio, mas: menu.mas,
+    enlaces: menu.principales.filter((x) => !enNegocio.has(x.k)),
     filas: enOrden(c, 'menu').filter((k) => ve('seccion', k)).map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], apagado: oculto(c, 'menu', k), fija: FIJAS.menu.includes(k) })),
     resumen: [
       ve('seccion', 'manana') && { href: '#manana', titulo: 'Ir a Mañana', texto: '☀️ Mañana', valor: hechosManana() + '/' + total, parte: fraccionManana() },
@@ -129,6 +144,24 @@ function datosLateral() {
   };
 }
 ponerLateral(datosLateral);
+// 🎨 La barra de arriba del celular lleva la misma marca que el menú (la del entrenador del cliente o la tuya); sin marca, Rutina.
+// Se arma con nodos (nunca HTML con lo que escribió el entrenador)
+let marcaPintada = '';
+function marcaArriba() {
+  const caja = document.querySelector('.top-movil .marca'), d = datosLateral(), m = d && d.marca;
+  const firma = m ? [m.negocio, m.color, (m.logo || '').length].join('|') : '';
+  if (!caja || firma === marcaPintada) return;
+  marcaPintada = firma;
+  const logo = document.createElement(m && m.logo ? 'img' : 'span');
+  logo.className = 'logo';
+  logo.setAttribute('aria-hidden', 'true');
+  if (m && m.logo) { logo.src = m.logo; logo.alt = ''; logo.style.objectFit = 'contain'; logo.style.background = '#fff'; }
+  else if (m) { logo.textContent = iniciales(m.negocio); if (m.color) { logo.style.background = m.color; logo.style.color = tintaSobre(m.color); logo.style.fontWeight = '800'; logo.style.fontSize = '14px'; } }
+  else logo.textContent = '🏋️';
+  const nombre = document.createElement('b');
+  nombre.textContent = (m && m.negocio) || 'Rutina';
+  caja.replaceChildren(logo, nombre);
+}
 // El menú lateral, el cronómetro flotante y el reproductor de sesiones: se montan una vez (React) y se repintan solos
 let armazonMontado = false;
 function montarArmazon() {
@@ -173,6 +206,7 @@ function pintar() {
     if (modo === 'bloqueada' && bloqueo.auto) { bloqueo.auto = false; desbloquear(); }
     return;
   }
+  marcaArriba();
   const v = actual(), y = window.scrollY, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
   // La pantalla se monta una vez y se repinta sola (con sus avisos de arriba)

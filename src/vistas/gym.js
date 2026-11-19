@@ -4,7 +4,8 @@
 import { e, guardar, repintar, semanaActual, abrirSemana, quitarSemana, dia as diaDe } from '../estado.js';
 import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
-import { tiemposDia, lineaTiempos, anotarEnEntreno } from '../gym.js';
+import { tiemposDia, lineaTiempos, anotarEnEntreno, gruposDia } from '../gym.js';
+import { planCorto, videoValido } from '../entreno-hoy.js';
 import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, resumenSemana, numero, formatoPeso, PIERNAS, historial, records, consejoEstancado, metaSesion, enBiserie, nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante } from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
@@ -108,7 +109,7 @@ function resumenEj(ej, sem, sufijo = '') {
   }).filter(Boolean);
   if (partes.length) return { hechas, plan, texto: partes.join(' · ') };
   const f = ej.filas[0], meta = f && metaSesion(f, ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem, sufijo), e().rutina));
-  return { hechas, plan, texto: ej.filas.map((x) => x.esquema + (x.unidad === 's' ? ' seg' : '')).join(' · ') + (meta ? ' · hoy ' + meta.texto + (meta.sube ? ' ⬆' : '') : '') };
+  return { hechas, plan, sube: !!(meta && meta.sube && !ej.calentamiento), texto: ej.filas.map((x) => x.esquema + (x.unidad === 's' ? ' seg' : '')).join(' · ') + (meta ? ' · hoy ' + meta.texto + (meta.sube ? ' ⬆' : '') : '') };
 }
 
 // Biserie: los dos ejercicios en una tarjeta (A1 y A2), cada uno con su peso, y una ronda que anota los dos y arranca el descanso
@@ -167,10 +168,21 @@ export function textoDia(d, sem, estado = e()) {
   return lineas.join('\n');
 }
 
+// 🚦 Cómo llegas hoy y cuánto tiempo tienes (src/entreno-hoy.js): dias[hoy].listo = { sueno, energia, min }
+export const listoHoy = () => (e().dias[iso()] || {}).listo || {};
+// ⏱ Versión corta: los ejercicios que hoy no caben en los minutos elegidos (solo en la semana actual)
+// cortoHoy: el plan entero ({ fuera, menos, minutos, total }) o null sin límite de tiempo
+export function cortoHoy(d, sem) {
+  const min = listoHoy().min;
+  if (!min || sem !== semanaActual() || !d || d.id === 'core') return null;
+  return planCorto(gruposDia(d.ejercicios), min, registros(sem));
+}
+export const fueraHoy = (d, sem) => new Set((cortoHoy(d, sem) || { fuera: [] }).fuera);
 function ejActual(d, sem) {
   if (sem !== semanaActual()) return null;
+  const fuera = fueraHoy(d, sem), libre = (ej) => !saltados.has(ej.id) && !fuera.has(ej.id);
   const ult = d.ejercicios.find((ej) => ej.id === ultimoEj), falta = (ej) => avanceEj(ej, sem).fila;
-  return ((ult && falta(ult) && !saltados.has(ult.id) ? ult : d.ejercicios.find((ej) => falta(ej) && !saltados.has(ej.id)) || d.ejercicios.find(falta)) || {}).id || null;
+  return ((ult && falta(ult) && !saltados.has(ult.id) ? ult : d.ejercicios.find((ej) => falta(ej) && libre(ej)) || d.ejercicios.find((ej) => falta(ej) && !fuera.has(ej.id)) || d.ejercicios.find(falta)) || {}).id || null;
 }
 // Lo que hace la vista del día al pintarse: marca el ejercicio en el que vas y, si toca, pide bajar hasta él
 function prepararDia(d, sem) {
@@ -199,7 +211,7 @@ export const piezasGym = {
   DIAS_CORTOS, rirReciente, consejo, rm, porcentaje, datosHistorial,
   // El día: en qué ejercicio vas y qué está abierto (prepararDia dice si hay que bajar al ejercicio en el que vas)
   prepararDia, irAlActual, estaAbierto, verDia: () => ({ ultimoEj, actualId }), filtroEn, sufijoDe, pesoDelDia, kgCorporal,
-  resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado,
+  resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado, fueraHoy, cortoHoy, listoHoy,
 };
 
 // ---------- ⏱ Contador del entreno de hoy: { dia, inicio, fin? } en el día de hoy (dias[fecha].entreno) ----------
@@ -476,6 +488,29 @@ registrar({
     const d = e().rutina.find((x) => x.ejercicios.some((y) => y.id === ej)), sig = d && d.ejercicios.find((y) => y.id === ejActual(d, semanaVista));
     repintar();
     toast(sig && sig.id !== ej ? '⏭ Lo dejamos para después. Sigue con ' + sig.nombre : 'No hay otro pendiente: este sigue siendo el que va');
+  },
+  // 🚦 Antes de entrenar: k = sueno | energia (1-3; tocar el mismo lo quita) o min (minutos disponibles; el mismo = sin límite)
+  'gym-listo'({ k, v }) {
+    if (!['sueno', 'energia', 'min'].includes(k)) return;
+    const l = (diaDe().listo ??= {}), n = Number(v);
+    if (!n || l[k] === n) delete l[k]; else l[k] = n;
+    if (k === 'min') enfocar = true;
+    guardar();
+  },
+  // 📸 Foto de progreso de hoy: la foto queda en tu celular; aquí solo la fecha, para recordarte la próxima
+  'gym-foto'() {
+    const d = diaDe();
+    if (d.foto) delete d.foto; else d.foto = true;
+    guardar();
+    toast(d.foto ? '📸 Anotada: te aviso en 4 semanas' : 'Foto quitada');
+  },
+  // 🎯 Técnica de un ejercicio (k: tecnica | video), igual en el mismo ejercicio de todos los días
+  'gym-tecnica'({ ej: id, k }, el) {
+    const ej = e().rutina.flatMap((d) => d.ejercicios).find((x) => x.id === id), v = el.value.trim();
+    if (!ej || !['tecnica', 'video'].includes(k)) return;
+    if (k === 'video' && v && !videoValido(v)) { toast('El enlace tiene que empezar con https://'); return; }
+    for (const x of mismos(ej.nombre)) { if (v) x[k] = v; else delete x[k]; }
+    guardar();
   },
   'gym-molestia'({ n, v }) {
     const m = (diaDe().molestias ??= {}), nivel = Number(v);

@@ -56,6 +56,8 @@ export const miRol = () => (actual ? actual.rol : null);
 // Vista previa del admin: la app como la ve un rol o un usuario
 export function ponerVerComo(nombre, p) { verComo = p ? { nombre, p } : null; }
 export const viendoComo = () => (verComo ? verComo.nombre : null);
+// El rol con el que se está viendo la app (el de la vista previa del admin, si hay)
+export const rolVisto = () => (verComo ? (verComo.p && verComo.p.rol) || null : miRol());
 const efectivos = () => (verComo ? verComo.p : actual);
 export const ve = (tipo, id) => puedeVer(efectivos(), tipo, id);
 export const veRuta = (ruta) => puedeVerRuta(efectivos(), ruta);

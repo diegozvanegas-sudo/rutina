@@ -6,7 +6,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Box, Button, ButtonBase, Card, Chip, IconButton, NativeSelect, OutlinedInput } from '@mui/material';
 import { e, semanaActual } from '../../estado.js';
-import { reloj, fechaCorta } from '../../fechas.js';
+import { reloj, fechaCorta, iso, sumarDias } from '../../fechas.js';
+import { lecturaHoy, suenoDeHoras, esDiaPierna, planCorto, seriesCortas, chequeoMensual, videoValido, buscarVideo } from '../../entreno-hoy.js';
+import { horasSueno, hayPartido } from '../../registro.js';
+import { juegaEl } from '../../futbol.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
   consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO } from '../../gym.js';
 import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../../analisis.js';
@@ -40,6 +43,102 @@ const Contador = ({ color, children, sx }: { color?: string; children: ReactNode
 const TIPO: Record<string, { bgcolor: string; color: string }> = { top: { bgcolor: tokens.topFondo, color: tokens.topInk }, 'back-off': { bgcolor: tokens.azulFondo, color: tokens.backoffInk } };
 
 const regs = (sem: number) => (e() as Fin).semanas[sem] || {};
+
+// ---------- 🚦 Antes de entrenar: cómo llegas hoy (src/entreno-hoy.js) ----------
+function datosHoy(d: Fin) {
+  const est = e() as Fin, hoy = iso(), ayer = sumarDias(hoy, -1), manana = sumarDias(hoy, 1), l = G.listoHoy() as Fin;
+  const horas = horasSueno((est.dias[hoy] || {}).sueno) as number | null;
+  const futbol = { ayer: juegaEl(est.config, ayer) || hayPartido((est.dias[ayer] || {}).partido), manana: juegaEl(est.config, manana) };
+  const sueno = l.sueno ?? suenoDeHoras(horas), pierna = esDiaPierna(d);
+  return { l, horas, futbol, pierna, sueno, lectura: lecturaHoy({ sueno, energia: l.energia ?? null, futbol, pierna }) as Fin };
+}
+// El nivel de hoy del día al que pertenece un ejercicio (solo en la semana actual)
+const nivelHoy = (ej: Fin, sem: number) => {
+  if (sem !== semanaActual()) return null;
+  const d = (e() as Fin).rutina.find((x: Fin) => x.ejercicios.includes(ej));
+  return d && d.id !== 'core' ? (datosHoy(d).lectura || {}).nivel || null : null;
+};
+// ⏱ Series de menos hoy por la versión corta, en el día de ese ejercicio
+const menosHoy = (ej: Fin, sem: number) => {
+  const d = (e() as Fin).rutina.find((x: Fin) => x.ejercicios.includes(ej)), c = d && G.cortoHoy(d, sem);
+  return c ? c.menos || 0 : 0;
+};
+const OPC_SUENO: [number, string][] = [[1, '😴 Poco'], [2, '😐 Normal'], [3, '😃 Bien']];
+const OPC_ENERGIA: [number, string][] = [[1, '🪫 Baja'], [2, '🔋 Normal'], [3, '⚡ Alta']];
+const OPC_MIN: number[] = [30, 45, 60];
+function Fichas({ k, opciones, activa, nombre }: { k: string; opciones: [number, string][]; activa: number | null; nombre: string }) {
+  return (
+    <Box role="group" aria-label={nombre} sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+      <Box component="span" sx={{ flexBasis: { xs: '100%', sm: 'auto' }, minWidth: { sm: 76 }, fontSize: 14, color: 'text.secondary' }}>{nombre}</Box>
+      {opciones.map(([n, t]) => { const si = activa === n; return <Chip key={n} clickable aria-pressed={si} color={si ? 'primary' : 'default'} variant={si ? 'filled' : 'outlined'} label={t} onClick={() => accion('gym-listo', { k, v: n })} sx={{ minHeight: 36 }} />; })}
+    </Box>
+  );
+}
+const COLOR_NIVEL: Record<string, string> = { full: tokens.verde, normal: tokens.azul, suave: tokens.amarillo };
+function AntesDeEntrenar({ d, sem }: { d: Fin; sem: number }) {
+  const { l, horas, sueno, lectura } = datosHoy(d), respondido = !!(l.energia && sueno), [abierto, ponerAbierto] = useState(!respondido);
+  if (sem !== semanaActual()) return null;
+  const corto = l.min ? G.cortoHoy(d, sem) as Fin : null, total = (planCorto(gruposDia(d.ejercicios), 999, regs(sem)) as Fin).total;
+  const resumen = [lectura ? lectura.icono + ' ' + lectura.titulo : '🚦 ¿Cómo llegas hoy?', l.min ? '⏱ ' + l.min + ' min' + (corto.fuera.length ? ' (' + corto.fuera.length + ' fuera)' : '') : null].filter(Boolean).join(' · ');
+  return (
+    <Card component="section" data-t="antes" sx={{ mb: '12px', p: 0, borderLeft: '5px solid', borderLeftColor: lectura ? COLOR_NIVEL[lectura.nivel] : 'divider' }}>
+      <ButtonBase aria-expanded={abierto} onClick={() => ponerAbierto(!abierto)}
+        sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', minHeight: 48, p: '8px 14px', font: 'inherit', color: 'text.primary', textAlign: 'left', gap: '10px', '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } }}>
+        <b>{resumen}</b><Box component="span" aria-hidden="true" sx={{ color: 'text.secondary' }}>{abierto ? '▾' : '▸'}</Box>
+      </ButtonBase>
+      {abierto ? (
+        <Box sx={{ display: 'grid', gap: '8px', p: '0 14px 12px' }}>
+          <Fichas k="sueno" nombre="Dormí" opciones={OPC_SUENO} activa={sueno} />
+          {horas != null && l.sueno == null ? <Box sx={{ ...GRIS, mt: '-4px' }}>Según Hoy dormiste <b>{String(horas).replace('.', ',')} h</b>: toca otra opción si no fue así.</Box> : null}
+          <Fichas k="energia" nombre="Energía" opciones={OPC_ENERGIA} activa={l.energia ?? null} />
+          <Box role="group" aria-label="Tiempo que tengo" sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+            <Box component="span" sx={{ flexBasis: { xs: '100%', sm: 'auto' }, minWidth: { sm: 76 }, fontSize: 14, color: 'text.secondary' }}>Tengo</Box>
+            {OPC_MIN.map((n) => { const si = l.min === n; return <Chip key={n} clickable aria-pressed={si} color={si ? 'primary' : 'default'} variant={si ? 'filled' : 'outlined'} label={n + ' min'} onClick={() => accion('gym-listo', { k: 'min', v: n })} sx={{ minHeight: 36 }} />; })}
+            <Chip clickable aria-pressed={!l.min} color={!l.min ? 'primary' : 'default'} variant={!l.min ? 'filled' : 'outlined'} label="Todo" onClick={() => accion('gym-listo', { k: 'min', v: 0 })} sx={{ minHeight: 36 }} />
+          </Box>
+          {lectura ? (
+            <Box data-t="lectura" sx={{ p: '8px 10px', borderRadius: '10px', bgcolor: lectura.nivel === 'suave' ? tokens.amarilloFondo : tokens.surface2, fontSize: 14, display: 'grid', gap: '4px' }}>
+              <b>{lectura.icono} {lectura.titulo}</b><span>{lectura.texto}</span>
+              {(lectura.consejos as string[]).map((c) => <Box component="span" key={c} sx={{ color: 'text.secondary' }}>• {c}</Box>)}
+            </Box>
+          ) : null}
+          <Box sx={GRIS}>{corto
+            ? (corto.fuera.length || corto.menos ? <>⏱ Versión de <b>~{corto.minutos} min</b> (todo son ~{total}):{corto.menos ? <> <b>{corto.menos === 1 ? 'una serie' : '2 series'} menos</b> en cada ejercicio (así entran todos los músculos)</> : null}{corto.fuera.length ? <>{corto.menos ? ' y' : ''} {corto.fuera.length} ejercicio{corto.fuera.length > 1 ? 's' : ''} pasa{corto.fuera.length > 1 ? 'n' : ''} al final como «Hoy no entra»</> : null}.</> : <>⏱ Todo cabe en {l.min} min (~{total}).</>)
+            : <>Lo que falta del día: <b>~{total} min</b>. Si tienes menos, elige cuánto y dejo lo principal.</>}</Box>
+        </Box>
+      ) : null}
+    </Card>
+  );
+}
+
+// ⬆ Los ejercicios en los que hoy toca subir el peso (aún sin empezar), en una línea
+function TocaSubir({ d, sem }: { d: Fin; sem: number }) {
+  if (sem !== semanaActual()) return null;
+  const fuera = G.fueraHoy(d, sem) as Set<string>, lista = (d.ejercicios as Fin[]).filter((ej) => !fuera.has(ej.id) && ((r) => r.sube && !r.hechas)(G.resumenEj(ej, sem)));
+  if (!lista.length) return null;
+  const suave = nivelHoy(d.ejercicios[0], sem) === 'suave';
+  return (
+    <Box data-t="toca-subir" sx={{ m: '0 0 12px', p: '8px 10px', borderRadius: '10px', bgcolor: tokens.subeFondo, borderLeft: '4px solid', borderLeftColor: tokens.azul, fontSize: 14 }}>
+      <Box component="b" sx={{ color: 'info.main' }}>⬆ Hoy toca subir en {lista.length}:</Box> {lista.map((ej) => ej.nombre).join(', ')}
+      {suave ? <Box component="small" sx={{ display: 'block', color: 'text.secondary' }}>Pero hoy vas suave: déjalo para la próxima y repite el peso.</Box> : null}
+    </Box>
+  );
+}
+
+// 📏📸 Cada 4 semanas: medidas (en Dieta → Peso) y foto de progreso. Solo sale cuando toca
+export function ChequeoMensual() {
+  const c = chequeoMensual((e() as Fin).dias, iso()) as Fin;
+  if (!c.medida.toca && !c.foto.toca) return null;
+  const hace = (x: Fin) => (x.dias == null ? 'nunca' : 'hace ' + x.dias + ' días');
+  return (
+    <Box data-t="chequeo-mensual" sx={{ m: '0 0 12px', p: '8px 10px', borderRadius: '10px', bgcolor: tokens.surface2, fontSize: 14, display: 'grid', gap: '6px' }}>
+      <b>📅 Revisión de cada 4 semanas</b>
+      {c.medida.toca ? <Box sx={FILA}><span>📏 Medidas: <Box component="span" sx={GRIS}>{hace(c.medida)}</Box></span><Button size="small" color="secondary" href="#dieta/peso" sx={MINI}>Medirme →</Button></Box> : null}
+      {c.foto.toca ? <Box sx={FILA}><span>📸 Foto de frente, lado y espalda: <Box component="span" sx={GRIS}>{hace(c.foto)}</Box></span><Button size="small" color="secondary" onClick={() => accion('gym-foto')} sx={MINI}>✓ Ya me la tomé</Button></Box> : null}
+      <Box component="small" sx={{ color: 'text.secondary' }}>El peso solo engaña cuando ganas músculo: la cintura y la foto dicen la verdad. La foto queda en tu celular, aquí solo la fecha.</Box>
+    </Box>
+  );
+}
 function textoRegistro(r: Fin) {
   if (!r) return '—';
   const p = numero(r.peso), peso = p != null ? formatoPeso(p) : String(r.peso || '').trim();
@@ -121,6 +220,7 @@ function fila(f: Fin, sem: number, clave: string, ej: Fin, i: number, sinRapida:
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: 14 }}>
         <Box component="span" sx={{ fontSize: 12, fontWeight: 800, p: '3px 8px', borderRadius: '6px', textTransform: 'uppercase', ...(TIPO[tipo] || { bgcolor: tokens.surface2 }) }}>{f.tipo}</Box>
         <Box component="span" sx={{ fontWeight: 700 }}>{f.esquema}{f.unidad === 's' ? ' (seg)' : ''}</Box>
+        {(() => { const c = ej && sem === semanaActual() ? menosHoy(ej, sem) : 0, n = seriesCortas(f.series, c); return c && n < f.series ? <Box component="span" data-t="series-hoy" sx={{ fontSize: 12, fontWeight: 800, p: '2px 8px', borderRadius: 999, bgcolor: tokens.amarilloFondo, color: 'warning.main' }}>⏱ hoy {n}</Box> : null; })()}
         <Box component="span" title="Descanso" sx={{ color: 'text.secondary' }}>⏱ {reloj(f.descanso)}</Box>
         <Contador color={est.color} sx={{ ml: 'auto' }}>{est.hechas} / {est.plan}</Contador>
       </Box>
@@ -128,6 +228,7 @@ function fila(f: Fin, sem: number, clave: string, ej: Fin, i: number, sinRapida:
       {meta
         ? <Box sx={{ fontSize: 14, mt: '4px' }}>🎯 Hoy: <Box component="b" sx={{ color: meta.sube ? 'info.main' : 'primary.main' }}>{meta.texto}{meta.sube ? ' ⬆' : ''}</Box> <Box component="span" sx={GRIS}>· último <b>{textoRegistro(ult)}</b></Box><Box component="small" sx={{ display: 'block', color: 'text.secondary' }}>{meta.motivo}</Box></Box>
         : <Box sx={GRIS}>Último: <b>{textoRegistro(ult)}</b>{sug ? <> · Hoy: <Box component="b" sx={sug.sube ? { color: 'info.main !important' } : null}>{sug.texto}{sug.sube ? ' ⬆' : ''}</Box></> : null}</Box>}
+      {meta && meta.sube && !calent && ej && nivelHoy(ej, sem) === 'suave' ? <Box data-t="suave" sx={{ fontSize: 14, color: 'warning.main' }}>🟡 Hoy vas suave: no subas, repite <b>{textoRegistro(ult)}</b> y sube la próxima.</Box> : null}
       {calent ? <Box sx={GRIS}>⚖️ {corporal ? <>Tu peso de ese día: <b>{G.kgCorporal(corporal)} kg</b> (se anota solo en cada serie)</> : 'Anota tu peso en Hoy (Sueño y peso) y se usa aquí solo'}</Box> : null}
       {ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null, !!meta) : null}
       {avisosRaros(f, sem, clave, reg, ult)}
@@ -190,8 +291,29 @@ function historialPlegado(ej: Fin, sem: number, v: Fin) {
   return <Desplegable perezoso titulo={'📈 Historial' + (v ? ' · ' + v : '')} sx={{ mb: '6px' }}><HistorialEjercicio ej={ej} sem={sem} v={v} /></Desplegable>;
 }
 const notas = (ej: Fin) => (
-  <Desplegable titulo="Notas" abiertoAlInicio={!!ej.nota}>
-    <CampoLargoSolo aria-label={'Notas de ' + ej.nombre} data-cambio="nota" data-ej={ej.id} defaultValue={ej.nota || ''} placeholder="Agarre, asiento, molestias…" />
+  <>
+    {tecnicaEditar(ej)}
+    <Desplegable titulo="Notas" abiertoAlInicio={!!ej.nota}>
+      <CampoLargoSolo aria-label={'Notas de ' + ej.nombre} data-cambio="nota" data-ej={ej.id} defaultValue={ej.nota || ''} placeholder="Agarre, asiento, molestias…" />
+    </Desplegable>
+  </>
+);
+// 🎯 Técnica: las claves cortas siempre a la vista y el video (o buscar uno) a un toque
+function tecnica(ej: Fin) {
+  const video = videoValido(ej.video) ? ej.video : null;
+  return (
+    <Box data-t="tecnica" sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 12px', m: '0 0 8px', fontSize: 14 }}>
+      {ej.tecnica ? <Box component="span" sx={{ flex: '1 1 220px' }}>🎯 <b>{ej.tecnica}</b></Box> : null}
+      <Box component="a" href={video || buscarVideo(ej.nombre)} target="_blank" rel="noopener noreferrer" sx={{ color: 'info.main', fontSize: 13 }}>{video ? '▶ Ver video' : '🔎 Buscar video de técnica'}</Box>
+    </Box>
+  );
+}
+const tecnicaEditar = (ej: Fin) => (
+  <Desplegable titulo="🎯 Técnica" sx={{ mb: '6px' }}>
+    <Box sx={{ display: 'grid', gap: '8px' }}>
+      <Campo etiqueta="Claves (1 o 2, cortas)" data-cambio="gym-tecnica" data-ej={ej.id} data-k="tecnica" defaultValue={ej.tecnica || ''} placeholder="Ej.: codos pegados, pausa abajo" />
+      <Campo etiqueta="Enlace del video" type="url" inputMode="url" data-cambio="gym-tecnica" data-ej={ej.id} data-k="video" defaultValue={ej.video || ''} placeholder="https://…" />
+    </Box>
   </Desplegable>
 );
 function moverEj(ej: Fin) {
@@ -215,18 +337,22 @@ const Musculo = ({ children }: { children: ReactNode }) => <Box component="span"
 const tarjeta = (actual: boolean) => ({ mb: '14px', scrollMarginTop: '90px', ...(actual ? { borderColor: 'primary.main', boxShadow: '0 0 0 1px ' + tokens.brand } : null) });
 
 // Fila de un ejercicio plegado: se abre al tocarla
-function plegado(clave: string, titulo: ReactNode, sub: ReactNode, r: Fin) {
+// fuera: hoy no entra en el tiempo elegido (⏱ versión corta): se ve apagado, y se puede abrir igual
+function plegado(clave: string, titulo: ReactNode, sub: ReactNode, r: Fin, fuera = false) {
   const listo = r.plan > 0 && r.hechas >= r.plan, color = listo ? 'completo' : r.hechas ? 'falta' : undefined;
   return (
-    <Card component="article" key={clave} data-ancla={'ej-' + clave} sx={{ p: 0, mb: '8px', scrollMarginTop: '90px' }}>
+    <Card component="article" key={clave} data-ancla={'ej-' + clave} data-fuera={fuera ? '' : undefined} sx={{ p: 0, mb: '8px', scrollMarginTop: '90px', ...(fuera ? { opacity: 0.55, borderStyle: 'dashed' } : null) }}>
       <ButtonBase aria-expanded="false" onClick={() => accion('gym-plegar', { clave, abierto: '0' })}
         sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto 14px', alignItems: 'center', gap: '10px', width: '100%', minHeight: 56, p: '8px 14px', color: 'text.primary', font: 'inherit', textAlign: 'left',
           '&:hover': { bgcolor: tokens.surface2 }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } }}>
         <Box component="span" sx={{ display: 'grid', gap: '2px', minWidth: 0 }}>
           <span><b>{titulo}</b> <Box component="small" sx={{ color: 'text.secondary', fontWeight: 400, fontSize: 13 }}>{sub}</Box></span>
-          <Box component="span" sx={{ color: color ? 'text.primary' : 'text.secondary', fontSize: 14, overflowWrap: 'anywhere' }}>{r.texto}</Box>
+          <Box component="span" sx={{ color: color ? 'text.primary' : 'text.secondary', fontSize: 14, overflowWrap: 'anywhere' }}>{fuera ? '⏭ Hoy no entra (poco tiempo) · ' : ''}{r.texto}</Box>
         </Box>
-        <Contador color={color} sx={{ fontSize: 14, whiteSpace: 'nowrap' }}>{listo ? '✓ ' : ''}{r.hechas} / {r.plan}</Contador>
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {r.sube && !r.hechas && !fuera ? <Contador color="sube" sx={{ fontSize: 13, whiteSpace: 'nowrap', p: '2px 8px' }}>⬆ Sube</Contador> : null}
+          <Contador color={color} sx={{ fontSize: 14, whiteSpace: 'nowrap' }}>{listo ? '✓ ' : ''}{r.hechas} / {r.plan}</Contador>
+        </Box>
         <Box component="span" aria-hidden="true" sx={{ color: 'text.secondary' }}>▸</Box>
       </ButtonBase>
     </Card>
@@ -255,8 +381,8 @@ function molestia(ej: Fin, empezado: boolean) {
 function ejercicio(ej: Fin, sem: number, sufijo = '') {
   const est = e() as Fin, { ultimoEj, actualId } = G.verDia(), d = est.rutina.find((x: Fin) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre) as string[] | null, es = !sufijo && ej.id === actualId;
   const proxima = (ej.filas as Fin[]).findIndex((f) => { const x = estadoFila(f, regs(sem)[f.id + sufijo] || {}) as Fin; return x.hechas < x.plan; });
-  const clave = ej.id + sufijo, v = varianteEn(ej, regs(sem), sufijo);
-  if (!G.estaAbierto(clave, es || (!sufijo && ej.id === ultimoEj && sem === semanaActual()))) return plegado(clave, nombreConVariante(ej, v), ej.musculo, G.resumenEj(ej, sem, sufijo));
+  const clave = ej.id + sufijo, v = varianteEn(ej, regs(sem), sufijo), fuera = !sufijo && d && (G.fueraHoy(d, sem) as Set<string>).has(ej.id);
+  if (!G.estaAbierto(clave, !fuera && (es || (!sufijo && ej.id === ultimoEj && sem === semanaActual())))) return plegado(clave, nombreConVariante(ej, v), ej.musculo, G.resumenEj(ej, sem, sufijo), fuera);
   return (
     <Card component="article" key={clave} data-ancla={'ej-' + clave} data-actual={es ? '' : undefined} sx={tarjeta(es)}>
       <Box component="header" sx={CABECERA}>
@@ -264,6 +390,7 @@ function ejercicio(ej: Fin, sem: number, sufijo = '') {
       </Box>
       {nombres && !sufijo && d && d.id !== 'core' ? <Button variant="text" onClick={() => accion('gym-biserie', { ej: ej.id })} sx={{ ...ENLACE, display: 'block', m: '2px 0 6px' }}>🔁 Separar en biserie: {nombres.join(' + ')}</Button> : null}
       {chipsVariante(ej, sem, sufijo)}
+      {tecnica(ej)}
       {(ej.filas as Fin[]).map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima))}
       {!sufijo && sem === semanaActual() ? molestia(ej, G.avanceEj(ej, sem).hechas > 0) : null}
       {es && !sufijo ? <Button variant="text" onClick={() => accion('gym-ocupada', { ej: ej.id })} sx={{ ...ENLACE, display: 'block', mb: '4px' }}>⏭ Máquina ocupada: hago otro primero</Button> : null}
@@ -278,10 +405,10 @@ function biserie(a: Fin, b: Fin, sem: number) {
   const { ultimoEj, actualId } = G.verDia(), ea = G.avanceEj(a, sem), eb = G.avanceEj(b, sem), fa = ea.fila, fb = eb.fila;
   const plan = Math.max(ea.plan, eb.plan), ronda = Math.min(ea.hechas, eb.hechas) + 1;
   const descanso = Math.max(...[fa, fb, a.filas[0], b.filas[0]].filter(Boolean).map((f: Fin) => f.descanso));
-  const es = actualId === a.id || actualId === b.id, clave = 'bis-' + a.id;
-  if (!G.estaAbierto(clave, es || ((ultimoEj === a.id || ultimoEj === b.id) && sem === semanaActual()))) {
+  const es = actualId === a.id || actualId === b.id, clave = 'bis-' + a.id, d = (e() as Fin).rutina.find((x: Fin) => x.ejercicios.includes(a)), fuera = !!d && (G.fueraHoy(d, sem) as Set<string>).has(a.id);
+  if (!G.estaAbierto(clave, !fuera && (es || ((ultimoEj === a.id || ultimoEj === b.id) && sem === semanaActual())))) {
     const ra = G.resumenEj(a, sem), rb = G.resumenEj(b, sem);
-    return plegado(clave, '🔁 ' + a.nombre + ' + ' + b.nombre, 'biserie', { hechas: ra.hechas + rb.hechas, plan: ra.plan + rb.plan, texto: ra.hechas + rb.hechas ? ra.texto + ' | ' + rb.texto : ra.texto });
+    return plegado(clave, '🔁 ' + a.nombre + ' + ' + b.nombre, 'biserie', { hechas: ra.hechas + rb.hechas, plan: ra.plan + rb.plan, sube: ra.sube || rb.sube, texto: ra.hechas + rb.hechas ? ra.texto + ' | ' + rb.texto : ra.texto }, fuera);
   }
   const parte = (ej: Fin, letra: string) => (
     <Box key={letra} sx={{ mt: '10px', pt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>
@@ -289,6 +416,7 @@ function biserie(a: Fin, b: Fin, sem: number) {
         <Box component="span" sx={{ display: 'inline-grid', placeItems: 'center', minWidth: 32, height: 24, borderRadius: '6px', bgcolor: tokens.azul, color: tokens.azulInk, fontSize: 13, fontWeight: 800 }}>{letra}</Box>{ej.nombre} <Box component="small" sx={{ color: 'text.secondary', fontWeight: 400 }}>{ej.musculo}</Box>
       </Box>
       {chipsVariante(ej, sem)}
+      {tecnica(ej)}
       {(ej.filas as Fin[]).map((f, i) => fila(f, sem, f.id, ej, i, true))}
       {historialPlegado(ej, sem, varianteEn(ej, regs(sem)))}
       {notas(ej)}
@@ -477,6 +605,13 @@ function IrAlActual({ ir }: { ir: boolean }) {
   return null;
 }
 
+// ⏱ Con la versión corta, lo que hoy no entra pasa al final (el orden de la rutina no cambia)
+function ordenCorto(d: Fin, sem: number) {
+  const grupos = gruposDia(d.ejercicios) as Fin[][], fuera = G.fueraHoy(d, sem) as Set<string>;
+  if (!fuera.size) return grupos;
+  return [...grupos.filter((g) => !fuera.has(g[0].id)), ...grupos.filter((g) => fuera.has(g[0].id))];
+}
+
 export function dia(d: Fin, sem: number) {
   const r = resumenSemana([d], regs(sem)) as Fin, ir = G.prepararDia(d, sem) as boolean;
   return (
@@ -485,7 +620,10 @@ export function dia(d: Fin, sem: number) {
       <Box sx={{ ...FILA, mt: '4px', mb: '6px' }}><b>{d.nombre}</b><span>{r.hechas} / {r.plan} series</span></Box>
       <Avance parte={r.plan ? r.hechas / r.plan : 0} />
       <ContadorEntreno d={d} sem={sem} />
-      {(gruposDia(d.ejercicios) as Fin[][]).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem)))}
+      <AntesDeEntrenar key={d.id} d={d} sem={sem} />
+      <TocaSubir d={d} sem={sem} />
+      {sem === semanaActual() ? <ChequeoMensual /> : null}
+      {ordenCorto(d, sem).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem)))}
       {core(d, sem)}
       {cardio(d, sem)}
       {r.hechas ? <>

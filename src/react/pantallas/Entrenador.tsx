@@ -5,8 +5,10 @@ import { useState, type ReactNode } from 'react';
 import { Box, Button, Card, Link } from '@mui/material';
 import { iso, fechaCorta } from '../../fechas.js';
 import { configurada, nube } from '../../nube.js';
-import { planNuevo } from '../../coach.js';
-import { semanaDeCiclo, OBJETIVOS_CLIENTE, PREGUNTAS_CHECKIN } from '../../clientes.js';
+import { planNuevo, marcaDeMiEntrenador } from '../../coach.js';
+import { semanaDeCiclo, OBJETIVOS_CLIENTE, PREGUNTAS_CHECKIN, comparacionValoraciones, MEDIDAS, PRUEBAS_CLIENTE } from '../../clientes.js';
+import { pesos } from '../../finanzas.js';
+import { MarcaCabecera } from '../ui/Marca';
 import { piezasEntrenador } from '../../vistas/entrenador.js';
 import { tokens } from '../tema';
 import { accion } from '../acciones';
@@ -44,7 +46,7 @@ function Unirse() {
 function Plan({ e, a }: { e: Fin; a: Fin }) {
   const p = a.plan, m = P.mi(), nuevo = planNuevo(e, a), usado = (m.aplicado || {})[a.id], w = p && p.ciclo ? (semanaDeCiclo(p.ciclo) as Fin) : null, o = p && OBJ[p.objetivo];
   return (
-    <TarjetaPlegable vista={VISTA} clave={'🧑‍🏫 ' + (a.entrenador || 'Tu entrenador')} titulo={'🧑‍🏫 ' + (a.entrenador || 'Tu entrenador')}>
+    <TarjetaPlegable vista={VISTA} clave={'🧑‍🏫 ' + (a.entrenador || 'Tu entrenador')} titulo={'🧑‍🏫 ' + ((p && p.marca && p.marca.negocio ? String(p.marca.negocio).slice(0, 40) : '') || a.entrenador || 'Tu entrenador')}>
       <Nota>Desde el {a.aceptado ? fechaCorta(String(a.aceptado).slice(0, 10)) : ''}{o ? ' · ' + o[0] : ''}</Nota>
       {!p ? <Nota>Aún no te ha mandado el plan. Te aparece aquí apenas lo publique.</Nota> : (
         <>
@@ -61,6 +63,75 @@ function Plan({ e, a }: { e: Fin; a: Fin }) {
         </>
       )}
       {m.antes ? <Link component="button" type="button" data-accion="ent-volver" sx={{ color: 'primary.main', textAlign: 'left', font: 'inherit', fontSize: 15, minHeight: 40 }}>↶ Volver a mi rutina y mis comidas de antes ({fechaCorta(m.antes.fecha)})</Link> : null}
+    </TarjetaPlegable>
+  );
+}
+
+// 🎨 Arriba: la marca de su entrenador (si la puso)
+function Cabecera({ e }: { e: Fin }) {
+  const m = marcaDeMiEntrenador(e) as Fin;
+  if (!m || (!m.negocio && !m.logo)) return null;
+  return (
+    <Card component="section" sx={{ mb: '14px', borderLeft: '5px solid', borderLeftColor: m.color || tokens.brand }}>
+      <MarcaCabecera marca={m} sub={'Tu entrenador · ' + (m.correo || '')} />
+    </Card>
+  );
+}
+const PERIODO: Record<string, string> = { mes: 'al mes', quincena: 'cada quincena', semana: 'a la semana', unico: 'pago único' };
+const COBRO: Record<string, [string, string, string]> = {
+  'al-dia': ['✓ Al día', tokens.brandSoft, tokens.brand], pronto: ['⏳ Te toca pronto', tokens.amarilloFondo, tokens.amarillo],
+  vencido: ['⚠️ Pendiente', tokens.rojoFondo, tokens.rojoSuave], pausa: ['⏸ En pausa', tokens.surface2, tokens.muted],
+};
+// 💳 Lo que tu entrenador anotó de tus pagos (al día con la última vez que te publicó el plan o anotó un pago)
+function MisPagos({ lista }: { lista: Fin[] }) {
+  const con = lista.filter((a) => a.plan && a.plan.pagos);
+  if (!con.length) return null;
+  return (
+    <TarjetaPlegable vista={VISTA} clave="💳 Mis pagos" titulo="💳 Mis pagos">
+      {con.map((a) => {
+        const p = a.plan.pagos, [texto, fondo, tinta] = COBRO[p.estado] || COBRO.pausa;
+        return (
+          <Box key={a.id} data-t="mis-pagos" sx={{ display: 'grid', gap: '6px' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span><b>{pesos(p.precio)}</b> {PERIODO[p.cada] || ''}</span>
+              <Box component="span" sx={{ fontSize: 13, fontWeight: 800, p: '2px 10px', borderRadius: 999, bgcolor: fondo, color: tinta }}>{texto}</Box>
+            </Box>
+            {p.proximo && p.estado !== 'pausa' ? <Nota sx={{ m: 0 }}>{p.estado === 'vencido' ? 'Tocaba el ' : 'Próximo pago: '}<b>{fechaCorta(p.proximo)}</b></Nota> : null}
+            {p.pagos && p.pagos.length ? (
+              <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+                {(p.pagos as Fin[]).map((x) => <Box component="li" key={x.fecha} sx={{ display: 'flex', justifyContent: 'space-between', p: '6px 0', borderBottom: '1px solid', borderColor: 'divider', fontSize: 14 }}><span>{fechaCorta(x.fecha)}</span><b>{pesos(x.monto)}</b></Box>)}
+              </Box>
+            ) : null}
+            <Nota sx={{ m: 0 }}>Lo anota tu entrenador{p.actualizado ? ' (al día al ' + fechaCorta(p.actualizado) + ')' : ''}. Si ya pagaste y no aparece, avísale.</Nota>
+          </Box>
+        );
+      })}
+    </TarjetaPlegable>
+  );
+}
+// 📊 Las valoraciones que te hizo tu entrenador: la primera contra la última
+function MisValoraciones({ lista }: { lista: Fin[] }) {
+  const vals = lista.flatMap((a) => (a.plan && a.plan.valoraciones) || []) as Fin[];
+  if (!vals.length) return null;
+  const cambios = comparacionValoraciones(vals) as Fin[], ult = vals.slice().sort((a, b) => a.fecha.localeCompare(b.fecha)).pop();
+  const nombres = Object.fromEntries([...(MEDIDAS as Fin[]), ...(PRUEBAS_CLIENTE as Fin[])].map(([k, n, u]) => [k, [n, u]]));
+  return (
+    <TarjetaPlegable vista={VISTA} clave="📊 Mis valoraciones" titulo="📊 Mis valoraciones">
+      <Nota>{cuantos(vals.length, 'valoración', 'valoraciones')} · la última el <b>{fechaCorta(ult.fecha)}</b></Nota>
+      {cambios.length ? (
+        <Box data-t="mis-valoraciones" component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+          {cambios.map((x) => (
+            <Box component="li" key={x.k} sx={{ display: 'flex', justifyContent: 'space-between', gap: '10px', p: '6px 0', borderBottom: '1px solid', borderColor: 'divider', fontSize: 14 }}>
+              <span>{x.nombre}</span>
+              <span>{String(x.antes).replace('.', ',')} → <b>{String(x.ahora).replace('.', ',')} {x.u}</b> <Box component="small" sx={{ color: 'text.secondary' }}>({x.cambio > 0 ? '+' : ''}{String(x.cambio).replace('.', ',')})</Box></span>
+            </Box>
+          ))}
+        </Box>
+      ) : (
+        <Box data-t="mis-valoraciones" component="ul" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+          {Object.entries(ult).filter(([k]) => nombres[k]).map(([k, v]) => <Box component="li" key={k} sx={{ display: 'flex', justifyContent: 'space-between', p: '6px 0', borderBottom: '1px solid', borderColor: 'divider', fontSize: 14 }}><span>{nombres[k][0]}</span><b>{String(v).replace('.', ',')} {nombres[k][1]}</b></Box>)}
+        </Box>
+      )}
     </TarjetaPlegable>
   );
 }
@@ -92,7 +163,10 @@ export default function Entrenador({ pestana }: { pestana?: string }) {
   return (
     <>
       <TituloPantalla>Mi entrenador</TituloPantalla>
+      <Cabecera e={e} />
       {(m.lista as Fin[]).map((a) => <Plan key={a.id} e={e} a={a} />)}
+      <MisPagos lista={m.lista} />
+      <MisValoraciones lista={m.lista} />
       <Checkin />
       <TarjetaPlegable vista={VISTA} clave="🔄 Lo que compartes" titulo="🔄 Lo que compartes">
         <Nota>Series por semana, peso, sueño promedio, cómo va tu fuerza y tus check-ins, con tu entrenador (y el administrador de la app). Se manda solo cada vez que abres la app{m.compartido ? ' (la última: ' + fechaCorta(iso(new Date(m.compartido))) + ')' : ''}.</Nota>

@@ -10,6 +10,7 @@ import { reloj, fechaCorta, iso, sumarDias } from '../../fechas.js';
 import { lecturaHoy, suenoDeHoras, esDiaPierna, planCorto, seriesCortas, chequeoMensual, videoValido, buscarVideo } from '../../entreno-hoy.js';
 import { horasSueno, hayPartido } from '../../registro.js';
 import { esDescarga, filaDe, sinDescargas, rutinaDe } from '../../descarga.js';
+import { AvisoPesos, FutbolHoy, Esencial, Ocupadas, AproxEjercicio, HoyVsUltima, ComoTeFue } from './GymExtras';
 import { juegaEl } from '../../futbol.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
   consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO } from '../../gym.js';
@@ -407,6 +408,7 @@ function ejercicio(ej: Fin, sem: number, sufijo = '') {
       {nombres && !sufijo && d && d.id !== 'core' ? <Button variant="text" onClick={() => accion('gym-biserie', { ej: ej.id })} sx={{ ...ENLACE, display: 'block', m: '2px 0 6px' }}>🔁 Separar en biserie: {nombres.join(' + ')}</Button> : null}
       {chipsVariante(ej, sem, sufijo)}
       {tecnica(ej)}
+      {!sufijo ? <AproxEjercicio ej={ej} sem={sem} /> : null}
       {(ej.filas as Fin[]).map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima))}
       {!sufijo && sem === semanaActual() ? molestia(ej, G.avanceEj(ej, sem).hechas > 0) : null}
       {es && !sufijo ? <Button variant="text" onClick={() => accion('gym-ocupada', { ej: ej.id })} sx={{ ...ENLACE, display: 'block', mb: '4px' }}>⏭ Máquina ocupada: hago otro primero</Button> : null}
@@ -639,6 +641,10 @@ export function dia(d: Fin, sem: number) {
       <AntesDeEntrenar key={d.id} d={d} sem={sem} />
       <TocaSubir d={d} sem={sem} />
       {sem === semanaActual() ? <ChequeoMensual /> : null}
+      <FutbolHoy d={d} sem={sem} />
+      <AvisoPesos d={d} sem={sem} />
+      <Esencial d={d} sem={sem} />
+      <Ocupadas d={d} sem={sem} />
       {ordenCorto(d, sem).map((g) => (g.length === 2 ? biserie(g[0], g[1], sem) : ejercicio(g[0], sem)))}
       {core(d, sem)}
       {cardio(d, sem)}
@@ -651,6 +657,8 @@ export function dia(d: Fin, sem: number) {
           </Desplegable>
         </Box>
         {analisis(d, sem)}
+        <HoyVsUltima d={d} sem={sem} />
+        <ComoTeFue d={d} sem={sem} />
       </> : null}
       <IrAlActual ir={ir} />
     </>

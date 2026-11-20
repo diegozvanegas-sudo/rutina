@@ -128,7 +128,7 @@ export function plan12(_estado: Fin, hoy = iso()) {
     <Tarjeta titulo="📆 Plan de 12 semanas" lado={<Box component="small" sx={{ color: 'primary.main', fontWeight: 700, whiteSpace: 'nowrap' }}>{faltan <= 1 ? 'Empieza mañana' : 'Empieza en ' + faltan + ' días'}</Box>}>
       <p>Empieza el <b>{fechaCorta(p.inicio)}</b>. Ese día pésate y haz la revisión de la semana 1.</p>
       <Ajustes p={p} s={null} />
-      <Suave accion="p12-reiniciar">Reiniciar el plan</Suave>
+      <Suave accion="p12-reiniciar">Cambiar la fecha</Suave>
     </Tarjeta>
   );
   const fin = s > SEMANAS_PLAN, f = faseDe(Math.min(s, SEMANAS_PLAN)) as Fin, revision = !fin && tocaRevision(s) && !pruebaDeSemana(s), prox = (REVISIONES as number[]).find((n) => n >= s && !pruebaDeSemana(n));

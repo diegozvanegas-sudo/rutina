@@ -3,6 +3,8 @@
 // pases a Finanzas. La pantalla está en src/react/pantallas/FinanzasExtracto.tsx y las acciones en src/vistas/extracto.js
 // Movimiento leído: { id, fecha, desc, monto, tipo: gasto | ingreso, saldo?, categoria, sub?, clave, banco?, interno?, ya?, pasar }
 
+import { leerCuotas, leerTasa } from './cuotas.js';
+
 // ---------- Montos ----------
 // "25.000", "25.000,50", "25,000.50", "-$ 1.234.567", "(25.000)", "25.000-" → número con signo (null si no es un monto)
 export function leerValor(t) {
@@ -154,14 +156,30 @@ function leerLineas(lineas, op) {
       continue;
     }
     if (/saldo\s*(anterior|inicial|final)|total(es)?\b/i.test(l)) continue;
-    const montos = (f.resto.match(MONTO) || []).map((t) => ({ t, v: leerValor(t) })).filter((x) => x.v != null && x.v !== 0);
+    // 💳 Tarjeta de crédito: la cuota ("3/12") y la tasa salen antes de buscar los montos (si no, "1,89" parecería un valor).
+    // Las otras fechas de la línea (la de corte) también, para que "05/11/2026" no se lea como cuota 5 de 11
+    let resto = f.resto, cuotas = null;
+    if (op.tarjeta) {
+      resto = resto.replace(/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b|\b\d{4}[/-]\d{1,2}[/-]\d{1,2}\b/g, ' ');
+      const cu = leerCuotas(resto);
+      if (cu) {
+        resto = resto.replace(cu.texto, ' ');
+        const ta = leerTasa(resto);
+        if (ta) resto = resto.replace(ta.texto, ' ');
+        cuotas = { k: cu.k, n: cu.n, tasa: ta ? ta.mensual : null };
+      }
+    }
+    const montos = (resto.match(MONTO) || []).map((t) => ({ t, v: leerValor(t) })).filter((x) => x.v != null && x.v !== 0 && (!cuotas || Math.abs(x.v) >= 100));
     if (!montos.length) continue;
-    // Con dos o más montos, el último suele ser el saldo y el de antes el valor del movimiento
-    const mov = montos.length >= 2 ? montos[montos.length - 2] : montos[0], saldo = montos.length >= 2 ? montos[montos.length - 1].v : null;
-    let desc = f.resto;
+    // Con dos o más montos, el último suele ser el saldo y el de antes el valor del movimiento. En una compra a cuotas el
+    // primero es el valor original de la compra y el que sigue, el cargo de este mes
+    const mov = cuotas ? montos[Math.min(1, montos.length - 1)] : montos.length >= 2 ? montos[montos.length - 2] : montos[0];
+    const saldo = !cuotas && montos.length >= 2 ? montos[montos.length - 1].v : null;
+    if (cuotas) cuotas.original = Math.abs(montos[0].v);
+    let desc = resto;
     for (const x of montos) desc = desc.replace(x.t, ' ');
     desc = desc.replace(/\b\d{5,}\b/g, ' ').replace(/\s+/g, ' ').replace(/^[\s\-|:]+|[\s\-|:]+$/g, '').trim();
-    out.push({ fecha: f.fecha, desc: desc || 'Movimiento', valor: mov.v, signo: /^\(|[-−]/.test(mov.t.trim()), saldo });
+    out.push({ fecha: f.fecha, desc: desc || 'Movimiento', valor: mov.v, signo: /^\(|[-−]/.test(mov.t.trim()), saldo, cuotas });
   }
   return out;
 }
@@ -175,7 +193,7 @@ function anioDe(texto) {
 
 // Extracto → movimientos clasificados. op: { hoy, aprendidas (fin.reglasExtracto), movimientos (los ya anotados) }
 export function leerExtracto(texto, { hoy, aprendidas = {}, movimientos = [], tarjeta = false } = {}) {
-  const lineas = String(texto || '').replace(/\r/g, '').split('\n'), op = { hoy, anioBase: anioDe(texto) };
+  const lineas = String(texto || '').replace(/\r/g, '').split('\n'), op = { hoy, anioBase: anioDe(texto), tarjeta };
   const crudos = leerCSV(lineas, op) || leerLineas(lineas, op);
   let prev = null;
   const movs = crudos.map((x, i) => {
@@ -187,7 +205,7 @@ export function leerExtracto(texto, { hoy, aprendidas = {}, movimientos = [], ta
     else tipo = INGRESO.test(x.desc) ? 'ingreso' : 'gasto';
     if (x.saldo != null) prev = x.saldo;
     const monto = Math.round(Math.abs(x.valor)), c = categorizar(x.desc, tipo, aprendidas);
-    const m = { id: 'x' + i, fecha: x.fecha, desc: x.desc, monto, tipo, saldo: x.saldo, clave: claveDe(x.desc), ...c };
+    const m = { id: 'x' + i, fecha: x.fecha, desc: x.desc, monto, tipo, saldo: x.saldo, clave: claveDe(x.desc), ...c, ...(x.cuotas ? { cuotas: x.cuotas } : {}) };
     if (tipo === 'gasto' && COBRO_BANCO(m)) m.banco = true;
     if (INTERNO.test(x.desc) || (tarjeta && tipo === 'ingreso')) m.interno = true;
     m.ya = yaAnotado(m, movimientos);

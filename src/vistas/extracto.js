@@ -4,9 +4,11 @@
 // movimientos que pases a Finanzas (importado: 'extracto') y las categorías que corrijas (fin.reglasExtracto: clave → "cat/sub")
 import { e, guardar, repintar } from '../estado.js';
 import { iso } from '../fechas.js';
-import { agregarMovimiento, quitarMovimiento, anotarPatrimonio, pesos } from '../finanzas.js';
+import { agregarMovimiento, quitarMovimiento, anotarPatrimonio, pesos, leerMonto } from '../finanzas.js';
 import { leerExtracto, claveDe } from '../extracto.js';
-import { registrar, toast } from '../ui.js';
+import { comprasDe, porPersona, textoPersona, quienDe } from '../cuotas.js';
+import { mensualDeAnual } from '../calculadora.js';
+import { registrar, toast, copiarTexto } from '../ui.js';
 
 const f = () => e().finanzas;
 // texto: lo pegado · movs: lo leído · metodo: la cuenta del extracto · tarjeta: si es de una tarjeta de crédito
@@ -16,6 +18,21 @@ export const extracto = () => ext;
 
 const metodoPorDefecto = () => (f().metodos.find((m) => m.id === 'debito') || f().metodos[0] || { id: 'efectivo' }).id;
 const esTarjeta = (id) => id === 'credito' || f().deudas.some((d) => d.metodo === id);
+
+// ---------- 💳 Cuotas y quién paga (src/cuotas.js) ----------
+// fin.personas: quiénes usan la tarjeta (la primera eres tú) · fin.compras: por compra (claveCompra) quién paga y lo corregido
+// fin.reglasQuien: comercio → personas (para la próxima compra igual) · fin.tasasTarjeta: tasa de cada tarjeta { valor, tipo }
+export const personas = () => (f().personas && f().personas.length ? f().personas : ['Yo']);
+// La tasa mensual de la tarjeta: la escrita aquí o la de su deuda en 💳 Deudas (que ya es mensual)
+export function tasaTarjeta() {
+  const id = ext.metodo || metodoPorDefecto(), t = (f().tasasTarjeta || {})[id], d = f().deudas.find((x) => x.metodo === id);
+  if (t && t.valor > 0) return { ...t, mensual: t.tipo === 'ea' ? mensualDeAnual(t.valor) : t.valor, de: 'aqui' };
+  return d && d.tasa > 0 ? { valor: d.tasa, tipo: 'mensual', mensual: d.tasa, de: 'deuda', deuda: d.nombre } : null;
+}
+export const compras = () => comprasDe(ext.movs || [], { guardadas: f().compras || {}, reglas: f().reglasQuien || {}, tasa: (tasaTarjeta() || {}).mensual || 0 });
+const compraDe = (id) => compras().find((c) => c.id === id);
+const guardada = (c) => ((f().compras ??= {})[c.clave] ??= {});
+export const nombreTarjeta = () => ((f().metodos.find((m) => m.id === (ext.metodo || metodoPorDefecto())) || {}).nombre || 'la tarjeta');
 
 function leer(texto) {
   ext.metodo ??= metodoPorDefecto();
@@ -136,5 +153,55 @@ registrar({
       ext.ultimos = null; anotarPatrimonio(f()); guardar();
     });
   },
-  'ext-limpiar'() { Object.assign(ext, { texto: '', movs: null, pdf: null, pideClave: false, abierto: null, nombre: '', ultimos: null, filtro: 'todos' }); repintar(); },
+  'ext-limpiar'() { Object.assign(ext, { texto: '', movs: null, pdf: null, pideClave: false, abierto: null, nombre: '', ultimos: null, filtro: 'todos', compraAbierta: null }); repintar(); },
+
+  // ---------- 💳 Cuotas y quién paga ----------
+  'cu-abrir'({ id }) { ext.compraAbierta = ext.compraAbierta === id ? null : id; repintar(); },
+  'cu-persona-nueva'() {
+    const campo = document.querySelector('[data-t="cu-persona"] input'), nombre = campo ? campo.value.trim().slice(0, 30) : '';
+    if (!nombre) { toast('Escribe el nombre'); return; }
+    const lista = personas();
+    if (lista.some((p) => p.toLowerCase() === nombre.toLowerCase())) { toast(nombre + ' ya está'); return; }
+    f().personas = [...lista, nombre];
+    guardar();
+    if (campo) campo.value = '';
+  },
+  'cu-persona-quitar'({ p }) {
+    if (p === personas()[0]) return;
+    f().personas = personas().filter((x) => x !== p);
+    for (const g of Object.values(f().compras || {})) if (g.quien) g.quien = g.quien.filter((x) => x !== p);
+    guardar();
+    toast(p + ' quitado: sus compras vuelven a ' + personas()[0]);
+  },
+  // Tocar una persona la suma o la quita de la compra; con varias, la compra se divide por partes iguales.
+  // Se recuerda para esa compra (en los próximos extractos) y para ese comercio
+  'cu-quien'({ id, p }) {
+    const c = compraDe(id); if (!c) return;
+    const g = guardada(c), antes = quienDe(c, personas());
+    let quien = antes.includes(p) ? antes.filter((x) => x !== p) : [...antes, p];
+    if (!quien.length) quien = [personas()[0]];
+    g.quien = quien;
+    (f().reglasQuien ??= {})[claveDe(c.desc)] = quien;
+    guardar();
+  },
+  // Corregir lo leído: valor original, cuántas cuotas, en cuál va y la tasa mensual de esa compra
+  'cu-campo'({ id, k }, el) {
+    const c = compraDe(id); if (!c || !['original', 'n', 'k', 'tasa'].includes(k)) return;
+    const v = k === 'original' ? leerMonto(el.value) : Number(String(el.value).replace(',', '.'));
+    const g = guardada(c);
+    if (!(v >= 0) || (k !== 'tasa' && !v)) delete g[k]; else g[k] = k === 'n' || k === 'k' ? Math.round(v) : v;
+    guardar();
+  },
+  // La tasa de la tarjeta, para las compras que no la traen en el extracto (en % mensual o E.A.)
+  'cu-tasa'(_, el) {
+    const campo = document.querySelector('[data-t="cu-tasa"] input'), tipo = document.querySelector('[data-t="cu-tasa"] select');
+    const v = Number(String((campo || el).value).replace(',', '.'));
+    const t = (f().tasasTarjeta ??= {}), id = ext.metodo || metodoPorDefecto();
+    if (v > 0) t[id] = { valor: v, tipo: tipo ? tipo.value : 'mensual' }; else delete t[id];
+    guardar();
+  },
+  'cu-copiar'({ p }) {
+    const x = porPersona(compras(), personas()).find((y) => y.nombre === p);
+    if (x) copiarTexto(textoPersona(x, { tarjeta: nombreTarjeta() }), '📋 Detalle de ' + p + ' copiado');
+  },
 });

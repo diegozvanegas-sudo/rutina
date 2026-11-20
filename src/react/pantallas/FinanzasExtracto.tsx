@@ -6,7 +6,8 @@ import { Box, Button, ButtonBase, Card, Chip, NativeSelect, OutlinedInput } from
 import { fechaCorta } from '../../fechas.js';
 import { pesos } from '../../finanzas.js';
 import { analizar, consejos } from '../../extracto.js';
-import { extracto } from '../../vistas/extracto.js';
+import { extracto, personas, compras, tasaTarjeta, nombreTarjeta } from '../../vistas/extracto.js';
+import { detalleCompra, porPersona, quienDe, textoPersona } from '../../cuotas.js';
 import { accion } from '../acciones';
 import { tokens } from '../tema';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
@@ -192,12 +193,134 @@ function Movimientos({ f, x }: { f: Fin; x: Fin }) {
   );
 }
 
+// ---------- 💳 Cuotas y quién paga (src/cuotas.js) ----------
+const numeroCorto = (n: number, d = 2) => (Math.round(n * 10 ** d) / 10 ** d).toLocaleString('es-CO');
+function Personas({ lista }: { lista: string[] }) {
+  return (
+    <Box sx={{ display: 'grid', gap: '6px' }}>
+      <Box component="span" sx={GRIS}>¿Quiénes usan la tarjeta?</Box>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+        {lista.map((p, i) => <Chip key={p} label={p + (i === 0 ? ' (tú)' : '')} onDelete={i ? () => accion('cu-persona-quitar', { p }) : undefined} sx={{ minHeight: 36 }} />)}
+      </Box>
+      <Box data-t="cu-persona" sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px' }}>
+        <CampoSolo aria-label="Nombre de otra persona" placeholder="Otra persona (ej.: Mamá)" enterKeyHint="done" maxLength={30} />
+        <Button color="secondary" onClick={() => accion('cu-persona-nueva')} sx={{ minHeight: 44 }}>＋ Agregar</Button>
+      </Box>
+    </Box>
+  );
+}
+function TasaTarjeta({ f, t }: { f: Fin; t: Fin }) {
+  const id = x0().metodo, guardada = (f.tasasTarjeta || {})[id] || {};
+  return (
+    <Box data-t="cu-tasa" sx={{ display: 'grid', gap: '6px' }}>
+      <Box component="span" sx={GRIS}>Tasa de la tarjeta (para las compras que no la traen en el extracto)</Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+        <CampoSolo key={'t' + (guardada.valor || '')} aria-label="Tasa de la tarjeta %" inputMode="decimal" data-cambio="cu-tasa" defaultValue={guardada.valor ? String(guardada.valor).replace('.', ',') : ''} placeholder={t ? numeroCorto(t.mensual, 4) + ' %' : 'Ej.: 1,89'} />
+        <NativeSelect key={'s' + (guardada.tipo || '')} defaultValue={guardada.tipo || 'mensual'} input={<OutlinedInput />} inputProps={{ 'aria-label': 'La tasa es', 'data-cambio': 'cu-tasa' } as object}>
+          <option value="mensual">% mensual</option><option value="ea">% E.A.</option>
+        </NativeSelect>
+      </Box>
+      <Box component="small" sx={{ color: 'text.secondary' }}>{t ? 'Uso ' + numeroCorto(t.mensual, 4) + ' % mensual' + (t.de === 'deuda' ? ' (la de ' + t.deuda + ' en 💳 Deudas)' : '') + (t.tipo === 'ea' ? ' (' + numeroCorto(t.valor) + ' % E.A.)' : '') + '.' : 'Sin tasa: si el extracto trae el cargo del mes, la saco de ahí; si no, esas compras salen sin interés.'}</Box>
+    </Box>
+  );
+}
+const x0 = () => extracto() as Fin;
+function Cifra({ t, v, color }: { t: string; v: ReactNode; color?: string }) {
+  return <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: 14, py: '3px' }}><Box component="span" sx={{ color: 'text.secondary' }}>{t}</Box><Box component="b" sx={{ color, textAlign: 'right' }}>{v}</Box></Box>;
+}
+function Compra({ c, lista, abierta }: { c: Fin; lista: string[]; abierta: boolean }) {
+  const d = detalleCompra(c) as Fin, quien = quienDe(c, lista) as string[];
+  if (!d) return null;
+  const campo = (k: string, et: string, v: string, modo = 'decimal') => (
+    <Box sx={{ display: 'grid', gap: '2px' }}><Box component="span" sx={{ fontSize: 12, color: 'text.secondary' }}>{et}</Box>
+      <CampoSolo key={k + v} aria-label={et} inputMode={modo as 'decimal'} data-cambio="cu-campo" data-id={c.id} data-k={k} defaultValue={v} /></Box>
+  );
+  return (
+    <Box data-t="cu-compra" sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+      <ButtonBase aria-expanded={abierta} onClick={() => accion('cu-abrir', { id: c.id })}
+        sx={{ display: 'flex', justifyContent: 'space-between', gap: '8px', width: '100%', minHeight: 52, py: '6px', font: 'inherit', color: 'text.primary', textAlign: 'left', borderRadius: '8px', '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ fontSize: 14, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.desc}</Box>
+          <Box component="small" sx={{ color: 'text.secondary', fontSize: 12 }}>{fechaCorta(c.fecha)} · {d.n > 1 ? 'Cuota ' + d.k + ' de ' + d.n : '1 cuota'} · {quien.join(' + ')}</Box>
+        </Box>
+        <Box sx={{ flex: 'none', textAlign: 'right' }}>
+          <Box component="b" sx={{ fontSize: 14 }}>{pesos(d.mes)}</Box>
+          {d.interes > 0 ? <Box component="small" sx={{ display: 'block', fontSize: 12, color: tokens.rojoSuave }}>{pesos(d.interes)} interés</Box> : null}
+        </Box>
+      </ButtonBase>
+      {abierta ? (
+        <Box sx={{ display: 'grid', gap: '10px', pb: '12px' }}>
+          <Box role="group" aria-label="Quién paga" sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+            <Box component="span" sx={GRIS}>Quién paga:</Box>
+            {lista.map((p) => { const si = quien.includes(p); return <Chip key={p} clickable aria-pressed={si} color={si ? 'primary' : 'default'} variant={si ? 'filled' : 'outlined'} label={p} onClick={() => accion('cu-quien', { id: c.id, p })} sx={{ minHeight: 36 }} />; })}
+            {quien.length > 1 ? <Box component="small" sx={{ flexBasis: '100%', color: 'text.secondary' }}>Dividida en {quien.length}: a cada uno le toca {pesos(d.mes / quien.length)} este mes.</Box> : null}
+          </Box>
+          <Box sx={{ p: '8px 10px', borderRadius: '10px', bgcolor: tokens.surface2 }}>
+            <Cifra t="Valor de la compra" v={pesos(c.original)} />
+            {d.n > 1 ? <>
+              <Cifra t={'Cuota ' + d.k + ' de ' + d.n + ': capital'} v={pesos(d.capital)} />
+              <Cifra t={'Interés de este mes' + (d.tasa ? ' (' + numeroCorto(d.tasa, 2) + ' % mensual' + (d.tasaDe === 'cargo' ? ', sacada del cargo' : d.tasaDe === 'tarjeta' ? ', la de la tarjeta' : '') + ')' : '')} v={pesos(d.interes)} color={d.interes ? tokens.rojoSuave : undefined} />
+            </> : null}
+            <Cifra t={'Se paga este mes' + (d.delExtracto ? ' (según el extracto)' : '')} v={pesos(d.mes)} />
+            {d.n > 1 ? <>
+              <Cifra t={'Queda debiendo (' + d.cuotasFaltan + ' cuotas)'} v={pesos(d.saldo)} />
+              <Cifra t="Intereses que faltan (aprox.)" v={pesos(d.interesesFaltan)} color={d.interesesFaltan ? tokens.rojoSuave : undefined} />
+              <Cifra t="Falta por pagar en total" v={pesos(d.faltaPagar)} />
+              <Cifra t="La compra termina costando" v={pesos(d.totalCompra) + ' (+' + pesos(d.interesesTotal) + ')'} />
+            </> : null}
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: '8px' }}>
+            {campo('original', 'Valor original', Math.round(c.original).toLocaleString('es-CO'), 'numeric')}
+            {campo('n', 'Cuotas', String(c.n), 'numeric')}
+            {campo('k', 'Va en la cuota', String(d.k), 'numeric')}
+            {campo('tasa', 'Tasa % mensual', c.tasa ? String(numeroCorto(c.tasa, 4)) : '')}
+          </Box>
+          <Box component="small" sx={{ color: 'text.secondary' }}>Corrige si algo se leyó mal: se recuerda para esta compra en los próximos extractos. Los bancos cobran el capital igual cada mes y el interés sobre lo que falta: el valor real puede variar un poco por días, seguros o cuota de manejo.</Box>
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+function Cuotas({ f, x }: { f: Fin; x: Fin }) {
+  const lista = personas() as string[], cs = compras() as Fin[], pp = porPersona(cs, lista) as Fin[], t = tasaTarjeta() as Fin;
+  if (!cs.length) return null;
+  const total = pp.reduce((s, p) => s + p.mes, 0), falta = pp.reduce((s, p) => s + p.faltaPagar, 0), intereses = pp.reduce((s, p) => s + p.interes, 0);
+  const orden = [...cs].sort((a, b) => (detalleCompra(b) as Fin).mes - (detalleCompra(a) as Fin).mes);
+  return (
+    <Card component="section" data-t="cuotas" sx={{ mb: '14px', display: 'grid', gap: '12px' }}>
+      <Box component="h2" sx={{ m: 0, fontSize: 18 }}>💳 Cuotas y quién paga</Box>
+      <Cifras datos={[{ titulo: 'Este mes', valor: pesos(total) }, { titulo: 'De eso, intereses', valor: pesos(intereses), color: intereses ? tokens.rojoSuave : undefined }, { titulo: 'Falta después', valor: pesos(falta) }]} />
+      <Personas lista={lista} />
+      <TasaTarjeta f={f} t={t} />
+      {lista.length > 1 || pp[0].compras.length ? (
+        <Box sx={{ display: 'grid', gap: '8px' }}>
+          <b>👥 Lo de cada uno</b>
+          {pp.filter((p) => p.compras.length).map((p) => (
+            <Box key={p.nombre} data-t="cu-persona-resumen" sx={{ p: '10px', borderRadius: '10px', bgcolor: tokens.surface2, display: 'grid', gap: '4px' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: '8px', alignItems: 'baseline' }}><b>{p.nombre}</b><Box component="b" sx={{ fontSize: 17 }}>{pesos(p.mes)}</Box></Box>
+              <Box component="small" sx={{ color: 'text.secondary' }}>{p.compras.length} {p.compras.length === 1 ? 'compra' : 'compras'} · {pesos(p.capital)} de capital + {pesos(p.interes)} de intereses{p.faltaPagar > 0 ? ' · después le falta ' + pesos(p.faltaPagar) + ' (' + pesos(p.interesesFaltan) + ' de intereses)' : ''}</Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', mt: '4px' }}>
+                <Button size="small" color="secondary" onClick={() => accion('cu-copiar', { p: p.nombre })} sx={{ minHeight: 40 }}>📋 Copiar su detalle</Button>
+                <Button size="small" color="secondary" href={'https://wa.me/?text=' + encodeURIComponent(textoPersona(p, { tarjeta: nombreTarjeta() }) as string)} target="_blank" rel="noopener" sx={{ minHeight: 40 }}>💬 WhatsApp</Button>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      ) : null}
+      <Box>
+        <b>🧾 Compras ({cs.length})</b>
+        <Box sx={{ mt: '4px' }}>{orden.map((c) => <Compra key={c.id} c={c} lista={lista} abierta={x.compraAbierta === c.id} />)}</Box>
+      </Box>
+    </Card>
+  );
+}
+
 export function extractoBanco(f: Fin) {
-  const x = extracto() as Fin;
+  const x = extracto() as Fin, conCuotas = x.movs && (x.tarjeta || (x.movs as Fin[]).some((m) => m.cuotas));
   return (
     <>
       <Cargar f={f} x={x} />
-      {x.movs && x.movs.length ? <><Analisis f={f} movs={x.movs} /><Movimientos f={f} x={x} /></> : null}
+      {x.movs && x.movs.length ? <><Analisis f={f} movs={x.movs} />{conCuotas ? <Cuotas f={f} x={x} /> : null}<Movimientos f={f} x={x} /></> : null}
     </>
   );
 }

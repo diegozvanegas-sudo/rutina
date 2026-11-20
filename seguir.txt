@@ -1,0 +1,60 @@
+Continúa la migración de la app Rutina a React con Material UI. Respóndeme en español y no me
+preguntes: decide tú y sigue. No publiques hasta que yo diga "sube".
+
+PRIMERO lee tu memoria del proyecto (migracion-react.md, no-preguntar.md, pc-y-celular.md,
+no-mover-lo-existente.md) y el archivo APRENDER-REACT.md del repo. Ahí está el método completo,
+lo que ya se hizo y lo que falta. No rehagas mediciones ni decisiones ya tomadas.
+
+DÓNDE VAMOS
+- Publicado: TODAS las pantallas en React (e598edf).
+- Publicado también (0bbbd3a): menú lateral, cronómetro flotante, avisos de arriba y reproductor
+  (src/react/armazon/). El toast y el tip se quedan como DOM simple (solo su CSS pasa a React).
+- Publicado también (ba812d9): Entrar y el candado en React (src/react/armazon/Sesion.tsx, recorrido
+  tests/e2e/entrar.mjs) y la cuenta nueva vacía.
+- Publicado también (1731bc1): la presentación de entrar en React e interactiva
+  (src/react/armazon/Presentacion.tsx) y el arreglo de ↺ Seguir del contador del Gym.
+- Publicado también (a441809): el CSS de figuras y gráficos en React (src/react/armazon/Estilos.tsx) y el curso
+  ✏️ Retrato realista (área 🎨 Arte y dibujo, primer curso con figuras). Predicciones publicadas en d938ae8.
+- En local, sin publicar: LA MIGRACIÓN TERMINÓ. Sin respaldos de Finanzas y Gym, y src/estilos.css borrado: lo que
+  se usaba pasó a src/react/armazon/estilosArmazon.ts (verificado con los estilos calculados de todo, 84 estados).
+- Siguiente: lo que pida Diego (ya no queda migración).
+- Una cuenta nueva empieza vacía (src/estado.js nuevo(); recorrido tests/e2e/nuevo.mjs).
+  Los recorridos arrancan con el ejemplo (probar.mjs llama a window.rutinaPrueba.ejemplo()).
+- Predicciones hechas (src/prediccion.js, tarjeta 🔮 en Progreso). Pendiente de Diego: IA dentro de la app (por ahora
+  la revisión se copia y se pega) y limpiar las cuentas viejas que traen la rutina de ejemplo.
+
+REGLAS QUE NO SE NEGOCIAN
+1. Lo más importante: todo debe seguir funcionando igual. Mismo comportamiento, mismos datos
+   guardados, mismas rutas (#seccion/pestaña), y sigue funcionando sin internet.
+2. Una sola biblioteca visual: Material UI con el tema de src/react/tema.ts. Nada de Tailwind ni
+   shadcn. Los colores salen del tema (tokens), nunca escritos a mano en una pantalla.
+3. React solo pinta. Las reglas siguen en las acciones de siempre (src/vistas/*.js): botones con
+   accion('nombre', datos) y campos con data-cambio. Si la acción lee la pantalla (el, closest,
+   parentNode), el botón lleva data-accion para que main.js la despache con el botón real.
+4. Las secciones grandes se migran pestaña por pestaña (REACT_POR_PESTANA en src/main.js).
+5. No toques pantallas que no estás migrando. Las tarjetas HTML que usa Hoy se quedan vivas hasta
+   migrar Hoy.
+
+MÉTODO POR CADA PANTALLA O PESTAÑA
+1. Amplía o crea su recorrido en tests/e2e/ (con tests/e2e/ayudas.mjs: busca por texto,
+   aria-label, id o data-*, nunca por clases; escribe con teclado real).
+2. Córrelo sobre el código VIEJO y guarda las líneas "§" como referencia.
+3. Escribe la pantalla en src/react/pantallas/ con las piezas de src/react/ui/.
+4. Conéctala en src/main.js, corre el mismo recorrido y compara las líneas "§": deben salir
+   iguales (ignorando espacios; compara por recorrido, hay pasos con el mismo nombre).
+5. Borra el código de pantalla viejo y los imports que queden sin uso.
+6. Verificación completa: npm run tipos, npm test, npm run e2e -- <carpeta>, npm run humo,
+   npm run build, y revisa las capturas en celular (390 px) y computador.
+7. Anota el avance en la memoria (migracion-react.md).
+
+AL TERMINAR CADA TANDA dime, corto: qué quedó migrado, la tabla de verificación con resultados
+reales, qué fallos de la app vieja se corrigieron de paso, qué NO se probó (mi cuenta, la nube,
+un celular físico) y qué sigue. Si algo falló, dilo con la salida.
+
+AVISOS PRÁCTICOS
+- En esta máquina los heredoc del shell dañan las barras invertidas: escribe los scripts con la
+  herramienta Write, no con cat <<EOF.
+- Si una prueba falla con "plugin-react can't detect preamble" tras agregar un import nuevo de
+  Material UI, vuelve a correrla: es el servidor de pruebas recargando dependencias.
+- Si una corrida larga se interrumpe, revisa primero qué alcanzó a aplicarse antes de repetir.
+- Si la publicación en GitHub Pages falla, lee el error por la API pública (no hay gh instalado).

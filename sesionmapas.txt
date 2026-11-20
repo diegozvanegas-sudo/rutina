@@ -1,0 +1,93 @@
+Quiero agregar una sección nueva a la app Rutina: 🗺️ Lugares, un mapa de mis viajes con los lugares que he visitado
+y los que quiero visitar. Empiezo por Antioquia, pero ya estuve en Brasil y pienso viajar a otras partes de Colombia
+y del mundo, así que el mapa tiene que poder cambiarse.
+Antes de escribir código, lee README.md, src/orden.js (SECCIONES), src/main.js, src/estado.js, src/nube.js y una
+vista parecida (src/vistas/recordatorios.js o finanzas.js) para seguir el mismo estilo, los mismos nombres y las mismas
+pruebas. Es una tarea grande y va por fases (está al final): muéstrame un plan corto de la fase que toca antes de
+empezar.
+
+## Mapas que se pueden cambiar (niveles)
+- Mapas en capas, de lo general a lo específico:
+  🌍 Mundo (países) → 🇨🇴 Colombia (departamentos) / 🇧🇷 Brasil (estados) → Antioquia (los 125 municipios en sus
+  9 subregiones: Valle de Aburrá, Oriente, Suroeste, Occidente, Norte, Nordeste, Magdalena Medio, Bajo Cauca, Urabá).
+- Al tocar un país o un departamento que tenga mapa propio, la app entra a ese mapa. Arriba van unas migas para
+  volver (Mundo › Colombia › Antioquia). Los que no tienen mapa propio se marcan enteros.
+- Cada mapa es un archivo de datos aparte (por ejemplo src/mapas/mundo.js, colombia.js, brasil.js, antioquia.js) con
+  el mismo formato: id, nombre, padre, proyección y las piezas (id, nombre, grupo/subregión, path SVG, centro).
+  Se cargan con import() solo cuando se abren, para que no pesen al abrir la app.
+- Agregar un mapa nuevo (Perú, España, otro departamento) tiene que ser solo sumar un archivo y registrarlo en un
+  índice. Deja un script en scripts/ que convierta un GeoJSON público a ese formato: que simplifique los límites, que
+  documente de dónde salen (MGN del DANE para Colombia, IBGE para Brasil, Natural Earth para el mundo) y que avise
+  el tamaño resultante. Explícalo en el README.
+- Todo funciona sin internet: SVG propio, sin mapas en línea ni librerías pesadas.
+
+## Cómo se ve (tiene que verse bacano)
+- Cada pieza (país, departamento, municipio) se pinta según su estado: visitado (color fuerte), quiero ir (color suave
+  con borde punteado) y sin marcar (gris). Los niveles de arriba toman el estado de abajo: un país sale visitado si
+  visité algún lugar de él, y el tono se hace más intenso entre más haya recorrido.
+- Al pasar o tocar una pieza se ve su nombre, su grupo y cuántos lugares tengo ahí.
+- Encima del mapa van los puntos de los lugares concretos (Piedra del Peñol, Río Claro, Cristo Redentor…), ubicados
+  por latitud y longitud con la proyección de cada mapa: ● visitado, ☆ por visitar. Si un lugar tiene foto, se ve una
+  miniatura redonda al tocarlo.
+- Zoom y arrastre con los dedos en el celular y con la rueda en el computador. En Antioquia, un botón por subregión que
+  hace zoom ahí.
+- Una transición suave al entrar o salir de un mapa.
+- Que se vea bien en modo oscuro (usa las variables de color de src/estilos.css) y en la pantalla del celular.
+
+## Cada lugar
+- nombre, país, región (departamento o estado), municipio o ciudad, mapa e id de la pieza a la que pertenece,
+  tipo (pueblo, ciudad, naturaleza, playa, cascada/río, mirador, comida, historia, deporte/aventura), lat/lon, estado
+  (visitado / quiero ir) y emoji.
+- Si lo visité: una o varias visitas, cada una con fecha, con quién, calificación de 1 a 5, nota, gasto y fotos.
+  El gasto puede guardarse en Finanzas (categoría ocio) como hacen los recordatorios.
+- Si quiero ir: prioridad, mejor época, cuánto se tarda en llegar desde Medellín y un presupuesto aproximado.
+- Trae una lista inicial en "quiero ir" para que yo marque los que ya conozco: unos 40 de Antioquia, unos 15 del resto
+  de Colombia y unos 10 de Brasil. Que estén donde dice la lista y con coordenadas reales.
+
+## Fotos (comprimidas)
+- Hasta 6 fotos por visita, desde la cámara o la galería.
+- Se comprimen en el navegador antes de guardarlas: canvas, máximo 1280 px por el lado largo, WebP (o JPEG si no hay
+  WebP) a ~0,75, apuntando a menos de 200 KB. Además, una miniatura de ~200 px para el mapa y las listas.
+- Las fotos NO van dentro del JSON del estado (haría lenta la sincronización y el respaldo). Guárdalas aparte:
+  IndexedDB en el dispositivo y, si la nube está configurada, Supabase Storage, con solo la referencia (id) en el
+  estado. Dime qué hace falta configurar en Supabase.
+- Exportar/importar en Ajustes deben incluir las fotos (por ejemplo, un .zip o un JSON aparte), o al menos avisar
+  que no van.
+- Muestra cuánto espacio ocupan las fotos y permite borrarlas.
+- Galería por lugar y por viaje, en pantalla completa y deslizable.
+
+## Pantalla
+- Arriba, los números del mapa que esté abierto: piezas visitadas / total con % (municipios, departamentos o
+  países), lugares visitados, viajes de este año, países visitados y el último lugar visitado.
+- Avance por grupo con barras (por ejemplo: Oriente 9/23 en Antioquia, Andina 4/10 en Colombia, Sudamérica 2/12
+  en el mundo).
+- El mapa grande.
+- Debajo, la lista filtrable (visitados / por visitar / país / región / tipo) y un botón "＋ Agregar lugar". Para la
+  ubicación sirve tocar el mapa o escoger la pieza (el punto queda en su centro).
+- Una "línea de tiempo" de mis viajes por fecha, con las miniaturas de las fotos.
+- Un botón "Sorpréndeme" que proponga un plan de fin de semana entre los de "quiero ir" de Antioquia, según la
+  distancia y la prioridad.
+
+## Reglas
+- Los datos van en el estado (src/estado.js) con su valor inicial, y entran a la nube, a exportar/importar y a los
+  permisos de Administrar como las demás secciones.
+- La sección se registra en SECCIONES (src/orden.js) para que se pueda ordenar y ocultar.
+- La lógica sin pantalla va en src/lugares.js, para poder probarla.
+- Pruebas en tests/lugares.test.mjs: la proyección de lat/lon a SVG en cada mapa, que Antioquia tenga 125 municipios
+  en 9 subregiones, que todos los mapas tengan el mismo formato y que cada pieza tenga un padre que exista, que los
+  lugares iniciales caigan dentro de su pieza, cómo los niveles de arriba toman el estado de abajo, los porcentajes y
+  el tamaño final de la compresión de fotos.
+- Revisa el peso de cada archivo de mapa; si alguno pasa de ~300 KB, simplifícalo más.
+- Actualiza el README. Muéstrame cómo se ve en el navegador (celular y computador) antes de dar la tarea por terminada.
+
+## Por fases
+Es una tarea grande. Si no alcanza en una sola sesión, hazla en dos fases y no dejes nada a medias: cada fase termina
+funcionando, con pruebas que pasan, el README al día y un commit.
+- Fase 1: el formato de mapas (índice, script de conversión y carga con import()), el mapa de Antioquia por municipio
+  con sus subregiones, los lugares (agregar, editar, visitas, estados, lista inicial de Antioquia), los números,
+  la lista, la línea de tiempo y "Sorpréndeme". Debe quedar pensado para los demás mapas aunque todavía no estén.
+- Fase 2: los mapas del mundo, Colombia y Brasil con la navegación entre niveles y las migas, la lista inicial del
+  resto de Colombia y de Brasil, y las fotos comprimidas (IndexedDB, Supabase Storage, galería, espacio usado
+  y exportar/importar).
+Al terminar la fase 1, deja escrito en el README qué falta para la fase 2, para retomarla en una sesión nueva con
+"sigue con la fase 2 de Lugares".

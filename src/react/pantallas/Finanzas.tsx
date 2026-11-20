@@ -18,6 +18,7 @@ import { Registrar, mes } from './FinanzasMovimientos';
 import { deudas, prestamos } from './FinanzasDeudas';
 import { Calcular, esperas } from './FinanzasCalculos';
 import { planb } from './FinanzasPlanB';
+import { extractoBanco } from './FinanzasExtracto';
 import { Aportar, Aviso, CampoFecha, CampoNumero, CampoPesos, CampoTexto, Chico, Controles, Estado, FILA, FILA_BOTONES, GRANDE, Item, Selector } from './finanzasPiezas';
 import { NombreMetodo } from '../ui/IconoMetodo';
 import { accion } from '../acciones';
@@ -272,7 +273,7 @@ function ahorro(f: Fin) {
   );
 }
 
-const PESTANA: Record<string, (f: Fin) => ReactNode> = { mes, resumen, presupuesto, fijos, ahorro, deudas, prestamos, esperas };
+const PESTANA: Record<string, (f: Fin) => ReactNode> = { mes, extracto: extractoBanco, resumen, presupuesto, fijos, ahorro, deudas, prestamos, esperas };
 
 export default function Finanzas() {
   const estado: Fin = usarEstado(), f: Fin = estado.finanzas, pestana: string = pestanaFinanzas();

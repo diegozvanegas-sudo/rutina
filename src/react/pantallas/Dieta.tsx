@@ -22,6 +22,7 @@ import { TituloPantalla, Nota } from '../ui/Textos';
 import { Opciones, Avance, Cifras } from '../ui/Varios';
 import { Ajustar } from '../ui/Rapido';
 import { Barras } from '../ui/Graficos';
+import { MetaPeso } from './DietaMeta';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -281,6 +282,7 @@ function peso(e: Fin) {
             Tu promedio cambió {f1(Math.abs(prom - c.pesoBase))} kg desde que se calcularon los planes ({f1(c.pesoBase)} kg). <Enlace href="#dieta" accion="dieta-ir-planes">Recalcular los planes con {f1(prom)} kg →</Enlace>
           </Box>) : null}
       </Card>
+      <MetaPeso e={e} />
       <TarjetaPlegable vista={VISTA} clave="Cómo te sentiste hoy" titulo="Cómo te sentiste hoy">
         {escala('Energía', 'energia', hoyD.energia, '1 = sin energía · 5 = a tope')}
         {escala('Hambre', 'hambre', hoyD.hambre, '1 = nada · 5 = mucha')}

@@ -3,8 +3,8 @@
 // botones llevan data-accion y los despacha main.js con el botón de verdad.
 import { useEffect, type ReactNode } from 'react';
 import { Box, Button, ButtonBase } from '@mui/material';
-import { hayFutbol } from '../../estado.js';
-import { iso, fechaCorta, sumarDias, diasEntre } from '../../fechas.js';
+import { hayFutbol, semanaActual } from '../../estado.js';
+import { iso, fechaCorta, sumarDias, diasEntre, lunesDe } from '../../fechas.js';
 import { plan12 as datosPlan, FASES, FIJO, SEMANAS_PLAN, semanaPlan, faseDe, proximoLunes, REVISIONES, PRUEBAS, tocaRevision, pruebaDeSemana, avancePruebas, ultimaCintura,
   CASA, tipoCasaDe, sesionCasa, casaHecha, ultimoCasa, tocaSubir, nivelDe } from '../../plan12.js';
 import { verCasa, enfocarSiguienteCasa } from '../../vistas/plan12.js';
@@ -44,6 +44,34 @@ function empezar() {
       <Nota sx={{ m: 0 }}>Mejor un lunes. Ese día pésate y haz la prueba de la semana 1: es tu punto de partida.</Nota>
       <Button fullWidth data-accion="p12-empezar">Empezar el plan</Button>
     </Tarjeta></Box>
+  );
+}
+
+// ⚙️ Cuándo empieza el plan y tus datos: otra fecha, el lunes que viene, con la semana del gym o "voy en la semana N"
+function Ajustes({ p, s }: { p: Fin; s: number | null }) {
+  const lunes = proximoLunes() as string, gym = lunesDe(semanaActual()) as string;
+  const chico = { minHeight: 44 };
+  return (
+    <Desplegable titulo="⚙️ Cuándo empieza y tus datos">
+      <Box data-t="p12-ajustes" sx={{ display: 'grid', gap: '10px' }}>
+        <Nota sx={{ m: 0 }}>Muévelo cuando quieras: no se borran tus revisiones ni lo anotado en casa. Empieza el <b>{fechaCorta(p.inicio)}</b>{s != null ? <> · hoy vas en la semana <b>{Math.min(s, SEMANAS_PLAN)}</b>{s > SEMANAS_PLAN ? ' (terminado)' : ''}</> : null}.</Nota>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <Button color="secondary" data-accion="p12-inicio" data-cual="lunes" sx={chico}>Empezar el lunes que viene ({fechaCorta(lunes)})</Button>
+          {gym !== p.inicio ? <Button color="secondary" data-accion="p12-inicio" data-cual="gym" sx={chico}>Con la semana {semanaActual()} del gym ({fechaCorta(gym)})</Button> : null}
+        </Box>
+        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'end' }}>
+          <CampoLista etiqueta="Voy en la semana" name="vaEn" defaultValue={String(Math.max(1, Math.min(SEMANAS_PLAN, s || 1)))} opciones={Array.from({ length: SEMANAS_PLAN }, (_, i) => [String(i + 1), 'Semana ' + (i + 1) + ' · ' + (faseDe(i + 1) as Fin).nombre] as [string, string])} />
+          <Button color="secondary" data-accion="p12-inicio" data-cual="semana" sx={chico}>Poner</Button>
+        </Box>
+        <Box sx={DOS}>
+          <Campo etiqueta="Empieza el" type="date" name="inicio" defaultValue={p.inicio} />
+          <Campo etiqueta="Peso al empezar (kg)" type="number" inputMode="decimal" step="0.1" name="pesoInicio" defaultValue={p.pesoInicio ?? ''} />
+          <Campo etiqueta="Edad" type="number" inputMode="numeric" min={14} max={90} name="edad" defaultValue={p.edad} />
+          <CampoLista etiqueta="Sexo" name="sexo" defaultValue={p.sexo !== 'M' ? 'H' : 'M'} opciones={[['H', 'Hombre'], ['M', 'Mujer']]} />
+        </Box>
+        <Button data-accion="p12-inicio" data-cual="datos" sx={chico}>Guardar fecha y datos</Button>
+      </Box>
+    </Desplegable>
   );
 }
 
@@ -99,7 +127,8 @@ export function plan12(_estado: Fin, hoy = iso()) {
   if (s == null) return (
     <Tarjeta titulo="📆 Plan de 12 semanas" lado={<Box component="small" sx={{ color: 'primary.main', fontWeight: 700, whiteSpace: 'nowrap' }}>{faltan <= 1 ? 'Empieza mañana' : 'Empieza en ' + faltan + ' días'}</Box>}>
       <p>Empieza el <b>{fechaCorta(p.inicio)}</b>. Ese día pésate y haz la revisión de la semana 1.</p>
-      <Suave accion="p12-reiniciar">Cambiar la fecha</Suave>
+      <Ajustes p={p} s={null} />
+      <Suave accion="p12-reiniciar">Reiniciar el plan</Suave>
     </Tarjeta>
   );
   const fin = s > SEMANAS_PLAN, f = faseDe(Math.min(s, SEMANAS_PLAN)) as Fin, revision = !fin && tocaRevision(s) && !pruebaDeSemana(s), prox = (REVISIONES as number[]).find((n) => n >= s && !pruebaDeSemana(n));
@@ -133,6 +162,7 @@ export function plan12(_estado: Fin, hoy = iso()) {
         <Box component="ul" sx={{ m: '0 0 8px', pl: '20px', display: 'grid', gap: '4px' }}>{(FIJO as string[]).map((t) => <li key={t}>{t}</li>)}</Box>
         <Nota>RIR = repeticiones que te guardas en la última serie. RIR 2: paras cuando todavía te salen 2 limpias.</Nota>
       </Desplegable>
+      <Ajustes p={p} s={s} />
       <Nota sx={{ m: 0 }}>Empezó el {fechaCorta(p.inicio)}{p.pesoInicio ? ' con ' + f1(p.pesoInicio) + ' kg' : ''}. <Suave accion="p12-reiniciar">Reiniciar el plan</Suave></Nota>
     </Tarjeta>
   );

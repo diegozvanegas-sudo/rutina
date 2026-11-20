@@ -60,3 +60,20 @@ test('avance de las revisiones: primera contra última', () => {
   assert.deepEqual(av.map((x) => [x.k, x.dif]), [['dominadas', 3], ['cintura', -3]]);
   assert.deepEqual(avancePruebas({ pruebas: [{ semana: 1, dominadas: 5 }] }), []);
 });
+
+test('cuándo empieza: mover la fecha sin borrar nada y "voy en la semana N"', async () => {
+  const { moverInicio, inicioParaSemana } = await import('../src/plan12.js');
+  const p = { inicio: '2026-11-16', pesoInicio: 88, pruebas: [{ semana: 1, paralelas: 15 }], casa: { '2026-11-17': { x: '10' } } };
+  assert.equal(moverInicio('2026-11-23', p), true);
+  assert.equal(p.inicio, '2026-11-23');
+  assert.equal(p.pesoInicio, 88);
+  assert.equal(p.pruebas.length, 1);
+  assert.ok(p.casa['2026-11-17']);
+  assert.equal(moverInicio('mañana', p), false);
+  // Jueves 20 nov 2026: "voy en la semana 1" = este lunes; "en la 5" = 4 lunes antes
+  assert.equal(inicioParaSemana(1, '2026-11-20'), '2026-11-16');
+  assert.equal(inicioParaSemana(5, '2026-11-20'), '2026-10-19');
+  assert.equal(semanaPlan({ inicio: inicioParaSemana(5, '2026-11-20') }, '2026-11-20'), 5);
+  assert.equal(inicioParaSemana(1, '2026-11-22'), '2026-11-16'); // domingo: sigue siendo la semana del lunes 16
+  assert.equal(inicioParaSemana(99, '2026-11-20'), inicioParaSemana(12, '2026-11-20')); // nunca más de 12
+});

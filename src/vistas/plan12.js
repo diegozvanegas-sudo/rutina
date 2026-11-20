@@ -1,9 +1,9 @@
 // 📆 Plan de 12 semanas (src/plan12.js): las acciones de las pestañas "📆 12 semanas" y "🏠 En casa" de Gym (la pantalla está en
 // src/react/pantallas/GymPlan12.tsx; la tarjeta de comida de Dieta → Peso está en Dieta.tsx)
-import { e, guardar, repintar } from '../estado.js';
-import { iso, fechaCorta } from '../fechas.js';
+import { e, guardar, repintar, semanaActual } from '../estado.js';
+import { iso, fechaCorta, lunesDe } from '../fechas.js';
 import { registrar, toast } from '../ui.js';
-import { plan12, PRUEBAS, empezarPlan, CASA, tipoCasaDe, casaHecha, nivelDe } from '../plan12.js';
+import { plan12, PRUEBAS, empezarPlan, CASA, tipoCasaDe, casaHecha, nivelDe, moverInicio, inicioParaSemana, proximoLunes, semanaPlan, SEMANAS_PLAN } from '../plan12.js';
 
 const f1 = (n) => (Math.round(n * 10) / 10).toLocaleString('es-CO');
 let tipoVista = null; // día de la versión en casa que se está viendo
@@ -27,6 +27,22 @@ registrar({
     empezarPlan(inicio, p);
     guardar();
     toast('📆 Plan listo: empieza el ' + fechaCorta(inicio));
+  },
+  // ⚙️ Cuándo empieza: la fecha escrita, el lunes que viene, el lunes de la semana del gym que se ve, o "voy en la semana N".
+  // También el peso inicial, la edad y el sexo. No borra revisiones ni lo anotado en casa
+  'p12-inicio'({ cual }, el) {
+    const caja = el.closest('[data-t=p12-ajustes]'), p = plan12(), val = (n) => (caja.querySelector('[name=' + n + ']') || {}).value;
+    const inicio = cual === 'lunes' ? proximoLunes() : cual === 'gym' ? lunesDe(semanaActual()) : cual === 'semana' ? inicioParaSemana(Number(val('vaEn')) || 1) : val('inicio');
+    if (!moverInicio(inicio, p)) { toast('Elige una fecha'); return; }
+    if (cual === 'datos') {
+      const peso = Number(String(val('pesoInicio') || '').replace(',', '.'));
+      if (peso > 20 && peso < 300) p.pesoInicio = Math.round(peso * 10) / 10;
+      p.edad = Number(val('edad')) || p.edad;
+      if (val('sexo')) p.sexo = val('sexo');
+    }
+    guardar();
+    const s = semanaPlan(p);
+    toast('📆 Empieza el ' + fechaCorta(inicio) + (s == null ? '' : s > SEMANAS_PLAN ? ' (ya terminó)' : ' · vas en la semana ' + s));
   },
   'p12-reiniciar'() {
     if (!confirm('¿Reiniciar el plan? Se borra la fecha de inicio. Las revisiones y lo anotado en casa se quedan.')) return;

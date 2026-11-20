@@ -89,6 +89,16 @@ export function comoVaPeso(p = plan12(), hoy = iso()) {
 }
 export const ultimaCintura = () => { const m = medidasDe(e().dias).filter((x) => x.cintura > 0); return m.length ? m[m.length - 1].cintura : null; };
 
+// ---------- ⚙️ Cuándo empieza ----------
+// Cambiar la fecha no borra nada: las revisiones (por número de semana), lo anotado en casa y el peso inicial se quedan
+export function moverInicio(inicio, p = plan12()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio || '')) return false;
+  p.inicio = inicio;
+  return true;
+}
+// El lunes con el que hoy cae en la semana n del plan ("voy en la semana 5")
+export const inicioParaSemana = (n, hoy = iso()) => sumarDias(hoy, 1 - diaSemana(hoy) - (Math.max(1, Math.min(SEMANAS_PLAN, Math.round(n))) - 1) * 7);
+
 export function empezarPlan(inicio, p = plan12()) {
   p.inicio = inicio;
   p.pesoInicio = tendencia(pesos(e().dias)) ?? e().dieta?.config?.pesoBase ?? null;

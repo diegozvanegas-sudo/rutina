@@ -6,7 +6,7 @@ import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
 import { tiemposDia, lineaTiempos, anotarEnEntreno, gruposDia } from '../gym.js';
 import { planCorto, videoValido } from '../entreno-hoy.js';
-import { esDescarga, filaDe, ejDe, sinDescargas, metaDescarga, rutinaDe } from '../descarga.js';
+import { esDescarga, filaDe, ejDe, sinDescargas, metaDescarga, rutinaDe, metaLiviana, pesoLiviano } from '../descarga.js';
 import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, resumenSemana, numero, formatoPeso, PIERNAS, historial, records, consejoEstancado, metaSesion, enBiserie, nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante } from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
@@ -37,9 +37,14 @@ export function diaDeHoy() {
 }
 const registros = (sem) => (e().semanas[sem] ??= {});
 // 🔻 En descarga no se sube: el mismo peso de la última semana normal, con las reps de siempre (src/descarga.js)
-const sinSubir = (sug, ult, sem) => (sug && sug.sube && esDescarga(sem, e()) ? { sube: false, peso: numero(ult.peso), unidad: sug.unidad, texto: formatoPeso(numero(ult.peso)) + ' ' + sug.unidad } : sug);
+const sinSubir = (sug, ult, sem) => {
+  if (sug && livianoHoy(sem) && !esDescarga(sem, e())) { const p = pesoLiviano(numero(ult.peso)); return p == null ? sug : { sube: false, peso: p, unidad: sug.unidad, texto: formatoPeso(p) + ' ' + sug.unidad }; }
+  return sug && sug.sube && esDescarga(sem, e()) ? { sube: false, peso: numero(ult.peso), unidad: sug.unidad, texto: formatoPeso(numero(ult.peso)) + ' ' + sug.unidad } : sug;
+};
+// 🔻 Descargar hoy (🚦): solo en la semana actual; si toda la semana es de descarga, manda la semana
+export const livianoHoy = (sem) => sem === semanaActual() && !!listoHoy().descarga;
 // La meta de la fila esa semana: la de siempre o, en descarga, el mismo peso con la mitad de las series
-export const metaDe = (f, ult, sem) => (esDescarga(sem, e()) ? metaDescarga(f, ult) : metaSesion(f, ult));
+export const metaDe = (f, ult, sem) => (esDescarga(sem, e()) ? metaDescarga(f, ult) : livianoHoy(sem) ? metaLiviana(f, ult) : metaSesion(f, ult));
 const DIAS_CORTOS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 // Días de entrenamiento en orden de la semana (los que no tienen día asignado al final)
 export const diasEnOrden = () => e().rutina.filter((d) => d.id !== 'core').sort((a, b) => (a.diaSemana || 99) - (b.diaSemana || 99));
@@ -216,7 +221,7 @@ export const piezasGym = {
   DIAS_CORTOS, rirReciente, consejo, rm, porcentaje, datosHistorial,
   // El día: en qué ejercicio vas y qué está abierto (prepararDia dice si hay que bajar al ejercicio en el que vas)
   prepararDia, irAlActual, estaAbierto, verDia: () => ({ ultimoEj, actualId }), filtroEn, sufijoDe, pesoDelDia, kgCorporal,
-  resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado, fueraHoy, cortoHoy, listoHoy, metaDe,
+  resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado, fueraHoy, cortoHoy, listoHoy, metaDe, livianoHoy,
 };
 
 // ---------- ⏱ Contador del entreno de hoy: { dia, inicio, fin? } en el día de hoy (dias[fecha].entreno) ----------
@@ -497,11 +502,12 @@ registrar({
   },
   // 🚦 Antes de entrenar: k = sueno | energia (1-3; tocar el mismo lo quita) o min (minutos disponibles; el mismo = sin límite)
   'gym-listo'({ k, v }) {
-    if (!['sueno', 'energia', 'min'].includes(k)) return;
+    if (!['sueno', 'energia', 'min', 'descarga'].includes(k)) return;
     const l = (diaDe().listo ??= {}), n = Number(v);
     if (!n || l[k] === n) delete l[k]; else l[k] = n;
     if (k === 'min') enfocar = true;
     guardar();
+    if (k === 'descarga') toast(l.descarga ? '🔻 Hoy liviano: 15 % menos de peso en cada ejercicio' : 'Hoy con tus pesos de siempre');
   },
   // 🔻 Semana de descarga de la semana que se ve: v = si (activarla), no (esta semana no) o auto (lo que diga el plan)
   'gym-descarga'({ v }) {

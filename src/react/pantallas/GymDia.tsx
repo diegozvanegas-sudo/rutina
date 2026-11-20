@@ -80,7 +80,7 @@ function AntesDeEntrenar({ d, sem }: { d: Fin; sem: number }) {
   const { l, horas, sueno, lectura } = datosHoy(d), respondido = !!(l.energia && sueno), [abierto, ponerAbierto] = useState(!respondido);
   if (sem !== semanaActual()) return null;
   const corto = l.min ? G.cortoHoy(d, sem) as Fin : null, total = (planCorto(gruposDia(d.ejercicios), 999, regs(sem)) as Fin).total;
-  const resumen = [lectura ? lectura.icono + ' ' + lectura.titulo : '🚦 ¿Cómo llegas hoy?', l.min ? '⏱ ' + l.min + ' min' + (corto.fuera.length ? ' (' + corto.fuera.length + ' fuera)' : '') : null].filter(Boolean).join(' · ');
+  const resumen = [lectura ? lectura.icono + ' ' + lectura.titulo : '🚦 ¿Cómo llegas hoy?', l.descarga ? '🔻 liviano' : null, l.min ? '⏱ ' + l.min + ' min' + (corto.fuera.length ? ' (' + corto.fuera.length + ' fuera)' : '') : null].filter(Boolean).join(' · ');
   return (
     <Card component="section" data-t="antes" sx={{ mb: '12px', p: 0, borderLeft: '5px solid', borderLeftColor: lectura ? COLOR_NIVEL[lectura.nivel] : 'divider' }}>
       <ButtonBase aria-expanded={abierto} onClick={() => ponerAbierto(!abierto)}
@@ -97,6 +97,15 @@ function AntesDeEntrenar({ d, sem }: { d: Fin; sem: number }) {
             {OPC_MIN.map((n) => { const si = l.min === n; return <Chip key={n} clickable aria-pressed={si} color={si ? 'primary' : 'default'} variant={si ? 'filled' : 'outlined'} label={n + ' min'} onClick={() => accion('gym-listo', { k: 'min', v: n })} sx={{ minHeight: 36 }} />; })}
             <Chip clickable aria-pressed={!l.min} color={!l.min ? 'primary' : 'default'} variant={!l.min ? 'filled' : 'outlined'} label="Todo" onClick={() => accion('gym-listo', { k: 'min', v: 0 })} sx={{ minHeight: 36 }} />
           </Box>
+          {/* 🔻 Descargar hoy: 15 % menos de peso en cada ejercicio, solo hoy (src/descarga.js metaLiviana) */}
+          {esDescarga(sem, e()) ? null : (
+            <Box role="group" aria-label="Peso de hoy" sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+              <Box component="span" sx={{ flexBasis: { xs: '100%', sm: 'auto' }, minWidth: { sm: 76 }, fontSize: 14, color: 'text.secondary' }}>Peso</Box>
+              <Chip clickable data-t="liviano" aria-pressed={!!l.descarga} color={l.descarga ? 'primary' : 'default'} variant={l.descarga ? 'filled' : 'outlined'} label="🔻 Descargar hoy (−15 %)" onClick={() => accion('gym-listo', { k: 'descarga', v: 1 })} sx={{ minHeight: 36 }} />
+              {l.descarga ? <Box component="span" sx={{ ...GRIS, flexBasis: '100%' }}>Cada ejercicio te dice su peso liviano: mismas series y reps, deja 3-4 en reserva. Mañana vuelves a lo normal.</Box>
+                : lectura && lectura.nivel === 'suave' ? <Box component="span" sx={{ ...GRIS, flexBasis: '100%' }}>¿Muy cansado? Con 🔻 te bajo el peso de cada ejercicio solo por hoy.</Box> : null}
+            </Box>
+          )}
           {lectura ? (
             <Box data-t="lectura" sx={{ p: '8px 10px', borderRadius: '10px', bgcolor: lectura.nivel === 'suave' ? tokens.amarilloFondo : tokens.surface2, fontSize: 14, display: 'grid', gap: '4px' }}>
               <b>{lectura.icono} {lectura.titulo}</b><span>{lectura.texto}</span>
@@ -217,7 +226,8 @@ function fila(f: Fin, sem: number, clave: string, ej: Fin, i: number, sinRapida:
   const todo = e() as Fin, descarga = esDescarga(sem, todo), fd = filaDe(f, sem, todo) as Fin;
   const reg = regs(sem)[clave] || {}, est = estadoFila(fd, reg) as Fin, filtro = ej && G.filtroEn(ej, sem, G.sufijoDe(clave));
   const ult = (ultimoRegistro as Fin)(sinDescargas(todo.semanas, todo), f, sem, filtro, todo.rutina), sug0 = sugerencia(f, ult) as Fin, meta = G.metaDe(f, ult, sem) as Fin;
-  const sug = descarga && sug0 && sug0.sube ? { sube: false, peso: numero(ult.peso), texto: formatoPeso(numero(ult.peso) as number) + ' ' + sug0.unidad } : sug0;
+  const sug = meta && meta.liviano ? { sube: false, peso: meta.peso, texto: formatoPeso(meta.peso) + ' ' + meta.unidad }
+    : descarga && sug0 && sug0.sube ? { sube: false, peso: numero(ult.peso), texto: formatoPeso(numero(ult.peso) as number) + ' ' + sug0.unidad } : sug0;
   const unidad = reg.unidad || (ult && ult.unidad) || 'kg', calent = !!(ej && ej.calentamiento), corporal = calent ? G.pesoDelDia(clave, sem) : null;
   const tipo = f.tipo.toLowerCase();
   return (
@@ -232,7 +242,7 @@ function fila(f: Fin, sem: number, clave: string, ej: Fin, i: number, sinRapida:
       </Box>
       {est.color === 'sube' && !calent && !descarga ? <Box sx={{ fontWeight: 800, color: 'info.main', fontSize: 14 }}>⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></Box> : null}
       {meta
-        ? <Box sx={{ fontSize: 14, mt: '4px' }}>{meta.descarga ? '🔻' : '🎯'} Hoy: <Box component="b" sx={{ color: meta.sube ? 'info.main' : 'primary.main' }}>{meta.texto}{meta.sube ? ' ⬆' : ''}</Box> <Box component="span" sx={GRIS}>· último <b>{textoRegistro(ult)}</b></Box><Box component="small" sx={{ display: 'block', color: 'text.secondary' }}>{meta.motivo}</Box></Box>
+        ? <Box sx={{ fontSize: 14, mt: '4px' }}>{meta.descarga || meta.liviano ? '🔻' : '🎯'} Hoy: <Box component="b" sx={{ color: meta.sube ? 'info.main' : 'primary.main' }}>{meta.texto}{meta.sube ? ' ⬆' : ''}</Box> <Box component="span" sx={GRIS}>· último <b>{textoRegistro(ult)}</b></Box><Box component="small" sx={{ display: 'block', color: 'text.secondary' }}>{meta.motivo}</Box></Box>
         : <Box sx={GRIS}>Último: <b>{textoRegistro(ult)}</b>{sug ? <> · Hoy: <Box component="b" sx={sug.sube ? { color: 'info.main !important' } : null}>{sug.texto}{sug.sube ? ' ⬆' : ''}</Box></> : null}</Box>}
       {meta && meta.sube && !calent && ej && nivelHoy(ej, sem) === 'suave' ? <Box data-t="suave" sx={{ fontSize: 14, color: 'warning.main' }}>🟡 Hoy vas suave: no subas, repite <b>{textoRegistro(ult)}</b> y sube la próxima.</Box> : null}
       {calent ? <Box sx={GRIS}>⚖️ {corporal ? <>Tu peso de ese día: <b>{G.kgCorporal(corporal)} kg</b> (se anota solo en cada serie)</> : 'Anota tu peso en Hoy (Sueño y peso) y se usa aquí solo'}</Box> : null}

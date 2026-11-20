@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { origenDescarga, esDescarga, seriesDescarga, filaDe, rutinaDe, sinDescargas, semanasSinDescarga, sugerirDescarga, metaDescarga } from '../src/descarga.js';
+import { origenDescarga, esDescarga, seriesDescarga, filaDe, rutinaDe, sinDescargas, semanasSinDescarga, sugerirDescarga, metaDescarga, pesoLiviano, metaLiviana } from '../src/descarga.js';
 import { lunesDe } from '../src/fechas.js';
 import { estadoFila, resumenSemana, ultimoRegistro } from '../src/gym.js';
 
@@ -82,4 +82,23 @@ test('sugerencia: desde 6 semanas seguidas, o desde 4 con 3 ejercicios estancado
   assert.equal(sugerirDescarga(7, base({ semanas, plan12: { inicio: lunesDe(8 - 8) } })), null);
   // Recién salido de una descarga: no
   assert.equal(sugerirDescarga(7, base({ semanas, descargas: { 4: true } })), null);
+});
+
+test('descargar hoy: 15 % menos de peso, redondeado a 0,5 y siempre más liviano', () => {
+  assert.equal(pesoLiviano(60), 51);
+  assert.equal(pesoLiviano(100), 85);
+  assert.equal(pesoLiviano(22.5), 19);
+  assert.equal(pesoLiviano(2), 1.5);   // poco peso: al menos 0,5 menos
+  assert.equal(pesoLiviano(0.5), 0.5); // nunca baja de 0,5
+  assert.equal(pesoLiviano(4, 'discos'), 3.5);
+  assert.equal(pesoLiviano(null), null);
+});
+
+test('meta liviana: mismas series y reps con el peso bajado, sin subir', () => {
+  const m = metaLiviana(press, { peso: '60', reps: '12 11', unidad: 'kg' });
+  assert.equal(m.liviano, true);
+  assert.equal(m.sube, false);
+  assert.equal(m.texto, '51 kg × 12 11 11');
+  assert.match(m.motivo, /15 % menos que 60 kg/);
+  assert.equal(metaLiviana(press, { reps: '10' }), null);
 });

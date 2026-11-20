@@ -80,3 +80,23 @@ export function metaDescarga(fila, ultimo) {
     texto: formatoPeso(peso) + ' ' + u + ' × ' + (reps.length ? reps.join(' ') : fila.min),
     motivo: 'Descarga: mismo peso, ' + n + (n === 1 ? ' serie' : ' series') + ' y deja ' + RIR_DESCARGA + ' reps en reserva. La próxima semana vuelves a tu meta normal.' };
 }
+
+// ---------- 🔻 Descargar hoy: un día suelto más liviano (dias[fecha].listo.descarga = 1, en 🚦 Cómo llegas hoy) ----------
+// Mismas series y reps, 15 % menos de peso y 3-4 reps en reserva. Solo ese día: la meta de la próxima vez no cambia
+export const MENOS_HOY = 0.15;
+const redondear = (n, paso) => Math.round(n / paso) * paso;
+// El peso liviano: 15 % menos, redondeado a 0,5 (kg o discos) y siempre al menos 0,5 menos que el de antes
+export function pesoLiviano(peso, unidad = 'kg') {
+  if (!(peso > 0)) return null;
+  return Math.max(0.5, Math.min(redondear(peso * (1 - MENOS_HOY), 0.5), peso - 0.5));
+}
+export function metaLiviana(fila, ultimo) {
+  if (!fila || fila.unidad === 's' || !ultimo) return null;
+  const antes = numero(ultimo.peso), u = ultimo.unidad || 'kg', peso = pesoLiviano(antes, u);
+  if (peso == null) return null;
+  const n = fila.series || 1, reps = repsDe(ultimo.reps).filter((x) => x > 0).slice(0, n);
+  while (reps.length && reps.length < n) reps.push(reps[reps.length - 1]);
+  return { peso, unidad: u, sube: false, liviano: true, series: reps, reps: reps.length ? Math.max(...reps) : fila.min,
+    texto: formatoPeso(peso) + ' ' + u + ' × ' + (reps.length ? reps.join(' ') : fila.min),
+    motivo: 'Hoy liviano: ' + Math.round(MENOS_HOY * 100) + ' % menos que ' + formatoPeso(antes) + ' ' + u + ', mismas reps y deja ' + RIR_DESCARGA + ' en reserva. La próxima vez vuelves a tu meta.' };
+}

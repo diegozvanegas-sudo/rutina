@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.despliegue.outputs.page_url }}
+      url: ${{ steps.despliegue.outputs.page_url || steps.despliegue2.outputs.page_url || steps.despliegue3.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -35,5 +35,20 @@ jobs:
       - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
+      # A veces GitHub falla con "No artifacts named github-pages were found" justo después de subir el paquete (le falta
+      # un momento para verlo). En vez de fallar la publicación, espera y lo intenta otra vez: hasta 3 intentos.
+      # Si los 3 fallan, la publicación sale en rojo como siempre
       - id: despliegue
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - if: steps.despliegue.outcome == 'failure'
+        run: sleep 60
+      - id: despliegue2
+        if: steps.despliegue.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - if: steps.despliegue2.outcome == 'failure'
+        run: sleep 120
+      - id: despliegue3
+        if: steps.despliegue2.outcome == 'failure'
         uses: actions/deploy-pages@v4

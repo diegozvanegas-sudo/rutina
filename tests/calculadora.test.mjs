@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { leerNumero, evaluar, numero, porcentajeDe, queTanto, conAumento, conDescuento, sinIncluido, dividir, cuotaCredito, mensualDeAnual, anualDeMensual, cuatroPorMil } from '../src/calculadora.js';
+import { leerNumero, evaluar, numero, porcentajeDe, queTanto, conAumento, conDescuento, sinIncluido, dividir, cuotaCredito, mensualDeAnual, anualDeMensual, cuatroPorMil, convertirTasa } from '../src/calculadora.js';
 
 const cerca = (a, b, tol = 0.01) => assert.ok(Math.abs(a - b) < tol, a + ' ≠ ' + b);
 
@@ -48,4 +48,14 @@ test('porcentajes, dividir, crédito y 4x1000', () => {
   cerca(anualDeMensual(mensualDeAnual(26.8)), 26.8);
   cerca(mensualDeAnual(26.82), 2, 0.01);
   assert.equal(cuatroPorMil(1000000), 4000);
+});
+
+test('tasas: 16,63 % E.A. es 1,29 % mensual, y de vuelta', () => {
+  const t = convertirTasa(16.63, 'ea');
+  assert.equal(t.mensual.toFixed(4), '1.2902');
+  assert.equal(t.nominal.toFixed(2), '15.48');
+  assert.equal(Math.round(t.mensual * 10000), 12902); // interés de un millón en un mes
+  assert.equal(convertirTasa(1.2902, 'mensual').ea.toFixed(2), '16.63');
+  assert.equal(convertirTasa(15.48, 'nominal').mensual.toFixed(2), '1.29');
+  assert.equal(convertirTasa(0, 'ea'), null);
 });

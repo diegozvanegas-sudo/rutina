@@ -5,7 +5,7 @@ import { evaluar, numero } from '../calculadora.js';
 import { registrar } from '../ui.js';
 
 // Lo escrito se recuerda al cambiar de pestaña
-const calc = { expr: '', monto: '', pct: '19', parte: '', total: '', cuenta: '', personas: '2', propina: '0', credito: '', tasa: '2', tipoTasa: 'mensual', meses: '12', gmf: '' };
+const calc = { expr: '', monto: '', pct: '19', parte: '', total: '', cuenta: '', personas: '2', propina: '0', credito: '', tasa: '2', tipoTasa: 'mensual', meses: '12', gmf: '', conv: '', tipoConv: 'ea' };
 
 function resultadoCalc() {
   const r = evaluar(calc.expr);

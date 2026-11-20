@@ -4,7 +4,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import { Box, Button } from '@mui/material';
 import { fechaCorta } from '../../fechas.js';
 import { pesos } from '../../finanzas.js';
-import { leerNumero, numero, porcentajeDe, queTanto, conAumento, conDescuento, sinIncluido, dividir, cuotaCredito, mensualDeAnual, anualDeMensual, cuatroPorMil } from '../../calculadora.js';
+import { leerNumero, numero, porcentajeDe, queTanto, conAumento, conDescuento, sinIncluido, dividir, cuotaCredito, mensualDeAnual, anualDeMensual, cuatroPorMil, convertirTasa } from '../../calculadora.js';
 import { estadoEspera, resumenEsperas } from '../../vida.js';
 import { piezasCalculadora } from '../../vistas/calculadora.js';
 import { piezasEsperas } from '../../vistas/vida.js';
@@ -20,7 +20,7 @@ import { Aviso, Chico, FILA, FILA_BOTONES, Item } from './finanzasPiezas';
 const VISTA = 'finanzas';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
-type Calc = Record<'expr' | 'monto' | 'pct' | 'parte' | 'total' | 'cuenta' | 'personas' | 'propina' | 'credito' | 'tasa' | 'tipoTasa' | 'meses' | 'gmf', string>;
+type Calc = Record<'expr' | 'monto' | 'pct' | 'parte' | 'total' | 'cuenta' | 'personas' | 'propina' | 'credito' | 'tasa' | 'tipoTasa' | 'meses' | 'gmf' | 'conv' | 'tipoConv', string>;
 const { calc, resultadoCalc, valorCampo } = piezasCalculadora as { calc: Calc; resultadoCalc: () => string; valorCampo: (el: HTMLInputElement | HTMLSelectElement) => string };
 const { espera, SENALES } = piezasEsperas as { espera: { tipo: string }; SENALES: string[] };
 
@@ -72,6 +72,25 @@ function salidaCredito() {
     </>
   );
 }
+// 📈 Tasas: E.A. ↔ mensual ↔ nominal, y cuánto es de interés al mes en un millón
+const TIPOS_TASA: [string, string][] = [['ea', 'E.A. (anual)'], ['mensual', 'Mensual'], ['nominal', 'Nominal (NAMV)']];
+function salidaTasa() {
+  const t = convertirTasa(num('conv'), calc.tipoConv) as { ea: number; mensual: number; nominal: number; diaria: number } | null;
+  if (!t) return <Nota>Escribe la tasa y elige cómo te la dieron. Ej.: 16,63 % E.A.</Nota>;
+  const tipo = calc.tipoConv;
+  return (
+    <>
+      <Lista filas={[
+        fila('mensual', 'Mensual efectiva', numero(t.mensual, 4) + ' %', tipo === 'mensual' ? undefined : tokens.verde),
+        fila('ea', 'Efectiva anual (E.A.)', numero(t.ea, 2) + ' %', tipo === 'ea' ? undefined : tokens.verde),
+        fila('nominal', 'Nominal anual mes vencido', numero(t.nominal, 2) + ' %'),
+        fila('diaria', 'Diaria', numero(t.diaria, 4) + ' %'),
+        fila('millon', 'Interés de $ 1.000.000 en un mes', pesos(t.mensual * 10000)),
+      ]} />
+      <Nota>Para comparar créditos o inversiones usa siempre la E.A.: la nominal se ve más baja, pero no cuenta el interés sobre el interés.</Nota>
+    </>
+  );
+}
 function salidaGmf() {
   const m = num('gmf');
   if (!m) return <Nota>El 4x1000 es $ 4 por cada $ 1.000 que sale de una cuenta que no está marcada como exenta.</Nota>;
@@ -115,6 +134,13 @@ export function Calcular() {
         <Box component="h3" sx={{ mt: '14px', mb: '6px', fontSize: 17 }}>¿Qué porcentaje es?</Box>
         <Box sx={DOS}>{campo('Esto', 'parte')}{campo('De esto', 'total')}</Box>
         {salidaProporcion()}
+      </TarjetaPlegable>
+      <TarjetaPlegable vista={VISTA} clave="📈 Tasa E.A. ↔ mensual" titulo="📈 Tasa E.A. ↔ mensual">
+        <Box sx={DOS}>
+          {campo('Tasa %', 'conv', false)}
+          <CampoLista etiqueta="Te la dieron" data-calc="tipoConv" defaultValue={calc.tipoConv} opciones={TIPOS_TASA} />
+        </Box>
+        {salidaTasa()}
       </TarjetaPlegable>
       <TarjetaPlegable vista={VISTA} clave="🍽️ Dividir la cuenta" titulo="🍽️ Dividir la cuenta">
         <Box sx={{ display: 'grid', gap: '8px' }}>

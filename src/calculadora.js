@@ -82,6 +82,13 @@ export function cuotaCredito(monto, tasaMensual, meses) {
 // Tasa efectiva anual ↔ mensual (en %)
 export const mensualDeAnual = (ea) => ((1 + ea / 100) ** (1 / 12) - 1) * 100;
 export const anualDeMensual = (m) => ((1 + m / 100) ** 12 - 1) * 100;
+// Una tasa en cualquiera de sus formas → todas (en %). tipo: 'ea' (efectiva anual), 'mensual' (efectiva mensual, M.V.)
+// o 'nominal' (nominal anual mes vencido, N.A.M.V. = la mensual × 12, la que traen muchos extractos de tarjeta)
+export function convertirTasa(valor, tipo = 'ea') {
+  if (!(valor > 0)) return null;
+  const mensual = tipo === 'mensual' ? valor : tipo === 'nominal' ? valor / 12 : mensualDeAnual(valor);
+  return { ea: tipo === 'ea' ? valor : anualDeMensual(mensual), mensual, nominal: mensual * 12, diaria: ((1 + mensual / 100) ** (12 / 365) - 1) * 100 };
+}
 
 // Gravamen a los movimientos financieros: $4 por cada $1.000
 export const cuatroPorMil = (monto) => (monto * 4) / 1000;

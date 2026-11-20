@@ -6,6 +6,7 @@ import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
 import { tiemposDia, lineaTiempos, anotarEnEntreno, gruposDia } from '../gym.js';
 import { planCorto, videoValido } from '../entreno-hoy.js';
+import { esDescarga, filaDe, ejDe, sinDescargas, metaDescarga, rutinaDe } from '../descarga.js';
 import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, resumenSemana, numero, formatoPeso, PIERNAS, historial, records, consejoEstancado, metaSesion, enBiserie, nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante } from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
@@ -35,6 +36,10 @@ export function diaDeHoy() {
   return e().rutina.find((d) => d.diaSemana === n) || null;
 }
 const registros = (sem) => (e().semanas[sem] ??= {});
+// 🔻 En descarga no se sube: el mismo peso de la última semana normal, con las reps de siempre (src/descarga.js)
+const sinSubir = (sug, ult, sem) => (sug && sug.sube && esDescarga(sem, e()) ? { sube: false, peso: numero(ult.peso), unidad: sug.unidad, texto: formatoPeso(numero(ult.peso)) + ' ' + sug.unidad } : sug);
+// La meta de la fila esa semana: la de siempre o, en descarga, el mismo peso con la mitad de las series
+export const metaDe = (f, ult, sem) => (esDescarga(sem, e()) ? metaDescarga(f, ult) : metaSesion(f, ult));
 const DIAS_CORTOS = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 // Días de entrenamiento en orden de la semana (los que no tienen día asignado al final)
 export const diasEnOrden = () => e().rutina.filter((d) => d.id !== 'core').sort((a, b) => (a.diaSemana || 99) - (b.diaSemana || 99));
@@ -103,19 +108,19 @@ function resumenEj(ej, sem, sufijo = '') {
   const regs = registros(sem);
   let hechas = 0, plan = 0;
   const partes = ej.filas.map((f) => {
-    const reg = regs[f.id + sufijo] || {}, est = estadoFila(f, reg), reps = repsDe(reg.reps), p = numero(reg.peso);
+    const reg = regs[f.id + sufijo] || {}, est = estadoFila(filaDe(f, sem, e()), reg), reps = repsDe(reg.reps), p = numero(reg.peso);
     hechas += Math.min(est.hechas, est.plan); plan += est.plan;
     return reps.length ? (p != null ? formatoPeso(p) + ' ' + (reg.unidad || 'kg') + ' × ' : '') + reps.join(' ') : '';
   }).filter(Boolean);
   if (partes.length) return { hechas, plan, texto: partes.join(' · ') };
-  const f = ej.filas[0], meta = f && metaSesion(f, ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem, sufijo), e().rutina));
+  const f = ej.filas[0], meta = f && metaDe(f, ultimoRegistro(sinDescargas(e().semanas, e()), f, sem, filtroEn(ej, sem, sufijo), e().rutina), sem);
   return { hechas, plan, sube: !!(meta && meta.sube && !ej.calentamiento), texto: ej.filas.map((x) => x.esquema + (x.unidad === 's' ? ' seg' : '')).join(' · ') + (meta ? ' · hoy ' + meta.texto + (meta.sube ? ' ⬆' : '') : '') };
 }
 
 // Biserie: los dos ejercicios en una tarjeta (A1 y A2), cada uno con su peso, y una ronda que anota los dos y arranca el descanso
 // Series hechas y planeadas de todo el ejercicio, y la fila donde va la próxima serie (top, back-off…)
 function avanceEj(ej, sem) {
-  const regs = registros(sem), est = ej.filas.map((f) => estadoFila(f, regs[f.id] || {}));
+  const regs = registros(sem), est = ej.filas.map((f) => estadoFila(filaDe(f, sem, e()), regs[f.id] || {}));
   return { hechas: est.reduce((s, x) => s + Math.min(x.hechas, x.plan), 0), plan: est.reduce((s, x) => s + x.plan, 0),
     fila: ej.filas[est.findIndex((x) => x.hechas < x.plan)] || null };
 }
@@ -124,7 +129,7 @@ function avanceEj(ej, sem) {
 function pesoPlaneado(d, sem) {
   const ej = d.ejercicios.find((x) => !x.calentamiento), f = ej && ej.filas[0];
   if (!f) return null;
-  const reg = registros(sem)[f.id], ult = ultimoRegistro(e().semanas, f, sem, filtroEn(ej, sem), e().rutina), sug = sugerencia(f, ult);
+  const reg = registros(sem)[f.id], ult = ultimoRegistro(sinDescargas(e().semanas, e()), f, sem, filtroEn(ej, sem), e().rutina), sug = sinSubir(sugerencia(f, ult), ult, sem);
   const peso = numero(reg && reg.peso) ?? (sug && sug.peso);
   return peso ? { peso, unidad: (reg && reg.unidad) || (sug && sug.unidad) || 'kg', nombre: ej.nombre } : null;
 }
@@ -146,16 +151,16 @@ const planCardio = () => e().config.cardioPlan ?? CARDIO;
 export function textoDia(d, sem, estado = e()) {
   const regs = estado.semanas[sem] || {}, lunes = lunesDe(sem);
   const lineaFila = (f, clave) => {
-    const reg = regs[clave] || {}, est = estadoFila(f, reg), reps = repsDe(reg.reps);
+    const reg = regs[clave] || {}, est = estadoFila(filaDe(f, sem, estado), reg), reps = repsDe(reg.reps);
     const peso = String(reg.peso || '').trim(), unidad = reg.unidad || 'kg';
-    const marca = est.color === 'sube' ? ' ⬆ sube peso' : est.color === 'completo' ? ' ✅' : est.color === 'falta' ? ' ⏳ ' + est.hechas + '/' + est.plan : '';
+    const marca = est.color === 'sube' && !esDescarga(sem, estado) ? ' ⬆ sube peso' : est.color === 'completo' ? ' ✅' : est.color === 'falta' ? ' ⏳ ' + est.hechas + '/' + est.plan : '';
     const datos = reps.length ? (peso ? peso + ' ' + unidad + ' × ' : '') + reps.join(' · ') : '—';
     return '  ' + (f.tipo === 'Series' ? '' : f.tipo + ' ') + f.esquema + ': ' + datos + marca;
   };
   const bloque = (ej, sufijo = '') => nombreConVariante(ej, varianteEn(ej, regs, sufijo)) + ' · ' + ej.musculo + '\n' + ej.filas.map((f) => lineaFila(f, f.id + sufijo)).join('\n');
-  const r = resumenSemana([d], regs), tiempos = lineaTiempos(tiemposDia(d, sem, estado)), lineas = [
+  const r = resumenSemana(rutinaDe([d], sem, estado), regs), tiempos = lineaTiempos(tiemposDia(d, sem, estado)), lineas = [
     '🏋️ ' + (d.diaSemana ? DIAS_CORTOS[d.diaSemana] + ' · ' : '') + d.nombre + ' — Semana ' + sem + ' (' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + ')',
-    'Series: ' + r.hechas + '/' + r.plan, ...(tiempos ? [tiempos] : []), '', ...d.ejercicios.map((ej) => bloque(ej)),
+    'Series: ' + r.hechas + '/' + r.plan, ...(esDescarga(sem, estado) ? ['🔻 Semana de descarga: la mitad de las series, mismo peso'] : []), ...(tiempos ? [tiempos] : []), '', ...d.ejercicios.map((ej) => bloque(ej)),
   ];
   // Core: solo lo anotado ese día
   const core = estado.rutina.find((x) => x.id === 'core'), sufijo = '@' + d.id;
@@ -175,7 +180,7 @@ export const listoHoy = () => (e().dias[iso()] || {}).listo || {};
 export function cortoHoy(d, sem) {
   const min = listoHoy().min;
   if (!min || sem !== semanaActual() || !d || d.id === 'core') return null;
-  return planCorto(gruposDia(d.ejercicios), min, registros(sem));
+  return planCorto(gruposDia(d.ejercicios.map((ej) => ejDe(ej, sem, e()))), min, registros(sem));
 }
 export const fueraHoy = (d, sem) => new Set((cortoHoy(d, sem) || { fuera: [] }).fuera);
 function ejActual(d, sem) {
@@ -211,7 +216,7 @@ export const piezasGym = {
   DIAS_CORTOS, rirReciente, consejo, rm, porcentaje, datosHistorial,
   // El día: en qué ejercicio vas y qué está abierto (prepararDia dice si hay que bajar al ejercicio en el que vas)
   prepararDia, irAlActual, estaAbierto, verDia: () => ({ ultimoEj, actualId }), filtroEn, sufijoDe, pesoDelDia, kgCorporal,
-  resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado, fueraHoy, cortoHoy, listoHoy,
+  resumenEj, avanceEj, ultimoCardio, planCardio, pesoPlaneado, fueraHoy, cortoHoy, listoHoy, metaDe,
 };
 
 // ---------- ⏱ Contador del entreno de hoy: { dia, inicio, fin? } en el día de hoy (dias[fecha].entreno) ----------
@@ -254,9 +259,10 @@ function cambiarReps(id, texto) {
     }
     if (!avanceEj(info.ej, semanaVista).fila) enfocar = true; // terminó: pasa al siguiente
   }
-  if (ahora > antes && ahora < info.f.series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
+  const series = filaDe(info.f, semanaVista, e()).series, descarga = esDescarga(semanaVista, e());
+  if (ahora > antes && ahora < series && !enBiserie(info.d.ejercicios, info.ej)) iniciar('descanso', info.f.descanso, info.ej.nombre);
   if (ahora > antes && !eraRecord && esRecord()) toast('🏆 ¡Récord en ' + nombreConVariante(info.ej, filtro && filtro.v) + '! Tu mejor 1RM estimado');
-  else if (ahora >= info.f.series && ahora > antes) toast(estadoFila(info.f, reg).color === 'sube' && !info.ej.calentamiento ? '⬆ ¡Tope del rango! Sube peso la próxima semana' : '✓ ' + info.ej.nombre + ' completo');
+  else if (ahora >= series && ahora > antes) toast(descarga ? '🔻 ' + info.ej.nombre + ' listo: en descarga, con esto basta' : estadoFila(info.f, reg).color === 'sube' && !info.ej.calentamiento ? '⬆ ¡Tope del rango! Sube peso la próxima semana' : '✓ ' + info.ej.nombre + ' completo');
   guardar();
 }
 
@@ -496,6 +502,13 @@ registrar({
     if (!n || l[k] === n) delete l[k]; else l[k] = n;
     if (k === 'min') enfocar = true;
     guardar();
+  },
+  // 🔻 Semana de descarga de la semana que se ve: v = si (activarla), no (esta semana no) o auto (lo que diga el plan)
+  'gym-descarga'({ v }) {
+    const sem = semanaVista ?? semanaActual(), d = (e().descargas ??= {});
+    if (v === 'si') d[sem] = true; else if (v === 'no') d[sem] = false; else delete d[sem];
+    guardar();
+    toast(v === 'si' ? '🔻 Semana ' + sem + ' en descarga: la mitad de las series, mismo peso' : v === 'no' ? 'Semana ' + sem + ' normal' : 'Listo');
   },
   // 📸 Foto de progreso de hoy: la foto queda en tu celular; aquí solo la fecha, para recordarte la próxima
   'gym-foto'() {

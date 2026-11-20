@@ -14,6 +14,7 @@ import { animoDe, resumenAnimo, CARAS, trabajoDe, resumenTrabajo, accionesDe, AC
 import { RETOS, retoPorId, retoActivo, cuantosHechos, estadoRacha } from '../../retos.js';
 import { disposicion, unicoMejorar, textoCarga } from '../../entrenador.js';
 import { resumenSemana, metaSesion, ultimoRegistro, varianteActual, nombreConVariante } from '../../gym.js';
+import { rutinaDe } from '../../descarga.js';
 import { deseosDelMes, pesos } from '../../finanzas.js';
 import { cumplimientoEstandares, IDEAS_POR_TEMA } from '../../vida.js';
 import { editandoLosEstandares } from '../../vistas/vida.js';
@@ -346,7 +347,7 @@ export function CierreHoy({ e, ahora = new Date() }: { e: Fin; ahora?: Date }) {
 
 // ---------- 📅 La semana del gym (los días con su avance; tocar uno abre ese día) ----------
 export function SemanaGym({ e, sem = semanaActual() }: { e: Fin; sem?: number }) {
-  const r = resumenSemana(e.rutina, e.semanas[sem] || {}, e.config.objetivos) as Fin;
+  const r = resumenSemana(rutinaDe(e.rutina, sem, e), e.semanas[sem] || {}, e.config.objetivos) as Fin;
   const pos = (id: string) => { const d = (e.rutina as Fin[]).find((x) => x.id === id); return id === 'core' ? 100 : (d && d.diaSemana) || 99; };
   r.dias.sort((a: Fin, b: Fin) => pos(a.id) - pos(b.id));
   const tip = (id: string) => { const d = (e.rutina as Fin[]).find((x) => x.id === id); return d && d.ejercicios.length ? d.nombre + '\n\n' + (d.ejercicios as Fin[]).map((ej) => '• ' + ej.nombre).join('\n') : undefined; };

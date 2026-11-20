@@ -10,6 +10,7 @@ import { progresoMes } from '../../gym.js';
 import { iso, hora, fechaCorta, diaSemana } from '../../fechas.js';
 import { proteinaSemana } from '../../entrenador.js';
 import { totalPlan, totalComida, valoresItem, objetivo, pesos, tendencia, revisionDieta, medidasDe } from '../../dieta.js';
+import { esDescarga, sinDescargas } from '../../descarga.js';
 import { plan12, SEMANAS_PLAN, semanaPlan, faseDe, gastoEstimado, kcalPromedioPlan, pesoEsperado, comoVaPeso } from '../../plan12.js';
 import { miles } from '../../ui.js';
 import { piezasDieta, pesoActual, TIPOS_PLAN } from '../../vistas/dieta.js';
@@ -253,7 +254,7 @@ function peso(e: Fin) {
   const ultimo = lista.length ? lista[lista.length - 1].peso : null, prom = tendencia(lista) as number | null, ref = prom || ultimo || c.pesoBase;
   const inicio = c.pesoInicio || (lista.length ? lista[0].peso : null), avance = inicio && c.meta && inicio > c.meta ? (inicio - ref) / (inicio - c.meta) : 0;
   const medidas = medidasDe(e.dias) as Fin[], conCintura = medidas.filter((m) => m.cintura > 0), cintura = conCintura.length ? conCintura[conCintura.length - 1].cintura : null;
-  const sug = (revisionDieta as Fin)({ lista, dias: e.dias, progreso: progresoMes(e.semanas, e.rutina, semanaActual()), ultimoAjuste: d.ultimoAjuste }, iso()) as Fin, sen = sug.senales;
+  const sug = (revisionDieta as Fin)({ lista, dias: e.dias, progreso: progresoMes(sinDescargas(e.semanas, e), e.rutina, semanaActual()), ultimoAjuste: d.ultimoAjuste }, iso()) as Fin, sen = sug.senales;
   const conSigno = (n: number | null, u: string) => (n == null ? '—' : (n > 0 ? '+' : '') + f1(n) + u);
   return (
     <>
@@ -298,6 +299,7 @@ function peso(e: Fin) {
           { titulo: 'Energía', valor: sen.energia == null ? '—' : f1(sen.energia) + ' / 5' }, { titulo: 'Hambre', valor: sen.hambre == null ? '—' : f1(sen.hambre) + ' / 5' },
         ]} />
         <Box component="p" sx={{ my: '8px' }}>{sug.texto}</Box>
+        {esDescarga(semanaActual(), e) ? <Box component="p" data-t="dieta-descarga" sx={{ my: '8px', p: '8px 10px', borderRadius: '10px', bgcolor: tokens.moradoFondo, color: tokens.moradoInk, fontSize: 14 }}>🔻 Esta semana es de descarga en el Gym: <b>no recortes comida</b>. Si el peso sube un poco, es agua; la revisión que cuenta es la de la próxima semana.</Box> : null}
         {sug.gramos ? <>
           <Button fullWidth data-accion="dieta-aplicar" data-g={sug.gramos}>{(sug.gramos > 0 ? 'Sumar ' : 'Quitar ') + Math.abs(sug.gramos) + ' g de carbos a los planes'}</Button>
           <Nota>Antes de cambiar te muestra cuánto queda, y lo puedes deshacer en Planes.</Nota>

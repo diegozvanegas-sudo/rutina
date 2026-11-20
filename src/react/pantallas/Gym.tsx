@@ -1,7 +1,7 @@
 // 🏋️ Gym: la cabecera (semana, días y pestañas), el día de entreno (GymDia.tsx), 📊 Resumen, 📆 12 semanas y 🏠 En casa
 // (GymPlan12.tsx). React pinta; anotar,
 // elegir y cambiar son las acciones de siempre (src/vistas/gym.js y plan12.js).
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Box, Button, ButtonBase, Card, NativeSelect, OutlinedInput, Typography } from '@mui/material';
 import { semanaQuitable } from '../../estado.js';
 import { iso, semanaDe, lunesDe, sumarDias, fechaCorta, diaSemana } from '../../fechas.js';
@@ -18,6 +18,7 @@ import { TituloPantalla, Nota } from '../ui/Textos';
 import { Opciones, Avance } from '../ui/Varios';
 import { TablaDatos } from '../ui/Graficos';
 import { plan12, casa } from './GymPlan12';
+import { origenDescarga, sugerirDescarga, rutinaDe, seriesDescarga, RIR_DESCARGA } from '../../descarga.js';
 import { dia, HistorialEjercicio, ChequeoMensual } from './GymDia';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -59,7 +60,7 @@ const Estado = ({ estado }: { estado: string }) => (
 
 // ---------- La semana: días y series por músculo ----------
 function semana(estado: Fin, sem: number, editando: boolean) {
-  const r = resumenSemana(estado.rutina, estado.semanas[sem] || {}, estado.config.objetivos) as Fin;
+  const r = resumenSemana(rutinaDe(estado.rutina, sem, estado), estado.semanas[sem] || {}, estado.config.objetivos) as Fin;
   const pos = (id: string) => { const d = estado.rutina.find((x: Fin) => x.id === id); return id === 'core' ? 100 : (d && d.diaSemana) || 99; };
   r.dias.sort((a: Fin, b: Fin) => pos(a.id) - pos(b.id));
   const tip = (id: string) => { const d = estado.rutina.find((x: Fin) => x.id === id); return d && d.ejercicios.length ? d.nombre + '\n\n' + d.ejercicios.map((ej: Fin) => '• ' + ej.nombre).join('\n') : undefined; };
@@ -280,6 +281,46 @@ function resumen(estado: Fin, sem: number, semActual: number, ver: Fin) {
   );
 }
 
+// ---------- 🔻 Semana de descarga (src/descarga.js) ----------
+// Activa: una fila morada que se abre para ver qué cambia. Sugerida: un aviso con "Hacer descarga" o "Esta semana no"
+function Descarga({ estado, sem, actual }: { estado: Fin; sem: number; actual: number }) {
+  const [abierta, ponerAbierta] = useState(false), origen = origenDescarga(sem, estado) as string | null, sug = sem === actual ? sugerirDescarga(sem, estado) as Fin : null;
+  const ejemplo = (estado.rutina as Fin[]).flatMap((d) => d.ejercicios as Fin[]).flatMap((ej) => ej.filas as Fin[]).find((f) => f.series >= 3);
+  const chip = { minHeight: 40 };
+  if (origen) return (
+    <Card component="section" data-t="descarga" sx={{ mb: '12px', p: 0, borderLeft: '5px solid', borderLeftColor: tokens.faseMorado, bgcolor: tokens.moradoFondo }}>
+      <ButtonBase aria-expanded={abierta} onClick={() => ponerAbierta(!abierta)}
+        sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', minHeight: 48, p: '8px 14px', font: 'inherit', color: tokens.moradoInk, textAlign: 'left', gap: '10px', '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } }}>
+        <b>🔻 Semana de descarga{origen === 'plan' ? ' · del plan de 12 semanas' : ''}</b><Box component="span" aria-hidden="true">{abierta ? '▾' : '▸'}</Box>
+      </ButtonBase>
+      {abierta ? (
+        <Box sx={{ display: 'grid', gap: '8px', p: '0 14px 12px', fontSize: 14, color: 'text.primary' }}>
+          <Box component="ul" sx={{ m: 0, pl: '20px', display: 'grid', gap: '4px' }}>
+            <li><b>La mitad de las series</b>{ejemplo ? <> (si tocaban {ejemplo.series}, haces {seriesDescarga(ejemplo.series)})</> : null}: ya vienen así en cada día.</li>
+            <li><b>El mismo peso</b> de tu última semana normal, sin subir. Deja <b>{RIR_DESCARGA} reps en reserva</b>.</li>
+            <li>Si juegas fútbol, juégalo suave. <b>No bajes comida</b>: si el peso sube un poco por agua, es normal.</li>
+            <li>La próxima semana vuelves a tus metas de antes: esta no cuenta como estancamiento.</li>
+          </Box>
+          <Box component="small" sx={{ color: 'text.secondary' }}>No es flojera: la fatiga baja más rápido que la fuerza, y después de la descarga rindes más. No la "aproveches" para entrenar más.</Box>
+          <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'no' })} sx={{ justifySelf: 'start', ...chip }}>Quitar la descarga de la semana {sem}</Button>
+        </Box>
+      ) : null}
+    </Card>
+  );
+  if (sug) return (
+    <Box data-t="descarga-sugerida" sx={{ mb: '12px', p: '10px 12px', borderRadius: '10px', bgcolor: tokens.moradoFondo, borderLeft: '4px solid', borderLeftColor: tokens.faseMorado, fontSize: 14, display: 'grid', gap: '8px' }}>
+      <span><Box component="b" sx={{ color: tokens.moradoInk }}>🔻 ¿Toca descarga?</Box> {sug.texto} Una semana con la mitad de las series y el mismo peso te deja volver más fuerte.</span>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        <Button onClick={() => accion('gym-descarga', { v: 'si' })} sx={chip}>🔻 Hacer descarga esta semana</Button>
+        <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'no' })} sx={chip}>Esta semana no</Button>
+      </Box>
+    </Box>
+  );
+  return null;
+}
+// Sin descarga ni sugerencia: un botón al lado de "＋ Nueva semana" (solo en la semana actual)
+const conBotonDescarga = (estado: Fin, sem: number, actual: number) => sem === actual && !origenDescarga(sem, estado) && !sugerirDescarga(sem, estado);
+
 export default function Gym() {
   const estado = usarEstado() as Fin, ver = G.ver(), actual: number = ver.actual, sem: number = ver.semana, lunes = lunesDe(sem);
   const semanas = Array.from({ length: actual }, (_, k) => actual - k);
@@ -293,7 +334,7 @@ export default function Gym() {
       <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
         <TituloPantalla>Gym</TituloPantalla>
         <NativeSelect key={sem} defaultValue={String(sem)} input={<OutlinedInput />} inputProps={{ 'aria-label': 'Semana', 'data-cambio': 'semana' } as object} sx={{ width: '60%' }}>
-          {semanas.map((s) => <option key={s} value={s}>Semana {s}{s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))}</option>)}
+          {semanas.map((s) => <option key={s} value={s}>Semana {s}{s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))}{origenDescarga(s, estado) ? ' 🔻' : ''}</option>)}
         </NativeSelect>
       </Box>
       <Box sx={{ ...FILA, flexWrap: 'wrap', gap: '8px', m: '-6px 0 10px' }}>
@@ -301,6 +342,7 @@ export default function Gym() {
           {fechaCorta(lunes)} – {fechaCorta(sumarDias(lunes, 6))}{sem < actual ? <> · <b>semana pasada</b></> : sem > semanaDe() ? <> · <b>abierta antes de tiempo</b></> : null}
         </Box>
         {sem === actual && <Button color="secondary" onClick={() => accion('semana-nueva')} sx={{ minHeight: 44 }}>＋ Nueva semana</Button>}
+        {conBotonDescarga(estado, sem, actual) && <Button color="secondary" data-t="descarga-activar" onClick={() => accion('gym-descarga', { v: 'si' })} sx={{ minHeight: 44 }}>🔻 Descarga</Button>}
         {sem === actual && semanaQuitable() === actual && <Button color="secondary" onClick={() => accion('semana-quitar')} sx={{ minHeight: 44 }}>Quitar semana {actual}</Button>}
       </Box>
       {(estado.rutina as Fin[]).some((x) => x.id !== 'core' && x.ejercicios.length) ? null : (
@@ -314,6 +356,7 @@ export default function Gym() {
           <Button href="#editar/rutina" sx={{ justifySelf: 'start' }}>Armar mi rutina →</Button>
         </Card>
       )}
+      <Descarga estado={estado} sem={sem} actual={actual} />
       <Opciones nombre="Día" activa={ver.dia} opciones={dias} datos={ir} marcada={deHoy ? { id: deHoy.id, titulo: 'Hoy' } : null} sx={{ pb: '8px' }} />
       <Opciones nombre="Vista" activa={ver.dia} opciones={vistas} datos={ir} chica />
       {ver.dia === 'plan12' ? plan12(estado) : ver.dia === 'casa' ? casa(estado) : hoyDia ? dia(hoyDia, sem) : resumen(estado, sem, actual, ver)}

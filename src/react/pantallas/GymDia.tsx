@@ -9,6 +9,7 @@ import { e, semanaActual } from '../../estado.js';
 import { reloj, fechaCorta, iso, sumarDias } from '../../fechas.js';
 import { lecturaHoy, suenoDeHoras, esDiaPierna, planCorto, seriesCortas, chequeoMensual, videoValido, buscarVideo } from '../../entreno-hoy.js';
 import { horasSueno, hayPartido } from '../../registro.js';
+import { esDescarga, filaDe, sinDescargas, rutinaDe } from '../../descarga.js';
 import { juegaEl } from '../../futbol.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
   consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO } from '../../gym.js';
@@ -177,12 +178,13 @@ export function calentamiento(d: Fin, sem: number) {
 // ---------- Una fila de series (Top, Back-off, Series) ----------
 const cuando = (s: number, sem: number) => (s === 0 ? 'antes de la app' : s === sem ? 'esta semana' : 'semana ' + s + ' (hace ' + (sem - s) + ' sem)');
 function lineaFuerza(ej: Fin, i: number, sem: number, v: Fin, conMeta: boolean) {
-  const est0 = e() as Fin, hist = historial(est0.semanas, est0.rutina, ej, i, sem, v) as Fin[];
+  const est0 = e() as Fin, hist = historial(sinDescargas(est0.semanas, est0), est0.rutina, ej, i, sem, v) as Fin[];
   if (!hist.length) return null;
   const u = hist[0].unidad, rec = (records(hist) as Fin[]).find((p) => p.semana === sem && sem > 0);
   const sub = ultimaSubida(hist) as Fin, est = estancamiento(hist.filter((p) => p.semana < sem)) as Fin, gris = { fontSize: 14, color: 'text.secondary', mt: '2px', '& b': { color: 'text.primary' } };
   if (rec) return <Box sx={{ fontSize: 14, fontWeight: 700, color: 'warning.main', mt: '2px' }}>🏆 Récord: 1RM estimado <b>{G.rm(rec.rm)} {u}</b> (antes {G.rm(rec.antes)})</Box>;
-  if (est && est.estancado) return (
+  // En la semana de descarga no se repite "haz una descarga": ya se está haciendo
+  if (est && est.estancado && !esDescarga(sem, est0)) return (
     <Box sx={{ ...gris, color: 'warning.main' }}>⏸ {est.semanas} semanas sin superar <b>{formatoPeso(est.mejor.peso)} {u} × {est.mejor.reps}</b>
       <Box component="small" sx={{ display: 'block', color: 'text.secondary' }}>{consejoRir(G.rirReciente(ej, i, sem, v), true) || G.consejo(ej, est.semanas)}</Box></Box>
   );
@@ -211,8 +213,11 @@ function avisosRaros(f: Fin, sem: number, clave: string, reg: Fin, ult: Fin) {
 
 // sinRapida: en una biserie las series se anotan por ronda; en un ejercicio, el "＋ Serie" va solo en la fila que sigue
 function fila(f: Fin, sem: number, clave: string, ej: Fin, i: number, sinRapida: boolean) {
-  const reg = regs(sem)[clave] || {}, est = estadoFila(f, reg) as Fin, filtro = ej && G.filtroEn(ej, sem, G.sufijoDe(clave));
-  const ult = (ultimoRegistro as Fin)((e() as Fin).semanas, f, sem, filtro, (e() as Fin).rutina), sug = sugerencia(f, ult) as Fin, meta = metaSesion(f, ult) as Fin;
+  // 🔻 En descarga: la mitad de las series, el peso de la última semana normal y sin "sube" (src/descarga.js)
+  const todo = e() as Fin, descarga = esDescarga(sem, todo), fd = filaDe(f, sem, todo) as Fin;
+  const reg = regs(sem)[clave] || {}, est = estadoFila(fd, reg) as Fin, filtro = ej && G.filtroEn(ej, sem, G.sufijoDe(clave));
+  const ult = (ultimoRegistro as Fin)(sinDescargas(todo.semanas, todo), f, sem, filtro, todo.rutina), sug0 = sugerencia(f, ult) as Fin, meta = G.metaDe(f, ult, sem) as Fin;
+  const sug = descarga && sug0 && sug0.sube ? { sube: false, peso: numero(ult.peso), texto: formatoPeso(numero(ult.peso) as number) + ' ' + sug0.unidad } : sug0;
   const unidad = reg.unidad || (ult && ult.unidad) || 'kg', calent = !!(ej && ej.calentamiento), corporal = calent ? G.pesoDelDia(clave, sem) : null;
   const tipo = f.tipo.toLowerCase();
   return (
@@ -220,19 +225,20 @@ function fila(f: Fin, sem: number, clave: string, ej: Fin, i: number, sinRapida:
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: 14 }}>
         <Box component="span" sx={{ fontSize: 12, fontWeight: 800, p: '3px 8px', borderRadius: '6px', textTransform: 'uppercase', ...(TIPO[tipo] || { bgcolor: tokens.surface2 }) }}>{f.tipo}</Box>
         <Box component="span" sx={{ fontWeight: 700 }}>{f.esquema}{f.unidad === 's' ? ' (seg)' : ''}</Box>
-        {(() => { const c = ej && sem === semanaActual() ? menosHoy(ej, sem) : 0, n = seriesCortas(f.series, c); return c && n < f.series ? <Box component="span" data-t="series-hoy" sx={{ fontSize: 12, fontWeight: 800, p: '2px 8px', borderRadius: 999, bgcolor: tokens.amarilloFondo, color: 'warning.main' }}>⏱ hoy {n}</Box> : null; })()}
+        {descarga && fd.series < f.series ? <Box component="span" data-t="series-descarga" sx={{ fontSize: 12, fontWeight: 800, p: '2px 8px', borderRadius: 999, bgcolor: tokens.moradoFondo, color: tokens.moradoInk }}>🔻 {fd.series} de {f.series}</Box> : null}
+        {(() => { const c = ej && sem === semanaActual() ? menosHoy(ej, sem) : 0, n = seriesCortas(fd.series, c); return c && n < fd.series ? <Box component="span" data-t="series-hoy" sx={{ fontSize: 12, fontWeight: 800, p: '2px 8px', borderRadius: 999, bgcolor: tokens.amarilloFondo, color: 'warning.main' }}>⏱ hoy {n}</Box> : null; })()}
         <Box component="span" title="Descanso" sx={{ color: 'text.secondary' }}>⏱ {reloj(f.descanso)}</Box>
         <Contador color={est.color} sx={{ ml: 'auto' }}>{est.hechas} / {est.plan}</Contador>
       </Box>
-      {est.color === 'sube' && !calent ? <Box sx={{ fontWeight: 800, color: 'info.main', fontSize: 14 }}>⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></Box> : null}
+      {est.color === 'sube' && !calent && !descarga ? <Box sx={{ fontWeight: 800, color: 'info.main', fontSize: 14 }}>⬆ SUBE PESO la próxima semana <span>(+2,5–5 %)</span></Box> : null}
       {meta
-        ? <Box sx={{ fontSize: 14, mt: '4px' }}>🎯 Hoy: <Box component="b" sx={{ color: meta.sube ? 'info.main' : 'primary.main' }}>{meta.texto}{meta.sube ? ' ⬆' : ''}</Box> <Box component="span" sx={GRIS}>· último <b>{textoRegistro(ult)}</b></Box><Box component="small" sx={{ display: 'block', color: 'text.secondary' }}>{meta.motivo}</Box></Box>
+        ? <Box sx={{ fontSize: 14, mt: '4px' }}>{meta.descarga ? '🔻' : '🎯'} Hoy: <Box component="b" sx={{ color: meta.sube ? 'info.main' : 'primary.main' }}>{meta.texto}{meta.sube ? ' ⬆' : ''}</Box> <Box component="span" sx={GRIS}>· último <b>{textoRegistro(ult)}</b></Box><Box component="small" sx={{ display: 'block', color: 'text.secondary' }}>{meta.motivo}</Box></Box>
         : <Box sx={GRIS}>Último: <b>{textoRegistro(ult)}</b>{sug ? <> · Hoy: <Box component="b" sx={sug.sube ? { color: 'info.main !important' } : null}>{sug.texto}{sug.sube ? ' ⬆' : ''}</Box></> : null}</Box>}
       {meta && meta.sube && !calent && ej && nivelHoy(ej, sem) === 'suave' ? <Box data-t="suave" sx={{ fontSize: 14, color: 'warning.main' }}>🟡 Hoy vas suave: no subas, repite <b>{textoRegistro(ult)}</b> y sube la próxima.</Box> : null}
       {calent ? <Box sx={GRIS}>⚖️ {corporal ? <>Tu peso de ese día: <b>{G.kgCorporal(corporal)} kg</b> (se anota solo en cada serie)</> : 'Anota tu peso en Hoy (Sueño y peso) y se usa aquí solo'}</Box> : null}
       {ej ? lineaFuerza(ej, i, sem, filtro ? filtro.v : null, !!meta) : null}
       {avisosRaros(f, sem, clave, reg, ult)}
-      {(() => { const b = bajonReps(f, reg) as Fin; return b ? (
+      {(() => { const b = bajonReps(fd, reg) as Fin; return b ? (
         <Box data-t="bajon" sx={{ fontSize: 14, p: '8px 10px', borderRadius: '10px', bgcolor: tokens.amarilloFondo, color: 'warning.main' }}>
           📉 Bajaste de {b.de} a {b.a} reps (−{Math.round(b.caida * 100)} %): el músculo ya recibió el trabajo. Si la próxima no llega a {f.min}, para aquí y pasa al siguiente.
         </Box>) : null; })()}
@@ -380,7 +386,7 @@ function molestia(ej: Fin, empezado: boolean) {
 
 function ejercicio(ej: Fin, sem: number, sufijo = '') {
   const est = e() as Fin, { ultimoEj, actualId } = G.verDia(), d = est.rutina.find((x: Fin) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre) as string[] | null, es = !sufijo && ej.id === actualId;
-  const proxima = (ej.filas as Fin[]).findIndex((f) => { const x = estadoFila(f, regs(sem)[f.id + sufijo] || {}) as Fin; return x.hechas < x.plan; });
+  const proxima = (ej.filas as Fin[]).findIndex((f) => { const x = estadoFila(filaDe(f, sem, est), regs(sem)[f.id + sufijo] || {}) as Fin; return x.hechas < x.plan; });
   const clave = ej.id + sufijo, v = varianteEn(ej, regs(sem), sufijo), fuera = !sufijo && d && (G.fueraHoy(d, sem) as Set<string>).has(ej.id);
   if (!G.estaAbierto(clave, !fuera && (es || (!sufijo && ej.id === ultimoEj && sem === semanaActual())))) return plegado(clave, nombreConVariante(ej, v), ej.musculo, G.resumenEj(ej, sem, sufijo), fuera);
   return (
@@ -613,7 +619,7 @@ function ordenCorto(d: Fin, sem: number) {
 }
 
 export function dia(d: Fin, sem: number) {
-  const r = resumenSemana([d], regs(sem)) as Fin, ir = G.prepararDia(d, sem) as boolean;
+  const r = resumenSemana(rutinaDe([d], sem, e()), regs(sem)) as Fin, ir = G.prepararDia(d, sem) as boolean;
   return (
     <>
       {calentamiento(d, sem)}

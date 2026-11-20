@@ -30,6 +30,8 @@ export const tokens = {
   topFondo: '#3d2a12', topInk: '#ffc27a', backoffInk: '#9cc3ff', subeFondo: '#12233a', azulInk: '#04162b',
   // 👥 Clientes: colores de las fases del ciclo (colorFase: 0 azul, 1 brand, 2 morado = descarga, 3 amarillo)
   faseAzul: '#3b82f6', faseMorado: '#a78bfa',
+  // 🔻 Semana de descarga (Gym): fondo y texto morados, como la descarga del ciclo
+  moradoFondo: '#2a2340', moradoInk: '#c4b5fd',
   // Presentación de la pantalla de entrar: el azul de los entrenadores, sus fondos suaves, el brillo detrás del titular,
   // el reloj de la muestra del Gym, los avatares, el cierre en degradado con su botón claro y las sombras
   prAzul: '#60a5fa', prAzulSuave: 'rgba(96, 165, 250, .15)', prAzulTenue: 'rgba(96, 165, 250, .35)', prVerdeSuave: 'rgba(61, 214, 140, .14)',

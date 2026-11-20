@@ -15,15 +15,23 @@ export function leerCuotas(texto) {
   const k = +x[1], n = +x[2];
   return n >= 1 && n <= 72 && k >= 0 && k <= n ? { k, n, texto: x[0] } : null;
 }
-// Una tasa en la línea: "1,89 %", "1,8900", "24,88 % EA". Hasta 6 se toma como mensual; más, como E.A. → mensual
+// Las tasas de la línea: "1,2600 %", "16,2130 %", "1,89", "24,88 % EA". Hasta 6 es mensual; más (o con EA), efectiva anual.
+// Muchos extractos traen las dos (mensual y E.A.): manda la mensual. Solo números sueltos: el "20" de "20.000.000,00" o
+// "1.500" (mil quinientos pesos) no son tasas. Sin %, solo con coma decimal o 2 o 4 decimales con punto.
+// Devuelve { mensual, textos: [todo lo que era tasa, para quitarlo antes de buscar los montos] } o null
 export function leerTasa(texto) {
-  const x = String(texto || '').match(/\b(\d{1,2}[.,]\d{1,4})\s*%?\s*(e\.?\s?a\.?|m\.?\s?v\.?|mes)?/i);
-  if (!x) return null;
-  const v = Number(x[1].replace(',', '.'));
-  // 0 también es una tasa: las compras "sin intereses" (0,00 %)
-  if (!(v >= 0 && v < 60)) return null;
-  const ea = /e\.?\s?a/i.test(x[2] || '') || (!x[2] && v > 6);
-  return { mensual: ea ? mensualDeAnual(v) : v, texto: x[0] };
+  const re = /(?<![\d.,])(\d{1,2})([.,])(\d{1,4})(?![.,]?\d)(\s*%)?(\s*(?:e\.?\s?a\.?|m\.?\s?v\.?))?/gi, tasas = [];
+  for (const x of String(texto || '').matchAll(re)) {
+    const conPct = !!x[4], marca = (x[5] || '').trim();
+    if (!conPct && !marca && !(x[2] === ',' || x[3].length === 2 || x[3].length === 4)) continue;
+    const v = Number(x[1] + '.' + x[3]);
+    // 0 también es una tasa: las compras "sin intereses" (0,00 %)
+    if (!(v >= 0 && v < 60)) continue;
+    tasas.push({ v, ea: /e/i.test(marca) || (!/m/i.test(marca) && v > 6), texto: x[0] });
+  }
+  if (!tasas.length) return null;
+  const m = tasas.find((t) => !t.ea), a = tasas.find((t) => t.ea);
+  return { mensual: m ? m.v : mensualDeAnual(a.v), ea: a ? a.v : null, textos: tasas.map((t) => t.texto) };
 }
 
 // El plan completo de una compra: cada cuota con su capital, interés y lo que queda
@@ -42,18 +50,21 @@ export function planCuotas(original, n, tasaMensual = 0) {
 // el capital, y sin tasa escrita se saca de ahí (interés / lo que se debía) para estimar los intereses que faltan
 export function tasaDeCargo(c) {
   const k = Math.min(Math.max(1, c.k || 1), c.n || 1), capital = c.original / c.n, antes = c.original - capital * (k - 1);
-  return c.cargo > capital && antes > 0 && c.n > 1 ? ((c.cargo - capital) / antes) * 100 : null;
+  return c.cargo > capital * 1.005 && antes > 0 && c.n > 1 ? ((c.cargo - capital) / antes) * 100 : null;
 }
 export function detalleCompra(c) {
   const k = Math.min(Math.max(1, c.k || 1), c.n || 1), deCargo = tasaDeCargo(c), tasa = c.tasa || deCargo || 0;
   const plan = planCuotas(c.original, c.n, tasa), este = plan[k - 1] && { ...plan[k - 1] };
   if (!este) return null;
-  if (c.cargo > 0 && c.cargo >= este.capital * 0.99) { este.interes = Math.max(0, c.cargo - este.capital); este.total = c.cargo; plan[k - 1] = este; }
+  // Muchos bancos ponen en la línea solo el capital de la cuota (20.000.000 / 60 = 333.333,33) y cobran el interés aparte:
+  // si el cargo es el capital, el interés sale de la tasa. Si es más, el cargo ya trae el interés y manda el del banco
+  const cargoEsCapital = c.cargo > 0 && Math.abs(c.cargo - este.capital) <= Math.max(2, este.capital * 0.005);
+  if (c.cargo > 0 && !cargoEsCapital && c.cargo > este.capital) { este.interes = c.cargo - este.capital; este.total = c.cargo; plan[k - 1] = este; }
   const despues = plan.slice(k);
   const interesesFaltan = despues.reduce((s, x) => s + x.interes, 0), interesesTotal = plan.reduce((s, x) => s + x.interes, 0);
   return { k, n: c.n, capital: este.capital, interes: este.interes, mes: este.total, saldo: este.saldo, cuotasFaltan: c.n - k,
     interesesFaltan, interesesTotal, totalCompra: c.original + interesesTotal, pagado: plan.slice(0, k).reduce((s, x) => s + x.total, 0),
-    faltaPagar: este.saldo + interesesFaltan, ultima: k === c.n, tasa, tasaDe: c.tasaLeida ? 'extracto' : c.tasa ? 'tarjeta' : deCargo ? 'cargo' : null, delExtracto: c.cargo > 0 && este.total === c.cargo };
+    faltaPagar: este.saldo + interesesFaltan, ultima: k === c.n, tasa, tasaDe: c.tasaLeida ? 'extracto' : c.tasa ? 'tarjeta' : deCargo ? 'cargo' : null, delExtracto: c.cargo > 0 && este.total === c.cargo, cargoEsCapital, plan };
 }
 
 // ---------- Quién paga ----------

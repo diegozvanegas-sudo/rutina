@@ -228,6 +228,45 @@ const x0 = () => extracto() as Fin;
 function Cifra({ t, v, color }: { t: string; v: ReactNode; color?: string }) {
   return <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: '10px', fontSize: 14, py: '3px' }}><Box component="span" sx={{ color: 'text.secondary' }}>{t}</Box><Box component="b" sx={{ color, textAlign: 'right' }}>{v}</Box></Box>;
 }
+// 📅 Las cuotas una por una: el mes, el capital, el interés, lo que se paga y lo que queda. La de este extracto resaltada
+const MESES_CORTOS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+function mesDeCuota(fecha: string, j: number) {
+  const [a, m] = fecha.split('-').map(Number), t = (m - 1) + j;
+  return MESES_CORTOS[t % 12] + ' ' + String(a + Math.floor(t / 12)).slice(2);
+}
+function PlanCompra({ c, d, abierto, partes }: { c: Fin; d: Fin; abierto: boolean; partes: number }) {
+  const celda = { p: '6px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' } as const;
+  return (
+    <Box>
+      <Button size="small" color="secondary" aria-expanded={abierto} onClick={() => accion('cu-plan', { id: c.id })} sx={{ minHeight: 40 }}>
+        {abierto ? '▾ Esconder las cuotas' : '📅 Ver las ' + d.n + ' cuotas, una por una'}
+      </Button>
+      {abierto ? (
+        <Box data-t="cu-plan" sx={{ mt: '8px', maxHeight: 380, overflow: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: '10px' }}>
+          <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, '& th': { ...celda, position: 'sticky', top: 0, bgcolor: 'background.paper', color: 'text.secondary', fontWeight: 600 }, '& td': celda, '& tr > :first-of-type': { textAlign: 'left' } }}>
+            <thead><tr><th>Cuota</th><th>Mes</th><th>Capital</th><th>Interés</th><th>Pagas</th><th>Queda</th></tr></thead>
+            <tbody>
+              {(d.plan as Fin[]).map((x) => {
+                const hoy = x.cuota === d.k, pasada = x.cuota < d.k;
+                return (
+                  <Box component="tr" key={x.cuota} sx={{ borderTop: '1px solid', borderColor: 'divider', bgcolor: hoy ? tokens.subeFondo : undefined, color: pasada ? 'text.secondary' : undefined, fontWeight: hoy ? 700 : 400 }}>
+                    <td>{x.cuota}{hoy ? ' ◀' : ''}</td><td>{mesDeCuota(c.fecha, x.cuota)}</td><td>{pesos(x.capital)}</td>
+                    <Box component="td" sx={{ color: x.interes ? tokens.rojoSuave : undefined }}>{pesos(x.interes)}</Box><td>{pesos(x.total)}</td><td>{pesos(x.saldo)}</td>
+                  </Box>
+                );
+              })}
+              <Box component="tr" sx={{ borderTop: '2px solid', borderColor: 'divider', fontWeight: 700 }}>
+                <td>Total</td><td></td><td>{pesos(c.original)}</td><Box component="td" sx={{ color: tokens.rojoSuave }}>{pesos(d.interesesTotal)}</Box><td>{pesos(d.totalCompra)}</td><td></td>
+              </Box>
+            </tbody>
+          </Box>
+        </Box>
+      ) : null}
+      {abierto && partes > 1 ? <Box component="small" sx={{ display: 'block', mt: '6px', color: 'text.secondary' }}>La tabla es de la compra completa: a cada uno de los {partes} le toca la {partes === 2 ? 'mitad' : partes + '.ª parte'}.</Box> : null}
+      {abierto ? <Box component="small" sx={{ display: 'block', mt: '6px', color: 'text.secondary' }}>Los meses son aproximados (la primera cuota llega en el extracto del mes siguiente a la compra).</Box> : null}
+    </Box>
+  );
+}
 function Compra({ c, lista, abierta }: { c: Fin; lista: string[]; abierta: boolean }) {
   const d = detalleCompra(c) as Fin, quien = quienDe(c, lista) as string[];
   if (!d) return null;
@@ -249,7 +288,7 @@ function Compra({ c, lista, abierta }: { c: Fin; lista: string[]; abierta: boole
         </Box>
       </ButtonBase>
       {abierta ? (
-        <Box sx={{ display: 'grid', gap: '10px', pb: '12px' }}>
+        <Box sx={{ display: 'grid', gap: '10px', pb: '12px', '& > *': { minWidth: 0 } }}>
           <Box role="group" aria-label="Quién paga" sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
             <Box component="span" sx={GRIS}>Quién paga:</Box>
             {lista.map((p) => { const si = quien.includes(p); return <Chip key={p} clickable aria-pressed={si} color={si ? 'primary' : 'default'} variant={si ? 'filled' : 'outlined'} label={p} onClick={() => accion('cu-quien', { id: c.id, p })} sx={{ minHeight: 36 }} />; })}
@@ -269,6 +308,9 @@ function Compra({ c, lista, abierta }: { c: Fin; lista: string[]; abierta: boole
               <Cifra t="La compra termina costando" v={pesos(d.totalCompra) + ' (+' + pesos(d.interesesTotal) + ')'} />
             </> : null}
           </Box>
+          {d.cargoEsCapital && d.interes ? <Box component="small" sx={{ color: 'text.secondary' }}>El extracto trae solo el capital de la cuota ({pesos(d.capital)}); el interés ({pesos(d.interes)}) lo calculo con la tasa de {numeroCorto(d.tasa, 4)} % mensual sobre lo que se debía.</Box> : null}
+          {d.n > 1 && d.cuotasFaltan ? <Box data-t="cu-abono" sx={{ p: '8px 10px', borderRadius: '10px', bgcolor: tokens.surface2, fontSize: 14 }}>💡 Si después de esta cuota la pagas toda (abono a capital), pagas <b>{pesos(d.saldo)}</b> y te ahorras <b>{pesos(d.interesesFaltan)}</b> de intereses. Cada abono a capital baja los intereses de todas las cuotas que siguen.</Box> : null}
+          {d.n > 1 ? <PlanCompra c={c} d={d} abierto={x0().planAbierto === c.id} partes={quien.length} /> : null}
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: '8px' }}>
             {campo('original', 'Valor original', Math.round(c.original).toLocaleString('es-CO'), 'numeric')}
             {campo('n', 'Cuotas', String(c.n), 'numeric')}
@@ -287,7 +329,7 @@ function Cuotas({ f, x }: { f: Fin; x: Fin }) {
   const total = pp.reduce((s, p) => s + p.mes, 0), falta = pp.reduce((s, p) => s + p.faltaPagar, 0), intereses = pp.reduce((s, p) => s + p.interes, 0);
   const orden = [...cs].sort((a, b) => (detalleCompra(b) as Fin).mes - (detalleCompra(a) as Fin).mes);
   return (
-    <Card component="section" data-t="cuotas" sx={{ mb: '14px', display: 'grid', gap: '12px' }}>
+    <Card component="section" data-t="cuotas" sx={{ mb: '14px', display: 'grid', gap: '12px', '& > *': { minWidth: 0 } }}>
       <Box component="h2" sx={{ m: 0, fontSize: 18 }}>💳 Cuotas y quién paga</Box>
       <Cifras datos={[{ titulo: 'Este mes', valor: pesos(total) }, { titulo: 'De eso, intereses', valor: pesos(intereses), color: intereses ? tokens.rojoSuave : undefined }, { titulo: 'Falta después', valor: pesos(falta) }]} />
       <Personas lista={lista} />

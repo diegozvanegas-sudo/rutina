@@ -165,7 +165,7 @@ function leerLineas(lineas, op) {
       if (cu) {
         resto = resto.replace(cu.texto, ' ');
         const ta = leerTasa(resto);
-        if (ta) resto = resto.replace(ta.texto, ' ');
+        if (ta) for (const t of ta.textos) resto = resto.replace(t, ' ');
         cuotas = { k: cu.k, n: cu.n, tasa: ta ? ta.mensual : null };
       }
     }

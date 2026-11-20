@@ -157,6 +157,7 @@ registrar({
 
   // ---------- 💳 Cuotas y quién paga ----------
   'cu-abrir'({ id }) { ext.compraAbierta = ext.compraAbierta === id ? null : id; repintar(); },
+  'cu-plan'({ id }) { ext.planAbierto = ext.planAbierto === id ? null : id; repintar(); },
   'cu-persona-nueva'() {
     const campo = document.querySelector('[data-t="cu-persona"] input'), nombre = campo ? campo.value.trim().slice(0, 30) : '';
     if (!nombre) { toast('Escribe el nombre'); return; }

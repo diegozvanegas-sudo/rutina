@@ -16,6 +16,33 @@ test('cuotas y tasa dentro de una línea', () => {
   assert.deepEqual([rappi.desc, rappi.cuotas.tasa, rappi.cuotas.original], ['RAPPI', 0, 90000]);
 });
 
+test('compra de cartera (formato real): capital en la línea, interés con la tasa mensual, las dos tasas fuera', () => {
+  const l = '000000 20/10/2026 COMPRA DE CARTERA Y/O D $ 20.000.000,00 1/60 $ 333.333,33 1,2600 % 16,2130 % $ 19.666.666,67';
+  const [m] = leerExtracto(l, { hoy: '2026-11-20', tarjeta: true });
+  assert.equal(m.desc, 'COMPRA DE CARTERA Y/O D');
+  assert.deepEqual(m.cuotas, { k: 1, n: 60, tasa: 1.26, original: 20000000 });
+  const d = detalleCompra(comprasDe([m])[0]);
+  assert.equal(d.cargoEsCapital, true);
+  assert.equal(Math.round(d.capital), 333333);
+  assert.equal(Math.round(d.interes), 252000);       // 1,26 % de 20.000.000
+  assert.equal(Math.round(d.mes), 585333);
+  assert.equal(Math.round(d.saldo), 19666667);       // igual que el extracto
+  assert.equal(Math.round(d.interesesTotal), 7686000);
+  assert.equal(Math.round(d.totalCompra), 27686000);
+  assert.equal(d.plan.length, 60);
+  assert.equal(Math.round(d.plan[59].interes), 4200);  // la última: 1,26 % de 333.333
+});
+
+test('los montos no se confunden con tasas', () => {
+  assert.equal(leerTasa('$ 20.000.000,00'), null);
+  assert.equal(leerTasa('45.900,00'), null);
+  assert.equal(leerTasa('1.500'), null);              // mil quinientos pesos
+  assert.deepEqual(leerTasa('1,2600 % 16,2130 %').textos, ['1,2600 %', '16,2130 %']);
+  assert.equal(leerTasa('16,2130 %').mensual.toFixed(2), '1.26'); // solo la E.A.: se pasa a mensual
+  const [m] = leerExtracto('05/11/2026 RESTAURANTE 2/3 45.900,00 15.300,00 30.600,00', { hoy: '2026-11-20', tarjeta: true });
+  assert.deepEqual([m.desc, m.cuotas.original, m.monto], ['RESTAURANTE', 45900, 15300]);
+});
+
 test('plan de una compra: capital igual cada mes e interés sobre lo que falta', () => {
   const p = planCuotas(600000, 12, 2);
   assert.equal(p.length, 12);

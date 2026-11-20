@@ -18,7 +18,7 @@ import './vistas/ajustes.js';
 import { bloqueo, bloqueada, desbloquear } from './bloqueo.js';
 import './vistas/editar.js';
 import './vistas/dieta.js';
-import './vistas/finanzas.js';
+import { PESTANAS_FINANZAS } from './vistas/finanzas.js';
 import { alertas } from './vistas/recordatorios.js';
 // Acciones que ya no importa ninguna pantalla de antes (las pantallas de React las usan con data-accion)
 import './vistas/mejora.js';
@@ -39,7 +39,7 @@ import { marcaDeMiEntrenador } from './coach.js';
 import { iniciarNube, nube, textoNube, configurada, sincronizar, nubeDePrueba } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
-import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer } from './orden.js';
+import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer, agrupar, grupoDe, moverAGrupo, GRUPOS } from './orden.js';
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos, rolVisto } from './permisos.js';
 import { ponerDatosAdmin } from './vistas/administrar.js';
 
@@ -81,6 +81,13 @@ const SOLO_ADMIN = ['administrar', 'ventas'];
 // 📚 Libros es un área de 🎓 Estudiar: no sale en el menú, pero sus enlaces (#libros/fenix) siguen funcionando
 VISTAS.libros = ['📚', 'Libros'];
 const DENTRO = { libros: 'estudiar' };
+// Subsecciones que se abren desde el menú (#seccion/pestaña): las pestañas de Finanzas, Dieta, Gym y Editar
+const SUBSECCIONES = {
+  finanzas: Object.entries(PESTANAS_FINANZAS),
+  dieta: [['hoy', '🍽 Hoy'], ['planes', '📋 Planes'], ['peso', '⚖️ Peso'], ['alimentos', '🥚 Alimentos']],
+  gym: [['resumen', '📊 Resumen'], ['plan12', '📆 12 semanas'], ['casa', '🏠 En casa']],
+  editar: [['rutina', '🏋️ Rutina'], ['habitos', '☀️ Hábitos'], ['sesiones', '🧘 Sesiones'], ['pantallas', '🧩 Pantallas']],
+};
 const $ = (id) => document.getElementById(id);
 // "#dieta/peso": sección y pestaña. La pestaña se le pasa a la sección ("abrir-dieta") y queda "#dieta".
 // Lo que el admin escondió no se abre ni por enlace: se va a Hoy
@@ -109,6 +116,9 @@ function aplicarBarra() {
   const b = ajustesBarra();
   document.body.classList.toggle('barra-compacta', !!b.compacta);
   document.body.classList.toggle('barra-izquierda', b.lado === 'izquierda');
+  // 📱 Celular: el menú sale del lado de tu mano y, con "una mano", ☰ abajo al alcance del pulgar
+  document.body.classList.toggle('mano-izquierda', b.mano === 'izquierda');
+  document.body.classList.toggle('una-mano', !!b.unaMano);
   document.documentElement.style.setProperty('--ancho-barra', (b.ancho || 260) + 'px');
 }
 
@@ -131,9 +141,12 @@ function datosLateral() {
   const propia = miMarca(), marcaVista = modo === 'cliente' ? marcaDeMiEntrenador(e()) : propia.negocio || propia.logo ? { ...propia } : null;
   return {
     compacta: !!b.compacta, lado: b.lado === 'izquierda' ? 'izquierda' : 'derecha', resumenAbierto: b.resumen !== false, organizando: organizandoMenu,
+    // Por área de vida (el cliente de un entrenador ve su menú propio, sin grupos); cerrados: los grupos plegados
+    grupos: modo === 'cliente' ? null : agrupar(c, menu.principales.filter((x) => !enNegocio.has(x.k))), cerrados: b.cerrados || [], subs: SUBSECCIONES,
+    mano: b.mano === 'izquierda' ? 'izquierda' : 'derecha', unaMano: !!b.unaMano, listaGrupos: GRUPOS,
     modo, marca: marcaVista, negocio, mas: menu.mas,
     enlaces: menu.principales.filter((x) => !enNegocio.has(x.k)),
-    filas: enOrden(c, 'menu').filter((k) => ve('seccion', k)).map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], apagado: oculto(c, 'menu', k), fija: FIJAS.menu.includes(k) })),
+    filas: enOrden(c, 'menu').filter((k) => ve('seccion', k)).map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], apagado: oculto(c, 'menu', k), fija: FIJAS.menu.includes(k), grupo: grupoDe(c, k) })),
     resumen: [
       ve('seccion', 'manana') && { href: '#manana', titulo: 'Ir a Mañana', texto: '☀️ Mañana', valor: hechosManana() + '/' + total, parte: fraccionManana() },
       ve('seccion', 'metas') && { href: '#metas', titulo: 'Ir a Metas', texto: '🎯 Metas', valor: pct(m.total), parte: m.total },
@@ -319,6 +332,8 @@ function menu(abrir) {
   document.body.classList.toggle('menu-abierto', abrir);
   $('velo').hidden = !abrir;
   document.querySelectorAll('[aria-controls="lateral"]').forEach((b) => b.setAttribute('aria-expanded', abrir));
+  // Con "una mano", el menú abre mostrando lo de abajo (las secciones, donde llega el pulgar)
+  if (abrir && document.body.classList.contains('una-mano')) requestAnimationFrame(() => { const l = $('lateral'); l.scrollTop = l.scrollHeight; });
 }
 registrar({
   't-sumar'() { sumar(30); },
@@ -334,6 +349,11 @@ registrar({
   'barra-lado'() { const b = ajustesBarra(); b.lado = b.lado === 'izquierda' ? 'derecha' : 'izquierda'; guardar(); },
   'barra-ver'({ id }) { if (alternar(e().config, 'menu', id)) guardar(); },
   'barra-restablecer'() { restablecer(e().config, 'menu'); guardar(); },
+  // Grupos del menú: abrir o cerrar uno, y pasar una sección a otro (al arrastrarla debajo de su título)
+  'barra-grupo'({ g }) { const b = ajustesBarra(), l = b.cerrados || []; b.cerrados = l.includes(g) ? l.filter((x) => x !== g) : [...l, g]; guardar(); },
+  'barra-mover-grupo'({ id, g }) { if (moverAGrupo(e().config, id, g)) guardar(); },
+  'barra-mano'({ v }) { ajustesBarra().mano = v === 'izquierda' ? 'izquierda' : 'derecha'; guardar(); },
+  'barra-una-mano'() { const b = ajustesBarra(); b.unaMano = !b.unaMano; guardar(); },
 });
 
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') menu(false); });

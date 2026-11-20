@@ -65,4 +65,30 @@ export function alternar(config, tipo, id) {
 export function restablecer(config, tipo) {
   if (config.orden) delete config.orden[tipo];
   if (config.ocultos) delete config.ocultos[tipo];
+  if (tipo === 'menu' && config.grupos) delete config.grupos;
+}
+
+// ---------- Grupos del menú (por área de vida) ----------
+// Cada sección va en un grupo; el usuario la puede pasar a otro al organizar (config.grupos = { id: grupo }).
+// El orden dentro del grupo es el del menú (config.orden.menu). Lo que no tiene grupo va a ⚙️ App
+export const GRUPOS = [['dia', '📅', 'Mi día'], ['cuerpo', '💪', 'Cuerpo'], ['plata', '💰', 'Plata'], ['mente', '🌱', 'Mente y crecimiento'], ['app', '⚙️', 'App']];
+export const GRUPO_DE = {
+  hoy: 'dia', manana: 'dia', calendario: 'dia', recordatorios: 'dia', metas: 'dia',
+  gym: 'cuerpo', dieta: 'cuerpo', suplementos: 'cuerpo', energia: 'cuerpo', sesiones: 'cuerpo', progreso: 'cuerpo', entrenador: 'cuerpo', clientes: 'cuerpo', panel: 'cuerpo',
+  finanzas: 'plata', compras: 'plata',
+  vida: 'mente', estudiar: 'mente', voz: 'mente', lugares: 'mente',
+  editar: 'app', ajustes: 'app',
+};
+const esGrupo = (g) => GRUPOS.some(([id]) => id === g);
+export const grupoDe = (config, id) => { const g = ((config && config.grupos) || {})[id]; return esGrupo(g) ? g : GRUPO_DE[id] || 'app'; };
+// Pasa una sección a otro grupo (si vuelve al suyo de siempre, se borra la excepción)
+export function moverAGrupo(config, id, g) {
+  if (!esGrupo(g)) return false;
+  const grupos = (config.grupos ??= {});
+  if ((GRUPO_DE[id] || 'app') === g) delete grupos[id]; else grupos[id] = g;
+  return true;
+}
+// items: [{ k, … }] en el orden del menú → [{ g, icono, nombre, items }] en el orden de GRUPOS, sin los grupos vacíos
+export function agrupar(config, items) {
+  return GRUPOS.map(([g, icono, nombre]) => ({ g, icono, nombre, items: items.filter((x) => grupoDe(config, x.k) === g) })).filter((x) => x.items.length);
 }

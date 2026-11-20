@@ -41,8 +41,19 @@ small { color: ${t.muted}; }
 #lateral { position: fixed; top: 0; right: 0; bottom: 0; z-index: 45; width: min(300px, 86vw); display: flex; flex-direction: column; gap: 18px; overflow-y: auto; padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); background: ${t.surface}; border-left: 1px solid ${t.line}; transform: translateX(105%); transition: transform .22s ease; visibility: hidden; }
 .menu-abierto #lateral { transform: none; visibility: visible; box-shadow: -12px 0 40px ${t.velo}; }
 .velo { position: fixed; inset: 0; z-index: 44; background: ${t.velo}; }
+/* 📱 Celular: el menú del lado de tu mano y, con "una mano", ☰ abajo al alcance del pulgar y las secciones abajo */
+.menu-pulgar { display: none; }
+@media (max-width: 899px) {
+  .mano-izquierda #lateral { right: auto; left: 0; border-left: 0; border-right: 1px solid ${t.line}; transform: translateX(-105%); }
+  .menu-abierto.mano-izquierda #lateral { transform: none; box-shadow: 12px 0 40px ${t.velo}; }
+  .una-mano .menu-pulgar { display: grid; place-items: center; position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 43; width: 60px; height: 60px; border-radius: 50%; border: 0; font-size: 28px; background: ${t.brand}; color: ${t.brandInk}; box-shadow: 0 6px 20px ${t.velo}; cursor: pointer; }
+  .una-mano.mano-izquierda .menu-pulgar { right: auto; left: 16px; }
+  .una-mano:has(#flotante:not([hidden])) .menu-pulgar { bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .una-mano #lateral > div:first-of-type { margin-bottom: auto; }
+  .una-mano #lateral nav[data-t="grupos"] { margin-top: auto; }
+}
 .velo[hidden] { display: none; }
-.sin-sesion #lateral, .sin-sesion .top-movil .menu, .sin-sesion #flotante, .sin-sesion #reproductor { display: none !important; }
+.sin-sesion #lateral, .sin-sesion .top-movil .menu, .sin-sesion .menu-pulgar, .sin-sesion #flotante, .sin-sesion #reproductor { display: none !important; }
 @media (min-width: 900px) {
   .sin-sesion .app { display: block; }
 }

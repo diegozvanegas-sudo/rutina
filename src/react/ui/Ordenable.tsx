@@ -53,10 +53,12 @@ export function Ordenable({ n, clave, alSoltar, datos, sx, children }: Props) {
       nuevo.splice(k < 0 ? nuevo.length : k, 0, i);
       if (nuevo.join(',') !== ultimo.join(',')) { ultimo = nuevo; ponerOrden(nuevo); }
     };
-    // Cerca del borde de la pantalla, se desliza sola
+    // Cerca del borde de la pantalla, se desliza sola: la caja con scroll que la contiene (el menú del celular) o la página
+    let cont: HTMLElement | null = caja.current ? caja.current.parentElement : null;
+    while (cont && !(/(auto|scroll)/.test(getComputedStyle(cont).overflowY) && cont.scrollHeight > cont.clientHeight)) cont = cont.parentElement;
     const borde = setInterval(() => {
       const paso = y < 90 ? -14 : y > innerHeight - 90 ? 14 : 0;
-      if (paso) { scrollBy(0, paso); ubicar(); }
+      if (paso) { if (cont) cont.scrollBy(0, paso); else scrollBy(0, paso); ubicar(); }
     }, 16);
     const mover = (m: globalThis.PointerEvent) => { y = m.clientY; ubicar(); };
     const fin = () => {

@@ -38,3 +38,24 @@ test('una sección nueva aparece debajo de su vecina en un menú ya ordenado, no
   assert.equal(enOrden(c2, 'menu')[0], 'compras');
   assert.equal(enOrden(c2, 'menu').filter((x) => x === 'compras').length, 1);
 });
+
+test('menú por grupos: cada sección en su área, pasar una a otro grupo y volver', async () => {
+  const { agrupar, grupoDe, moverAGrupo, GRUPOS, GRUPO_DE, SECCIONES, restablecer } = await import('../src/orden.js');
+  // Todas las secciones del menú tienen grupo (si no, caerían en App sin querer)
+  for (const id of Object.keys(SECCIONES)) assert.ok(GRUPO_DE[id], id + ' sin grupo');
+  const config = {}, items = ['hoy', 'gym', 'finanzas', 'energia', 'ajustes', 'vida'].map((k) => ({ k }));
+  const g = agrupar(config, items);
+  assert.deepEqual(g.map((x) => [x.g, x.items.map((i) => i.k)]), [['dia', ['hoy']], ['cuerpo', ['gym', 'energia']], ['plata', ['finanzas']], ['mente', ['vida']], ['app', ['ajustes']]]);
+  assert.equal(GRUPOS.length, 5);
+  assert.equal(moverAGrupo(config, 'energia', 'mente'), true);
+  assert.equal(grupoDe(config, 'energia'), 'mente');
+  assert.deepEqual(agrupar(config, items).find((x) => x.g === 'mente').items.map((i) => i.k), ['energia', 'vida']);
+  assert.equal(moverAGrupo(config, 'energia', 'nada'), false);
+  moverAGrupo(config, 'energia', 'cuerpo'); // vuelve a su grupo: se borra la excepción
+  assert.deepEqual(config.grupos, {});
+  moverAGrupo(config, 'gym', 'dia');
+  config.orden = { menu: ['gym'] };
+  restablecer(config, 'menu');
+  assert.equal(config.grupos, undefined);
+  assert.equal(grupoDe({}, 'administrar'), 'app');
+});

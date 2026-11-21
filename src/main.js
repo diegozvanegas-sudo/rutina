@@ -39,7 +39,7 @@ import { marcaDeMiEntrenador } from './coach.js';
 import { iniciarNube, nube, textoNube, configurada, sincronizar, nubeDePrueba } from './nube.js';
 import { iniciarHoja } from './hoja.js';
 import { iniciarAvisos } from './avisos.js';
-import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer, agrupar, grupoDe, moverAGrupo, GRUPOS } from './orden.js';
+import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restablecer, agrupar, grupoDe, moverAGrupo, GRUPOS, gruposAbiertos, alternarGrupo } from './orden.js';
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos, rolVisto } from './permisos.js';
 import { ponerDatosAdmin } from './vistas/administrar.js';
 
@@ -142,7 +142,7 @@ function datosLateral() {
   return {
     compacta: !!b.compacta, lado: b.lado === 'izquierda' ? 'izquierda' : 'derecha', resumenAbierto: b.resumen !== false, organizando: organizandoMenu,
     // Por área de vida (el cliente de un entrenador ve su menú propio, sin grupos); cerrados: los grupos plegados
-    grupos: modo === 'cliente' ? null : agrupar(c, menu.principales.filter((x) => !enNegocio.has(x.k))), cerrados: b.cerrados || [], subs: SUBSECCIONES,
+    grupos: modo === 'cliente' ? null : agrupar(c, menu.principales.filter((x) => !enNegocio.has(x.k))), abiertos: gruposAbiertos(b), subs: SUBSECCIONES,
     mano: b.mano === 'izquierda' ? 'izquierda' : 'derecha', unaMano: !!b.unaMano, listaGrupos: GRUPOS,
     modo, marca: marcaVista, negocio, mas: menu.mas,
     enlaces: menu.principales.filter((x) => !enNegocio.has(x.k)),
@@ -348,9 +348,9 @@ registrar({
   'barra-resumen'() { const b = ajustesBarra(); b.resumen = b.resumen === false; guardar(); },
   'barra-lado'() { const b = ajustesBarra(); b.lado = b.lado === 'izquierda' ? 'derecha' : 'izquierda'; guardar(); },
   'barra-ver'({ id }) { if (alternar(e().config, 'menu', id)) guardar(); },
-  'barra-restablecer'() { restablecer(e().config, 'menu'); guardar(); },
+  'barra-restablecer'() { restablecer(e().config, 'menu'); const b = ajustesBarra(); delete b.abiertos; delete b.cerrados; guardar(); },
   // Grupos del menú: abrir o cerrar uno, y pasar una sección a otro (al arrastrarla debajo de su título)
-  'barra-grupo'({ g }) { const b = ajustesBarra(), l = b.cerrados || []; b.cerrados = l.includes(g) ? l.filter((x) => x !== g) : [...l, g]; guardar(); },
+  'barra-grupo'({ g }) { if (alternarGrupo(ajustesBarra(), g)) guardar(); },
   'barra-mover-grupo'({ id, g }) { if (moverAGrupo(e().config, id, g)) guardar(); },
   'barra-mano'({ v }) { ajustesBarra().mano = v === 'izquierda' ? 'izquierda' : 'derecha'; guardar(); },
   'barra-una-mano'() { const b = ajustesBarra(); b.unaMano = !b.unaMano; guardar(); },

@@ -36,7 +36,8 @@ export default async (p) => {
   await paso('hoy con ánimo y trabajo');
   await p.foto('mivida-hoy-pc');
 
-  // La sección en el menú
+  // La sección en el menú (dentro de 🌱 Mente y crecimiento, que arranca cerrado)
+  await p.ev(`(()=>{const b=document.querySelector('#lateral [data-accion=barra-grupo][data-g=mente]');if(b&&b.getAttribute('aria-expanded')!=='true')b.click()})()`); await a.dormir(300);
   falla(await a.marcar('🌱 Mi vida', 'a, button', false) || await p.cuantos('#lateral a[href="#vida"]'), 'Mi vida no está en el menú');
   await p.ir('vida');
   await a.esperar('#vista h1');

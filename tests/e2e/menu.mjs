@@ -97,6 +97,9 @@ export default async (p) => {
   falla((await p.ev(`document.querySelector('[aria-label="Abrir menú"]').getAttribute('aria-expanded')`)) === 'true', 'el botón no dice que está abierto');
   await p.foto('menu-cel');
   await paso('celular');
+  // Los grupos arrancan cerrados (menos 📅 Mi día y el de la sección abierta): Dieta está dentro de 💪 Cuerpo
+  falla((await p.cuantos(enMenu('nav a[href="#dieta"]'))) === 0, 'Cuerpo debía empezar cerrado');
+  await p.tocar(enMenu('[data-accion=barra-grupo][data-g=cuerpo]'));
   await p.tocar(enMenu('nav a[href="#dieta"]'));
   falla(!(await cuerpo('menu-abierto')) && (await p.ev('location.hash')) === '#dieta', 'tocar Dieta no fue ni cerró el menú');
   await p.tocar('[aria-label="Abrir menú"]');

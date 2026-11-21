@@ -88,6 +88,21 @@ export function moverAGrupo(config, id, g) {
   if ((GRUPO_DE[id] || 'app') === g) delete grupos[id]; else grupos[id] = g;
   return true;
 }
+// Grupos abiertos del menú. Por defecto solo 📅 Mi día (el de la sección abierta se abre aparte, en la pantalla).
+// Lo que el usuario abre o cierra queda en config.barra.abiertos; si viene de antes con config.barra.cerrados, se respeta
+export const ABIERTOS_DE_INICIO = ['dia'];
+export function gruposAbiertos(barra = {}) {
+  if (Array.isArray(barra.abiertos)) return barra.abiertos.filter(esGrupo);
+  if (Array.isArray(barra.cerrados)) return GRUPOS.map(([g]) => g).filter((g) => !barra.cerrados.includes(g));
+  return [...ABIERTOS_DE_INICIO];
+}
+export function alternarGrupo(barra, g) {
+  if (!esGrupo(g)) return false;
+  const l = gruposAbiertos(barra);
+  barra.abiertos = l.includes(g) ? l.filter((x) => x !== g) : [...l, g];
+  delete barra.cerrados;
+  return true;
+}
 // items: [{ k, … }] en el orden del menú → [{ g, icono, nombre, items }] en el orden de GRUPOS, sin los grupos vacíos
 export function agrupar(config, items) {
   return GRUPOS.map(([g, icono, nombre]) => ({ g, icono, nombre, items: items.filter((x) => grupoDe(config, x.k) === g) })).filter((x) => x.items.length);

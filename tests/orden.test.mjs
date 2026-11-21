@@ -59,3 +59,21 @@ test('menú por grupos: cada sección en su área, pasar una a otro grupo y volv
   assert.equal(config.grupos, undefined);
   assert.equal(grupoDe({}, 'administrar'), 'app');
 });
+
+test('grupos abiertos del menú: de inicio solo Mi día, lo de antes se respeta y lo que abras se recuerda', async () => {
+  const { gruposAbiertos, alternarGrupo } = await import('../src/orden.js');
+  assert.deepEqual(gruposAbiertos({}), ['dia']);
+  // Quien ya tenía grupos cerrados (versión anterior): los demás siguen abiertos
+  assert.deepEqual(gruposAbiertos({ cerrados: ['cuerpo', 'plata', 'mente', 'app'] }), ['dia']);
+  assert.deepEqual(gruposAbiertos({ cerrados: ['app'] }), ['dia', 'cuerpo', 'plata', 'mente']);
+  const b = {};
+  assert.equal(alternarGrupo(b, 'plata'), true);
+  assert.deepEqual(gruposAbiertos(b), ['dia', 'plata']);
+  alternarGrupo(b, 'dia');
+  assert.deepEqual(gruposAbiertos(b), ['plata']);
+  const viejo = { cerrados: ['app'] };
+  alternarGrupo(viejo, 'cuerpo');
+  assert.deepEqual(gruposAbiertos(viejo), ['dia', 'plata', 'mente']);
+  assert.equal(viejo.cerrados, undefined);
+  assert.equal(alternarGrupo(b, 'nada'), false);
+});

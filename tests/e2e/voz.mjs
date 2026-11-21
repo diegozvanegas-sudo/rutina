@@ -39,7 +39,8 @@ export default async (p) => {
   for (const equipo of ['computador', 'celular']) {
     await p[equipo]();
     await p.ev(DICTADO + ';' + WHISPER);
-    if (equipo === 'computador') falla(await p.cuantos('#lateral a[href="#voz"]'), 'Audio a texto no está en el menú');
+    // Audio a texto está en 🌱 Mente y crecimiento, que arranca cerrado
+    if (equipo === 'computador') { await p.ev(`(()=>{const b=document.querySelector('#lateral [data-accion=barra-grupo][data-g=mente]');if(b&&b.getAttribute('aria-expanded')!=='true')b.click()})()`); await a.dormir(300); falla(await p.cuantos('#lateral a[href="#voz"]'), 'Audio a texto no está en el menú'); }
     await p.ir('voz');
     await a.esperar('#vista h1');
     falla((await a.texto()).includes('Audio a texto'), 'no abrió la sección');

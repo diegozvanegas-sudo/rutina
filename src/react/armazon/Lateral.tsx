@@ -160,15 +160,15 @@ function Enlace({ d, x, chica }: { d: Fin; x: Fin; chica: boolean }) {
   );
 }
 
-// 📂 El menú por grupos (Mi día, Cuerpo, Plata, Mente y crecimiento, App): cada grupo se abre y se cierra (se recuerda), el de
-// la sección abierta siempre está abierto, y las secciones con pestañas despliegan sus subsecciones (#finanzas/extracto)
+// 📂 El menú por grupos (Mi día, Cuerpo, Plata, Mente y crecimiento, App): de inicio solo Mi día abierto; cada grupo se abre y
+// se cierra (se recuerda), el de la sección abierta siempre está abierto, y las secciones con pestañas despliegan sus subsecciones (#finanzas/extracto)
 function Grupos({ d, chica }: { d: Fin; chica: boolean }) {
-  const [subAbierta, ponerSub] = useState<string | null>(null), cerrados = d.cerrados as string[];
+  const [subAbierta, ponerSub] = useState<string | null>(null), abiertos = (d.abiertos || []) as string[];
   if (chica) return <Secciones d={d} chica lista={(d.grupos as Fin[]).flatMap((g) => g.items)} />;
   return (
     <Box component="nav" aria-label="Secciones" data-t="grupos" sx={{ display: 'grid', gap: '2px' }}>
       {(d.grupos as Fin[]).map((gr) => {
-        const aqui = (gr.items as Fin[]).some((x) => x.actual), abierto = aqui || !cerrados.includes(gr.g), pendientes = (gr.items as Fin[]).reduce((s, x) => s + (x.insignia || 0), 0);
+        const aqui = (gr.items as Fin[]).some((x) => x.actual), abierto = aqui || abiertos.includes(gr.g), pendientes = (gr.items as Fin[]).reduce((s, x) => s + (x.insignia || 0), 0);
         return (
           <Box key={gr.g} data-grupo={gr.g} sx={{ display: 'grid', gap: '2px' }}>
             <ButtonBase data-accion="barra-grupo" data-g={gr.g} aria-expanded={abierto} disabled={aqui}

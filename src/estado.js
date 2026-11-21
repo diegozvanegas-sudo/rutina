@@ -505,7 +505,28 @@ export function avancePrioridades(d) {
 // Plan que toca por el día: partido → fútbol, pierna → inferior, resto → superior, sin entreno → descanso o recarga si mañana hay partido
 // Desde el 1 nov 2026 la recarga es cada dos semanas (antes era todo descanso antes de partido: esos días no cambian)
 const RECARGA_DESDE = '2026-11-01';
-const diaDeRutina = (fecha) => { const n = diaSemana(fecha); return e().rutina.find((x) => x.diaSemana === n); };
+// 🛌 Días de descanso y entrenos movidos: dias[fecha].descanso = true (ese día no se entrena) y, si su sesión se pasó a otro
+// día de la misma semana, dias[fecha].movido = 'AAAA-MM-DD' (allá se hace y cuenta). Lo usan el día de gym, la comida del
+// día y la semana del gym. Sin nada marcado, cada día es el de su rutina, como siempre
+const rutinaDelDia = (fecha) => { const n = diaSemana(fecha); return e().rutina.find((x) => x.id !== 'core' && x.diaSemana === n) || null; };
+export const descansaEl = (fecha) => !!(((e().dias || {})[fecha]) || {}).descanso;
+export const movidoDe = (fecha) => (((e().dias || {})[fecha]) || {}).movido || null;
+// Las sesiones de una fecha: la suya (si no descansa) y las que se pasaron a ese día
+export function sesionesDeFecha(fecha) {
+  const out = [], propia = rutinaDelDia(fecha);
+  if (propia && !descansaEl(fecha)) out.push(propia);
+  for (let i = -6; i <= 6; i++) {
+    const o = sumarDias(fecha, i), s = i && movidoDe(o) === fecha ? rutinaDelDia(o) : null;
+    if (s && !out.includes(s)) out.push(s);
+  }
+  return out;
+}
+// De dónde viene una sesión que se hace en otra fecha (o null)
+export function origenMovido(fecha, sesion) {
+  for (let i = -6; i <= 6; i++) { const o = sumarDias(fecha, i); if (i && movidoDe(o) === fecha && rutinaDelDia(o) === sesion) return o; }
+  return null;
+}
+const diaDeRutina = (fecha) => sesionesDeFecha(fecha)[0];
 const candidataRecarga = (f) => !diaDeRutina(f) && !hayFutbol(f) && hayFutbol(sumarDias(f, 1));
 export function tipoDietaAuto(fecha = iso()) {
   const futbolManana = hayFutbol(sumarDias(fecha, 1)) && (fecha < RECARGA_DESDE

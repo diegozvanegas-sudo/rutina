@@ -40,7 +40,16 @@ export const ejDe = (ej, sem, est) => (esDescarga(sem, est) ? { ...ej, filas: ej
 // Los días como tocan esa semana (para contar series hechas / planeadas)
 // 🛌 Descanso total: no hay series por hacer esa semana (0 de 0, no "te faltan"); si igual vas, se anotan con la mitad
 export const esDescanso = (sem, est) => origenDescarga(sem, est) === 'descanso';
-export const rutinaDe = (rutina, sem, est) => (esDescarga(sem, est) ? rutina.map((d) => ({ ...d, ejercicios: d.ejercicios.map((ej) => ({ ...ej, filas: ej.filas.map((f) => (esDescanso(sem, est) ? { ...f, series: 0 } : filaDescarga(f))) })) })) : rutina);
+// 🛌 Un día de descanso suelto (dias[fecha].descanso) tampoco tiene series por hacer, salvo que su sesión se haya pasado a
+// otro día de la semana (dias[fecha].movido): esa sigue contando, porque se hace allá
+const descansaSinMover = (d, sem, est) => {
+  if (!d.diaSemana) return false;
+  const x = ((est.dias || {})[sumarDias(lunesDe(sem), d.diaSemana - 1)]) || {};
+  return !!x.descanso && !x.movido;
+};
+export const rutinaDe = (rutina, sem, est) => (esDescarga(sem, est) || rutina.some((d) => descansaSinMover(d, sem, est))
+  ? rutina.map((d) => ({ ...d, ejercicios: d.ejercicios.map((ej) => ({ ...ej, filas: ej.filas.map((f) => (esDescanso(sem, est) || descansaSinMover(d, sem, est) ? { ...f, series: 0 } : esDescarga(sem, est) ? filaDescarga(f) : f)) })) }))
+  : rutina);
 
 // Las semanas sin las de descarga: así la meta de la semana siguiente sale de la última semana normal y el estancamiento
 // no cuenta la descarga como una semana sin mejorar

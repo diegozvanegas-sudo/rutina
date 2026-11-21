@@ -1,7 +1,7 @@
 // Gym: la pantalla está en src/react/pantallas/Gym.tsx (y GymDia.tsx, GymPlan12.tsx). Aquí quedan sus acciones (anotar series,
 // reps, peso, variantes, biseries, cardio, semanas), lo que ve la pantalla (piezasGym) y las tarjetas que todavía usan Hoy y
 // Progreso como texto HTML (tarjetaFuerza, tarjetaSemana, proximoEntreno, tarjetaCalentamiento)
-import { e, guardar, repintar, semanaActual, abrirSemana, quitarSemana, dia as diaDe } from '../estado.js';
+import { e, guardar, repintar, semanaActual, abrirSemana, quitarSemana, dia as diaDe, sesionesDeFecha } from '../estado.js';
 import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
 import { tiemposDia, lineaTiempos, anotarEnEntreno, gruposDia } from '../gym.js';
@@ -31,9 +31,9 @@ let manual = {};
 const estaAbierto = (clave, auto) => (clave in manual ? manual[clave] : auto);
 if (typeof window !== 'undefined') window.addEventListener('hashchange', () => { if (location.hash.startsWith('#gym')) enfocar = true; });
 
+// La sesión de hoy: la del día (si no descansas) o la que pasaste para hoy (estado.js sesionesDeFecha)
 export function diaDeHoy() {
-  const n = diaSemana();
-  return e().rutina.find((d) => d.diaSemana === n) || null;
+  return sesionesDeFecha(iso())[0] || null;
 }
 const registros = (sem) => (e().semanas[sem] ??= {});
 // 🔻 En descarga no se sube: el mismo peso de la última semana normal, con las reps de siempre (src/descarga.js)

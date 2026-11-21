@@ -21,6 +21,8 @@ import { plan12, casa } from './GymPlan12';
 import { origenDescarga, sugerirDescarga, rutinaDe, seriesDescarga, RIR_DESCARGA } from '../../descarga.js';
 import { dia, HistorialEjercicio, ChequeoMensual } from './GymDia';
 import { VolumenPlan } from './GymExtras';
+import { DescansosSemana } from './GymDescanso';
+import { descansaEl, movidoDe } from '../../estado.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -344,7 +346,9 @@ const conBotonDescarga = (estado: Fin, sem: number, actual: number) => sem === a
 export default function Gym() {
   const estado = usarEstado() as Fin, ver = G.ver(), actual: number = ver.actual, sem: number = ver.semana, lunes = lunesDe(sem);
   const semanas = Array.from({ length: actual }, (_, k) => actual - k);
-  const dias: [string, string][] = (diasEnOrden() as Fin[]).map((x) => [x.id, (x.diaSemana ? DIAS[x.diaSemana] + ' · ' : '') + x.nombre]);
+  // 🛌 En la fila de días: el que descansas y el que pasaste a otro día (en la semana que se ve)
+  const marca = (x: Fin) => { if (!x.diaSemana) return ''; const f = sumarDias(lunes, x.diaSemana - 1), a = movidoDe(f) as string | null; return a ? ' → ' + DIAS[diaSemana(a) as number] : descansaEl(f) ? ' 🛌' : ''; };
+  const dias: [string, string][] = (diasEnOrden() as Fin[]).map((x) => [x.id, (x.diaSemana ? DIAS[x.diaSemana] + ' · ' : '') + x.nombre + marca(x)]);
   const hoyDia = (estado.rutina as Fin[]).find((x) => x.id === ver.dia);
   // Los días de entreno en una fila (el de hoy con borde verde) y las vistas en otra: en el computador ya no se cortan
   const vistas: [string, string][] = [['resumen', '📊 Resumen'], ['plan12', '📆 12 semanas'], ['casa', '🏠 En casa']];
@@ -377,6 +381,7 @@ export default function Gym() {
         </Card>
       )}
       <Descarga estado={estado} sem={sem} actual={actual} />
+      <DescansosSemana sem={sem} />
       <Opciones nombre="Día" activa={ver.dia} opciones={dias} datos={ir} marcada={deHoy ? { id: deHoy.id, titulo: 'Hoy' } : null} sx={{ pb: '8px' }} />
       <Opciones nombre="Vista" activa={ver.dia} opciones={vistas} datos={ir} chica />
       {ver.dia === 'plan12' ? plan12(estado) : ver.dia === 'casa' ? casa(estado) : hoyDia ? dia(hoyDia, sem) : resumen(estado, sem, actual, ver)}

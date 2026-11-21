@@ -11,6 +11,7 @@ import { lecturaHoy, suenoDeHoras, esDiaPierna, planCorto, seriesCortas, chequeo
 import { horasSueno, hayPartido } from '../../registro.js';
 import { esDescarga, esDescanso, filaDe, sinDescargas, rutinaDe } from '../../descarga.js';
 import { AvisoPesos, FutbolHoy, Esencial, Ocupadas, AproxEjercicio, HoyVsUltima, ComoTeFue } from './GymExtras';
+import { DescansoDia } from './GymDescanso';
 import { juegaEl } from '../../futbol.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
   consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO } from '../../gym.js';
@@ -641,6 +642,7 @@ export function dia(d: Fin, sem: number) {
           <Box component="span" sx={{ color: 'text.primary' }}>Camina 30-45 minutos o haz 10 de movilidad si quieres moverte. Si igual vienes, la app te pone la mitad de las series y el mismo peso.</Box>
         </Box>
       ) : null}
+      <DescansoDia d={d} sem={sem} />
       {calentamiento(d, sem)}
       <Box sx={{ ...FILA, mt: '4px', mb: '6px' }}><b>{d.nombre}</b><span>{r.hechas} / {r.plan} series</span></Box>
       <Avance parte={r.plan ? r.hechas / r.plan : 0} />

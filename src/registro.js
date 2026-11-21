@@ -54,8 +54,13 @@ export const AVISOS = {
   'como-fue': { icono: '⚽', nombre: '¿Cómo te fue? (2 h después)', hora: 'partido', menos: -120, futbol: true, texto: 'Anota cómo te fue en el partido: minutos, esfuerzo, energía y molestias.' },
   dormir: { icono: '🌙', nombre: 'Prepararte para dormir', hora: 'dormir', texto: 'Pantallas fuera y luz baja: en 30 minutos a dormir.' },
   revision: { icono: '📝', nombre: 'Cierre de la semana (domingo)', hora: 'revision', dia: 7, texto: 'Cierra tu semana en Progreso y elige el foco de la próxima.' },
+  // Estos tres solo salen si hace falta (avisos.js revisa antes de mostrarlos): sin peso anotado, medidas de hace 2 semanas
+  // o más, y un día de pierna con partido al día siguiente
+  peso: { icono: '⚖️', nombre: 'Pesarte (si no lo has hecho)', hora: 'peso', texto: 'Aún no anotas tu peso de hoy: en ayunas, después del baño. Con 4 mañanas a la semana el promedio es confiable.' },
+  medidas: { icono: '📏', nombre: 'Medidas y foto (cada 2 semanas, domingo)', hora: 'medidas', dia: 7, texto: 'Ya van 2 semanas: mide tu cintura y tómate la foto. Es lo que dice si bajas grasa o músculo.' },
+  'pierna-futbol': { icono: '🦵', nombre: 'Pierna hoy y fútbol mañana', hora: 'pastilla', menos: -60, antesFutbol: true, soloApp: true, texto: 'Hoy es pierna y mañana juegas: sin llegar al fallo y con menos series, para llegar con piernas al partido.' },
 };
-export const HORAS_AVISOS = { pastilla: '06:00', partido: '20:00', dormir: '22:30', revision: '19:00' };
+export const HORAS_AVISOS = { pastilla: '06:00', partido: '20:00', dormir: '22:30', revision: '19:00', peso: '09:00', medidas: '10:00' };
 const aHora = (min) => { const m = ((min % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
 const horaAviso = (a, horas) => aHora(minutos(horas[a.hora] || HORAS_AVISOS[a.hora]) - (a.menos || 0));
 // Hora fija de acostarse: la del aviso "Prepararte para dormir" + 30 min (el aviso dice "en 30 minutos a dormir")
@@ -72,8 +77,8 @@ export function minutosTarde(acoste, cama) {
 // Avisos que tocan una fecha: [{ id, hora, icono, texto }] ordenados por hora
 export function avisosDelDia(config, fecha = iso()) {
   const c = config.avisos || {}, horas = { ...HORAS_AVISOS, ...(c.horas || {}) }, apagados = c.apagados || {};
-  const futbol = juegaEl(config, fecha);
-  return Object.entries(AVISOS).filter(([id, a]) => !apagados[id] && (!a.futbol || futbol) && (!a.dia || a.dia === diaSemana(fecha)))
+  const futbol = juegaEl(config, fecha), futbolManana = juegaEl(config, sumarDias(fecha, 1));
+  return Object.entries(AVISOS).filter(([id, a]) => !apagados[id] && (!a.futbol || futbol) && (!a.antesFutbol || futbolManana) && (!a.dia || a.dia === diaSemana(fecha)))
     .map(([id, a]) => ({ id, hora: horaAviso(a, horas), icono: a.icono, texto: a.texto })).sort((x, y) => x.hora.localeCompare(y.hora));
 }
 // Los que hay que mostrar ahora: ya pasó su hora, hace menos de 30 minutos, y no se mostraron hoy
@@ -91,8 +96,9 @@ export function calendarioIcs(config, desde = iso(), otros = []) {
   const futbol = futbolEnPausa(config, desde) ? [] : (config.futbol || []).filter((n) => n >= 1 && n <= 7);
   const lineas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Rutina//Avisos//ES', 'CALSCALE:GREGORIAN'];
   for (const [id, a] of Object.entries(AVISOS)) {
-    if (apagados[id] || (a.futbol && !futbol.length)) continue;
-    const dias = a.dia ? [a.dia] : a.futbol ? futbol : null;
+    // soloApp: el calendario no sabe si ese día es de pierna; ese aviso queda solo en la app
+    if (apagados[id] || a.soloApp || ((a.futbol || a.antesFutbol) && !futbol.length)) continue;
+    const dias = a.dia ? [a.dia] : a.futbol ? futbol : a.antesFutbol ? futbol.map((n) => (n === 1 ? 7 : n - 1)) : null;
     // Primer día que toca desde hoy (para que la primera alarma no quede en el pasado de otra semana)
     let inicio = desde;
     if (dias) while (!dias.includes(diaSemana(inicio))) inicio = sumarDias(inicio, 1);

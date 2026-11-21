@@ -58,6 +58,19 @@ test('calendario .ics: eventos que se repiten con alarma', () => {
   assert.match(ics, /^BEGIN:VCALENDAR\r\n/);
   assert.ok(ics.includes('RRULE:FREQ=DAILY') && ics.includes('RRULE:FREQ=WEEKLY;BYDAY=WE,FR') && ics.includes('RRULE:FREQ=WEEKLY;BYDAY=SU'));
   assert.ok(ics.includes('DTSTART:20261028T170000')); // primer miércoles desde el lunes 26: comida pre-partido
-  assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 6);
-  assert.equal((ics.match(/BEGIN:VALARM/g) || []).length, 6);
+  // 6 de siempre + pesarte (todos los días) + medidas (domingo); "pierna y fútbol mañana" queda solo en la app
+  assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 8);
+  assert.equal((ics.match(/BEGIN:VALARM/g) || []).length, 8);
+  assert.ok(!ics.includes('Pierna hoy'));
+});
+
+test('avisos nuevos: pesarte cada día, medidas el domingo y "pierna hoy, fútbol mañana" solo la víspera del partido', async () => {
+  const { avisosDelDia } = await import('../src/registro.js');
+  const ids = (f, c = { futbol: [3, 5] }) => avisosDelDia(c, f).map((a) => a.id);
+  assert.ok(ids('2026-11-17').includes('peso'));               // martes
+  assert.ok(ids('2026-11-17').includes('pierna-futbol'));      // martes: mañana miércoles juega
+  assert.ok(!ids('2026-11-16').includes('pierna-futbol'));     // lunes: mañana no juega
+  assert.ok(ids('2026-11-22').includes('medidas'));            // domingo
+  assert.ok(!ids('2026-11-21').includes('medidas'));
+  assert.equal(avisosDelDia({ futbol: [], avisos: { apagados: { peso: true } } }, '2026-11-17').some((a) => a.id === 'peso'), false);
 });

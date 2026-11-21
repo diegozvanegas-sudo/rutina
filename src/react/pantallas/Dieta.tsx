@@ -23,6 +23,7 @@ import { Opciones, Avance, Cifras } from '../ui/Varios';
 import { Ajustar } from '../ui/Rapido';
 import { Barras } from '../ui/Graficos';
 import { MetaPeso } from './DietaMeta';
+import { SugerenciaComida } from './Control';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -122,6 +123,7 @@ function hoyDieta(e: Fin) {
   return (
     <>
       <Opciones nombre="Plan de hoy" activa={tipo} opciones={Object.entries(TIPOS).map(([k, t]) => [k, t + (k === auto ? ' · hoy' : '')] as [string, string])} datos={(k) => ({ 'data-accion': 'dieta-tipo-hoy', 'data-tipo': k })} />
+      <SugerenciaComida />
       {manual
         ? <Nota>Elegiste el plan a mano. <Enlace href="#dieta" accion="dieta-tipo-hoy" datos={{ 'data-tipo': auto }}>Volver al que toca hoy</Enlace></Nota>
         : <Nota>El plan sale del gym y del fútbol de hoy. Toca otro si hoy comes distinto.</Nota>}

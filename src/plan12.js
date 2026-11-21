@@ -2,7 +2,7 @@
 // No reemplaza la rutina ni la dieta: les pone fases (base, progresión, descarga, intensificación), revisiones en las
 // semanas 1, 4, 8 y 12, y una versión en casa de cada día del gym con peso corporal (barra, paralelas y piso).
 // est.plan12 = { inicio, edad, sexo, pesoInicio, pruebas: [{ id, fecha, semana, ...PRUEBAS }], casa: { fecha: { ejId: 'reps' } }, nivel: { ejId: escalón } }
-import { e, planDieta } from './estado.js';
+import { e, planDieta, sesionesDeFecha } from './estado.js';
 import { iso, sumarDias, diasEntre, diaSemana } from './fechas.js';
 import { totalPlan, pesos, tendencia, medidasDe } from './dieta.js';
 
@@ -143,7 +143,8 @@ export const CASA = {
 };
 // El día del gym que toca y su versión en casa ('calentamiento' de la rutina dice el tipo: torso, pierna, empuje, tiron)
 export function tipoCasaDe(fecha = iso()) {
-  const d = e().rutina.find((x) => x.id !== 'core' && x.diaSemana === diaSemana(fecha));
+  // 🛌 Con el día de descanso no hay versión en casa; con el entreno movido, es la de ese entreno
+  const d = sesionesDeFecha(fecha)[0];
   return d && CASA[d.calentamiento] ? d.calentamiento : null;
 }
 export const sesionCasa = (fecha, p = plan12()) => (p.casa || {})[fecha] || {};

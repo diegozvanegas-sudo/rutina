@@ -1,7 +1,7 @@
 // Entrenador: lo que la app concluye de tus datos para decirte qué hacer hoy (sin pantalla, para poder probarlo).
 // Disposición del día, carga del fútbol, qué te hace rendir, lo único que mejorar, constancia del gym, proteína de la semana
 // y peso corporal para la fuerza relativa.
-import { e, avanceMetas, hayFutbol, planDieta, comidasDelDia, hechosManana } from './estado.js';
+import { e, avanceMetas, hayFutbol, planDieta, comidasDelDia, hechosManana, sesionesDeFecha } from './estado.js';
 import { iso, sumarDias, semanaDe, lunesDe, diaSemana, diasEntre } from './fechas.js';
 import { mejorSerie, resumenSemana } from './gym.js';
 import { horasSueno, partidos, hayPartido } from './registro.js';
@@ -13,7 +13,8 @@ import { casaHecha } from './plan12.js';
 const f1 = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
 const f2 = (n) => n.toFixed(2).replace('.', ',');
 const promedio = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
-const diaGym = (fecha) => e().rutina.find((x) => x.id !== 'core' && x.diaSemana === diaSemana(fecha)) || null;
+// 🛌 La sesión de esa fecha: un día de descanso no tiene (no cuenta como que faltó) y la que se pasó a otro día cuenta allá
+const diaGym = (fecha) => sesionesDeFecha(fecha)[0] || null;
 
 // ---------- Carga del fútbol (agudo:crónico) ----------
 // Carga de 7 días contra el promedio semanal de 28 días. Por encima de 1,3 sube el riesgo de lesión; de 1,5, mucho.

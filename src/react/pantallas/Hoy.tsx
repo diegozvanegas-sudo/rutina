@@ -31,6 +31,8 @@ import { lista as listaSuplementos } from './Suplementos';
 import { calentamiento } from './GymDia';
 import { Experimento, RetoHoy, Entrenador, Foco, EstudioHoy, SuenoPeso, Partido, Estandares, PlataHoy, CierreHoy, SemanaGym, BotonSesion, Botones, TarjetaEnlace, Tarjeta, EnPlegada, Animo, Trabajo } from './HoyTarjetas';
 import { porRevisar, ruedaToca, ruedaActual } from '../../mivida.js';
+import { ControlDia, RevisionSemana } from './Control';
+import { tocaRevision } from '../../control.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -91,6 +93,8 @@ function entrenamiento(e: Fin) {
 // ---------- Las tarjetas del tablero (cada una devuelve null si no tiene nada que mostrar) ----------
 function tarjetas(e: Fin): Record<string, () => ReactNode> {
   return {
+    control: () => <ControlDia />,
+    revision: () => (tocaRevision() ? <RevisionSemana enHoy /> : null),
     experimento: () => <Experimento />,
     retos: () => RetoHoy(),
     entrenador: () => Entrenador({ e }),

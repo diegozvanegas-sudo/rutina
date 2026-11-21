@@ -50,6 +50,9 @@ test('en pausa no salen los avisos del partido', () => {
   const conPartido = avisosDelDia(c, '2026-11-11').length;
   pausarFutbol(c, '2026-11-11');
   assert.ok(avisosDelDia(c, '2026-11-11').length <= conPartido);
-  assert.equal(avisosDelDia(c, '2026-11-11').length, avisosDelDia(config(), '2026-11-12').length);
+  // Igual que un día sin partido (el jueves trae además "pierna hoy y fútbol mañana", porque el viernes sí se juega)
+  const sinVispera = (l) => l.filter((a) => a.id !== 'pierna-futbol').length;
+  assert.equal(avisosDelDia(c, '2026-11-11').length, sinVispera(avisosDelDia(config(), '2026-11-12')));
+  assert.ok(!avisosDelDia(c, '2026-11-12').some((a) => a.id === 'pierna-futbol')); // en pausa tampoco avisa la víspera
   assert.ok(!/BYDAY=WE,FR/.test(calendarioIcs(c, '2026-11-11')));
 });

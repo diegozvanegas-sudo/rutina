@@ -16,7 +16,16 @@ const DATOS = {
 
 export default async (p) => {
   const a = ayudas(p, 'Administrar'), { paso, falla, tocarTexto } = a;
-  const aviso = async (t) => { await a.dormir(300); falla((await a.aviso()).includes(t), 'no avisó «' + t + '»: ' + await a.aviso()); };
+  // Cada aviso queda anotado en el momento en que sale (window.__avisos): después de muchos recorridos el navegador de prueba
+  // va lento y, al mirar, el aviso ya pudo haberse escondido (dura 2,6 s). Se busca entre los que salieron desde la última vez
+  await p.ev(`(()=>{window.__avisos=[];const t=document.getElementById('toast');new MutationObserver(()=>{if(!t.hidden)window.__avisos.push(t.textContent)}).observe(t,{attributes:true,childList:true,characterData:true,subtree:true})})()`);
+  let vistos = 0;
+  const aviso = async (t) => {
+    await a.dormir(300);
+    const nuevos = await p.ev(`window.__avisos.slice(${vistos})`), ahora = await a.aviso();
+    vistos += nuevos.length;
+    falla(nuevos.some((x) => x.includes(t)) || ahora.includes(t), 'no avisó «' + t + '»: ' + (nuevos.join(' | ') || ahora));
+  };
   const pestana = async (k) => { await p.tocar('#vista [data-accion=adm-pestana][data-p=' + k + ']'); await a.dormir(300); };
 
   await p.computador();

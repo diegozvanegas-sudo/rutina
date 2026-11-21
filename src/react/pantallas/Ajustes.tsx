@@ -43,7 +43,7 @@ const COLOR_NUBE: Record<string, string> = { 'al-dia': tokens.brand, error: toke
 
 // La meta de calorías la pone el plan de Dieta de cada día
 const ETIQUETAS: [string, string][] = [['agua', 'Agua (ml)'], ['pasos', 'Pasos'], ['lectura', 'Lectura (min)'], ['pantalla', 'Pantalla máxima (min)']];
-const ETIQUETAS_HORA: [string, string][] = [['pastilla', '💊 Pastilla'], ['partido', '⚽ Hora del partido'], ['dormir', '🌙 Prepararte para dormir'], ['revision', '📝 Cierre del domingo']];
+const ETIQUETAS_HORA: [string, string][] = [['pastilla', '💊 Pastilla'], ['partido', '⚽ Hora del partido'], ['dormir', '🌙 Prepararte para dormir'], ['revision', '📝 Cierre del domingo'], ['peso', '⚖️ Pesarte'], ['medidas', '📏 Medidas (domingo)']];
 
 // Lo propio de cada usuario: cómo saludarlo y desde cuándo cuentan las semanas del gym
 function Perfil({ c }: { c: Fin }) {

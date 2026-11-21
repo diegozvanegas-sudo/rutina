@@ -1,7 +1,7 @@
 // Avisos del celular (notificaciones). Una página web solo puede avisar mientras la app está abierta o recién cerrada:
 // para que avise siempre, Ajustes descarga los mismos avisos como eventos del calendario (registro.js → calendarioIcs).
 // Se activan por equipo (localStorage), no se suben a la nube.
-import { e } from './estado.js';
+import { e, sesionesDeFecha } from './estado.js';
 import { iso } from './fechas.js';
 import { avisosPendientes } from './registro.js';
 
@@ -32,6 +32,16 @@ export async function avisar(titulo, cuerpo, etiqueta = titulo) {
   try { new Notification(titulo, opciones); } catch (err) {}
 }
 
+// ¿Hace falta este aviso hoy? (los demás siempre)
+export function hace(id, hoy, d = (e().dias || {})[hoy]) {
+  if (id === 'peso') return !(d && Number(d.peso) > 0);
+  if (id === 'medidas') {
+    const ultima = Object.keys(e().dias || {}).filter((f) => f <= hoy && Object.values(e().dias[f].medidas || {}).some((v) => Number(v) > 0)).sort().pop();
+    return !ultima || (Date.parse(hoy) - Date.parse(ultima)) / 86400000 >= 14;
+  }
+  if (id === 'pierna-futbol') return sesionesDeFecha(hoy).some((s) => s.calentamiento === 'pierna' || /pierna/i.test(s.nombre || ''));
+  return true;
+}
 // Revisa los avisos del día; cada uno se muestra una sola vez por día y por equipo
 export function revisarAvisos(ahora = new Date()) {
   if (!avisosActivos()) return;
@@ -41,6 +51,8 @@ export function revisarAvisos(ahora = new Date()) {
     const d = e().dias[hoy];
     if (a.id === 'pastilla' && d && d.habitos && Object.keys(d.habitos).some((id) => (e().habitos.find((h) => h.id === id) || {}).tipo === 'pastilla')) { mostrados[hoy + ':' + a.id] = true; continue; }
     if (a.id === 'como-fue' && d && d.partido) { mostrados[hoy + ':' + a.id] = true; continue; }
+    // Solo si hace falta: sin peso de hoy, medidas de hace 14 días o más, y hoy pierna con partido mañana
+    if (!hace(a.id, hoy, d)) { mostrados[hoy + ':' + a.id] = true; continue; }
     mostrados[hoy + ':' + a.id] = true;
     avisar(a.icono + ' Rutina', a.texto, a.id);
   }

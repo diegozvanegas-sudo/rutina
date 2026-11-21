@@ -1,6 +1,6 @@
 // Puntaje del día (0–100) y revisión semanal: junta mañana, metas, gym y dieta en un solo número
 // y saca frases con lo que mejoró, lo que falta y qué hacer. Cada frase lleva "ir": la sección donde se arregla.
-import { e, avanceMetas, habitosDe, mananaCompleta, fraccionManana, planDieta, comidasDelDia } from './estado.js';
+import { e, avanceMetas, habitosDe, mananaCompleta, fraccionManana, planDieta, comidasDelDia, sesionesDeFecha } from './estado.js';
 import { iso, sumarDias, semanaDe, diaSemana } from './fechas.js';
 import { resumenSemana, progresoMes } from './gym.js';
 import { pesos as pesosCorporales, tendencia } from './dieta.js';
@@ -17,7 +17,8 @@ export function puntajeDia(fecha = iso()) {
   if (metas != null) partes.metas = metas;
   // Sin hábitos de mañana, esa parte no cuenta
   if (habitosDe(fecha).length) partes.manana = fraccionManana(fecha);
-  const diaGym = e().rutina.find((x) => x.diaSemana === diaSemana(fecha));
+  // 🛌 Un día de descanso no baja el puntaje del gym; un entreno movido cuenta en su nuevo día
+  const diaGym = sesionesDeFecha(fecha)[0];
   if (diaGym) {
     const r = resumenSemana([diaGym], e().semanas[semanaDe(fecha)] || {});
     partes.gym = r.plan ? r.hechas / r.plan : 0;

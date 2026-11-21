@@ -4,6 +4,7 @@
 //   · resumenAvance: lo que el cliente le comparte (series por semana, peso, fuerza, sueño y check-ins). Nunca sus datos completos
 // En el cliente: estado.miEntrenador = { lista: [{ id, entrenador, plan, plan_version }], aplicado: { [id]: version }, antes, checkins: [], compartido }
 import { resumenSemana, progresoMes } from './gym.js';
+import { rutinaDe } from './descarga.js';
 import { pesos } from './dieta.js';
 import { horasSueno } from './registro.js';
 import { iso, sumarDias } from './fechas.js';
@@ -90,7 +91,8 @@ export function planNuevo(estado, a) {
 export function resumenAvance(estado, semana, hoy = iso()) {
   const semanas = [];
   for (let s = Math.max(1, semana - 5); s <= semana; s++) {
-    const r = resumenSemana(estado.rutina, (estado.semanas || {})[s] || {});
+    // La semana de descarga y los días de descanso cuentan con lo que de verdad tocaba (src/descarga.js rutinaDe)
+    const r = resumenSemana(rutinaDe(estado.rutina, s, estado), (estado.semanas || {})[s] || {});
     semanas.push({ n: s, hechas: r.hechas, plan: r.plan });
   }
   const horas = Array.from({ length: 7 }, (_, k) => horasSueno(((estado.dias || {})[sumarDias(hoy, -k)] || {}).sueno)).filter((h) => h != null);

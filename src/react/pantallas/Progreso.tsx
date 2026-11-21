@@ -29,6 +29,7 @@ import { Barras, BarrasAgrupadas, Linea, Calendario, BarrasH, TablaDatos } from 
 import { Sub, Puntos } from '../ui/Lectura';
 import { BloqueReto, Aviso } from './HoyTarjetas';
 import { fuerza } from './Gym';
+import { RevisionSemana } from './Control';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -412,6 +413,7 @@ export default function Progreso() {
         <Opciones nombre="Rango" activa={String(dias)} opciones={['7', '30', '90'].map((n) => [n, n + ' días'] as [string, string])} alElegir={(n) => { rangoElegido = Number(n); ponerDias(rangoElegido); }} datos={(n) => ({ 'data-n': n })} chica />
       </Box>
       {indicadores(e)}
+      <RevisionSemana />
       {mejora()}
       {prediccionesCard()}
       {revision()}

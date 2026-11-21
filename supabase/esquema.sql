@@ -29,16 +29,9 @@ create table if not exists rutina.estado (
   actualizado timestamptz not null default now()
 );
 alter table rutina.estado enable row level security;
-
-create or replace function public.rutina_leer()
-returns table (datos jsonb, version bigint)
-language plpgsql stable security definer set search_path = ''
-as $$
-begin
-  perform rutina.exigir_acceso();
-  return query select e.datos, e.version from rutina.estado e where e.usuario = auth.uid();
-end;
-$$;
+-- Desde el paso 2 de guardar por partes (abajo) los datos viven en rutina.partes y aquí quedan en null
+alter table rutina.estado alter column datos drop not null;
+-- public.rutina_leer() está más abajo, en «Guardar por partes · paso 2»
 
 -- Historial: copias anteriores del estado, para volver atrás si un equipo sube algo malo (11 nov 2026 se perdió todo
 -- por una subida casi vacía). Se guarda una cada 10 minutos de uso, y siempre antes de una subida que quite datos.
@@ -52,6 +45,8 @@ create table if not exists rutina.historial (
 );
 create index if not exists historial_usuario on rutina.historial (usuario, guardado desc);
 alter table rutina.historial enable row level security;
+-- Desde el paso 2 una copia nueva es solo una marca (paso, abajo) y datos queda en null; las viejas siguen completas
+alter table rutina.historial alter column datos drop not null;
 
 -- Cuánto hay anotado en cada parte (lo que no se puede volver a sacar de la app)
 create or replace function rutina.n_llaves(x jsonb)
@@ -97,100 +92,12 @@ as $$
   order by a.k limit 1;
 $$;
 
--- Copia lo que hay ahora en la nube al historial; deja las últimas 60 y una por día de los últimos 90 días
-create or replace function rutina.respaldar(p_usuario uuid, p_motivo text)
-returns void
-language plpgsql security definer set search_path = ''
-as $$
-begin
-  insert into rutina.historial (usuario, datos, version, motivo)
-    select e.usuario, e.datos, e.version, p_motivo from rutina.estado e where e.usuario = p_usuario;
-  delete from rutina.historial h where h.usuario = p_usuario
-    and h.id not in (select x.id from rutina.historial x where x.usuario = p_usuario order by x.guardado desc limit 60)
-    and h.id not in (select distinct on (x.guardado::date) x.id from rutina.historial x
-                     where x.usuario = p_usuario and x.guardado > now() - interval '90 days' order by x.guardado::date, x.guardado desc);
-end;
-$$;
-
--- Guarda solo si lo que llega es igual o más nuevo que lo de la nube; devuelve la versión que quedó.
--- Si devuelve una versión mayor a la enviada, otro equipo guardó algo más reciente: la app la descarga.
--- Protección: no deja subir algo que deje cualquier parte (días, gym, finanzas, estudio…) con menos de la mitad, ni
--- datos que no son de la app. Para volver atrás está rutina_restaurar; para empezar de cero, borrar la fila a mano.
-create or replace function public.rutina_guardar(p_datos jsonb, p_version bigint)
-returns bigint
-language plpgsql security definer set search_path = ''
-as $$
-declare v bigint; viejo jsonb; antes int; ahora int; perdida text; ultima timestamptz;
-begin
-  if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
-  perform rutina.exigir_acceso();
-  if jsonb_typeof(p_datos) is distinct from 'object' or (p_datos->>'version') is distinct from '1'
-     or jsonb_typeof(p_datos->'rutina') is distinct from 'array' then
-    raise exception 'Protección: lo que llegó no son datos completos de la app. No se subió; la nube sigue igual.';
-  end if;
-  select e.datos, e.version into viejo, v from rutina.estado e where e.usuario = auth.uid();
-  if viejo is not null and v <= p_version then
-    antes := rutina.cuanto(viejo); ahora := rutina.cuanto(p_datos);
-    perdida := rutina.parte_perdida(viejo, p_datos);
-    if perdida is not null then
-      raise exception 'Protección: esta subida borraría más de la mitad de una parte (%). No se subió; la nube sigue igual.', perdida;
-    end if;
-    select max(h.guardado) into ultima from rutina.historial h where h.usuario = auth.uid();
-    if ahora < antes then perform rutina.respaldar(auth.uid(), 'quita datos');
-    elsif ultima is null or ultima < now() - interval '10 minutes' then perform rutina.respaldar(auth.uid(), 'automatica');
-    end if;
-  end if;
-  insert into rutina.estado (usuario, datos, version) values (auth.uid(), p_datos, p_version)
-  on conflict (usuario) do update set datos = excluded.datos, version = excluded.version, actualizado = now()
-    where rutina.estado.version <= excluded.version;
-  select e.version into v from rutina.estado e where e.usuario = auth.uid();
-  return v;
-end;
-$$;
-
--- Copias guardadas del usuario (las más nuevas primero), con cuánto tenía cada una
-create or replace function public.rutina_historial()
-returns table (id bigint, guardado timestamptz, motivo text, dias int, registros int)
-language plpgsql stable security definer set search_path = ''
-as $$
-begin
-  perform rutina.exigir_acceso();
-  return query
-  select h.id, h.guardado, h.motivo, (rutina.conteo(h.datos)->>'dias')::int, (rutina.conteo(h.datos)->>'gym')::int
-  from rutina.historial h where h.usuario = auth.uid() order by h.guardado desc;
-end;
-$$;
-
--- Vuelve a una copia: lo de ahora pasa al historial y la copia queda como lo más nuevo (los equipos la bajan solos)
-create or replace function public.rutina_restaurar(p_id bigint)
-returns bigint
-language plpgsql security definer set search_path = ''
-as $$
-declare d jsonb; v bigint;
-begin
-  perform rutina.exigir_acceso();
-  select h.datos into d from rutina.historial h where h.id = p_id and h.usuario = auth.uid();
-  if d is null then raise exception 'Esa copia no existe'; end if;
-  perform rutina.respaldar(auth.uid(), 'antes de restaurar');
-  select greatest((extract(epoch from now()) * 1000)::bigint, coalesce(max(e.version), 0) + 1) into v from rutina.estado e where e.usuario = auth.uid();
-  update rutina.estado set datos = jsonb_set(d, '{cambio}', to_jsonb(v)), version = v, actualizado = now() where usuario = auth.uid();
-  return v;
-end;
-$$;
+-- rutina.respaldar, public.rutina_guardar, public.rutina_historial y public.rutina_restaurar están más abajo, en
+-- «Guardar por partes · paso 2»
 
 revoke all on function rutina.cuanto(jsonb) from public;
 revoke all on function rutina.conteo(jsonb) from public;
 revoke all on function rutina.parte_perdida(jsonb, jsonb) from public;
-revoke all on function rutina.respaldar(uuid, text) from public, anon, authenticated;
-revoke execute on function public.rutina_historial() from public, anon;
-revoke execute on function public.rutina_restaurar(bigint) from public, anon;
-grant execute on function public.rutina_historial() to authenticated;
-grant execute on function public.rutina_restaurar(bigint) to authenticated;
-
-revoke execute on function public.rutina_leer() from public, anon;
-revoke execute on function public.rutina_guardar(jsonb, bigint) from public, anon;
-grant execute on function public.rutina_leer() to authenticated;
-grant execute on function public.rutina_guardar(jsonb, bigint) to authenticated;
 
 -- ---------- Sincronizar sin mover todo (17 nov 2026) ----------
 -- Antes, con la app abierta se bajaba el estado entero cada 20 s y cada cambio subía el estado entero (~140 kB).
@@ -207,46 +114,10 @@ begin
 end;
 $$;
 
--- Sube solo lo que cambió desde la versión p_base, la última que este equipo sincronizó.
--- p_partes: [{ "ruta": ["dias", "2026-11-17"], "valor": {...} }, { "ruta": ["config"], "valor": {...} }]: cada una
--- reemplaza esa parte (una llave de arriba, o una de segundo nivel como un día o una semana del gym).
--- p_quitar: rutas que se borran, con la misma forma.
--- Si la nube ya no está en p_base (otro equipo guardó en el medio) no cambia nada y devuelve la versión de la nube: la app
--- baja todo y combina como siempre. Lo armado pasa por rutina_guardar, con las mismas protecciones y el mismo historial.
-create or replace function public.rutina_guardar_partes(p_partes jsonb, p_quitar jsonb, p_base bigint, p_version bigint)
-returns bigint
-language plpgsql security definer set search_path = ''
-as $$
-declare d jsonb; v bigint; parte jsonb; ruta text[];
-begin
-  if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
-  perform rutina.exigir_acceso();
-  if jsonb_typeof(p_partes) is distinct from 'array' or jsonb_typeof(p_quitar) is distinct from 'array' then
-    raise exception 'Protección: lo que llegó no son cambios de la app. No se subió; la nube sigue igual.';
-  end if;
-  select e.datos, e.version into d, v from rutina.estado e where e.usuario = auth.uid() for update;
-  if d is null or v is distinct from p_base then return coalesce(v, 0); end if;
-  for parte in select x from jsonb_array_elements(p_quitar) x loop
-    ruta := array(select jsonb_array_elements_text(parte));
-    if cardinality(ruta) not between 1 and 2 then raise exception 'Protección: ruta no válida. No se subió; la nube sigue igual.'; end if;
-    d := d #- ruta;
-  end loop;
-  for parte in select x from jsonb_array_elements(p_partes) x loop
-    ruta := array(select jsonb_array_elements_text(parte->'ruta'));
-    if cardinality(ruta) not between 1 and 2 or not (parte ? 'valor') then
-      raise exception 'Protección: ruta no válida. No se subió; la nube sigue igual.';
-    end if;
-    if cardinality(ruta) = 2 and jsonb_typeof(d->ruta[1]) is distinct from 'object' then d := jsonb_set(d, array[ruta[1]], '{}'::jsonb); end if;
-    d := jsonb_set(d, ruta, parte->'valor', true);
-  end loop;
-  return public.rutina_guardar(d, p_version);
-end;
-$$;
+-- public.rutina_guardar_partes está más abajo, en «Guardar por partes · paso 2»
 
 revoke execute on function public.rutina_version() from public, anon;
-revoke execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) from public, anon;
 grant execute on function public.rutina_version() to authenticated;
-grant execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) to authenticated;
 
 -- ---------- Guardar por partes (paso 1 de 3, 2026-11-18) ----------
 -- Hasta aquí todo el estado de un usuario vive en una sola fila (rutina.estado.datos, ~140 kB): cuando otro equipo cambia
@@ -256,8 +127,8 @@ grant execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, big
 --   Un disparador copia a rutina.partes solo lo que cambió en cada guardado, con la versión de ese guardado, y lo que se
 --   borra queda con valor null (para que los otros equipos sepan que se borró). La app baja solo lo que cambió desde su
 --   última versión (rutina_cambios). rutina.partes_revisar() dice si las partes arman exactamente lo mismo que la fila.
--- Paso 2: cuando las partes coincidan siempre, guardar escribe solo en rutina.partes y el historial guarda solo las partes
---   cambiadas (no copias completas). Paso 3: rutina.estado queda con la versión y los conteos, sin datos.
+-- Paso 2 (hecho, más abajo): guardar escribe solo en rutina.partes, rutina.estado.datos queda en null y el historial
+--   guarda solo las partes cambiadas (no copias completas).
 create table if not exists rutina.partes (
   usuario uuid not null references auth.users(id) on delete cascade,
   grupo   text not null,               -- la llave de arriba: dias, semanas, config, rutina, finanzas…
@@ -297,17 +168,9 @@ as $$
   on conflict (usuario, grupo, clave) do update set valor = excluded.valor, version = excluded.version;
 $$;
 
--- Cualquier escritura de rutina.estado (rutina_guardar, rutina_guardar_partes, rutina_restaurar, a mano) queda en las partes
-create or replace function rutina.estado_a_partes()
-returns trigger
-language plpgsql security definer set search_path = ''
-as $$
-begin
-  if tg_op = 'UPDATE' and new.datos is not distinct from old.datos then return new; end if;
-  perform rutina.anotar_partes(new.usuario, case when tg_op = 'UPDATE' then old.datos end, new.datos, new.version);
-  return new;
-end;
-$$;
+-- En el paso 1 un disparador (a_partes, rutina.estado_a_partes) copiaba cada escritura de rutina.estado a las partes.
+-- Desde el paso 2 se guarda directo en las partes y datos queda en null: el disparador se quita (con datos en null
+-- marcaría todo como borrado). Para volver a ponerlo, ver «Volver atrás» al final del paso 2
 -- Un usuario nuevo empieza con partes completas desde su primera versión
 create or replace function rutina.estado_partes_desde()
 returns trigger
@@ -321,16 +184,16 @@ $$;
 drop trigger if exists partes_desde on rutina.estado;
 create trigger partes_desde before insert on rutina.estado for each row execute function rutina.estado_partes_desde();
 drop trigger if exists a_partes on rutina.estado;
-create trigger a_partes after insert or update of datos on rutina.estado for each row execute function rutina.estado_a_partes();
-revoke all on function rutina.estado_a_partes() from public, anon, authenticated;
+drop function if exists rutina.estado_a_partes();
 revoke all on function rutina.estado_partes_desde() from public, anon, authenticated;
 revoke all on function rutina.anotar_partes(uuid, jsonb, jsonb, bigint) from public, anon, authenticated;
 
--- Los usuarios que ya tenían datos: sus partes de hoy, completas desde su versión de ahora (se puede correr varias veces)
+-- Los usuarios que ya tenían datos: sus partes de hoy, completas desde su versión de ahora (se puede correr varias veces).
+-- Desde el paso 2 todos tienen partes_desde (lo pone el disparador partes_desde al crear la fila), así que no hace nada
 do $$
 declare r record;
 begin
-  for r in select e.usuario, e.datos, e.version from rutina.estado e where e.partes_desde is null loop
+  for r in select e.usuario, e.datos, e.version from rutina.estado e where e.partes_desde is null and e.datos is not null loop
     delete from rutina.partes p where p.usuario = r.usuario;
     perform rutina.anotar_partes(r.usuario, null, r.datos, r.version);
     update rutina.estado set partes_desde = r.version where usuario = r.usuario;
@@ -338,7 +201,7 @@ begin
 end;
 $$;
 
--- El estado completo armado desde las partes (lo que va a reemplazar a rutina.estado.datos en el paso 2)
+-- El estado completo armado desde las partes (desde el paso 2, lo que manda: rutina.estado.datos queda en null)
 create or replace function rutina.armar(p_usuario uuid)
 returns jsonb
 language sql stable set search_path = ''
@@ -378,17 +241,282 @@ $$;
 revoke execute on function public.rutina_cambios(bigint) from public, anon;
 grant execute on function public.rutina_cambios(bigint) to authenticated;
 
--- Para pasar al paso 2 con calma: por usuario, si las partes arman exactamente lo mismo que su fila (debe ser siempre sí).
--- Solo desde la base de datos (npm run db:partes), no desde la app
+-- rutina.partes_revisar() está más abajo, en «Guardar por partes · paso 2»
+
+-- ---------- Guardar por partes · paso 2 (2026-11-21) ----------
+-- rutina.partes es lo que manda. rutina.estado queda con la versión, partes_desde y el paso (abajo); datos queda en null.
+-- Guardar ya no reescribe la fila entera (~150 kB): compara lo que llega con lo armado y escribe solo las partes que
+-- cambiaron. El historial deja de copiar todo: cuando una parte se reemplaza, su valor anterior pasa a
+-- rutina.partes_historial con desde y hasta, y una copia es solo una marca (rutina.historial.paso).
+-- Las funciones de la app tienen el mismo nombre y la misma forma que antes (sirve hasta la versión vieja de la app).
+
+-- Contador propio de la base: cada escritura de un usuario es un paso nuevo. No se usa la versión del celular porque se
+-- puede repetir (dos guardados con la misma versión) y porque restaurar la cambia
+create sequence if not exists rutina.pasos;
+revoke all on sequence rutina.pasos from public, anon, authenticated;
+alter table rutina.partes add column if not exists paso bigint;      -- el paso en que la parte quedó con este valor
+alter table rutina.estado add column if not exists paso bigint;      -- el último paso del usuario: lo que hay ahora
+alter table rutina.historial add column if not exists paso bigint;   -- una marca: el estado de ese paso (datos en null)
+alter table rutina.historial add column if not exists cuenta jsonb;  -- rutina.conteo() de esa marca, para la lista
+create index if not exists historial_paso on rutina.historial (usuario, paso) where paso is not null;
+
+-- Lo que tenía una parte antes de reemplazarse, de un paso a otro: estuvo vigente en los pasos desde ≤ p < hasta
+create table if not exists rutina.partes_historial (
+  usuario uuid not null references auth.users(id) on delete cascade,
+  grupo   text not null,
+  clave   text not null,
+  valor   jsonb not null,
+  desde   bigint not null,
+  hasta   bigint not null
+);
+create index if not exists partes_historial_paso on rutina.partes_historial (usuario, hasta, desde);
+alter table rutina.partes_historial enable row level security;
+
+-- El estado completo como estaba en el paso p_paso (lo mismo que rutina.armar, pero mirando atrás)
+create or replace function rutina.armar_en(p_usuario uuid, p_paso bigint)
+returns jsonb
+language sql stable set search_path = ''
+as $$
+  with f as (
+    select p.grupo, p.clave, p.valor from rutina.partes p
+      where p.usuario = p_usuario and p.paso <= p_paso and p.valor is not null
+    union all
+    select h.grupo, h.clave, h.valor from rutina.partes_historial h
+      where h.usuario = p_usuario and h.hasta > p_paso and h.desde <= p_paso
+  )
+  select coalesce(jsonb_object_agg(a.grupo, case when a.grupo in ('dias', 'semanas') and a.valor = '{}'::jsonb
+      then coalesce((select jsonb_object_agg(x.clave, x.valor) from f x where x.grupo = a.grupo and x.clave <> ''), '{}'::jsonb)
+      else a.valor end), '{}'::jsonb)
+  from f a where a.clave = '';
+$$;
+
+-- Escribe un estado nuevo: solo las partes que cambiaron contra lo que hay (lo borrado queda en null, para rutina_cambios);
+-- lo que tenían antes pasa a rutina.partes_historial. La fila de rutina.estado queda con la versión y el paso nuevos
+create or replace function rutina.escribir(p_usuario uuid, ahora jsonb, p_version bigint)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+declare p bigint := nextval('rutina.pasos');
+begin
+  with v as (select x.grupo, x.clave, x.valor, x.paso from rutina.partes x where x.usuario = p_usuario and x.valor is not null),
+  n as (select * from rutina.en_partes(ahora)),
+  c as (select coalesce(n.grupo, v.grupo) grupo, coalesce(n.clave, v.clave) clave, n.valor nuevo, v.valor viejo, coalesce(v.paso, 0) desde
+        from n full join v on v.grupo = n.grupo and v.clave = n.clave
+        where n.valor is distinct from v.valor),
+  h as (insert into rutina.partes_historial (usuario, grupo, clave, valor, desde, hasta)
+        select p_usuario, c.grupo, c.clave, c.viejo, c.desde, p from c where c.viejo is not null)
+  insert into rutina.partes (usuario, grupo, clave, valor, version, paso)
+  select p_usuario, c.grupo, c.clave, c.nuevo, p_version, p from c
+  on conflict (usuario, grupo, clave) do update set valor = excluded.valor, version = excluded.version, paso = excluded.paso;
+  insert into rutina.estado (usuario, datos, version, paso) values (p_usuario, null, p_version, p)
+  on conflict (usuario) do update set datos = null, version = excluded.version, paso = excluded.paso, actualizado = now();
+end;
+$$;
+
+-- Una copia: una marca con el paso de ahora. Deja las últimas 60 y una por día de los últimos 90 días, y borra los
+-- valores viejos de partes que ya ninguna copia usa
+create or replace function rutina.respaldar(p_usuario uuid, p_motivo text)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  insert into rutina.historial (usuario, datos, version, motivo, paso, cuenta)
+    select e.usuario, null, e.version, p_motivo, e.paso, rutina.conteo(rutina.armar(e.usuario))
+    from rutina.estado e where e.usuario = p_usuario and e.paso is not null;
+  delete from rutina.historial h where h.usuario = p_usuario
+    and h.id not in (select x.id from rutina.historial x where x.usuario = p_usuario order by x.guardado desc limit 60)
+    and h.id not in (select distinct on (x.guardado::date) x.id from rutina.historial x
+                     where x.usuario = p_usuario and x.guardado > now() - interval '90 days' order by x.guardado::date, x.guardado desc);
+  delete from rutina.partes_historial ph where ph.usuario = p_usuario
+    and not exists (select 1 from rutina.historial h where h.usuario = p_usuario and h.paso >= ph.desde and h.paso < ph.hasta);
+end;
+$$;
+
+-- Guarda solo si lo que llega es igual o más nuevo que lo de la nube; devuelve la versión que quedó.
+-- Si devuelve una versión mayor a la enviada, otro equipo guardó algo más reciente: la app la descarga.
+-- Protección: no deja subir algo que deje cualquier parte (días, gym, finanzas, estudio…) con menos de la mitad, ni
+-- datos que no son de la app. Para volver atrás está rutina_restaurar. p_viejo: lo armado, si ya se tiene
+create or replace function rutina.guardar_en(p_usuario uuid, p_datos jsonb, p_version bigint, p_viejo jsonb default null)
+returns bigint
+language plpgsql security definer set search_path = ''
+as $$
+declare v bigint; viejo jsonb := p_viejo; antes int; ahora int; perdida text; ultima timestamptz;
+begin
+  if jsonb_typeof(p_datos) is distinct from 'object' or (p_datos->>'version') is distinct from '1'
+     or jsonb_typeof(p_datos->'rutina') is distinct from 'array' then
+    raise exception 'Protección: lo que llegó no son datos completos de la app. No se subió; la nube sigue igual.';
+  end if;
+  -- La fila del usuario queda bloqueada hasta terminar: dos equipos guardando a la vez van uno detrás del otro
+  select e.version into v from rutina.estado e where e.usuario = p_usuario for update;
+  if found then
+    if v > p_version then return v; end if;
+    viejo := coalesce(viejo, rutina.armar(p_usuario));
+    antes := rutina.cuanto(viejo); ahora := rutina.cuanto(p_datos);
+    perdida := rutina.parte_perdida(viejo, p_datos);
+    if perdida is not null then
+      raise exception 'Protección: esta subida borraría más de la mitad de una parte (%). No se subió; la nube sigue igual.', perdida;
+    end if;
+    select max(h.guardado) into ultima from rutina.historial h where h.usuario = p_usuario;
+    if ahora < antes then perform rutina.respaldar(p_usuario, 'quita datos');
+    elsif ultima is null or ultima < now() - interval '10 minutes' then perform rutina.respaldar(p_usuario, 'automatica');
+    end if;
+  end if;
+  perform rutina.escribir(p_usuario, p_datos, p_version);
+  return p_version;
+end;
+$$;
+
+create or replace function public.rutina_leer()
+returns table (datos jsonb, version bigint)
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  perform rutina.exigir_acceso();
+  return query select rutina.armar(e.usuario), e.version from rutina.estado e where e.usuario = auth.uid();
+end;
+$$;
+
+create or replace function public.rutina_guardar(p_datos jsonb, p_version bigint)
+returns bigint
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
+  perform rutina.exigir_acceso();
+  return rutina.guardar_en(auth.uid(), p_datos, p_version);
+end;
+$$;
+
+-- Sube solo lo que cambió desde la versión p_base, la última que este equipo sincronizó.
+-- p_partes: [{ "ruta": ["dias", "2026-11-17"], "valor": {...} }, { "ruta": ["config"], "valor": {...} }]: cada una
+-- reemplaza esa parte (una llave de arriba, o una de segundo nivel como un día o una semana del gym).
+-- p_quitar: rutas que se borran, con la misma forma.
+-- Si la nube ya no está en p_base (otro equipo guardó en el medio) no cambia nada y devuelve la versión de la nube: la app
+-- baja lo que cambió y combina como siempre. Lo armado pasa por las mismas protecciones y el mismo historial.
+create or replace function public.rutina_guardar_partes(p_partes jsonb, p_quitar jsonb, p_base bigint, p_version bigint)
+returns bigint
+language plpgsql security definer set search_path = ''
+as $$
+declare d jsonb; viejo jsonb; v bigint; parte jsonb; ruta text[];
+begin
+  if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
+  perform rutina.exigir_acceso();
+  if jsonb_typeof(p_partes) is distinct from 'array' or jsonb_typeof(p_quitar) is distinct from 'array' then
+    raise exception 'Protección: lo que llegó no son cambios de la app. No se subió; la nube sigue igual.';
+  end if;
+  select e.version into v from rutina.estado e where e.usuario = auth.uid() for update;
+  if not found or v is distinct from p_base then return coalesce(v, 0); end if;
+  viejo := rutina.armar(auth.uid()); d := viejo;
+  for parte in select x from jsonb_array_elements(p_quitar) x loop
+    ruta := array(select jsonb_array_elements_text(parte));
+    if cardinality(ruta) not between 1 and 2 then raise exception 'Protección: ruta no válida. No se subió; la nube sigue igual.'; end if;
+    d := d #- ruta;
+  end loop;
+  for parte in select x from jsonb_array_elements(p_partes) x loop
+    ruta := array(select jsonb_array_elements_text(parte->'ruta'));
+    if cardinality(ruta) not between 1 and 2 or not (parte ? 'valor') then
+      raise exception 'Protección: ruta no válida. No se subió; la nube sigue igual.';
+    end if;
+    if cardinality(ruta) = 2 and jsonb_typeof(d->ruta[1]) is distinct from 'object' then d := jsonb_set(d, array[ruta[1]], '{}'::jsonb); end if;
+    d := jsonb_set(d, ruta, parte->'valor', true);
+  end loop;
+  return rutina.guardar_en(auth.uid(), d, p_version, viejo);
+end;
+$$;
+
+-- Copias guardadas del usuario (las más nuevas primero), con cuánto tenía cada una (las marcas y las copias completas viejas)
+create or replace function public.rutina_historial()
+returns table (id bigint, guardado timestamptz, motivo text, dias int, registros int)
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  perform rutina.exigir_acceso();
+  return query
+  select h.id, h.guardado, h.motivo, (c.n->>'dias')::int, (c.n->>'gym')::int
+  from rutina.historial h cross join lateral (select coalesce(h.cuenta, rutina.conteo(h.datos)) n) c
+  where h.usuario = auth.uid() order by h.guardado desc;
+end;
+$$;
+
+-- Vuelve a una copia (una marca, o una copia completa de antes del paso 2): lo de ahora queda como copia y la copia queda
+-- como lo más nuevo (los equipos la bajan solos). Solo se escriben las partes que difieren
+create or replace function public.rutina_restaurar(p_id bigint)
+returns bigint
+language plpgsql security definer set search_path = ''
+as $$
+declare d jsonb; m bigint; v bigint;
+begin
+  perform rutina.exigir_acceso();
+  select e.version into v from rutina.estado e where e.usuario = auth.uid() for update;
+  if not found then raise exception 'Esa copia no existe'; end if;
+  select h.datos, h.paso into d, m from rutina.historial h where h.id = p_id and h.usuario = auth.uid();
+  if d is null and m is null then raise exception 'Esa copia no existe'; end if;
+  -- Se arma antes de respaldar: la copia nueva puede sacar de las 60 a la que se está restaurando
+  if d is null then d := rutina.armar_en(auth.uid(), m); end if;
+  perform rutina.respaldar(auth.uid(), 'antes de restaurar');
+  v := greatest((extract(epoch from now()) * 1000)::bigint, v + 1);
+  perform rutina.escribir(auth.uid(), jsonb_set(d, '{cambio}', to_jsonb(v)), v);
+  return v;
+end;
+$$;
+
+-- Revisión desde la base de datos (no desde la app): por usuario, si lo armado desde las partes es lo mismo que la fila
+-- (antes del paso 2) o que lo armado por el paso de ahora con el historial de partes (desde el paso 2). Debe ser siempre sí
 create or replace function rutina.partes_revisar()
 returns table (usuario uuid, igual boolean, kb_fila int, filas_partes int)
 language sql stable set search_path = ''
 as $$
-  select e.usuario, rutina.armar(e.usuario) = e.datos, (octet_length(e.datos::text) / 1024)::int,
+  select e.usuario,
+    case when e.datos is not null then rutina.armar(e.usuario) = e.datos else rutina.armar(e.usuario) = rutina.armar_en(e.usuario, e.paso) end,
+    (octet_length(rutina.armar(e.usuario)::text) / 1024)::int,
     (select count(*)::int from rutina.partes p where p.usuario = e.usuario)
   from rutina.estado e;
 $$;
+
+revoke all on function rutina.armar_en(uuid, bigint) from public, anon, authenticated;
+revoke all on function rutina.escribir(uuid, jsonb, bigint) from public, anon, authenticated;
+revoke all on function rutina.respaldar(uuid, text) from public, anon, authenticated;
+revoke all on function rutina.guardar_en(uuid, jsonb, bigint, jsonb) from public, anon, authenticated;
 revoke all on function rutina.partes_revisar() from public, anon, authenticated;
+revoke execute on function public.rutina_leer() from public, anon;
+revoke execute on function public.rutina_guardar(jsonb, bigint) from public, anon;
+revoke execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) from public, anon;
+revoke execute on function public.rutina_historial() from public, anon;
+revoke execute on function public.rutina_restaurar(bigint) from public, anon;
+grant execute on function public.rutina_leer() to authenticated;
+grant execute on function public.rutina_guardar(jsonb, bigint) to authenticated;
+grant execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) to authenticated;
+grant execute on function public.rutina_historial() to authenticated;
+grant execute on function public.rutina_restaurar(bigint) to authenticated;
+
+-- El cambio (se puede correr varias veces): a quien todavía tiene datos en la fila se le revisa que sus partes armen
+-- exactamente lo mismo (si no, se cancela todo y no cambia nada), sus partes quedan con un paso y datos pasa a null
+do $$
+declare r record; p bigint;
+begin
+  for r in select e.usuario, e.datos from rutina.estado e where e.datos is not null for update loop
+    if rutina.armar(r.usuario) is distinct from r.datos then
+      raise exception 'Paso 2: las partes de % no arman lo mismo que su fila. No se cambió nada.', r.usuario;
+    end if;
+    p := nextval('rutina.pasos');
+    update rutina.partes set paso = p where usuario = r.usuario;
+    update rutina.estado set datos = null, paso = p where usuario = r.usuario;
+  end loop;
+end;
+$$;
+
+-- Volver atrás (al paso 1), en una sola transacción, desde la base de datos:
+--   begin;
+--   -- 1. la fila vuelve a tener todo, y las marcas del historial pasan a copias completas
+--   update rutina.estado e set datos = rutina.armar(e.usuario);
+--   update rutina.historial h set datos = rutina.armar_en(h.usuario, h.paso) where h.datos is null and h.paso is not null;
+--   delete from rutina.historial where datos is null;
+--   alter table rutina.estado alter column datos set not null;
+--   alter table rutina.historial alter column datos set not null;
+--   -- 2. las funciones de antes y el disparador a_partes: el esquema.sql anterior a este cambio, de git
+--   --    (git show b0a1cff:supabase/esquema.sql > paso1.sql) y correrlo aquí mismo, antes del commit
+--   commit;
+-- rutina.partes, partes_historial y las columnas paso y cuenta pueden quedarse: el paso 1 no las mira.
 
 -- ---------- Roles y permisos: quién ve qué (⚙️ Administrar) ----------
 -- Solo esconden partes de la app: cada usuario sigue viendo y guardando únicamente sus propios datos, y el admin

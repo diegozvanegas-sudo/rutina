@@ -64,3 +64,32 @@ test('consejos: vas al revés, cintura, meta con IMC alto y fútbol', () => {
   assert.equal(lleg.llego, true);
   assert.match(consejosMeta(lleg, { lista: serie(35, 79, -0.8), hoy: HOY, cintura: 80, estatura: 168 })[0].t, /Llegaste/);
 });
+
+test('ritmo ideal según tu peso: 0,5 % a 0,75 % por semana, tope 1 %', async () => {
+  const { ritmoIdeal, comoVaRitmo } = await import('../src/meta-peso.js');
+  const r = ritmoIdeal(90);
+  assert.equal(r.min, 0.45);
+  assert.equal(Math.round(r.max * 100) / 100, 0.68);
+  assert.equal(r.tope, 0.9);
+  assert.equal(r.kcalMin, 495);
+  assert.equal(ritmoIdeal(0), null);
+  assert.equal(comoVaRitmo(0.8, 90), 'reves');
+  assert.equal(comoVaRitmo(-0.05, 90), 'quieto');
+  assert.equal(comoVaRitmo(-0.25, 90), 'lento');
+  assert.equal(comoVaRitmo(-0.55, 90), 'ideal');
+  assert.equal(comoVaRitmo(-0.85, 90), 'rapido');
+  assert.equal(comoVaRitmo(-1.2, 90), 'muy-rapido');
+  assert.equal(comoVaRitmo(null, 90), null);
+});
+
+test('consejos con la fuerza: bajar sin perderla, o avisar si se pierde', () => {
+  const lista = serie(35, 92, -0.55), c = caminoMeta({ lista, meta: 76, inicio: 92, estatura: 168, hoy: HOY });
+  const bien = consejosMeta(c, { lista, hoy: HOY, cintura: 90, estatura: 168, fuerza: 0.02 }).map((x) => x.t).join(' | ');
+  assert.match(bien, /Bajas sin perder fuerza/);
+  assert.match(bien, /ritmo ideal/);
+  const mal = consejosMeta(c, { lista, hoy: HOY, cintura: 90, estatura: 168, fuerza: -0.06 }).map((x) => x.t).join(' | ');
+  assert.match(mal, /perdiendo fuerza/);
+  assert.doesNotMatch(mal, /ritmo ideal/);
+  const rapido = serie(35, 95, -1.5), cr = caminoMeta({ lista: rapido, meta: 76, inicio: 95, estatura: 168, hoy: HOY });
+  assert.match(consejosMeta(cr, { lista: rapido, hoy: HOY, cintura: 90, estatura: 168 }).map((x) => x.t).join(' | '), /muy rápido/);
+});

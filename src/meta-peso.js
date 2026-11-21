@@ -63,6 +63,20 @@ export function caminoMeta({ lista, meta, inicio, estatura, hoy }) {
     imc: imc(ahora, estatura), imcMeta: meta ? imc(meta, estatura) : null, saludable: pesoSaludable(estatura), llego: meta != null && (bajar ? ahora <= meta : ahora >= meta) };
 }
 
+// 🎯 El ritmo ideal para TU peso: entre el 0,5 % y el 0,75 % por semana baja grasa sin perder fuerza ni músculo; hasta el 1 %
+// todavía es aceptable si duermes y comes bien la proteína; más del 1 % ya se lleva músculo y fuerza
+export function ritmoIdeal(peso) {
+  if (!(peso > 0)) return null;
+  return { min: peso * 0.005, max: peso * 0.0075, tope: peso * 0.01, kcalMin: Math.round((peso * 0.005 * KCAL_KG) / 7), kcalMax: Math.round((peso * 0.0075 * KCAL_KG) / 7) };
+}
+// Cómo va tu ritmo contra el ideal: 'reves' (sube), 'quieto', 'lento', 'ideal', 'rapido' (más del máximo), 'muy-rapido' (más del 1 %)
+export function comoVaRitmo(ritmo, peso) {
+  const r = ritmoIdeal(peso);
+  if (ritmo == null || !r) return null;
+  const baja = -ritmo;
+  return baja < -0.1 ? 'reves' : baja < 0.1 ? 'quieto' : baja < r.min * 0.9 ? 'lento' : baja <= r.max * 1.1 ? 'ideal' : baja <= r.tope * 1.05 ? 'rapido' : 'muy-rapido';
+}
+
 // La proteína para no perder músculo mientras bajas: 1,8 a 2,2 g por kg (con la meta como referencia si estás muy por encima)
 export function proteinaDia(peso, meta) {
   const ref = meta && peso > meta * 1.15 ? meta * 1.1 : peso;
@@ -70,13 +84,22 @@ export function proteinaDia(peso, meta) {
 }
 
 // Consejos según tus datos, del más importante al menos. Sin adornos: si vas mal, lo dice
-export function consejosMeta(c, { lista, hoy, cintura, estatura, partidos = 0, pasos = null }) {
+export function consejosMeta(c, { lista, hoy, cintura, estatura, partidos = 0, pasos = null, fuerza = null }) {
   const out = [];
   if (!c) return out;
   const semana = lista.filter((x) => diasEntre(x.fecha, hoy) < 7 && x.fecha <= hoy).length, ss = semanas(lista, 4);
   if (c.llego) out.push({ ic: '🏁', t: 'Llegaste a la meta', d: 'Ahora el trabajo es mantenerlo: sube las calorías de a 100-150 al día por semana hasta que el peso se quede quieto. Si quieres más, pon una meta nueva.' });
   if (c.ritmo != null && c.bajar && c.ritmo > 0.15) out.push({ ic: '⚠️', t: 'Vas al revés: +' + n1(c.ritmo) + ' kg por semana', d: 'Las 3 causas más comunes: el fin de semana (2 días comiendo de más borran 5 de déficit), lo que se toma (gaseosa, jugos, alcohol) y el picoteo que no se anota. Durante 7 días anota todo, también lo pequeño.' });
-  if (c.ritmo != null && c.bajar && c.ritmo < -1) out.push({ ic: '🐇', t: 'Bajas muy rápido: ' + n1(-c.ritmo) + ' kg por semana', d: 'Más de 1 kg por semana suele ser músculo y agua. Sube unas 200 kcal de carbos alrededor del entreno y de los partidos.' });
+  // El ritmo contra el ideal para tu peso (0,5 % a 0,75 % por semana; más del 1 % se lleva músculo)
+  const va = c.bajar ? comoVaRitmo(c.ritmo, c.ahora) : null, ri = ritmoIdeal(c.ahora);
+  if (va === 'muy-rapido') out.push({ ic: '🐇', t: 'Bajas muy rápido: ' + n1(-c.ritmo) + ' kg por semana', d: 'Es más del 1 % de tu peso: a ese ritmo se va músculo y fuerza, no solo grasa. Sube unas 200 kcal de carbos alrededor del entreno y de los partidos, hasta quedar en ' + n2(ri.min) + '-' + n2(ri.max) + ' kg por semana.' });
+  else if (va === 'rapido') out.push({ ic: '🏃', t: 'Un poco rápido: ' + n1(-c.ritmo) + ' kg por semana', d: 'Todavía aceptable, pero lo ideal para ti es ' + n2(ri.min) + '-' + n2(ri.max) + ' kg. Si la fuerza empieza a bajar o duermes mal, come 100-150 kcal más.' });
+  // Fuerza mientras bajas (fuerza: cambio promedio del 1RM en el mes, de dieta.js fuerzaDelMes)
+  if (fuerza != null && c.bajar && c.ritmo != null && c.ritmo < -0.1) {
+    if (fuerza < -0.03) out.push({ ic: '📉', t: 'Estás perdiendo fuerza: ' + Math.round(fuerza * 100) + ' % en el mes', d: 'Bajar de peso no debería quitarte fuerza en los básicos. Baja el déficit (100-200 kcal más, en carbos antes del gym), revisa la proteína y el sueño, y no vayas al fallo en todo.' });
+    else out.push({ ic: '💪', t: 'Bajas sin perder fuerza', d: 'Tu fuerza del mes ' + (fuerza > 0.005 ? 'sube un ' + Math.round(fuerza * 100) + ' %' : 'se mantiene') + ' mientras bajas de peso: es la señal de que pierdes grasa y no músculo. Sigue igual.' });
+  }
+  if (va === 'ideal' && !(fuerza != null && fuerza < -0.03)) out.push({ ic: '✅', t: 'Vas en tu ritmo ideal: ' + n1(-c.ritmo) + ' kg por semana', d: 'Entre ' + n2(ri.min) + ' y ' + n2(ri.max) + ' kg es lo mejor para ti: bajas grasa, cuidas el músculo y es fácil de mantener. No cambies nada.' });
   const quieto = ss.length >= 3 && ss.slice(-3).every((s) => s.cambio != null && Math.abs(s.cambio) < 0.2);
   if (quieto && !c.llego) out.push({ ic: '⏸', t: 'Estancado 3 semanas', d: 'Normal después de bajar un tiempo: el cuerpo gasta menos. Prueba en este orden: 2.000 pasos más al día, quita 150 kcal de carbos los días de descanso, revisa el sueño (menos de 7 h da más hambre). No recortes de golpe.' });
   if (semana < 4) out.push({ ic: '⚖️', t: 'Pésate más seguido: llevas ' + semana + ' esta semana', d: 'Con 4 o más pesajes por semana el promedio es confiable. Siempre igual: en ayunas, después del baño, misma báscula.' });
@@ -88,3 +111,4 @@ export function consejosMeta(c, { lista, hoy, cintura, estatura, partidos = 0, p
   return out;
 }
 const n1 = (x) => (Math.round(x * 10) / 10).toLocaleString('es-CO');
+const n2 = (x) => (Math.round(x * 100) / 100).toLocaleString('es-CO');

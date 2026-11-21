@@ -4,9 +4,12 @@
 import type { ReactNode } from 'react';
 import { Box, Card } from '@mui/material';
 import { iso, fechaCorta, sumarDias } from '../../fechas.js';
-import { pesos, medidasDe } from '../../dieta.js';
+import { pesos, medidasDe, fuerzaDelMes } from '../../dieta.js';
+import { progresoMes } from '../../gym.js';
+import { sinDescargas } from '../../descarga.js';
+import { semanaActual } from '../../estado.js';
 import { juegaEl } from '../../futbol.js';
-import { caminoMeta, promedioMovil, semanas, proteinaDia, consejosMeta, RITMOS } from '../../meta-peso.js';
+import { caminoMeta, promedioMovil, semanas, proteinaDia, consejosMeta, RITMOS, ritmoIdeal, comoVaRitmo } from '../../meta-peso.js';
 import { tokens } from '../tema';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Desplegable } from '../ui/Desplegable';
@@ -54,6 +57,7 @@ function Camino({ c }: { c: Fin }) {
       <Box sx={{ p: '8px 10px', borderRadius: '10px', bgcolor: hacia === false ? tokens.amarilloFondo : tokens.surface2, color: hacia === false ? 'warning.main' : 'text.primary', fontSize: 14 }}>
         {ritmoTxt}{c.real ? <> A ese ritmo llegas en <b>{semanasTexto(c.real.semanas)}</b>{c.real.fecha ? <>, hacia el <b>{fechaLarga(c.real.fecha)}</b></> : null}.</> : null}
       </Box>
+      <RitmoIdeal c={c} />
       {!c.llego && c.escenarios.length ? (
         <Box>
           <Box component="b" sx={{ fontSize: 14 }}>¿Y si bajas a otro ritmo?</Box>
@@ -65,6 +69,26 @@ function Camino({ c }: { c: Fin }) {
         </Box>
       ) : null}
     </Card>
+  );
+}
+
+// ---------- 🎯 Tu ritmo ideal (según tu peso) ----------
+const ESTADO_RITMO: Record<string, [string, string]> = {
+  reves: ['⚠️', 'Hoy vas al revés: primero hay que frenar la subida.'], quieto: ['⏸', 'Hoy estás quieto: con un déficit pequeño ya empiezas a bajar.'],
+  lento: ['🐢', 'Vas más lento que lo ideal: sirve, pero tardarás más.'], ideal: ['✅', 'Vas justo en tu ritmo ideal.'],
+  rapido: ['🏃', 'Vas un poco rápido: vigila la fuerza y el sueño.'], 'muy-rapido': ['🐇', 'Vas demasiado rápido: estás perdiendo músculo, no solo grasa.'],
+};
+function RitmoIdeal({ c }: { c: Fin }) {
+  const r = ritmoIdeal(c.ahora) as Fin, va = c.bajar ? comoVaRitmo(c.ritmo, c.ahora) as string | null : null;
+  if (!r || !c.bajar || c.llego) return null;
+  const kg2 = (n: number) => (Math.round(n * 100) / 100).toLocaleString('es-CO') + ' kg';
+  return (
+    <Box data-t="ritmo-ideal" sx={{ p: '10px 12px', borderRadius: '10px', bgcolor: tokens.subeFondo, fontSize: 14, display: 'grid', gap: '4px' }}>
+      <b>🎯 Tu ritmo ideal: {kg2(r.min)} a {kg2(r.max)} por semana</b>
+      <span>Es el <b>0,5 % a 0,75 % de tu peso</b> ({f1(c.ahora)} kg): bajas grasa sin perder fuerza, rindes en el gym y en la cancha, y es fácil de sostener. Pide un déficit de unas <b>{r.kcalMin.toLocaleString('es-CO')} a {r.kcalMax.toLocaleString('es-CO')} kcal al día</b>.</span>
+      <Box component="span" sx={{ color: 'text.secondary' }}>Hasta {kg2(r.tope)} por semana (1 %) todavía es aceptable; más que eso se lleva músculo y fuerza. Cuando bajes de peso, el ritmo ideal también baja: la app lo recalcula sola.</Box>
+      {va ? <Box component="span" sx={{ fontWeight: 600 }}>{ESTADO_RITMO[va][0]} {ESTADO_RITMO[va][1]}</Box> : null}
+    </Box>
   );
 }
 
@@ -135,6 +159,40 @@ function Consejos({ lista }: { lista: Fin[] }) {
 
 // ---------- 📚 Para saber ----------
 const SABER: [string, string[]][] = [
+  ['🎯 ¿Cuánto bajar por semana sin perder fuerza?', [
+    'Lo mejor: entre el 0,5 % y el 0,75 % de tu peso por semana. Con 90 kg son 0,45 a 0,7 kg; con 80 kg, 0,4 a 0,6 kg.',
+    'Hasta el 1 % por semana todavía se puede, si comes tu proteína, duermes bien y entrenas pesado. Más rápido, buena parte de lo que bajas es músculo.',
+    'Las primeras 1-2 semanas bajas más (es agua y comida en el estómago): no cuentes esas para el ritmo.',
+    'Entre más cerca de la meta, más despacio: los últimos kilos cuestan más y conviene ir al 0,5 %.',
+    'Mide la fuerza: si tus básicos (press, remo, sentadilla) se mantienen o suben mientras bajas, estás perdiendo grasa y no músculo.',
+  ]],
+  ['🚦 Señales de que vas muy rápido', [
+    'La fuerza baja 2 semanas seguidas en los ejercicios principales.',
+    'Duermes mal, te despiertas con hambre o estás irritable.',
+    'Llegas sin piernas a los partidos o te cansas mucho antes que antes.',
+    'Hambre fuerte todo el día o antojos que no controlas.',
+    'Si ves 2 o más: come 150-200 kcal más (en carbos antes del gym o del partido) durante 1-2 semanas.',
+  ]],
+  ['✅ Señales de que vas bien', [
+    'El promedio de 7 días baja entre 0,45 y 0,7 kg por semana (con tu peso).',
+    'La cintura baja 0,5 a 1 cm cada 2 semanas.',
+    'Tu fuerza se mantiene o sube; rindes igual en la cancha.',
+    'Tienes hambre antes de las comidas, pero no todo el día.',
+    'Duermes bien y tienes energía para entrenar.',
+  ]],
+  ['⏸ Pausas de dieta y días de recarga', [
+    'Cada 8-12 semanas de déficit, 1 o 2 semanas comiendo lo que gastas (sin déficit) ayudan a la fuerza, al ánimo y a seguir después.',
+    'No es "parar la dieta": se sigue con la proteína y el gym; solo suben los carbos hasta tu mantenimiento.',
+    'Coinciden bien con la semana de descarga del gym: descansas el cuerpo y la cabeza a la vez.',
+    'Un día de recarga (más carbos) antes de un partido importante te da piernas sin dañar el proceso.',
+  ]],
+  ['🥩 Lo que protege tu músculo mientras bajas', [
+    'Proteína: unos 2 g por kg de peso al día, todos los días (la tarjeta 🩺 te da tus gramos).',
+    'Entrenar pesado: mantén los pesos de tus básicos aunque bajes series; el músculo que no se usa, se pierde.',
+    'Dormir 7 horas o más: con menos de 6, una parte mayor de lo que bajas es músculo.',
+    'Creatina 3-5 g al día: ayuda a mantener la fuerza en déficit (está en 💊 Suplementos).',
+    'No hacer cardio de más: caminar suma sin cansar; el fútbol ya es mucho cardio.',
+  ]],
   ['⚖️ ¿Por qué el peso sube y baja de un día a otro?', [
     'Un día con más sal o carbos retiene 0,5 a 2 kg de agua: no es grasa.',
     'Después de entrenar pierna o jugar un partido, el músculo guarda agua para repararse: el peso sube 1-2 días.',
@@ -188,7 +246,9 @@ export function MetaPeso({ e }: { e: Fin }) {
   const partidos = Array.from({ length: 7 }, (_, i) => juegaEl(e.config, sumarDias(hoy, -i))).filter(Boolean).length;
   const ps = Object.keys(e.dias).filter((f) => f <= hoy).sort().slice(-7).map((f) => Number(((e.dias[f] || {}).metas || {}).pasos) || 0).filter((x) => x > 0);
   const pasos = ps.length >= 3 ? ps.reduce((a, b) => a + b, 0) / ps.length : null;
-  const tips = c ? consejosMeta(c, { lista, hoy, cintura, estatura: c0.estatura, partidos, pasos } as Fin) as Fin[] : [];
+  // Fuerza del mes (cambio promedio del 1RM de tus ejercicios, sin las semanas de descarga): dice si bajas sin perder músculo
+  const fuerza = fuerzaDelMes(progresoMes(sinDescargas(e.semanas, e), e.rutina, semanaActual())) as number | null;
+  const tips = c ? consejosMeta(c, { lista, hoy, cintura, estatura: c0.estatura, partidos, pasos, fuerza } as Fin) as Fin[] : [];
   return (
     <>
       {c ? <Camino c={c} /> : <Card component="section" sx={{ mb: '14px' }}><Nota sx={{ m: 0 }}>🎯 Pon tu meta en <b>Datos y fórmula</b> (abajo) y aquí verás cuánto te falta, a qué ritmo vas y cuándo llegarías.</Nota></Card>}

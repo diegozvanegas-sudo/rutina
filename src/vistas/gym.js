@@ -6,7 +6,7 @@ import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
 import { tiemposDia, lineaTiempos, anotarEnEntreno, gruposDia } from '../gym.js';
 import { planCorto, videoValido } from '../entreno-hoy.js';
-import { esDescarga, filaDe, ejDe, sinDescargas, metaDescarga, rutinaDe, metaLiviana, pesoLiviano } from '../descarga.js';
+import { esDescarga, filaDe, ejDe, sinDescargas, metaDescarga, rutinaDe, metaLiviana, pesoLiviano, origenDescarga } from '../descarga.js';
 import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, resumenSemana, numero, formatoPeso, PIERNAS, historial, records, consejoEstancado, metaSesion, enBiserie, nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante } from '../gym.js';
 import { filasDeEsquema } from '../datos_iniciales.js';
 import { partidos } from '../registro.js';
@@ -165,7 +165,7 @@ export function textoDia(d, sem, estado = e()) {
   const bloque = (ej, sufijo = '') => nombreConVariante(ej, varianteEn(ej, regs, sufijo)) + ' · ' + ej.musculo + '\n' + ej.filas.map((f) => lineaFila(f, f.id + sufijo)).join('\n');
   const r = resumenSemana(rutinaDe([d], sem, estado), regs), tiempos = lineaTiempos(tiemposDia(d, sem, estado)), lineas = [
     '🏋️ ' + (d.diaSemana ? DIAS_CORTOS[d.diaSemana] + ' · ' : '') + d.nombre + ' — Semana ' + sem + ' (' + fechaCorta(lunes) + ' – ' + fechaCorta(sumarDias(lunes, 6)) + ')',
-    'Series: ' + r.hechas + '/' + r.plan, ...(esDescarga(sem, estado) ? ['🔻 Semana de descarga: la mitad de las series, mismo peso'] : []), ...(tiempos ? [tiempos] : []), '', ...d.ejercicios.map((ej) => bloque(ej)),
+    'Series: ' + r.hechas + '/' + r.plan, ...(esDescarga(sem, estado) ? [origenDescarga(sem, estado) === 'descanso' ? '🛌 Semana de descanso (descarga sin ir al gym)' : '🔻 Semana de descarga: la mitad de las series, mismo peso'] : []), ...(tiempos ? [tiempos] : []), '', ...d.ejercicios.map((ej) => bloque(ej)),
   ];
   // Core: solo lo anotado ese día
   const core = estado.rutina.find((x) => x.id === 'core'), sufijo = '@' + d.id;
@@ -512,9 +512,9 @@ registrar({
   // 🔻 Semana de descarga de la semana que se ve: v = si (activarla), no (esta semana no) o auto (lo que diga el plan)
   'gym-descarga'({ v }) {
     const sem = semanaVista ?? semanaActual(), d = (e().descargas ??= {});
-    if (v === 'si') d[sem] = true; else if (v === 'no') d[sem] = false; else delete d[sem];
+    if (v === 'si') d[sem] = true; else if (v === 'descanso') d[sem] = 'descanso'; else if (v === 'no') d[sem] = false; else delete d[sem];
     guardar();
-    toast(v === 'si' ? '🔻 Semana ' + sem + ' en descarga: la mitad de las series, mismo peso' : v === 'no' ? 'Semana ' + sem + ' normal' : 'Listo');
+    toast(v === 'si' ? '🔻 Semana ' + sem + ' en descarga: la mitad de las series, mismo peso' : v === 'descanso' ? '🛌 Semana ' + sem + ': descarga sin ir al gym. Descansa' : v === 'no' ? 'Semana ' + sem + ' normal' : 'Listo');
   },
   // 📸 Foto de progreso de hoy: la foto queda en tu celular; aquí solo la fecha, para recordarte la próxima
   'gym-foto'() {

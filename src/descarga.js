@@ -20,10 +20,12 @@ function delPlan(sem, est) {
   return !!fase && (faseDe(fase) || {}).id === 'descarga';
 }
 
-// De dónde viene la descarga de esa semana: 'manual', 'plan' o null (no es descarga)
+// De dónde viene la descarga de esa semana: 'manual', 'plan', 'descanso' (descarga sin ir al gym) o null (no es descarga).
+// est.descargas[sem] = 'descanso': la semana no se va al gym; cuenta igual que una descarga para las metas y el estancamiento
 export function origenDescarga(sem, est) {
   const m = (est.descargas || {})[sem];
   if (m === true) return 'manual';
+  if (m === 'descanso') return 'descanso';
   if (m === false) return null;
   return delPlan(sem, est) ? 'plan' : null;
 }
@@ -36,7 +38,9 @@ export const filaDescarga = (f) => ({ ...f, series: seriesDescarga(f.series) });
 export const filaDe = (f, sem, est) => (f && esDescarga(sem, est) ? filaDescarga(f) : f);
 export const ejDe = (ej, sem, est) => (esDescarga(sem, est) ? { ...ej, filas: ej.filas.map(filaDescarga) } : ej);
 // Los días como tocan esa semana (para contar series hechas / planeadas)
-export const rutinaDe = (rutina, sem, est) => (esDescarga(sem, est) ? rutina.map((d) => ({ ...d, ejercicios: d.ejercicios.map((ej) => ({ ...ej, filas: ej.filas.map(filaDescarga) })) })) : rutina);
+// 🛌 Descanso total: no hay series por hacer esa semana (0 de 0, no "te faltan"); si igual vas, se anotan con la mitad
+export const esDescanso = (sem, est) => origenDescarga(sem, est) === 'descanso';
+export const rutinaDe = (rutina, sem, est) => (esDescarga(sem, est) ? rutina.map((d) => ({ ...d, ejercicios: d.ejercicios.map((ej) => ({ ...ej, filas: ej.filas.map((f) => (esDescanso(sem, est) ? { ...f, series: 0 } : filaDescarga(f))) })) })) : rutina);
 
 // Las semanas sin las de descarga: así la meta de la semana siguiente sale de la última semana normal y el estancamiento
 // no cuenta la descarga como una semana sin mejorar

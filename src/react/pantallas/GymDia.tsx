@@ -9,7 +9,7 @@ import { e, semanaActual } from '../../estado.js';
 import { reloj, fechaCorta, iso, sumarDias } from '../../fechas.js';
 import { lecturaHoy, suenoDeHoras, esDiaPierna, planCorto, seriesCortas, chequeoMensual, videoValido, buscarVideo } from '../../entreno-hoy.js';
 import { horasSueno, hayPartido } from '../../registro.js';
-import { esDescarga, filaDe, sinDescargas, rutinaDe } from '../../descarga.js';
+import { esDescarga, esDescanso, filaDe, sinDescargas, rutinaDe } from '../../descarga.js';
 import { AvisoPesos, FutbolHoy, Esencial, Ocupadas, AproxEjercicio, HoyVsUltima, ComoTeFue } from './GymExtras';
 import { juegaEl } from '../../futbol.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
@@ -634,6 +634,13 @@ export function dia(d: Fin, sem: number) {
   const r = resumenSemana(rutinaDe([d], sem, e()), regs(sem)) as Fin, ir = G.prepararDia(d, sem) as boolean;
   return (
     <>
+      {/* 🛌 Descarga sin ir: esa semana no toca gym; si igual vienes, se anota con la mitad de las series */}
+      {esDescanso(sem, e()) && d.id !== 'core' ? (
+        <Box data-t="dia-descanso" sx={{ m: '0 0 12px', p: '10px 12px', borderRadius: '10px', bgcolor: tokens.moradoFondo, color: tokens.moradoInk, fontSize: 14, display: 'grid', gap: '4px' }}>
+          <b>🛌 Esta semana descansas: hoy no toca gym</b>
+          <Box component="span" sx={{ color: 'text.primary' }}>Camina 30-45 minutos o haz 10 de movilidad si quieres moverte. Si igual vienes, la app te pone la mitad de las series y el mismo peso.</Box>
+        </Box>
+      ) : null}
       {calentamiento(d, sem)}
       <Box sx={{ ...FILA, mt: '4px', mb: '6px' }}><b>{d.nombre}</b><span>{r.hechas} / {r.plan} series</span></Box>
       <Avance parte={r.plan ? r.hechas / r.plan : 0} />

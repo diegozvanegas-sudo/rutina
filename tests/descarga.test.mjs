@@ -102,3 +102,21 @@ test('meta liviana: mismas series y reps con el peso bajado, sin subir', () => {
   assert.match(m.motivo, /15 % menos que 60 kg/);
   assert.equal(metaLiviana(press, { reps: '10' }), null);
 });
+
+test('descarga sin ir al gym (descanso total): cuenta como descarga y la semana no queda "pendiente"', async () => {
+  const { esDescanso } = await import('../src/descarga.js');
+  const est = base({ descargas: { 4: 'descanso' }, semanas: { 3: semanaCon(60, '10 9 9'), 4: {} } });
+  assert.equal(origenDescarga(4, est), 'descanso');
+  assert.equal(esDescarga(4, est), true);
+  assert.equal(esDescanso(4, est), true);
+  assert.equal(esDescanso(3, est), false);
+  // 0 de 0 esa semana; si igual va, se anota con la mitad
+  assert.equal(resumenSemana(rutinaDe(rutina, 4, est), {}).plan, 0);
+  assert.equal(filaDe(press, 4, est).series, 2);
+  // La semana siguiente toma la meta de la 3 y la de descanso no cuenta para el estancamiento
+  assert.deepEqual(Object.keys(sinDescargas(est.semanas, est)), ['3']);
+  assert.equal(ultimoRegistro(sinDescargas(est.semanas, est), press, 5).semana, 3);
+  // También reemplaza la descarga del plan de 12 semanas
+  const conPlan = base({ plan12: { inicio: lunesDe(3) }, descargas: { 11: 'descanso' } });
+  assert.equal(origenDescarga(11, conPlan), 'descanso');
+});

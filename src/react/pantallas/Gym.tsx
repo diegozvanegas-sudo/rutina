@@ -293,9 +293,23 @@ function Descarga({ estado, sem, actual }: { estado: Fin; sem: number; actual: n
     <Card component="section" data-t="descarga" sx={{ mb: '12px', p: 0, borderLeft: '5px solid', borderLeftColor: tokens.faseMorado, bgcolor: tokens.moradoFondo }}>
       <ButtonBase aria-expanded={abierta} onClick={() => ponerAbierta(!abierta)}
         sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', minHeight: 48, p: '8px 14px', font: 'inherit', color: tokens.moradoInk, textAlign: 'left', gap: '10px', '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } }}>
-        <b>🔻 Semana de descarga{origen === 'plan' ? ' · del plan de 12 semanas' : ''}</b><Box component="span" aria-hidden="true">{abierta ? '▾' : '▸'}</Box>
+        <b>{origen === 'descanso' ? '🛌 Semana de descanso: descarga sin ir al gym' : '🔻 Semana de descarga' + (origen === 'plan' ? ' · del plan de 12 semanas' : '')}</b><Box component="span" aria-hidden="true">{abierta ? '▾' : '▸'}</Box>
       </ButtonBase>
-      {abierta ? (
+      {abierta && origen === 'descanso' ? (
+        <Box data-t="descanso" sx={{ display: 'grid', gap: '8px', p: '0 14px 12px', fontSize: 14, color: 'text.primary' }}>
+          <Box component="ul" sx={{ m: 0, pl: '20px', display: 'grid', gap: '4px' }}>
+            <li><b>Esta semana no vas al gym:</b> los días salen en 0 de 0, no como "te faltan".</li>
+            <li>Si quieres moverte: <b>caminar 30-45 minutos</b>, 10 minutos de movilidad o estiramientos, y el fútbol suave.</li>
+            <li><b>Come normal y duerme más.</b> No bajes comida: el peso puede subir un poco por agua y es normal.</li>
+            <li>La próxima semana vuelves con los mismos pesos de tu última semana normal: esta no cuenta como estancamiento ni para tus metas.</li>
+          </Box>
+          <Box component="small" sx={{ color: 'text.secondary' }}>Una semana sin ir no te hace perder músculo ni fuerza: la fatiga baja y vuelves con más ganas. Más de 2 semanas seguidas, sí empieza a bajar.</Box>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'si' })} sx={chip}>🔻 Mejor ir con la mitad de las series</Button>
+            <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'no' })} sx={chip}>Quitar la descarga de la semana {sem}</Button>
+          </Box>
+        </Box>
+      ) : abierta ? (
         <Box sx={{ display: 'grid', gap: '8px', p: '0 14px 12px', fontSize: 14, color: 'text.primary' }}>
           <Box component="ul" sx={{ m: 0, pl: '20px', display: 'grid', gap: '4px' }}>
             <li><b>La mitad de las series</b>{ejemplo ? <> (si tocaban {ejemplo.series}, haces {seriesDescarga(ejemplo.series)})</> : null}: ya vienen así en cada día.</li>
@@ -304,7 +318,10 @@ function Descarga({ estado, sem, actual }: { estado: Fin; sem: number; actual: n
             <li>La próxima semana vuelves a tus metas de antes: esta no cuenta como estancamiento.</li>
           </Box>
           <Box component="small" sx={{ color: 'text.secondary' }}>No es flojera: la fatiga baja más rápido que la fuerza, y después de la descarga rindes más. No la "aproveches" para entrenar más.</Box>
-          <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'no' })} sx={{ justifySelf: 'start', ...chip }}>Quitar la descarga de la semana {sem}</Button>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'descanso' })} sx={chip}>🛌 No voy esta semana (descanso total)</Button>
+            <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'no' })} sx={chip}>Quitar la descarga de la semana {sem}</Button>
+          </Box>
         </Box>
       ) : null}
     </Card>
@@ -314,6 +331,7 @@ function Descarga({ estado, sem, actual }: { estado: Fin; sem: number; actual: n
       <span><Box component="b" sx={{ color: tokens.moradoInk }}>🔻 ¿Toca descarga?</Box> {sug.texto} Una semana con la mitad de las series y el mismo peso te deja volver más fuerte.</span>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
         <Button onClick={() => accion('gym-descarga', { v: 'si' })} sx={chip}>🔻 Hacer descarga esta semana</Button>
+        <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'descanso' })} sx={chip}>🛌 Descansar sin ir</Button>
         <Button color="secondary" onClick={() => accion('gym-descarga', { v: 'no' })} sx={chip}>Esta semana no</Button>
       </Box>
     </Box>
@@ -336,7 +354,7 @@ export default function Gym() {
       <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
         <TituloPantalla>Gym</TituloPantalla>
         <NativeSelect key={sem} defaultValue={String(sem)} input={<OutlinedInput />} inputProps={{ 'aria-label': 'Semana', 'data-cambio': 'semana' } as object} sx={{ width: '60%' }}>
-          {semanas.map((s) => <option key={s} value={s}>Semana {s}{s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))}{origenDescarga(s, estado) ? ' 🔻' : ''}</option>)}
+          {semanas.map((s) => <option key={s} value={s}>Semana {s}{s === actual ? ' (actual)' : ' · ' + fechaCorta(lunesDe(s))}{origenDescarga(s, estado) === 'descanso' ? ' 🛌' : origenDescarga(s, estado) ? ' 🔻' : ''}</option>)}
         </NativeSelect>
       </Box>
       <Box sx={{ ...FILA, flexWrap: 'wrap', gap: '8px', m: '-6px 0 10px' }}>

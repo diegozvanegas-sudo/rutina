@@ -25,7 +25,13 @@ export default async (p) => {
   falla(d.animo && d.animo.animo === 4 && d.animo.energia === 3 && d.animo.nota === 'Buen partido', 'no guardó el ánimo: ' + JSON.stringify(d.animo));
 
   // 💼 Trabajo: la ficha de 90 min y dos postulaciones
-  await tocarTexto('90 min', 'button, [role=button], .MuiChip-root');
+  // El de la tarjeta de trabajo: el día después de un partido, Hoy también muestra "Minutos jugados" con su ficha de 90 min
+  falla(await p.ev(`(()=>{document.querySelectorAll('[data-e2e]').forEach(x=>x.removeAttribute('data-e2e'));
+    const fichas=(c)=>[...c.querySelectorAll('button, [role=button], .MuiChip-root')].filter(x=>x.textContent.trim()==='90 min');
+    let c=document.querySelector('#vista [aria-label="Sumar una: Postulación"]'); while(c&&!fichas(c).length)c=c.parentElement;
+    const f=c&&fichas(c)[0];
+    if(!f)return false; f.setAttribute('data-e2e','1'); f.scrollIntoView({block:'center'}); return true})()`), 'no encontré la ficha de 90 min del trabajo');
+  await p.tocar('[data-e2e]');
   await tocarTexto('Sumar una: Postulación');
   await tocarTexto('Sumar una: Postulación');
   d = await dia();

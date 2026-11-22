@@ -3,7 +3,7 @@
 // de la app y aún no esté en la lista del usuario aparece al final, visible (o debajo de su vecina, ver DESPUES).
 
 export const SECCIONES = {
-  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], vida: ['🌱', 'Mi vida'], energia: ['⚡', 'Energía'], voz: ['🎙️', 'Audio a texto'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
+  hoy: ['🏠', 'Hoy'], calendario: ['📅', 'Calendario'], progreso: ['📈', 'Progreso'], vida: ['🌱', 'Mi vida'], energia: ['⚡', 'Energía'], voz: ['🎙️', 'Audio a texto'], notas: ['📝', 'Notas'], manana: ['☀️', 'Mañana'], metas: ['🎯', 'Metas'], estudiar: ['🎓', 'Estudiar'],
   dieta: ['🥗', 'Dieta'], suplementos: ['💊', 'Suplementos'], finanzas: ['💰', 'Finanzas'], compras: ['🛒', 'Compras'], recordatorios: ['🔔', 'Recordatorios'], lugares: ['🗺️', 'Lugares'], gym: ['🏋️', 'Gym'], panel: ['🧑‍💼', 'Panel'], clientes: ['👥', 'Clientes'], entrenador: ['🧑‍🏫', 'Mi entrenador'],
   sesiones: ['🧘', 'Sesiones'], editar: ['✏️', 'Editar'], ajustes: ['⚙️', 'Ajustes'],
 };
@@ -23,7 +23,7 @@ export const FIJAS = { menu: ['hoy', 'editar', 'ajustes'], hoy: [], metas: [] };
 // Se traducen al leer, así quien la tenía movida o escondida la sigue viendo igual
 const ANTES = { menu: { libros: 'estudiar' }, hoy: { libros: 'estudio' }, metas: {} };
 // Secciones nuevas que en un menú ya ordenado van debajo de su vecina y no al final (donde no se ven)
-const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta', clientes: 'suplementos', entrenador: 'hoy', vida: 'progreso', energia: 'vida', voz: 'vida', panel: 'suplementos' }, hoy: { suplementos: 'dieta', retos: 'experimento', animo: 'suenoPeso', trabajo: 'foco', control: 'entrenador', revision: 'control' }, metas: {} };
+const DESPUES = { menu: { compras: 'finanzas', suplementos: 'dieta', clientes: 'suplementos', entrenador: 'hoy', vida: 'progreso', energia: 'vida', voz: 'vida', notas: 'voz', panel: 'suplementos' }, hoy: { suplementos: 'dieta', retos: 'experimento', animo: 'suenoPeso', trabajo: 'foco', control: 'entrenador', revision: 'control' }, metas: {} };
 const lista = (config, que, tipo) => ((config && config[que] && config[que][tipo]) || []).map((id) => ANTES[tipo][id] || id);
 
 // Todos los ids del tipo en el orden del usuario
@@ -76,7 +76,7 @@ export const GRUPO_DE = {
   hoy: 'dia', manana: 'dia', calendario: 'dia', recordatorios: 'dia', metas: 'dia',
   gym: 'cuerpo', dieta: 'cuerpo', suplementos: 'cuerpo', energia: 'cuerpo', sesiones: 'cuerpo', progreso: 'cuerpo', entrenador: 'cuerpo', clientes: 'cuerpo', panel: 'cuerpo',
   finanzas: 'plata', compras: 'plata',
-  vida: 'mente', estudiar: 'mente', voz: 'mente', lugares: 'mente',
+  vida: 'mente', estudiar: 'mente', voz: 'mente', notas: 'mente', lugares: 'mente',
   editar: 'app', ajustes: 'app',
 };
 const esGrupo = (g) => GRUPOS.some(([id]) => id === g);

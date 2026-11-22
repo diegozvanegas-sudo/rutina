@@ -93,9 +93,10 @@ export function limpiarRepetidos(x) {
 }
 
 // Lo que cambió entre la última copia sincronizada (base) y lo de ahora, para subir solo eso (rutina_guardar_partes en
-// supabase/esquema.sql). Los días y las semanas del gym van uno por uno; lo demás, cada parte de arriba entera.
+// supabase/esquema.sql). Los días, las semanas del gym y las notas (📝 Notas) van uno por uno; lo demás, cada parte de
+// arriba entera.
 // partes: [{ ruta: ['dias', '2026-11-17'], valor }] · quitar: [['dias', '2026-11-10']]
-const POR_PARTES = ['dias', 'semanas'];
+const POR_PARTES = ['dias', 'semanas', 'notas'];
 const tiene = (o, k) => Object.prototype.hasOwnProperty.call(o, k) && o[k] !== undefined;
 export function cambiosParaNube(base, ahora) {
   const partes = [], quitar = [];

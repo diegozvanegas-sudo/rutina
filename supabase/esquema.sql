@@ -142,18 +142,20 @@ alter table rutina.partes enable row level security;
 -- Desde qué versión las partes de un usuario están completas (antes de eso no hay registro de lo borrado)
 alter table rutina.estado add column if not exists partes_desde bigint;
 
--- Los días y las semanas del gym van uno por uno; lo demás, cada parte de arriba entera (como cambiosParaNube en combinar.js)
+-- Los días, las semanas del gym y las notas (📝 Notas, desde 2026-11-21) van uno por uno; lo demás, cada parte de arriba
+-- entera (como cambiosParaNube en combinar.js). Si alguien ya tenía notas guardadas enteras, se leen igual (armar) y en su
+-- siguiente guardado quedan por nota
 create or replace function rutina.en_partes(d jsonb)
 returns table (grupo text, clave text, valor jsonb)
 language sql immutable set search_path = ''
 as $$
-  -- dias y semanas dejan en clave '' un {} que dice que existen (aunque estén vacíos); sus días y semanas van aparte
-  select t.key, '', case when t.key in ('dias', 'semanas') and jsonb_typeof(t.value) = 'object' then '{}'::jsonb else t.value end
+  -- dias, semanas y notas dejan en clave '' un {} que dice que existen (aunque estén vacíos); lo de adentro va aparte
+  select t.key, '', case when t.key in ('dias', 'semanas', 'notas') and jsonb_typeof(t.value) = 'object' then '{}'::jsonb else t.value end
     from jsonb_each(case when jsonb_typeof(d) = 'object' then d else '{}'::jsonb end) t
   union all
   select t.key, s.key, s.value from jsonb_each(case when jsonb_typeof(d) = 'object' then d else '{}'::jsonb end) t
     cross join lateral jsonb_each(t.value) s
-    where t.key in ('dias', 'semanas') and jsonb_typeof(t.value) = 'object';
+    where t.key in ('dias', 'semanas', 'notas') and jsonb_typeof(t.value) = 'object';
 $$;
 
 -- Lo que cambió entre dos estados se escribe en rutina.partes (null en lo que ya no está)
@@ -207,7 +209,7 @@ returns jsonb
 language sql stable set search_path = ''
 as $$
   select coalesce(jsonb_object_agg(g.grupo, g.valor), '{}'::jsonb) from (
-    select a.grupo, case when a.grupo in ('dias', 'semanas') and a.valor = '{}'::jsonb
+    select a.grupo, case when a.grupo in ('dias', 'semanas', 'notas') and a.valor = '{}'::jsonb
       then coalesce((select jsonb_object_agg(p.clave, p.valor) from rutina.partes p
                      where p.usuario = p_usuario and p.grupo = a.grupo and p.clave <> '' and p.valor is not null), '{}'::jsonb)
       else a.valor end as valor
@@ -284,7 +286,7 @@ as $$
     select h.grupo, h.clave, h.valor from rutina.partes_historial h
       where h.usuario = p_usuario and h.hasta > p_paso and h.desde <= p_paso
   )
-  select coalesce(jsonb_object_agg(a.grupo, case when a.grupo in ('dias', 'semanas') and a.valor = '{}'::jsonb
+  select coalesce(jsonb_object_agg(a.grupo, case when a.grupo in ('dias', 'semanas', 'notas') and a.valor = '{}'::jsonb
       then coalesce((select jsonb_object_agg(x.clave, x.valor) from f x where x.grupo = a.grupo and x.clave <> ''), '{}'::jsonb)
       else a.valor end), '{}'::jsonb)
   from f a where a.clave = '';

@@ -92,5 +92,9 @@ export default async (p) => {
   s = await est();
   falla(JSON.stringify(s.rutina) === rutinaAntes && !s.miEntrenador.antes, 'no volvió a la rutina de antes');
   await paso('volvió');
+  // Se quita el entrenador de mentira: con él la app queda en modo cliente (menú corto, Metas dentro de "Más de la app")
+  // y los recorridos que siguen (Menú) no encuentran lo de siempre
+  await p.ev(`(()=>{const k=Object.keys(localStorage).find(k=>k.startsWith('rutina_v1')),s=JSON.parse(localStorage[k]);delete s.miEntrenador;localStorage[k]=JSON.stringify(s)})()`);
+  await p.recargar();
   console.log('✓ Entrenador');
 };

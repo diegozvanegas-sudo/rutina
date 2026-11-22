@@ -5,7 +5,7 @@
 // por eso lleva data-accion y main.js lo despacha con el botón de verdad.
 import { useState, type ReactNode } from 'react';
 import { Box, Button, Card, IconButton, Link, NativeSelect, OutlinedInput } from '@mui/material';
-import { tipoDieta, tipoDietaAuto, comidasDelDia, semanaActual } from '../../estado.js';
+import { tipoDieta, tipoDietaAuto, comidasDelDia, semanaActual, planDieta as planDelDia } from '../../estado.js';
 import { progresoMes } from '../../gym.js';
 import { iso, hora, fechaCorta, diaSemana } from '../../fechas.js';
 import { proteinaSemana } from '../../entrenador.js';
@@ -24,13 +24,14 @@ import { Ajustar } from '../ui/Rapido';
 import { Barras } from '../ui/Graficos';
 import { MetaPeso } from './DietaMeta';
 import { SugerenciaComida } from './Control';
+import { Equivalencias } from './DietaEquivalencias';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
 const VISTA = 'dieta';
 const D = piezasDieta as Fin;
 const TIPOS = TIPOS_PLAN as Record<string, string>;
-const PESTANAS: [string, string][] = [['hoy', '🍽 Hoy'], ['planes', '📋 Planes'], ['peso', '⚖️ Peso'], ['alimentos', '🥚 Alimentos']];
+const PESTANAS: [string, string][] = [['hoy', '🍽 Hoy'], ['planes', '📋 Planes'], ['peso', '⚖️ Peso'], ['alimentos', '🥚 Alimentos'], ['equivalencias', '🔄 Equivalencias']];
 const GRUPOS: [string, string][] = [['proteina', 'Proteína'], ['carbo', 'Carbohidrato'], ['grasa', 'Grasa'], ['verdura', 'Verdura'], ['otro', 'Otro']];
 const POR: [string, string][] = [['g', 'por 100 g'], ['u', 'por unidad'], ['libre', 'porción fija']];
 const MEDIDAS: [string, string][] = [['cintura', 'Cintura'], ['pecho', 'Pecho'], ['brazo', 'Brazo'], ['muslo', 'Muslo']];
@@ -68,7 +69,7 @@ const Barra = ({ parte }: { parte: number }) => <Avance parte={parte} />;
 // ---------- 🍽 Hoy ----------
 // compacta (Hoy): sin la lista de alimentos de cada comida
 export function comidasHoy(e: Fin, compacta = false) {
-  const d = e.dieta, tipo = tipoDieta() as string, plan = d.planes[tipo], hechas = (e.dias[iso()] || {}).comidas || {};
+  const d = e.dieta, tipo = tipoDieta() as string, plan = planDelDia() as Fin, hechas = (e.dias[iso()] || {}).comidas || {};
   const total = totalPlan(plan, d.alimentos) as Fin, comido = comidasDelDia() as Fin, alimento = (id: string) => d.alimentos.find((a: Fin) => a.id === id);
   const faltan = (plan.comidas as Fin[]).filter((_, i) => !hechas[tipo + ':' + i]).length;
   return (
@@ -95,6 +96,12 @@ export function comidasHoy(e: Fin, compacta = false) {
                 <Box sx={FILA}><Box component="b" sx={marca ? { color: 'text.secondary' } : null}>{c.nombre}</Box><Corta>{miles(t.kcal)} kcal · P {r0(t.p)}</Corta></Box>
                 {marca ? <Corta>Comida a las {hora(marca.ts)}</Corta> : null}
                 {compacta ? null : <Corta>{items.join(' · ')}</Corta>}
+                {compacta ? null : (
+                  <Box sx={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {c.cambiada ? <><Corta sx={{ color: 'primary.main' }}>🔄 Cambiada solo hoy</Corta><Button size="small" color="secondary" data-accion="dieta-equiv-deshacer" data-clave={tipo + ':' + i}>Deshacer</Button></> : null}
+                    <Button size="small" color="secondary" data-accion="dieta-equiv-abrir" data-tipo={tipo} data-i={i} data-origen="hoy" aria-label={'Cambiar un alimento de ' + c.nombre}>🔄 Cambiar un alimento</Button>
+                  </Box>
+                )}
               </Box>
             </Box>
           );
@@ -159,7 +166,11 @@ export function EditorComidas({ e, ruta, plan }: { e: Fin; ruta: string; plan: F
                 return (
                   <Box key={j} sx={{ display: 'grid', gridTemplateColumns: '1fr 110px 90px 44px', gap: '8px', alignItems: 'center', p: '6px 0', borderBottom: '1px solid', borderColor: 'divider',
                     [CELULAR]: { gridTemplateColumns: '1fr 100px 40px', '& .kcal': { gridColumn: '1 / 3', textAlign: 'left', display: 'flex', gap: '8px' }, '& .quitar': { gridRow: 1, gridColumn: 3 } } }}>
-                    <Box component="span" sx={{ fontWeight: 600, minWidth: 0 }}>{a ? a.nombre : it.alimento}</Box>
+                    <Box component="span" sx={{ fontWeight: 600, minWidth: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>{a ? a.nombre : it.alimento}</span>
+                      {/* 🔄 Cambiarlo por otro (solo en tus planes, no en los de un cliente) */}
+                      {a && a.por !== 'libre' && ruta.startsWith('dieta.planes.') ? <IconButton data-accion="dieta-equiv-abrir" data-tipo={ruta.split('.')[2]} data-i={i} data-j={j} data-origen="planes" aria-label={'Cambiar ' + a.nombre + ' por otro alimento'} title="Cambiar por otro alimento" sx={{ minWidth: 36, minHeight: 36, fontSize: 16, flex: 'none' }}>🔄</IconButton> : null}
+                    </Box>
                     {a && a.por !== 'libre'
                       ? <Box component="label" sx={{ display: 'flex', alignItems: 'center', gap: '4px', '& > span': { color: 'text.secondary', fontSize: 13 } }}>
                           <CampoSolo noVaciar aria-label="Cantidad" inputMode="decimal" min={0} step={String(a.paso || (a.por === 'g' ? 5 : 1))} data-cambio="ed" data-tipo="num" data-ruta={rc + '.items.' + j + '.cant'} defaultValue={it.cant} sx={{ minHeight: 44, '& input': { height: 44, p: '8px' } }} />
@@ -408,7 +419,7 @@ export default function Dieta({ pestana }: { pestana?: string }) {
         </Card>
       ) : null}
       <Opciones nombre="Pestañas de Dieta" activa={ver.pestana} opciones={PESTANAS} datos={(k) => ({ 'data-accion': 'dieta-pestana', 'data-p': k })} sx={{ '& .MuiChip-root': { fontSize: 15 } }} />
-      {ver.pestana === 'planes' ? planes(e, ver.planVista) : ver.pestana === 'peso' ? peso(e) : ver.pestana === 'alimentos' ? alimentos(e) : hoyDieta(e)}
+      {ver.pestana === 'planes' ? planes(e, ver.planVista) : ver.pestana === 'peso' ? peso(e) : ver.pestana === 'alimentos' ? alimentos(e) : ver.pestana === 'equivalencias' ? <Equivalencias key={JSON.stringify(D.cambio())} e={e} cambio={D.cambio()} /> : hoyDieta(e)}
     </>
   );
 }

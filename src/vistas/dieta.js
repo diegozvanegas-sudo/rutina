@@ -1,13 +1,15 @@
 // Dieta: plan del día (según el gym), comidas marcadas, planes editables, peso corporal y recálculo por peso.
 // La pantalla está en src/react/pantallas/Dieta.tsx; aquí quedan la pestaña y el plan que se ven, las acciones y las piezas
 // que usan Clientes y Hoy (TIPOS_PLAN, pesoActual)
-import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto } from '../estado.js';
+import { e, guardar, repintar, dia, tipoDieta, tipoDietaAuto, planDieta } from '../estado.js';
 import { iso } from '../fechas.js';
 import { totalComida, objetivo, recalcular, pesos, tendencia, ajusteCarbos } from '../dieta.js';
 import { registrar, toast, miles, copiarTexto } from '../ui.js';
 import { resumenDieta, textoDieta, compartirDieta } from '../imagen-dieta.js';
 
 let pestana = 'hoy', planVista = null;
+// 🔄 Equivalencias abierta desde una comida: { tipo, i (comida), j (alimento), origen: 'hoy' | 'planes' }
+let cambio = null;
 const TIPOS = { inferior: '🦵 Entreno inferior', superior: '💪 Entreno superior', futbol: '⚽ Fútbol', recarga: '🍚 Recarga', descanso: '😌 Descanso' };
 const r0 = (n) => Math.round(n || 0);
 const d = () => e().dieta;
@@ -21,7 +23,7 @@ function marcaComida(c) {
 // El plan que toca hoy, listo para el texto y la imagen de WhatsApp (src/imagen-dieta.js)
 function resumenDeHoy() {
   const tipo = tipoDieta(), hoy = iso();
-  return resumenDieta({ plan: d().planes[tipo], alimentos: d().alimentos, hechas: (e().dias[hoy] || {}).comidas || {}, tipo, titulo: TIPOS[tipo], fecha: hoy });
+  return resumenDieta({ plan: planDieta(hoy), alimentos: d().alimentos, hechas: (e().dias[hoy] || {}).comidas || {}, tipo, titulo: TIPOS[tipo], fecha: hoy });
 }
 
 // Peso para los cálculos: el promedio de los últimos 7 registros; si no hay, el de partida
@@ -40,11 +42,13 @@ export const piezasDieta = {
   ver: () => ({ pestana, planVista }),
   ponerPestana: (p) => { pestana = p; },
   ponerPlan: (t) => { planVista = t; },
+  cambio: () => cambio,
+  ponerCambio: (c) => { cambio = c; },
 };
 
 registrar({
   'abrir-dieta'({ p }) { pestana = p; },
-  'dieta-pestana'({ p }) { pestana = p; repintar(); },
+  'dieta-pestana'({ p }) { pestana = p; if (p !== 'equivalencias') cambio = null; repintar(); },
   'dieta-plan'({ tipo }) { planVista = tipo; repintar(); },
   'dieta-ir-planes'(ds, el, ev) { ev.preventDefault(); pestana = 'planes'; repintar(); window.scrollTo(0, 0); },
   'dieta-tipo-hoy'({ tipo }, el, ev) {
@@ -65,14 +69,14 @@ registrar({
     const tipo = tipoDieta(), hoy = dia(), clave = tipo + ':' + i;
     hoy.comidas ??= {};
     if (hoy.comidas[clave]) { delete hoy.comidas[clave]; guardar(); return; }
-    hoy.comidas[clave] = marcaComida(d().planes[tipo].comidas[Number(i)]);
+    hoy.comidas[clave] = marcaComida(planDieta().comidas[Number(i)]);
     guardar();
   },
   // ✓ Comí como el plan: marca de un toque las comidas que faltan del plan de hoy (las ya marcadas no se tocan)
   'dieta-comer-todo'() {
     const tipo = tipoDieta(), hoy = dia(), comidas = (hoy.comidas ??= {});
     let n = 0;
-    d().planes[tipo].comidas.forEach((c, i) => { if (!comidas[tipo + ':' + i]) { comidas[tipo + ':' + i] = marcaComida(c); n++; } });
+    planDieta().comidas.forEach((c, i) => { if (!comidas[tipo + ':' + i]) { comidas[tipo + ':' + i] = marcaComida(c); n++; } });
     guardar();
     toast(n ? '✓ ' + n + (n === 1 ? ' comida marcada' : ' comidas marcadas') + ' como el plan' : 'Ya tenías todas marcadas');
   },
@@ -139,5 +143,82 @@ registrar({
     if (d().carbAnterior) { d().config.carbKg = d().carbAnterior; delete d().carbAnterior; delete d().ultimoAjuste; }
     guardar();
     toast('Se volvió a los planes anteriores');
+  },
+});
+
+// ---------- 🔄 Equivalencias desde una comida ----------
+// Abrir: desde 📋 Planes (un alimento) o 🍽 Hoy (una comida; el alimento se elige en Equivalencias)
+const volver = () => { const o = cambio && cambio.origen; cambio = null; pestana = o === 'planes' ? 'planes' : 'hoy'; repintar(); window.scrollTo(0, 0); };
+// El alimento elegido tiene que estar en 🥚 Alimentos para que la comida lo cuente: uno de USDA se agrega con su fuente
+function asegurarAlimento({ alimento: id, nuevo }) {
+  if (id && alimento(id)) return alimento(id);
+  if (!nuevo) return null;
+  const a = JSON.parse(nuevo);
+  if (!alimento(a.id)) d().alimentos.push(a);
+  return alimento(a.id);
+}
+const nombreCant = (a, cant) => a.nombre + (a.por === 'libre' ? '' : ' ' + String(cant).replace('.', ',') + (a.por === 'g' ? ' g' : ' u'));
+registrar({
+  'dieta-equiv-abrir'({ tipo, i, j, origen }) {
+    cambio = { tipo, i: Number(i), j: j == null || j === '' ? null : Number(j), origen: origen || 'planes' };
+    pestana = 'equivalencias';
+    repintar();
+    window.scrollTo(0, 0);
+  },
+  'dieta-equiv-alimento'({ j }) { if (cambio) { cambio = { ...cambio, j: Number(j) }; repintar(); } },
+  'dieta-equiv-salir'() { volver(); },
+  // En el plan: queda así todos los días con ese plan
+  'dieta-equiv-plan'(ds) {
+    if (!cambio) return;
+    const comida = d().planes[cambio.tipo] && d().planes[cambio.tipo].comidas[cambio.i], viejo = comida && comida.items[cambio.j];
+    if (!viejo) { toast('Esa comida ya no existe'); volver(); return; }
+    const antes = alimento(viejo.alimento), cant = Number(ds.cant), info = ds.nuevo ? JSON.parse(ds.nuevo) : alimento(ds.alimento);
+    if (!info || !(cant > 0)) return;
+    if (!confirm('¿Cambiar en el plan ' + TIPOS[cambio.tipo] + ' (' + comida.nombre + ')?\n\n' + (antes ? nombreCant(antes, viejo.cant) : viejo.alimento) + ' → ' + nombreCant(info, cant) + '\n\nQueda así todos los días con ese plan.')) return;
+    const a = asegurarAlimento(ds);
+    comida.items[cambio.j] = { alimento: a.id, cant };
+    guardar();
+    toast('✓ Plan cambiado: ' + nombreCant(a, cant));
+    volver();
+  },
+  // Solo hoy: el plan no cambia; la comida de hoy (y lo que suma al día) sí
+  'dieta-equiv-hoy'(ds) {
+    if (!cambio || cambio.tipo !== tipoDieta()) return;
+    const comida = planDieta().comidas[cambio.i], viejo = comida && comida.items[cambio.j];
+    if (!viejo) { toast('Esa comida ya no existe'); volver(); return; }
+    const antes = alimento(viejo.alimento), cant = Number(ds.cant), info = ds.nuevo ? JSON.parse(ds.nuevo) : alimento(ds.alimento);
+    if (!info || !(cant > 0)) return;
+    if (!confirm('¿Cambiar solo hoy en ' + comida.nombre + '?\n\n' + (antes ? nombreCant(antes, viejo.cant) : viejo.alimento) + ' → ' + nombreCant(info, cant) + '\n\nEl plan sigue igual para los otros días.')) return;
+    const a = asegurarAlimento(ds), hoy = dia(), clave = cambio.tipo + ':' + cambio.i;
+    const items = comida.items.map((x, j) => (j === cambio.j ? { alimento: a.id, cant } : { ...x }));
+    (hoy.cambios ??= {})[clave] = items;
+    // Si ya la marcaste como comida, lo que suma al día se actualiza (con la misma hora)
+    if (hoy.comidas && hoy.comidas[clave]) hoy.comidas[clave] = { ...marcaComida({ ...comida, items }), ts: hoy.comidas[clave].ts };
+    guardar();
+    toast('✓ Solo hoy: ' + nombreCant(a, cant));
+    volver();
+  },
+  // Deshacer los cambios de hoy en una comida (vuelve a la del plan)
+  'dieta-equiv-deshacer'({ clave }) {
+    const hoy = dia();
+    if (!hoy.cambios || !hoy.cambios[clave]) return;
+    delete hoy.cambios[clave];
+    if (!Object.keys(hoy.cambios).length) delete hoy.cambios;
+    const [tipo, i] = clave.split(':'), comida = planDieta().comidas[Number(i)];
+    if (hoy.comidas && hoy.comidas[clave] && tipo === tipoDieta() && comida) hoy.comidas[clave] = { ...marcaComida(comida), ts: hoy.comidas[clave].ts };
+    guardar();
+    toast('Volvió a la comida del plan');
+  },
+});
+
+// ⭐ Cambios favoritos de 🔄 Equivalencias: { de, a, criterio } (ids como 'tu:arroz' o 'usda:papa-cocida'), los últimos primero
+const MAX_FAVORITOS = 20;
+registrar({
+  'dieta-equiv-fav'({ de, a, criterio }) {
+    const l = (d().favoritosEquiv ??= []), i = l.findIndex((x) => x.de === de && x.a === a && x.criterio === criterio);
+    if (i >= 0) { l.splice(i, 1); toast('Quitado de favoritos'); }
+    else { l.unshift({ de, a, criterio }); l.length = Math.min(l.length, MAX_FAVORITOS); toast('⭐ Guardado en favoritos'); }
+    if (!l.length) delete d().favoritosEquiv;
+    guardar();
   },
 });

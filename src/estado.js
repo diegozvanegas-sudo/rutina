@@ -6,7 +6,7 @@ import { aplicarHoja } from './datos_hoja.js';
 import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, CATEGORIAS_NUEVAS_V2 } from './datos_finanzas.js';
 import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, LUGARES_RESTO } from './datos_lugares.js';
-import { tipoDeDia, tocaRecarga, totalPlan, macrosPorKg, objetivo, recalcular, quitarComidasRepetidas } from './dieta.js';
+import { tipoDeDia, tocaRecarga, totalPlan, macrosPorKg, objetivo, recalcular, quitarComidasRepetidas, conCambiosDelDia } from './dieta.js';
 import { LIBROS } from './libros/index.js';
 import { progresoInicial } from './biblioteca.js';
 import { visibles } from './orden.js';
@@ -538,7 +538,8 @@ export function tipoDieta(fecha = iso()) {
   const d = e().dias[fecha];
   return (d && d.dieta) || tipoDietaAuto(fecha);
 }
-export const planDieta = (fecha = iso()) => e().dieta.planes[tipoDieta(fecha)];
+// El plan de ese día, con lo que se cambió solo ese día (🔄 Equivalencias → "Solo hoy")
+export const planDieta = (fecha = iso()) => { const tipo = tipoDieta(fecha), dd = e().dias[fecha]; return conCambiosDelDia(e().dieta.planes[tipo], tipo, dd && dd.cambios); };
 // Comidas marcadas: guardan sus calorías y proteína del momento (si después cambia el plan, el día no cambia)
 export function comidasDelDia(fecha = iso()) {
   const c = (e().dias[fecha] && e().dias[fecha].comidas) || {};

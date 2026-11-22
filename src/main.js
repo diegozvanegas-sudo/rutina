@@ -85,7 +85,7 @@ const DENTRO = { libros: 'estudiar' };
 // Subsecciones que se abren desde el menú (#seccion/pestaña): las pestañas de Finanzas, Dieta, Gym y Editar
 const SUBSECCIONES = {
   finanzas: Object.entries(PESTANAS_FINANZAS),
-  dieta: [['hoy', '🍽 Hoy'], ['planes', '📋 Planes'], ['peso', '⚖️ Peso'], ['alimentos', '🥚 Alimentos']],
+  dieta: [['hoy', '🍽 Hoy'], ['planes', '📋 Planes'], ['peso', '⚖️ Peso'], ['alimentos', '🥚 Alimentos'], ['equivalencias', '🔄 Equivalencias']],
   gym: [['resumen', '📊 Resumen'], ['plan12', '📆 12 semanas'], ['casa', '🏠 En casa']],
   editar: [['rutina', '🏋️ Rutina'], ['habitos', '☀️ Hábitos'], ['sesiones', '🧘 Sesiones'], ['pantallas', '🧩 Pantallas']],
 };

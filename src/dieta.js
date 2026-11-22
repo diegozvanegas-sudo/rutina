@@ -196,3 +196,12 @@ export function tendencia(lista) {
   const ult = lista.slice(-7);
   return ult.length ? ult.reduce((s, x) => s + x.peso, 0) / ult.length : null;
 }
+
+// 🔄 Cambios de un solo día (Dieta → Equivalencias, "solo hoy"): dias[fecha].cambios['tipo:i'] = los alimentos de esa
+// comida ese día. El plan no cambia; ese día se ve y se cuenta con el cambio. Sin cambios devuelve el mismo plan
+export function conCambiosDelDia(plan, tipo, cambios) {
+  if (!plan || !cambios) return plan;
+  const claves = Object.keys(cambios).filter((k) => k.startsWith(tipo + ':'));
+  if (!claves.length) return plan;
+  return { ...plan, comidas: plan.comidas.map((c, i) => (cambios[tipo + ':' + i] ? { ...c, items: cambios[tipo + ':' + i].map((x) => ({ ...x })), cambiada: true } : c)) };
+}

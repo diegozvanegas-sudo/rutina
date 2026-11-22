@@ -56,7 +56,7 @@ const ESTADOS_COBRO = { pagado: '✓ Cobrado', pronto: 'Pronto', vencido: 'Sin p
 export const pestanaFinanzas = () => pestana;
 // La pestaña con su módulo cuando es Plan B ("planb:lider"): main.js decide con esto si pinta React o la pantalla de antes
 export { moduloPlanB };
-export const PESTANAS_FINANZAS = { registrar: '➕ Registrar', calcular: '🧮 Calcular', mes: '📊 Mes', extracto: '🏦 Extracto', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h', planb: '🛟 Plan B' };
+export const PESTANAS_FINANZAS = { registrar: '➕ Registrar', calcular: '🧮 Calcular', mes: '📊 Mes', viene: '📅 Lo que viene', extracto: '🏦 Extracto', resumen: '📈 Resumen', presupuesto: '🎯 Presupuesto', fijos: '🔁 Fijos', ahorro: '🐷 Ahorro', deudas: '💳 Deudas', prestamos: '🤝 Me deben', esperas: '⏳ 72 h', planb: '🛟 Plan B' };
 export const piezasFinanzas = {
   cat, metodo, cuentas, pct, corto, nombreMes, millones, ESTADOS, ESTADOS_INGRESO, ESTADOS_COBRO, TIPOS, BOTON, editable, plazo, simula,
   // Lo que la pantalla recuerda mientras está abierta: el formulario de Registrar, el mes que se ve y el filtro de la lista

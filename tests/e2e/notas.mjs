@@ -120,8 +120,10 @@ export default async (p) => {
     // A la nota: carpeta Clientes y etiqueta urgente
     await p.tocar('[data-nota="' + n.id + '"] button');
     await a.esperar('[data-t=texto]');
+    // La carpeta se elige con un toque (los botones se ven siempre debajo del título)
+    await p.tocar('[data-t=carpetas-nota] [data-carpeta-id="' + clientes.id + '"]');
+    falla(await p.ev(`document.querySelector('[data-t=carpetas-nota] [data-carpeta-id="${clientes.id}"]').getAttribute('aria-checked')`) === 'true', 'el botón de la carpeta no quedó marcado');
     await p.tocar('[data-editor] button[aria-expanded]');
-    await p.poner('[aria-label="Carpeta de la nota"]', clientes.id);
     await tocarTexto('urgente' + sufijo, '[aria-label="Etiquetas de la nota"] button');
     n = (await notas()).find((x) => x.id === n.id);
     falla(n.carpeta === clientes.id && n.etiquetas.includes(urg.id), 'no quedó la carpeta o la etiqueta: ' + JSON.stringify([n.carpeta, n.etiquetas]));
@@ -146,9 +148,27 @@ export default async (p) => {
     await tocarTexto('urgente' + sufijo, '[aria-label="Filtrar por etiqueta"] button');
     falla(JSON.stringify(await filas()) === JSON.stringify([n.id]), 'el filtro de etiqueta no deja solo la nota');
     await tocarTexto('urgente' + sufijo, '[aria-label="Filtrar por etiqueta"] button');
-    await p.poner('[aria-label="Carpeta"]', trabajo.id);
+    falla((await p.leer('[data-nota="' + n.id + '"] [data-t=carpeta]') || '').includes('Clientes' + sufijo), 'la fila no dice en qué carpeta está');
+    await p.tocar('[data-t=carpetas-filtro] [data-carpeta-id="' + trabajo.id + '"]');
     falla(JSON.stringify(await filas()) === JSON.stringify([n.id]), 'el filtro de carpeta no muestra lo de su subcarpeta');
-    await p.poner('[aria-label="Carpeta"]', '');
+    // Con la carpeta elegida, la nota nueva se crea adentro
+    falla((await p.leer('[data-t=nota-nueva]')).includes('Nota en Trabajo' + sufijo), 'el botón no dice en qué carpeta crea: ' + await p.leer('[data-t=nota-nueva]'));
+    await p.tocar('[data-t=nota-nueva]');
+    await a.esperar('[data-t=texto]');
+    await escribir('va en trabajo');
+    await guardada();
+    const enTrabajo = (await notas()).find((x) => !antes.includes(x.id) && x.id !== n.id && x.id !== otra.id);
+    falla(enTrabajo && enTrabajo.carpeta === trabajo.id, 'la nota nueva no quedó en la carpeta elegida: ' + JSON.stringify(enTrabajo));
+    // Carpeta nueva desde la nota: se crea y la nota queda ahí de una vez
+    await p.tocar('[data-t=carpetas-nota] [aria-label="Carpeta nueva"]');
+    await a.escribir('[aria-label="Nombre para la carpeta nueva"]', 'Rápida' + sufijo);
+    await p.tocar('[aria-label="Crear y elegir la carpeta"]');
+    const rapida = (await p.estado()).notasMeta.carpetas.find((x) => x.nombre === 'Rápida' + sufijo);
+    falla(rapida && (await notas()).find((x) => x.id === enTrabajo.id).carpeta === rapida.id, 'crear la carpeta desde la nota no la asignó');
+    await p.foto('notas-carpeta-en-nota-' + equipo);
+    await tocarTexto('← Notas');
+    await p.tocar('[data-t=carpetas-filtro] [data-carpeta-id=""]');
+    falla((await filas()).length >= 3, 'Todas no quitó el filtro');
     await a.escribir('[aria-label="Buscar notas"]', 'clientes' + sufijo);
     falla((await filas()).includes(n.id) && !(await filas()).includes(otra.id), 'buscar por carpeta no sirvió');
     await a.escribir('[aria-label="Buscar notas"]', 'mamá');

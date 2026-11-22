@@ -37,9 +37,67 @@ function Chip({ t, activa, alTocar, chica = false }: { t: Fin; activa?: boolean;
   return <Box component="button" type="button" aria-pressed={!!activa} onClick={alTocar} sx={{ ...sx, cursor: 'pointer', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>{cuerpo}</Box>;
 }
 
+// 📁 Carpetas de un toque: una fila de botones (la elegida rellena) y "＋ Carpeta" que la crea ahí mismo.
+// En la lista filtra (con "Todas" y "Sin carpeta"); en una nota la pone en esa carpeta (con "Sin carpeta")
+function BotonCarpeta({ activa, alTocar, children, ...resto }: { activa: boolean; alTocar: () => void; children: ReactNode; [k: string]: Fin }) {
+  return (
+    <Box component="button" type="button" role="radio" aria-checked={activa} onClick={alTocar} {...resto}
+      sx={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flex: 'none', borderRadius: '999px', border: '1px solid', borderColor: activa ? 'primary.main' : 'divider', bgcolor: activa ? tokens.brandSoft : 'transparent',
+        color: activa ? 'primary.main' : 'text.primary', font: 'inherit', fontSize: 14, fontWeight: activa ? 700 : 400, p: '6px 12px', minHeight: 40, whiteSpace: 'nowrap', cursor: 'pointer', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
+      {children}
+    </Box>
+  );
+}
+function ElegirCarpeta({ est, valor, alElegir, filtro = false, nombre }: { est: Fin; valor: string; alElegir: (id: string) => void; filtro?: boolean; nombre: string }) {
+  const [creando, ponerCreando] = useState(false), [texto, ponerTexto] = useState(''), fila = useRef<HTMLDivElement>(null);
+  const carpetas = N.carpetasEnOrden(est), vivas = filtro ? N.filtrar(est) : [];
+  // En el celular la fila se desliza de lado: que la elegida quede a la vista (sin mover la página)
+  useEffect(() => {
+    const f = fila.current, el = f && (f.querySelector('[aria-checked="true"]') as HTMLElement | null);
+    if (!f || !el || f.scrollWidth <= f.clientWidth) return;
+    if (el.offsetLeft < f.scrollLeft || el.offsetLeft + el.offsetWidth > f.scrollLeft + f.clientWidth) f.scrollLeft = Math.max(0, el.offsetLeft - 12);
+  }, [valor, carpetas.length]);
+  const cuantas = (id: string) => vivas.filter((x: Fin) => x.carpeta === id || (N.carpetaDe(est, x.carpeta) || {}).padre === id).length;
+  const sin = filtro ? vivas.filter((x: Fin) => !x.carpeta || !N.carpetaDe(est, x.carpeta)).length : 0;
+  const crear = () => {
+    const c = N.crearCarpeta(texto, null);
+    if (!c) { ponerCreando(false); return; }
+    ponerTexto(''); ponerCreando(false); alElegir(c.id);
+    toast('📁 ' + c.nombre + (filtro ? ' creada' : ': la nota quedó ahí'));
+  };
+  return (
+    <Box ref={fila} role="radiogroup" aria-label={nombre} data-t={filtro ? 'carpetas-filtro' : 'carpetas-nota'}
+      sx={{ position: 'relative', display: 'flex', gap: '6px', alignItems: 'center', overflowX: 'auto', scrollbarWidth: 'none', pb: '2px', '@media (min-width: 900px)': { flexWrap: 'wrap', overflowX: 'visible' } }}>
+      {filtro ? <BotonCarpeta activa={!valor} alTocar={() => alElegir('')} data-carpeta-id="">Todas</BotonCarpeta> : null}
+      {carpetas.map((c: Fin) => (
+        <BotonCarpeta key={c.id} activa={valor === c.id} alTocar={() => alElegir(filtro && valor === c.id ? '' : c.id)} data-carpeta-id={c.id}>
+          {c.nivel ? '└ ' : '📁 '}{c.nombre}{filtro ? <Box component="small" sx={{ color: 'text.secondary', fontWeight: 400 }}>{cuantas(c.id)}</Box> : null}
+        </BotonCarpeta>
+      ))}
+      {filtro && !carpetas.length ? null : (
+        <BotonCarpeta activa={valor === 'sin' || (!filtro && !valor)} alTocar={() => alElegir(filtro ? (valor === 'sin' ? '' : 'sin') : '')} data-carpeta-id="sin">
+          Sin carpeta{filtro ? <Box component="small" sx={{ color: 'text.secondary', fontWeight: 400 }}>{sin}</Box> : null}
+        </BotonCarpeta>
+      )}
+      {creando ? (
+        <Box sx={{ display: 'inline-flex', gap: '4px', flex: 'none' }}>
+          <Box component="input" autoFocus placeholder="Nombre de la carpeta" aria-label="Nombre para la carpeta nueva" value={texto} onChange={(ev: Fin) => ponerTexto(ev.target.value)}
+            onKeyDown={(ev: Fin) => { if (ev.key === 'Enter') { ev.preventDefault(); crear(); } if (ev.key === 'Escape') ponerCreando(false); }}
+            sx={{ ...CAMPO, width: '11em', minHeight: 40, p: '6px 10px' }} />
+          <Button onClick={crear} disabled={!texto.trim()} aria-label="Crear y elegir la carpeta" sx={{ minHeight: 40 }}>Crear</Button>
+          <Button color="secondary" onClick={() => { ponerCreando(false); ponerTexto(''); }} aria-label="Cancelar" sx={{ minHeight: 40, minWidth: 40 }}>✕</Button>
+        </Box>
+      ) : (
+        <BotonCarpeta activa={false} alTocar={() => ponerCreando(true)} aria-label="Carpeta nueva" role="button" aria-checked={undefined}>＋ Carpeta</BotonCarpeta>
+      )}
+    </Box>
+  );
+}
+
 // ---------- La lista ----------
-function Fila({ n, est, alAbrir }: { n: Fin; est: Fin; alAbrir: () => void }) {
+function Fila({ n, est, alAbrir, conCarpeta = true }: { n: Fin; est: Fin; alAbrir: () => void; conCarpeta?: boolean }) {
   const resumen = N.resumenDe(n), tags = (n.etiquetas || []).map((id: string) => N.etiquetaDe(est, id)).filter(Boolean);
+  const carpeta = conCarpeta && n.carpeta && N.carpetaDe(est, n.carpeta) ? N.rutaCarpeta(est, n.carpeta) : '';
   return (
     <Box component="li" data-nota={n.id}>
       <Box component="button" type="button" onClick={alAbrir}
@@ -49,6 +107,7 @@ function Fila({ n, est, alAbrir }: { n: Fin; est: Fin; alAbrir: () => void }) {
           {tags.slice(0, 3).map((t: Fin) => <Box key={t.id} component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: t.color }} />)}
         </Box>
         <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {carpeta ? <Box component="span" data-t="carpeta" sx={{ color: 'text.secondary', fontSize: 13 }}>📁 {carpeta} · </Box> : null}
           <Box component="b" data-t="titulo" sx={{ fontWeight: 700 }}>{N.tituloDe(n)}</Box>
           {resumen ? <Box component="span" sx={{ color: 'text.secondary' }}> · {resumen}</Box> : null}
         </Box>
@@ -59,21 +118,13 @@ function Fila({ n, est, alAbrir }: { n: Fin; est: Fin; alAbrir: () => void }) {
 }
 
 function Filtros({ est, f, poner }: { est: Fin; f: Filtro; poner: (f: Filtro) => void }) {
-  const carpetas = N.carpetasEnOrden(est), etiquetas = N.meta(est).etiquetas;
+  const etiquetas = N.meta(est).etiquetas;
   const alternar = (id: string) => poner({ ...f, etiquetas: f.etiquetas.includes(id) ? f.etiquetas.filter((x) => x !== id) : [...f.etiquetas, id] });
   return (
     <Box sx={{ display: 'grid', gap: '8px' }}>
-      <Box sx={{ display: 'grid', gridTemplateColumns: carpetas.length ? 'minmax(0, 1fr) minmax(0, 12em)' : '1fr', gap: '8px' }}>
-        <Box component="input" type="search" placeholder="🔎 Buscar en título, texto, carpeta o etiqueta" aria-label="Buscar notas" value={f.buscar}
-          onChange={(ev: Fin) => poner({ ...f, buscar: ev.target.value })} sx={CAMPO} />
-        {carpetas.length ? (
-          <Box component="select" aria-label="Carpeta" value={f.carpeta} onChange={(ev: Fin) => poner({ ...f, carpeta: ev.target.value })} sx={CAMPO}>
-            <option value="">📁 Todas</option>
-            <option value="sin">Sin carpeta</option>
-            {carpetas.map((c: Fin) => <option key={c.id} value={c.id}>{(c.nivel ? '   └ ' : '📁 ') + c.nombre}</option>)}
-          </Box>
-        ) : null}
-      </Box>
+      <ElegirCarpeta est={est} valor={f.carpeta} alElegir={(id) => poner({ ...f, carpeta: id })} filtro nombre="Carpeta" />
+      <Box component="input" type="search" placeholder="🔎 Buscar en título, texto, carpeta o etiqueta" aria-label="Buscar notas" value={f.buscar}
+        onChange={(ev: Fin) => poner({ ...f, buscar: ev.target.value })} sx={CAMPO} />
       {etiquetas.length ? (
         <Box role="group" aria-label="Filtrar por etiqueta" sx={{ display: 'flex', gap: '6px', overflowX: 'auto', pb: '2px', scrollbarWidth: 'none' }}>
           {etiquetas.map((t: Fin) => <Chip key={t.id} t={t} activa={f.etiquetas.includes(t.id)} alTocar={() => alternar(t.id)} />)}
@@ -367,7 +418,7 @@ function Editor({ n, est, alCerrar }: { n: Fin; est: Fin; alCerrar: () => void }
     (toast as Fin)('🗑 Nota en la papelera', () => N.recuperarNota(n.id));
   };
   const whatsapp = () => { guardarYa(); return N.textoWhatsApp(est.notas[n.id] || n); };
-  const carpetas = N.carpetasEnOrden(est), etiquetas = N.meta(est).etiquetas, suyas: string[] = n.etiquetas || [];
+  const etiquetas = N.meta(est).etiquetas, suyas: string[] = n.etiquetas || [];
   const barraFija = abajo != null;
 
   return (
@@ -384,22 +435,21 @@ function Editor({ n, est, alCerrar }: { n: Fin; est: Fin; alCerrar: () => void }
         onKeyDown={(ev: Fin) => { if (ev.key === 'Enter') { ev.preventDefault(); caja.current?.focus(); } }}
         sx={{ all: 'unset', boxSizing: 'border-box', width: '100%', fontSize: 22, fontWeight: 700, p: '6px 2px', '&::placeholder': { color: 'text.secondary', opacity: 0.7 } }} />
 
-      {/* Carpeta y etiquetas de la nota: una fila que se abre */}
+      {/* 📁 Carpeta de la nota: siempre a la vista, un toque para cambiarla o crear una nueva */}
+      <Box sx={{ mb: '6px' }}>
+        <ElegirCarpeta est={est} valor={n.carpeta && N.carpetaDe(est, n.carpeta) ? n.carpeta : ''} alElegir={(id) => N.guardarNota(n.id, { carpeta: id || null })} nombre="Carpeta de la nota" />
+      </Box>
+      {/* Etiquetas de la nota: una fila que se abre */}
       <Box sx={{ ...FILA, gap: '6px', mb: '6px' }}>
         <Box component="button" type="button" aria-expanded={detalles} onClick={() => ponerDetalles(!detalles)}
           sx={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: 36, color: 'text.secondary', fontSize: 14, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
-          📁 {n.carpeta && N.carpetaDe(est, n.carpeta) ? N.rutaCarpeta(est, n.carpeta) : 'Sin carpeta'}
-          {suyas.length ? null : <span>· 🏷️ sin etiquetas</span>}
+          🏷️ {suyas.length ? 'Etiquetas' : 'Sin etiquetas'}
           <span aria-hidden>{detalles ? '▴' : '▾'}</span>
         </Box>
         {suyas.map((id) => N.etiquetaDe(est, id)).filter(Boolean).map((t: Fin) => <Chip key={t.id} t={t} chica />)}
       </Box>
       {detalles ? (
         <Box sx={{ display: 'grid', gap: '8px', p: '10px', mb: '8px', borderRadius: '12px', bgcolor: tokens.surface2 }}>
-          <Box component="select" aria-label="Carpeta de la nota" value={n.carpeta && N.carpetaDe(est, n.carpeta) ? n.carpeta : ''} onChange={(ev: Fin) => N.guardarNota(n.id, { carpeta: ev.target.value || null })} sx={CAMPO}>
-            <option value="">Sin carpeta</option>
-            {carpetas.map((c: Fin) => <option key={c.id} value={c.id}>{(c.nivel ? '   └ ' : '📁 ') + c.nombre}</option>)}
-          </Box>
           {etiquetas.length ? (
             <Box role="group" aria-label="Etiquetas de la nota" sx={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {etiquetas.map((t: Fin) => <Chip key={t.id} t={t} activa={suyas.includes(t.id)} alTocar={() => N.guardarNota(n.id, { etiquetas: suyas.includes(t.id) ? suyas.filter((x) => x !== t.id) : [...suyas, t.id] })} />)}
@@ -482,6 +532,8 @@ export default function Notas({ pestana }: { pestana?: string } = {}) {
 
   const lista = N.filtrar(est, f), hay = N.filtrar(est).length, enPapelera = N.filtrar(est, {}, true).length;
   const filtrando = !!(f.buscar.trim() || f.carpeta || f.etiquetas.length);
+  // Con una carpeta elegida, la nota nueva se crea adentro (el botón lo dice)
+  const enCarpeta = f.carpeta && f.carpeta !== 'sin' ? N.carpetaDe(est, f.carpeta) : null;
   const nueva = () => {
     const datos: Fin = {};
     if (f.carpeta && f.carpeta !== 'sin') datos.carpeta = f.carpeta;
@@ -492,11 +544,13 @@ export default function Notas({ pestana }: { pestana?: string } = {}) {
     <>
       <Box sx={{ ...FILA, justifyContent: 'space-between', mb: '10px' }}>
         <TituloPantalla sx={{ m: 0 }}>📝 Notas</TituloPantalla>
-        <Button onClick={nueva} sx={{ minHeight: 44 }}>＋ Nota nueva</Button>
+        <Button onClick={nueva} sx={{ minHeight: 44, maxWidth: '60%' }} data-t="nota-nueva">
+          <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>＋ {enCarpeta ? 'Nota en ' + enCarpeta.nombre : 'Nota nueva'}</Box>
+        </Button>
       </Box>
-      {hay || N.meta(est).etiquetas.length || N.meta(est).carpetas.length ? <Filtros est={est} f={f} poner={ponerF} /> : null}
+      <Filtros est={est} f={f} poner={ponerF} />
       <Box component="ul" aria-label="Notas" sx={{ listStyle: 'none', m: '10px 0 0', p: 0, display: 'grid', gap: '6px' }}>
-        {lista.map((n: Fin) => <Fila key={n.id} n={n} est={est} alAbrir={() => ponerAbierta(n.id)} />)}
+        {lista.map((n: Fin) => <Fila key={n.id} n={n} est={est} alAbrir={() => ponerAbierta(n.id)} conCarpeta={!f.carpeta || f.carpeta === 'sin' || N.carpetasEnOrden(est).some((c: Fin) => c.padre === f.carpeta)} />)}
       </Box>
       {!hay ? <Nota>Aquí van tus notas: ideas, listas, lo que quieras. Se guardan solas mientras escribes, también sin internet.</Nota>
         : !lista.length ? <Box sx={{ ...FILA, mt: '8px' }}><Nota sx={{ m: 0 }}>Ninguna nota con ese filtro.</Nota><Button color="secondary" onClick={() => ponerF({ carpeta: '', etiquetas: [], buscar: '' })}>Quitar filtros</Button></Box> : null}

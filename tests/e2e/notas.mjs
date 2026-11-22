@@ -1,4 +1,4 @@
-// Recorrido de 📝 Notas con clics reales, en computador y celular: la sección en el menú (🌱 Mente y crecimiento), nota
+// Recorrido de 📝 Notas con clics reales, en computador y celular: el botón 📝 siempre a la vista (fuera del menú), nota
 // nueva con el cursor listo, escribir con formato (negrita, cursiva, título, casillas, resaltar, enlace), pegar algo con
 // estilos (queda limpio), dictar (reconocimiento de voz de mentira), "Guardado", recargar y que siga igual, carpetas
 // (con una adentro), etiquetas con color, filtros, buscador, fijar, borrar a la papelera y recuperar.
@@ -36,13 +36,14 @@ export default async (p) => {
     await p[equipo]();
     await p.ev(DICTADO);
     await p.recargar();
-    if (equipo === 'computador') {
-      await p.ev(`(()=>{const b=document.querySelector('#lateral [data-accion=barra-grupo][data-g=mente]');if(b&&b.getAttribute('aria-expanded')!=='true')b.click()})()`);
-      await dormir(300);
-      falla(await p.cuantos('#lateral a[href="#notas"]'), 'Notas no está en Mente y crecimiento');
-    }
-    await p.ir('notas');
+    // 📝 Notas ya no va en el menú: se abre con su botón, que se ve en cualquier pantalla y se esconde dentro de Notas
+    await p.ir('hoy');
     await a.esperar('#vista h1');
+    falla(!(await p.cuantos('#lateral a[href="#notas"]')), 'Notas no debería estar en la lista del menú');
+    falla(await p.ev(`document.getElementById('boton-notas').checkVisibility()`), 'no se ve el botón 📝 en Hoy');
+    await p.tocar('#boton-notas');
+    await a.esperar('#vista h1');
+    falla(!(await p.ev(`document.getElementById('boton-notas').checkVisibility()`)), 'el botón 📝 se sigue viendo dentro de Notas');
     falla((await a.texto()).includes('📝 Notas'), 'no abrió la sección');
     const antes = (await notas()).map((n) => n.id);
 

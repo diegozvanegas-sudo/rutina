@@ -130,7 +130,8 @@ function datosLateral() {
   const c = e().config, b = ajustesBarra(), avisos = alertas().length, v = actual();
   if (b.compacta) organizandoMenu = false;
   // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
-  const ids = visibles(c, 'menu').filter((k) => ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || v === 'entrenador') && (k !== 'panel' || permitida('panel'))).concat(SOLO_ADMIN.filter(permitida));
+  // 📝 Notas no va en la lista: tiene su botón siempre a la vista (#boton-notas)
+  const ids = visibles(c, 'menu').filter((k) => k !== 'notas' && ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || v === 'entrenador') && (k !== 'panel' || permitida('panel'))).concat(SOLO_ADMIN.filter(permitida));
   const total = habitosDe().length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {});
   const enlaces = ids.map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], actual: k === (DENTRO[v] || v), insignia: k === 'recordatorios' ? avisos : 0 }));
   // 🎨 Cada lado ve su portal (src/marca.js): el cliente, lo suyo primero con la marca de su entrenador y lo demás en "Más";
@@ -147,7 +148,7 @@ function datosLateral() {
     mano: b.mano === 'izquierda' ? 'izquierda' : 'derecha', unaMano: !!b.unaMano, listaGrupos: GRUPOS,
     modo, marca: marcaVista, negocio, mas: menu.mas,
     enlaces: menu.principales.filter((x) => !enNegocio.has(x.k)),
-    filas: enOrden(c, 'menu').filter((k) => ve('seccion', k)).map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], apagado: oculto(c, 'menu', k), fija: FIJAS.menu.includes(k), grupo: grupoDe(c, k) })),
+    filas: enOrden(c, 'menu').filter((k) => k !== 'notas' && ve('seccion', k)).map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], apagado: oculto(c, 'menu', k), fija: FIJAS.menu.includes(k), grupo: grupoDe(c, k) })),
     resumen: [
       ve('seccion', 'manana') && { href: '#manana', titulo: 'Ir a Mañana', texto: '☀️ Mañana', valor: hechosManana() + '/' + total, parte: fraccionManana() },
       ve('seccion', 'metas') && { href: '#metas', titulo: 'Ir a Metas', texto: '🎯 Metas', valor: pct(m.total), parte: m.total },
@@ -221,7 +222,10 @@ function pintar() {
     return;
   }
   marcaArriba();
-  const v = actual(), y = window.scrollY, ancla = v === ultimaVista ? anclaDe() : null;
+  // 📝 El botón de Notas: en todas las pantallas menos en la misma Notas, y solo si la puede abrir
+  const v0 = actual();
+  if ($('boton-notas')) $('boton-notas').hidden = v0 === 'notas' || !permitida('notas');
+  const v = v0, y = window.scrollY, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
   // La pantalla se monta una vez y se repinta sola (con sus avisos de arriba)
   if (!$('raiz-react') || $('raiz-react').dataset.pantalla !== v || pestanaReact != null) {

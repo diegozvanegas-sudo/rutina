@@ -100,6 +100,24 @@ details summary { cursor: pointer; color: ${t.muted}; padding: 6px 0; }
 .vt-papel small { color: ${t.papelGris}; }
 .flotante { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: ${t.flotanteFondo}; border: 1px solid ${t.brand}; box-shadow: 0 8px 30px ${t.velo}; overflow: hidden; }
 .flotante[hidden] { display: none; }
+/* 📝 Notas: botón redondo siempre a la vista, abajo a la derecha; sube cuando hay cronómetro o ☰ de una mano */
+.boton-notas { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 42; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; text-decoration: none; background: ${t.surface2}; border: 2px solid ${t.brand}; box-shadow: 0 6px 20px ${t.velo}; }
+.boton-notas:hover { background: ${t.brandSoft}; }
+.boton-notas:focus-visible { outline: 3px solid ${t.brand}; outline-offset: 2px; }
+.boton-notas[hidden], .sin-sesion .boton-notas { display: none; }
+body:has(#flotante:not([hidden])) .boton-notas { bottom: calc(96px + env(safe-area-inset-bottom)); }
+@media (max-width: 899px) {
+  .una-mano .boton-notas { bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .una-mano.mano-izquierda .boton-notas { right: auto; left: 18px; }
+  .una-mano:has(#flotante:not([hidden])) .boton-notas { bottom: calc(168px + env(safe-area-inset-bottom)); }
+  /* Mientras escribes, que no tape el campo ni el teclado */
+  body:has(:is(input, textarea, select, [contenteditable="true"]):focus) .boton-notas { display: none; }
+}
+@media (min-width: 900px) {
+  .boton-notas { right: calc(var(--ancho-barra, 260px) + 24px); bottom: 24px; }
+  .barra-izquierda .boton-notas { right: 24px; }
+  body:has(#flotante:not([hidden])) .boton-notas { bottom: 112px; }
+}
 .reproductor { position: fixed; inset: 0; z-index: 50; background: ${t.bg}; display: flex; flex-direction: column; padding: calc(10px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
 .reproductor[hidden] { display: none; }
 .toast { position: fixed; left: 50%; top: calc(16px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 60; background: ${t.ink}; color: ${t.bg}; padding: 12px 18px; border-radius: 12px; font-weight: 700; max-width: calc(100% - 32px); box-shadow: 0 8px 24px ${t.sombraAviso}; }

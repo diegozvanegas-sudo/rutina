@@ -100,14 +100,31 @@ export default async (p) => {
   falla((await p.estado()).config.otro === 'sí', 'este equipo no tiene lo del otro');
   console.log('✓ cambios de los dos lados se combinan: ' + nombres(ls));
 
-  // 6. La nube de antes (sin las funciones nuevas): todo sigue funcionando como siempre
+  // 6. Copia vieja (23 nov 2026: una pestaña vieja subió su copia y borró días, movimientos y recordatorios): otro equipo
+  // anotó 8 movimientos y la copia de base de este quedó con lo nuevo pero con la versión de lo viejo. Al tocar algo aquí,
+  // nada de lo del otro se borra de la nube (el freno junta en vez de borrar) y lo de aquí también sube
+  await p.ev(`(() => { const f = window.__nube.s.fila, ms = f.datos.finanzas.movimientos;
+    for (let i = 0; i < 8; i++) ms.push({ id: 'otro-' + i, tipo: 'gasto', monto: 1000 + i, categoria: 'otros', fecha: '2026-11-20', nota: 'del otro equipo' });
+    f.version += 10; f.datos.cambio = f.version; window.__nube.s.versiones[f.version] = JSON.parse(JSON.stringify(f.datos)); })()`);
+  await p.ev(`(async () => { const est = await import('/src/estado.js'); const f = window.__nube.s.fila;
+    localStorage.setItem(est.claveActual() + ':base', JSON.stringify({ baseV2: true, version: est.e().nube.base, datos: f.datos })); })()`);
+  await tocarTexto('+250 ml');
+  await esperarSubida(); await sincronizar();
+  ls = await llamadas();
+  const n6 = await enNube(), otros = n6.finanzas.movimientos.filter((m) => /^otro-/.test(m.id)).length;
+  falla(otros === 8, 'la copia vieja borró movimientos del otro equipo: quedaron ' + otros + ' de 8 (' + nombres(ls) + ')');
+  falla(n6.dias[iso()].metas.agua === 750, 'lo de este equipo no subió: agua ' + n6.dias[iso()].metas.agua);
+  falla((await p.estado()).finanzas.movimientos.filter((m) => /^otro-/.test(m.id)).length === 8, 'este equipo no quedó con lo del otro');
+  console.log('✓ una copia vieja no borra nada de la nube: los 8 movimientos del otro equipo siguen y lo de aquí subió');
+
+  // 7. La nube de antes (sin las funciones nuevas): todo sigue funcionando como siempre
   await p.ev(`window.__nube.s.vieja = true`);
   await p.ev(`window.rutinaPrueba.nube(window.__nube.cliente, { id: 'u-prueba', correo: 'prueba@ejemplo.com' })`);
   await tocarTexto('+250 ml');
   await esperarSubida();
   ls = await llamadas();
   falla(/rutina_leer rutina_guardar$/.test(nombres(ls)), 'con la nube de antes: ' + nombres(ls));
-  falla((await agua()) === 750, 'con la nube de antes no subió: ' + (await agua()));
+  falla((await agua()) === 1000, 'con la nube de antes no subió: ' + (await agua()));
   await sincronizar();
   ls = await llamadas();
   falla(nombres(ls) === 'rutina_leer', 'con la nube de antes, sin cambios: ' + nombres(ls));

@@ -1,8 +1,9 @@
 // Copia en la nube (Supabase, esquema "rutina" del proyecto de microrrutas). El celular sigue siendo lo principal:
 // todo funciona sin señal y, cuando hay internet, se sube o se baja lo más reciente.
 import { createClient } from '@supabase/supabase-js';
-import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual } from './estado.js';
-import { combinarEstado, difiereDeLaNube, tieneDatosPropios, cambiosParaNube, aplicarCambios } from './combinar.js';
+import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUsuario, esperarUsuario, guardarBase, leerBase, guardarAntes, marcarCambio, claveActual, tomarBorradoAProposito } from './estado.js';
+import { combinarEstado, difiereDeLaNube, tieneDatosPropios, cambiosParaNube, aplicarCambios, registrosQuitados, limpiarRepetidos, LIMITE_QUITAR } from './combinar.js';
+import { toast } from './ui.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos, esSinAcceso } from './permisos.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -129,7 +130,19 @@ function bajar(remoto) {
 async function subir(local, cuenta, previo = null) {
   seguir(cuenta);
   const cambio = local.cambio || Date.now();
-  const datos = datosParaNube();
+  let datos = datosParaNube();
+  // Freno: si esto quitaría de la nube muchos registros de golpe (una copia vieja de este equipo), no se borra nada: se
+  // junta con lo de la nube (lo de los dos lados) y se avisa. Borrar todo desde Ajustes sí pasa
+  if (previo && previo.datos && !tomarBorradoAProposito()) {
+    const q = registrosQuitados(previo.datos, datos);
+    if (q.total > LIMITE_QUITAR) {
+      guardarAntes(datos);
+      reemplazar(limpiarRepetidos(combinarEstado({}, datos, previo.datos, true)));
+      datos = datosParaNube();
+      const que = [['dias', 'días'], ['movimientos', 'movimientos'], ['recordatorios', 'de recordatorios'], ['notas', 'notas'], ['gym', 'del gym']].filter(([k]) => q[k]).map(([k, t]) => q[k] + ' ' + t).join(', ');
+      toast('☁️ Este equipo tenía una copia vieja: en vez de borrar ' + que + ' de la nube, se juntó con lo de la nube. Revisa que esté todo.');
+    }
+  }
   let respuesta = null;
   if (previo && porPartes && !sinPartes) {
     const { partes, quitar } = cambiosParaNube(previo.datos, datos);

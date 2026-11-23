@@ -391,7 +391,7 @@ export function guardarBase(datos) {
 }
 export function leerBase() {
   const b = leerClave(CLAVE + ':base');
-  if (!b || !b.baseV2) return b; // copia de antes de este cambio: sin versión, se usa como siempre
+  if (!b || !b.baseV2) return null; // copia de antes de este arreglo, sin versión: no se sabe de qué paso es, se junta sin ella
   return b.version != null && b.version === versionBase() ? b.datos : null;
 }
 // Otra pestaña o ventana de la app guardó: esta se pone al día con eso en vez de seguir con lo viejo que tenía en memoria
@@ -576,4 +576,7 @@ export function importar(texto) {
   ponerSemana1(estado.config.semana1);
   guardar();
 }
-export function reiniciar() { estado = { ...nuevo(), nube: estado.nube }; ponerSemana1(estado.config.semana1); guardar(); }
+// Borrar todo (Ajustes) es a propósito: la siguiente subida puede quitar muchos registros de la nube (nube.js lo frena si no)
+let borradoAProposito = false;
+export function tomarBorradoAProposito() { const b = borradoAProposito; borradoAProposito = false; return b; }
+export function reiniciar() { estado = { ...nuevo(), nube: estado.nube }; ponerSemana1(estado.config.semana1); borradoAProposito = true; guardar(); }

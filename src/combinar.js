@@ -68,6 +68,27 @@ export function tieneDatosPropios(est) {
     || ((est.miEntrenador && est.miEntrenador.checkins) || []).length > 0;
 }
 
+// Lo que se quitaría de la nube al subir "aqui" encima de "nube": días con algo anotado, movimientos, recordatorios y sus
+// "hecho", notas y registros del gym. Una persona borra uno o dos a la vez; muchos de golpe es una copia vieja
+export const LIMITE_QUITAR = 5;
+export function registrosQuitados(nube, aqui) {
+  const d = { dias: 0, movimientos: 0, recordatorios: 0, notas: 0, gym: 0 };
+  const o = (x) => (esObjeto(x) ? x : {});
+  for (const [k, v] of Object.entries(o(nube.dias))) if (lleno(v) && !lleno(o(aqui.dias)[k])) d.dias++;
+  const movs = new Set(((aqui.finanzas && aqui.finanzas.movimientos) || []).map((m) => m.id));
+  for (const m of (nube.finanzas && nube.finanzas.movimientos) || []) if (m.id != null && !movs.has(m.id)) d.movimientos++;
+  const recAqui = new Map(((aqui.recordatorios && aqui.recordatorios.lista) || []).map((x) => [x.id, x]));
+  for (const x of (nube.recordatorios && nube.recordatorios.lista) || []) {
+    const y = recAqui.get(x.id);
+    if (!y) { d.recordatorios++; continue; }
+    const fechas = new Set((y.hechos || []).map((h) => h.fecha));
+    d.recordatorios += (x.hechos || []).filter((h) => !fechas.has(h.fecha)).length;
+  }
+  for (const k of Object.keys(o(nube.notas))) if (!(k in o(aqui.notas))) d.notas++;
+  for (const [s, regs] of Object.entries(o(nube.semanas))) for (const k of Object.keys(o(regs))) if (!(k in o(o(aqui.semanas)[s]))) d.gym++;
+  return { total: Object.values(d).reduce((a, b) => a + b, 0), ...d };
+}
+
 export function difiereDeLaNube(datos, base) {
   if (!base) return false;
   const sinCambio = ({ cambio, ...resto }) => resto;

@@ -381,8 +381,27 @@ export function reemplazar(datos) {
 }
 export function marcarNube(nube) { estado.nube = nube; escribir(); }
 // La última copia sincronizada: contra ella se sabe qué cambió cada equipo. Si no cabe, se combina sin ella
-export function guardarBase(datos) { try { localStorage.setItem(CLAVE + ':base', JSON.stringify(datos)); } catch (err) { try { localStorage.removeItem(CLAVE + ':base'); } catch (e2) {} } }
-export function leerBase() { return leerClave(CLAVE + ':base'); }
+// Va con su versión (la de estado.nube.base al guardarla): si otra pestaña o ventana de este equipo guardó otra copia, la
+// versión no coincide y no se usa. Antes se usaba igual, y una pestaña con datos viejos en memoria «combinaba» contra la base
+// de otra y subía sus recordatorios viejos encima de los nuevos (23 nov 2026: se perdieron los hechos del 13 al 22 nov)
+const versionBase = () => (estado && estado.nube && estado.nube.base) || null;
+export function guardarBase(datos) {
+  try { localStorage.setItem(CLAVE + ':base', JSON.stringify({ baseV2: true, version: versionBase(), datos })); }
+  catch (err) { try { localStorage.removeItem(CLAVE + ':base'); } catch (e2) {} }
+}
+export function leerBase() {
+  const b = leerClave(CLAVE + ':base');
+  if (!b || !b.baseV2) return b; // copia de antes de este cambio: sin versión, se usa como siempre
+  return b.version != null && b.version === versionBase() ? b.datos : null;
+}
+// Otra pestaña o ventana de la app guardó: esta se pone al día con eso en vez de seguir con lo viejo que tenía en memoria
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('storage', (ev) => {
+    if (!escribible || ev.key !== CLAVE || ev.newValue == null) return;
+    cargar();
+    repintar();
+  });
+}
 // Copia de lo que había aquí antes de combinar, por si algo sale mal
 export function guardarAntes(datos) { try { localStorage.setItem(CLAVE + ':antes', JSON.stringify(datos)); } catch (err) {} }
 export function marcarCambio(ts) { estado.cambio = ts; escribir(); }

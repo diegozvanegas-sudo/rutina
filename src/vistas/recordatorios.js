@@ -67,6 +67,22 @@ const buscar = (x) => 'https://www.google.com/search?q=' + encodeURIComponent(x.
 const enlaceSeguro = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
 
 let agregarAbierto = false;
+// La fecha elegida en el aviso de arriba (react/armazon/Avisos.tsx): nunca después de hoy
+export function fechaDelAviso(el, hoy = iso()) {
+  const c = el && el.closest && el.closest('[data-aviso-rec]'), campo = c && c.querySelector('[name="fecha"]'), v = campo ? campo.value : '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(v || '') && v <= hoy ? v : hoy;
+}
+let fechaPanel = null;
+function gestionar(id, fecha) {
+  abierto = { id, que: 'hecho' };
+  fechaPanel = fecha && fecha !== iso() ? fecha : null;
+  if (location.hash.split('/')[0] !== '#recordatorios') location.hash = '#recordatorios'; else repintar();
+  // La fila queda a la vista con su panel abierto
+  setTimeout(() => {
+    const f = document.querySelector('[data-rec-id="' + id + '"]');
+    if (f && f.scrollIntoView) f.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, 150);
+}
 // Guarda un hecho y ofrece deshacerlo. Devuelve la función que lo quita
 function anotarHecho(x, h) {
   x.hechos.push(h);
@@ -91,7 +107,7 @@ if (typeof document !== 'undefined') {
 
 // Lo que necesita la pantalla de React (src/react/pantallas/Recordatorios.tsx): lo que está abierto y las reglas de texto
 export const piezasRecordatorios = {
-  ver: () => ({ abierto, filtro: filtroEstado, sug: sugVista, agregar: agregarAbierto }),
+  ver: () => ({ abierto, filtro: filtroEstado, sug: sugVista, agregar: agregarAbierto, fechaPanel }),
   ponerSug: (v) => { sugVista = v; },
   regla, hace, km, vehiculo, categoriaDe, llano, cuandoCorto, buscar, enlaceSeguro, ESTADOS, ESTADO_EVENTO,
 };
@@ -155,22 +171,25 @@ registrar({
     w.km.splice(Number(k), 1);
     guardar();
   },
-  'rec-hoy'({ id }) {
+  // Desde el aviso de arriba (o la fila): con la fecha que se eligió en el aviso; sin ella, hoy
+  'rec-hoy'({ id }, el) {
     const x = r().lista.find((y) => y.id === id);
     if (!x) return;
-    const actual = x.cadaKm ? kmActual((vehiculo(x.vehiculo) || { km: [] }).km) : null;
-    // Lo de km necesita saber con cuántos km fue
+    const fecha = fechaDelAviso(el), actual = x.cadaKm ? kmActual((vehiculo(x.vehiculo) || { km: [] }).km) : null;
+    // Lo de km necesita saber con cuántos km fue (y si fue otro día, los km de hoy no sirven)
     // (desde la franja de otra pantalla: lleva a Recordatorios, donde queda abierto para escribirlos)
-    if (x.cadaKm && actual == null) {
-      abierto = { id: x.id, que: 'hecho' };
-      if (location.hash.split('/')[0] !== '#recordatorios') location.hash = '#recordatorios'; else repintar();
+    if (x.cadaKm && (actual == null || fecha !== iso())) {
+      gestionar(x.id, fecha);
       toast('Escribe los km de la moto');
       return;
     }
-    const deshacer = anotarHecho(x, { fecha: iso(), km: actual, costo: 0 });
+    if (x.hechos.some((h) => h.fecha === fecha)) { toast(x.nombre + ': ya estaba anotado el ' + fechaCorta(fecha)); return; }
+    const deshacer = anotarHecho(x, { fecha, km: actual, costo: 0 });
     guardar();
-    toast('✓ ' + x.nombre + ' · hoy', deshacer);
+    toast('✓ ' + x.nombre + ' · ' + (fecha === iso() ? 'hoy' : fechaCorta(fecha)), deshacer);
   },
+  // Gestionar: abre ese recordatorio en Recordatorios con su panel de hecho (fecha, km, costo) a la vista
+  'rec-gestionar'({ id }, el) { gestionar(id, fechaDelAviso(el)); },
   // Tocar la fila abre o cierra su detalle
   'rec-abrir'({ id }) {
     abierto = abierto.id === id ? { id: null, que: null } : { id, que: 'detalle' };

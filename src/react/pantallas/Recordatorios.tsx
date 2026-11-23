@@ -122,11 +122,11 @@ function principal(x: Fin, s: Fin, actual: number | null) {
   );
 }
 function panelHecho(x: Fin, actual: number | null) {
-  const hoy = iso();
+  const hoy = iso(), desde = (R.ver() as Fin).fechaPanel || hoy;
   return (
     <Box data-rec={x.id} sx={{ display: 'grid', gap: '8px' }}>
       <Box sx={DOS}>
-        <Campo etiqueta="Fecha" type="date" name="fecha" defaultValue={hoy} max={hoy} />
+        <Campo etiqueta="Fecha" type="date" name="fecha" defaultValue={desde} max={hoy} />
         {x.cadaKm ? <Campo etiqueta="Km de la moto" type="number" inputMode="numeric" name="km" defaultValue={actual ?? ''} placeholder="km" /> : null}
         <Campo etiqueta="Costo (opcional)" inputMode="numeric" data-pesos="" name="costo" placeholder="$ 0" />
       </Box>

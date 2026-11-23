@@ -41,6 +41,8 @@ small { color: ${t.muted}; }
 #lateral { position: fixed; top: 0; right: 0; bottom: 0; z-index: 45; width: min(300px, 86vw); display: flex; flex-direction: column; gap: 18px; overflow-y: auto; padding: calc(20px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); background: ${t.surface}; border-left: 1px solid ${t.line}; transform: translateX(105%); transition: transform .22s ease; visibility: hidden; }
 .menu-abierto #lateral { transform: none; visibility: visible; box-shadow: -12px 0 40px ${t.velo}; }
 .velo { position: fixed; inset: 0; z-index: 44; background: ${t.velo}; }
+/* Deslizar el menú hacia su borde lo cierra (main.js): el navegador no usa ese gesto (ni "atrás") */
+#lateral, .velo { touch-action: pan-y; overscroll-behavior: contain; }
 /* 📱 Celular: el menú del lado de tu mano y, con "una mano", ☰ abajo al alcance del pulgar y las secciones abajo */
 .menu-pulgar { display: none; }
 @media (max-width: 899px) {

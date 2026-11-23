@@ -340,6 +340,44 @@ function menu(abrir) {
   // Con "una mano", el menú abre mostrando lo de abajo (las secciones, donde llega el pulgar)
   if (abrir && document.body.classList.contains('una-mano')) requestAnimationFrame(() => { const l = $('lateral'); l.scrollTop = l.scrollHeight; });
 }
+// 📱 Deslizar el menú hacia su borde (a la derecha; zurdo, a la izquierda) lo cierra: sigue al dedo y, al soltar
+// pasado un tercio (o con un tirón rápido), se cierra; si no, vuelve. Un gesto vertical sigue siendo desplazar la lista
+(() => {
+  let ini = null;
+  const lat = () => $('lateral');
+  const signo = () => (document.body.classList.contains('mano-izquierda') ? -1 : 1);
+  document.addEventListener('touchstart', (ev) => {
+    ini = null;
+    if (!document.body.classList.contains('menu-abierto') || organizandoMenu || ev.touches.length !== 1) return;
+    const t = ev.target;
+    if (!(t.closest && (t.closest('#lateral') || t.closest('#velo')))) return;
+    if (t.closest('input, textarea, select, [data-ordenable], [draggable="true"]')) return;
+    ini = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, t: Date.now(), dx: 0, horiz: null };
+  }, { passive: true });
+  document.addEventListener('touchmove', (ev) => {
+    if (!ini) return;
+    const dx = (ev.touches[0].clientX - ini.x) * signo(), dy = ev.touches[0].clientY - ini.y;
+    if (ini.horiz === null) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      ini.horiz = Math.abs(dx) > Math.abs(dy) * 1.2;
+      if (!ini.horiz) { ini = null; return; }
+    }
+    ini.dx = Math.max(0, dx);
+    const l = lat();
+    l.style.transition = 'none';
+    l.style.transform = 'translateX(' + ini.dx * signo() + 'px)';
+  }, { passive: true });
+  const soltarMenu = () => {
+    if (!ini || !ini.horiz) { ini = null; return; }
+    const l = lat(), rapido = ini.dx > 40 && ini.dx / Math.max(1, Date.now() - ini.t) > 0.5;
+    const cerrar = rapido || ini.dx > l.offsetWidth / 3;
+    l.style.transition = ''; l.style.transform = '';
+    ini = null;
+    if (cerrar) menu(false);
+  };
+  document.addEventListener('touchend', soltarMenu);
+  document.addEventListener('touchcancel', soltarMenu);
+})();
 registrar({
   't-sumar'() { sumar(30); },
   't-parar'() { detener(); },

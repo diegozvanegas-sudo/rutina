@@ -25,13 +25,15 @@ import { Barras } from '../ui/Graficos';
 import { MetaPeso } from './DietaMeta';
 import { SugerenciaComida } from './Control';
 import { Equivalencias } from './DietaEquivalencias';
+import { Corte } from './DietaCorte';
+import { Antojos } from './DietaAntojos';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
 const VISTA = 'dieta';
 const D = piezasDieta as Fin;
 const TIPOS = TIPOS_PLAN as Record<string, string>;
-const PESTANAS: [string, string][] = [['hoy', '🍽 Hoy'], ['planes', '📋 Planes'], ['peso', '⚖️ Peso'], ['alimentos', '🥚 Alimentos'], ['equivalencias', '🔄 Equivalencias']];
+const PESTANAS: [string, string][] = [['hoy', '🍽 Hoy'], ['planes', '📋 Planes'], ['peso', '⚖️ Peso'], ['alimentos', '🥚 Alimentos'], ['equivalencias', '🔄 Equivalencias'], ['corte', '🔥 Corte'], ['antojos', '🍟 Antojos']];
 const GRUPOS: [string, string][] = [['proteina', 'Proteína'], ['carbo', 'Carbohidrato'], ['grasa', 'Grasa'], ['verdura', 'Verdura'], ['otro', 'Otro']];
 const POR: [string, string][] = [['g', 'por 100 g'], ['u', 'por unidad'], ['libre', 'porción fija']];
 const MEDIDAS: [string, string][] = [['cintura', 'Cintura'], ['pecho', 'Pecho'], ['brazo', 'Brazo'], ['muslo', 'Muslo']];
@@ -419,7 +421,7 @@ export default function Dieta({ pestana }: { pestana?: string }) {
         </Card>
       ) : null}
       <Opciones nombre="Pestañas de Dieta" activa={ver.pestana} opciones={PESTANAS} datos={(k) => ({ 'data-accion': 'dieta-pestana', 'data-p': k })} sx={{ '& .MuiChip-root': { fontSize: 15 } }} />
-      {ver.pestana === 'planes' ? planes(e, ver.planVista) : ver.pestana === 'peso' ? peso(e) : ver.pestana === 'alimentos' ? alimentos(e) : ver.pestana === 'equivalencias' ? <Equivalencias key={JSON.stringify(D.cambio())} e={e} cambio={D.cambio()} /> : hoyDieta(e)}
+      {ver.pestana === 'planes' ? planes(e, ver.planVista) : ver.pestana === 'peso' ? peso(e) : ver.pestana === 'alimentos' ? alimentos(e) : ver.pestana === 'equivalencias' ? <Equivalencias key={JSON.stringify(D.cambio())} e={e} cambio={D.cambio()} /> : ver.pestana === 'corte' ? <Corte e={e} /> : ver.pestana === 'antojos' ? <Antojos e={e} /> : hoyDieta(e)}
     </>
   );
 }

@@ -1,60 +1,91 @@
-Continúa la migración de la app Rutina a React con Material UI. Respóndeme en español y no me
-preguntes: decide tú y sigue. No publiques hasta que yo diga "sube".
+Haz el paso 2 de guardar por partes en la nube de Rutina (supabase/esquema.sql).
+Hoy rutina.partes ya se llena sola y rutina.partes_revisar() da igual para todos.
 
-PRIMERO lee tu memoria del proyecto (migracion-react.md, no-preguntar.md, pc-y-celular.md,
-no-mover-lo-existente.md) y el archivo APRENDER-REACT.md del repo. Ahí está el método completo,
-lo que ya se hizo y lo que falta. No rehagas mediciones ni decisiones ya tomadas.
+Objetivo: que rutina.partes sea lo que manda y que el servidor deje de reescribir
+la fila entera de rutina.estado en cada guardado.
 
-DÓNDE VAMOS
-- Publicado: TODAS las pantallas en React (e598edf).
-- Publicado también (0bbbd3a): menú lateral, cronómetro flotante, avisos de arriba y reproductor
-  (src/react/armazon/). El toast y el tip se quedan como DOM simple (solo su CSS pasa a React).
-- Publicado también (ba812d9): Entrar y el candado en React (src/react/armazon/Sesion.tsx, recorrido
-  tests/e2e/entrar.mjs) y la cuenta nueva vacía.
-- Publicado también (1731bc1): la presentación de entrar en React e interactiva
-  (src/react/armazon/Presentacion.tsx) y el arreglo de ↺ Seguir del contador del Gym.
-- Publicado también (a441809): el CSS de figuras y gráficos en React (src/react/armazon/Estilos.tsx) y el curso
-  ✏️ Retrato realista (área 🎨 Arte y dibujo, primer curso con figuras). Predicciones publicadas en d938ae8.
-- En local, sin publicar: LA MIGRACIÓN TERMINÓ. Sin respaldos de Finanzas y Gym, y src/estilos.css borrado: lo que
-  se usaba pasó a src/react/armazon/estilosArmazon.ts (verificado con los estilos calculados de todo, 84 estados).
-- Siguiente: lo que pida Diego (ya no queda migración).
-- Una cuenta nueva empieza vacía (src/estado.js nuevo(); recorrido tests/e2e/nuevo.mjs).
-  Los recorridos arrancan con el ejemplo (probar.mjs llama a window.rutinaPrueba.ejemplo()).
-- Predicciones hechas (src/prediccion.js, tarjeta 🔮 en Progreso). Pendiente de Diego: IA dentro de la app (por ahora
-  la revisión se copia y se pega) y limpiar las cuentas viejas que traen la rutina de ejemplo.
+1. Antes de tocar nada:
+   - Corre partes_revisar(). Si algún usuario da distinto, para y avísame.
+   - Saca un respaldo local de rutina.estado y rutina.historial en mi carpeta
+     Documentos, nunca en el repo.
+2. Las funciones de la app no cambian de nombre ni de forma, así funciona incluso
+   la versión vieja que haya en algún celular: rutina_leer, rutina_version,
+   rutina_guardar, rutina_guardar_partes, rutina_cambios, rutina_historial y
+   rutina_restaurar.
+3. rutina_leer arma el estado desde las partes con rutina.armar().
+4. rutina_guardar y rutina_guardar_partes:
+   - Bloquean la fila del usuario en rutina.estado.
+   - Comparan contra lo armado y escriben solo las partes que cambiaron.
+   - Mantienen la misma protección: no se puede borrar más de la mitad de una
+     parte, y se valida que lo que llega sean datos de la app.
+5. En rutina.estado quedan la versión y partes_desde; datos pasa a null.
+   Quita el disparador a_partes, porque con datos en null marcaría todo como
+   borrado.
+6. El historial guarda solo las partes que cambiaron, no copias completas:
+   - Cuando una parte se reemplaza, su valor anterior pasa a una tabla de
+     historial de partes con desde y hasta, usando un contador propio de la base
+     y no la versión del celular (que puede repetirse).
+   - Una copia es una marca con ese contador.
+   - Restaurar arma el estado de esa marca.
+   - Las copias completas viejas se siguen pudiendo ver y restaurar.
+   - Se mantiene lo de siempre: las últimas 60 copias más una por día de los
+     últimos 90 días, y se borran las partes viejas que ya ninguna copia usa.
+7. Deja en el SQL cómo volver atrás: llenar datos con armar(), volver a poner el
+   disparador y recuperar las funciones anteriores de git.
+8. Pruebas:
+   - En PGlite instalado en el scratchpad, sin agregarlo al package.json: 400
+     guardados al azar desde 2 equipos, borrar días, restaurar copias nuevas y
+     viejas, y que la protección rechace una subida casi vacía.
+   - Después, en la base real, dentro de una transacción que se deshace, con un
+     usuario de prueba.
+   - Que pasen npm test y tests/e2e/nube.mjs.
+9. Mide el antes y el después: kB escritos por guardado y tamaño del historial.
+10. No apliques a la base ni subas la app hasta que yo diga "sube".
 
-REGLAS QUE NO SE NEGOCIAN
-1. Lo más importante: todo debe seguir funcionando igual. Mismo comportamiento, mismos datos
-   guardados, mismas rutas (#seccion/pestaña), y sigue funcionando sin internet.
-2. Una sola biblioteca visual: Material UI con el tema de src/react/tema.ts. Nada de Tailwind ni
-   shadcn. Los colores salen del tema (tokens), nunca escritos a mano en una pantalla.
-3. React solo pinta. Las reglas siguen en las acciones de siempre (src/vistas/*.js): botones con
-   accion('nombre', datos) y campos con data-cambio. Si la acción lee la pantalla (el, closest,
-   parentNode), el botón lleva data-accion para que main.js la despache con el botón real.
-4. Las secciones grandes se migran pestaña por pestaña (REACT_POR_PESTANA en src/main.js).
-5. No toques pantallas que no estás migrando. Las tarjetas HTML que usa Hoy se quedan vivas hasta
-   migrar Hoy.
 
-MÉTODO POR CADA PANTALLA O PESTAÑA
-1. Amplía o crea su recorrido en tests/e2e/ (con tests/e2e/ayudas.mjs: busca por texto,
-   aria-label, id o data-*, nunca por clases; escribe con teclado real).
-2. Córrelo sobre el código VIEJO y guarda las líneas "§" como referencia.
-3. Escribe la pantalla en src/react/pantallas/ con las piezas de src/react/ui/.
-4. Conéctala en src/main.js, corre el mismo recorrido y compara las líneas "§": deben salir
-   iguales (ignorando espacios; compara por recorrido, hay pasos con el mismo nombre).
-5. Borra el código de pantalla viejo y los imports que queden sin uso.
-6. Verificación completa: npm run tipos, npm test, npm run e2e -- <carpeta>, npm run humo,
-   npm run build, y revisa las capturas en celular (390 px) y computador.
-7. Anota el avance en la memoria (migracion-react.md).
+Agrega a Rutina una sección nueva 📝 Notas, parecida a un bloc de notas.
 
-AL TERMINAR CADA TANDA dime, corto: qué quedó migrado, la tabla de verificación con resultados
-reales, qué fallos de la app vieja se corrigieron de paso, qué NO se probó (mi cuenta, la nube,
-un celular físico) y qué sigue. Si algo falló, dilo con la salida.
+Qué debe hacer:
+1. Lista de notas en una fila cada una: título, primera línea y fecha. Al tocarla
+   se abre.
+2. Botón "＋ Nota nueva" arriba. Abre una nota vacía con el cursor listo para
+   escribir.
+3. Texto con formato, con una barra pequeña: negrita, cursiva, subrayado, títulos,
+   viñetas, lista numerada, casillas de chequeo, resaltado y enlaces. Debe
+   funcionar bien en el celular, con la barra encima del teclado. Pegar texto de
+   otro lado lo limpia, sin traer estilos raros.
+4. Se guarda solo mientras escribo, sin botón de guardar, y muestra "Guardado" en
+   pequeño.
+5. El título es la primera línea si no le pongo uno.
+6. Carpetas y etiquetas, las dos:
+   - Carpetas: cada nota va en una sola carpeta. Las carpetas se pueden crear,
+     renombrar, borrar (sus notas pasan a "Sin carpeta") y anidar un nivel.
+   - Etiquetas: una nota puede tener varias, cada una con color. Se filtra por
+     etiqueta con un toque.
+   - Arriba de la lista: filtro de carpeta y chips de etiquetas.
+7. Buscador que filtre por título, texto, carpeta y etiqueta.
+8. Fijar notas: 📌 quedan arriba de todo.
+9. Borrar con confirmación y una papelera de 30 días para recuperar.
+10. Botón 🎙️ para dictar dentro de la nota, reusando lo que ya existe en Audio a
+    texto.
+11. Copiar y compartir por WhatsApp (el formato pasa a *negrita* y _cursiva_ de
+    WhatsApp).
 
-AVISOS PRÁCTICOS
-- En esta máquina los heredoc del shell dañan las barras invertidas: escribe los scripts con la
-  herramienta Write, no con cat <<EOF.
-- Si una prueba falla con "plugin-react can't detect preamble" tras agregar un import nuevo de
-  Material UI, vuelve a correrla: es el servidor de pruebas recargando dependencias.
-- Si una corrida larga se interrumpe, revisa primero qué alcanzó a aplicarse antes de repetir.
-- Si la publicación en GitHub Pages falla, lee el error por la API pública (no hay gh instalado).
+Reglas:
+- Va en el menú, en el grupo Mente y crecimiento.
+- Nube: cada nota es su propia parte, como un día o una semana del gym. En la
+  base, 'notas' se divide por nota en rutina.en_partes, y en combinar.js,
+  cambiosParaNube manda cada nota aparte. Editar una nota sube solo esa nota.
+- Guarda el formato como texto con marcas simples (HTML limpio o JSON del editor),
+  nunca con estilos pegados.
+- Cada persona ve solo sus notas, y el admin ve todo.
+- Funciona sin internet.
+- Compacta: filas de una línea y la nota se abre al tocarla.
+- No cambies nada de lo que ya funciona. Antes de reusar código compartido,
+  revísalo. Si el editor necesita una librería, usa una liviana y dime cuál
+  elegiste y por qué.
+- Lógica en src/notas.js con pruebas en tests/notas.test.mjs, pantalla en
+  src/react/pantallas/Notas.tsx con Material UI.
+- Pruébalo en celular y PC con probar-rutina, incluido escribir con formato,
+  recargar y que siga igual.
+- No lo subas hasta que yo diga "sube".

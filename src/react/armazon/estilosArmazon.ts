@@ -120,6 +120,17 @@ body:has(#flotante:not([hidden])) .boton-notas { bottom: calc(96px + env(safe-ar
   .barra-izquierda .boton-notas { right: 24px; }
   body:has(#flotante:not([hidden])) .boton-notas { bottom: 112px; }
 }
+/* Que el 📝 nunca tape lo último de la pantalla: el espacio de abajo crece cuando el botón sube (cronómetro, ☰ de una mano).
+   En el computador, además, el contenido deja libre la columna del botón a la derecha */
+body:has(.boton-notas:not([hidden])):has(#flotante:not([hidden])) #vista { padding-bottom: calc(170px + env(safe-area-inset-bottom)); }
+@media (max-width: 899px) {
+  .una-mano:has(.boton-notas:not([hidden])) #vista { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
+  .una-mano:has(.boton-notas:not([hidden])):has(#flotante:not([hidden])) #vista { padding-bottom: calc(240px + env(safe-area-inset-bottom)); }
+}
+@media (min-width: 900px) {
+  body:has(.boton-notas:not([hidden])) #vista { padding-right: 96px; }
+  body:has(.boton-notas:not([hidden])):has(#flotante:not([hidden])) #vista { padding-bottom: 184px; }
+}
 .reproductor { position: fixed; inset: 0; z-index: 50; background: ${t.bg}; display: flex; flex-direction: column; padding: calc(10px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)); }
 .reproductor[hidden] { display: none; }
 .toast { position: fixed; left: 50%; top: calc(16px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 60; background: ${t.ink}; color: ${t.bg}; padding: 12px 18px; border-radius: 12px; font-weight: 700; max-width: calc(100% - 32px); box-shadow: 0 8px 24px ${t.sombraAviso}; }

@@ -49,7 +49,7 @@ const Lista = ({ children }: { children: ReactNode }) => <Box component="ul" sx=
 function Grafica({ titulo, ir, nota, children }: { titulo: string; ir?: string; nota?: ReactNode; children: ReactNode }) {
   return (
     <TarjetaPlegable vista={VISTA} clave={titulo} titulo={titulo} sx={{ m: { md: 0 } }}
-      lado={ir ? <Link href={ir} aria-label={'Ir a ' + titulo} sx={{ color: 'primary.main', fontSize: 22, lineHeight: 1, textDecoration: 'none', px: '6px' }}>›</Link> : undefined}>
+      lado={ir ? <Link href={ir} aria-label={'Ir a ' + titulo} sx={{ color: 'primary.main', fontSize: 22, lineHeight: 1, textDecoration: 'none', minWidth: 44, minHeight: 44, display: 'inline-grid', placeItems: 'center', borderRadius: '10px' }}>›</Link> : undefined}>
       {nota ? <Nota sx={{ mt: 0 }}>{nota}</Nota> : null}
       {children}
     </TarjetaPlegable>

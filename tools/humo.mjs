@@ -3,7 +3,13 @@
 //   npm run humo
 const SECCIONES = ['hoy', 'calendario', 'progreso', 'energia', 'manana', 'metas', 'estudiar', 'libros', 'dieta', 'suplementos', 'finanzas', 'compras', 'recordatorios', 'lugares', 'gym', 'clientes', 'entrenador', 'sesiones', 'editar', 'ajustes'];
 // Pestañas dentro de una sección (se abren con su botón)
-const PESTANAS = { finanzas: ['fin-pestana', ['registrar', 'calcular', 'mes', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'esperas', 'planb']], editar: ['ed-pestana', ['rutina', 'habitos', 'sesiones', 'pantallas']] };
+const PESTANAS = {
+  finanzas: ['fin-pestana', ['registrar', 'calcular', 'mes', 'viene', 'analizar', 'resumen', 'presupuesto', 'fijos', 'ahorro', 'deudas', 'prestamos', 'esperas', 'planb']],
+  dieta: ['dieta-pestana', ['planes', 'peso', 'alimentos', 'equivalencias', 'corte', 'antojos', 'hoy']],
+  editar: ['ed-pestana', ['rutina', 'habitos', 'sesiones', 'pantallas']],
+};
+// Además del celular normal (390), uno chico (320: iPhone SE y Android pequeños), donde se aplastan las filas con botones
+const PANTALLAS = (p) => [['computador', p.computador, null], ['celular', p.celular, 390], ['celular chico', () => p.pantalla(320, 640, true), 320]];
 
 export default async (p) => {
   const fallas = [];
@@ -14,9 +20,14 @@ export default async (p) => {
     if (largo < 20) fallas.push(donde + ' · ' + nombre + ': pantalla vacía');
     if (!(await p.sinDesborde())) fallas.push(donde + ' · ' + nombre + ': se sale de la pantalla hacia los lados');
     // En el celular, si algo no cabe el navegador agranda la página (innerWidth pasa de 390) en vez de desbordar: sinDesborde no lo ve
-    if (donde === 'celular' && (await p.ev('innerWidth')) !== 390) fallas.push(donde + ' · ' + nombre + ': la página quedó más ancha que el celular (' + (await p.ev('innerWidth')) + ' px)');
+    if (ancho && (await p.ev('innerWidth')) !== ancho) fallas.push(donde + ' · ' + nombre + ': la página quedó más ancha que el celular (' + (await p.ev('innerWidth')) + ' px)');
+    // Un botón o enlace aplastado (menos de 30 px de ancho y más de 60 de alto, con texto): el texto queda letra por letra
+    if (ancho) { const aplastados = await p.ev(`[...document.querySelectorAll('#vista button, #vista a[href]')].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.width < 30 && r.height > 60 && b.innerText.trim().length > 3; }).map((b) => b.innerText.trim().slice(0, 30))`);
+      if (aplastados.length) fallas.push(donde + ' · ' + nombre + ': botones aplastados (' + aplastados.slice(0, 3).join(' | ') + ')'); }
   };
-  for (const [donde, poner] of [['computador', p.computador], ['celular', p.celular]]) {
+  let ancho = null;
+  for (const [donde, poner, a] of PANTALLAS(p)) {
+    ancho = a;
     await poner();
     for (const s of SECCIONES) {
       await p.ir(s);
@@ -47,5 +58,5 @@ export default async (p) => {
     }
   }
   if (fallas.length) throw new Error(fallas.length + ' falla(s):\n  ' + fallas.join('\n  '));
-  console.log('✓ ' + SECCIONES.length + ' secciones y 4 vistas del Gym, en computador y celular');
+  console.log('✓ ' + SECCIONES.length + ' secciones y 4 vistas del Gym, en computador, celular (390) y celular chico (320)');
 };

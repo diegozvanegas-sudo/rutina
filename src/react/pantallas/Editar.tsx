@@ -106,10 +106,11 @@ function ElegirSesiones({ titulo, ruta, ids, sesiones }: { titulo: string; ruta:
 function Item({ r, titulo, asa, ctrl, abierto, children }: { r: string; titulo: string; asa: ReactNode; ctrl: ReactNode; abierto: boolean; children: ReactNode }) {
   return (
     <Card component="section" data-ed-item="" sx={[{ mb: '14px', display: 'grid', gap: '10px' }, abierto ? { borderColor: 'primary.main', boxShadow: (t) => '0 0 0 2px ' + t.palette.primary.main } : null]}>
-      <Box sx={FILA}>
+      {/* En un celular chico (320 px) los controles bajan a otra fila en vez de aplastar el nombre */}
+      <Box sx={{ ...FILA, '@media (max-width: 359px)': { flexWrap: 'wrap' } }}>
         <Box sx={{ ml: '-6px' }}>{asa}</Box>
         <Box component="button" type="button" data-accion="ed-abrir" data-r={r} aria-expanded={abierto}
-          sx={{ flex: 1, minWidth: 0, minHeight: 44, textAlign: 'left', bgcolor: 'transparent', border: 0, color: 'text.primary', font: 'inherit', cursor: 'pointer', p: 0, overflowWrap: 'anywhere' }}>
+          sx={{ flex: 1, minWidth: 0, '@media (max-width: 359px)': { flexBasis: '120px' }, minHeight: 44, textAlign: 'left', bgcolor: 'transparent', border: 0, color: 'text.primary', font: 'inherit', cursor: 'pointer', p: 0, overflowWrap: 'anywhere' }}>
           <span aria-hidden="true">{abierto ? '▾' : '▸'}</span> <b>{titulo}</b>
         </Box>
         {ctrl}
@@ -412,7 +413,7 @@ function Pantallas({ e }: { e: Fin }) {
         };
         return (
           <Tarjeta key={tipo}>
-            <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
+            <Box sx={{ ...FILA, '@media (max-width: 359px)': { flexWrap: 'wrap' } }}>
               <Box component="h2" sx={{ m: 0, fontSize: 19 }}>{titulo}</Box>
               <Button color="secondary" data-accion="orden-restablecer" data-tipo={tipo}>↺ Como venía</Button>
             </Box>

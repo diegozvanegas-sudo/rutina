@@ -73,7 +73,7 @@ function TuAnio({ e }: { e: Fin }) {
         <Nota sx={{ m: 0 }}>Un cuadro por día, las últimas 53 semanas. Toca uno para ver el día.</Nota>
         <Opciones nombre="Qué ver en el año" activa={medida} opciones={[['puntaje', '⭐ Puntaje'], ['animo', '😊 Ánimo']]} alElegir={(m) => { medidaElegida = m as 'puntaje' | 'animo'; ponerMedida(medidaElegida); }} chica />
       </Box>
-      <Box data-anio="" ref={alFinal} sx={{ overflowX: 'auto', width: '100%', mt: '6px', '& svg': { minWidth: 640 } }}><Calendario semanas={A.semanas} titulos={titulos} /></Box>
+      <Box data-anio="" ref={alFinal} sx={{ overflowX: 'auto', width: '100%', mt: '6px', '& svg': { minWidth: 640, maxWidth: 'none' } }}><Calendario semanas={A.semanas} titulos={titulos} /></Box>
       <Nota>{A.dias ? A.dias + (A.dias === 1 ? ' día anotado' : ' días anotados') + ' en el año' + (A.promedio != null ? ' · promedio ' + (medida === 'animo' ? f1(1 + A.promedio * 4) + '/5' : Math.round(A.promedio * 100) + '/100') : '') + '.'
         : medida === 'animo' ? 'Todavía no hay ánimo anotado. Anótalo cada día en 🏠 Hoy → 😊 Ánimo y energía.' : 'Todavía no hay días anotados.'}</Nota>
       {mejor && peor ? <Caja><p>🏆 Tu mejor mes: <b>{nombreMes(mejor.mes)}</b> ({Math.round(mejor.puntaje)}/100). El más flojo: <b>{nombreMes(peor.mes)}</b> ({Math.round(peor.puntaje)}/100).</p><Nota sx={{ m: 0 }}>¿Qué hacías distinto en tu mejor mes? Eso es lo que hay que repetir.</Nota></Caja> : null}
@@ -162,7 +162,8 @@ function rueda(e: Fin) {
           {(AREAS as Fin[]).map(([k, i, n]) => (
             <Box key={k}>
               <Box sx={{ ...FILA, fontSize: 15 }}><span>{i} {n}</span>{antes && antes.notas[k] ? <Nota sx={{ m: 0 }}>antes {antes.notas[k]}</Nota> : null}</Box>
-              <Opciones nombre={'Rueda: ' + n} activa={notas[k] ? String(notas[k]) : null} opciones={Array.from({ length: 10 }, (_, x) => [String(x + 1), String(x + 1)] as [string, string])} datos={(v) => ({ 'data-accion': 'rueda-nota', 'data-k': k, 'data-v': v })} chica envolver />
+              <Opciones nombre={'Rueda: ' + n} activa={notas[k] ? String(notas[k]) : null} opciones={Array.from({ length: 10 }, (_, x) => [String(x + 1), String(x + 1)] as [string, string])} datos={(v) => ({ 'data-accion': 'rueda-nota', 'data-k': k, 'data-v': v })} chica envolver
+                sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(5, 1fr)', sm: 'repeat(10, 1fr)' }, '& .MuiChip-root': { minHeight: 40 } }} />
             </Box>
           ))}
         </Box>

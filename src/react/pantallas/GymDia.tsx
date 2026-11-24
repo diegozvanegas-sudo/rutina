@@ -14,7 +14,7 @@ import { AvisoPesos, FutbolHoy, Esencial, Ocupadas, AproxEjercicio, HoyVsUltima,
 import { DescansoDia } from './GymDescanso';
 import { juegaEl } from '../../futbol.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
-  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO } from '../../gym.js';
+  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO, tiemposEjercicios, minutosTexto, mmss } from '../../gym.js';
 import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../../analisis.js';
 import { piezasGym, textoDia, sesionCalentamiento, extrasCalentamiento, entrenoHoy, minutosEntreno, entrenoQuieto, molestiaHoy, molestiaReciente } from '../../vistas/gym.js';
 import { accion } from '../acciones';
@@ -46,6 +46,39 @@ const Contador = ({ color, children, sx }: { color?: string; children: ReactNode
 const TIPO: Record<string, { bgcolor: string; color: string }> = { top: { bgcolor: tokens.topFondo, color: tokens.topInk }, 'back-off': { bgcolor: tokens.azulFondo, color: tokens.backoffInk } };
 
 const regs = (sem: number) => (e() as Fin).semanas[sem] || {};
+// ⏱ Cuánto tomó cada ejercicio ese día (gym.js tiemposEjercicios: con la hora de cada serie anotada en vivo)
+const tiemposDe = (d: Fin, sem: number) => { const f = (tiemposDia(d, sem, e()) as Fin).fuerza; return tiemposEjercicios(d.ejercicios, regs(sem), f ? f.inicio : null) as Record<string, Fin>; };
+// Con una sola serie y nada antes no hay tiempo que mostrar
+const conTiempo = (t: Fin) => !!t && !(t.aproximado && t.series < 2);
+function lineaTiempo(ej: Fin, d: Fin, sem: number) {
+  const t = tiemposDe(d, sem)[ej.id];
+  if (!conTiempo(t)) return null;
+  const antes = sem > 1 ? tiemposDe(d, sem - 1)[ej.id] : null;
+  return (
+    <Box data-t="tiempo-ej" sx={{ fontSize: 13, color: 'text.secondary', m: '2px 0 6px' }}>
+      ⏱ <b>{minutosTexto(t.ms)}</b>{t.aproximado ? ' desde la 1.ª serie' : ''}{t.descanso ? ' · descanso medio ' + mmss(t.descanso) : ''}{conTiempo(antes) ? ' · la semana pasada ' + minutosTexto(antes.ms) : ''}
+    </Box>
+  );
+}
+// La lista del día: cada ejercicio con su tiempo, sus series y su descanso medio
+function TiemposPorEjercicio({ d, sem }: { d: Fin; sem: number }) {
+  const t = tiemposDe(d, sem), filas = (d.ejercicios as Fin[]).filter((ej) => conTiempo(t[ej.id]));
+  if (!filas.length) return null;
+  const total = filas.reduce((n, ej) => n + t[ej.id].ms, 0);
+  return (
+    <Desplegable titulo={'⏱ Tiempo por ejercicio (' + filas.length + ')'} sx={{ mb: '12px' }}>
+      <Box component="ul" data-t="tiempos-ej" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '2px' }}>
+        {filas.map((ej) => { const x = t[ej.id]; return (
+          <Box component="li" key={ej.id} sx={{ display: 'flex', justifyContent: 'space-between', gap: '10px', p: '6px 0', borderBottom: '1px solid', borderColor: 'divider', fontSize: 14 }}>
+            <Box component="span" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{ej.nombre} <Box component="small" sx={{ color: 'text.secondary' }}>· {x.series} {x.series === 1 ? 'serie' : 'series'}{x.descanso ? ' · desc. ' + mmss(x.descanso) : ''}</Box></Box>
+            <b style={{ whiteSpace: 'nowrap' }}>{minutosTexto(x.ms)}{x.aproximado ? '*' : ''}</b>
+          </Box>
+        ); })}
+      </Box>
+      <Box component="p" sx={{ fontSize: 13, color: 'text.secondary', m: '6px 0 0' }}>Suman {minutosTexto(total)}. Cada uno cuenta desde que terminaste el anterior: montar, series y descansos.{filas.some((ej) => t[ej.id].aproximado) ? ' * Desde su primera serie (antes no hubo nada cerca).' : ''}</Box>
+    </Desplegable>
+  );
+}
 
 // ---------- 🚦 Antes de entrenar: cómo llegas hoy (src/entreno-hoy.js) ----------
 function datosHoy(d: Fin) {
@@ -356,7 +389,7 @@ const tarjeta = (actual: boolean) => ({ mb: '14px', scrollMarginTop: '90px', ...
 
 // Fila de un ejercicio plegado: se abre al tocarla
 // fuera: hoy no entra en el tiempo elegido (⏱ versión corta): se ve apagado, y se puede abrir igual
-function plegado(clave: string, titulo: ReactNode, sub: ReactNode, r: Fin, fuera = false) {
+function plegado(clave: string, titulo: ReactNode, sub: ReactNode, r: Fin, fuera = false, tiempo = '') {
   const listo = r.plan > 0 && r.hechas >= r.plan, color = listo ? 'completo' : r.hechas ? 'falta' : undefined;
   return (
     <Card component="article" key={clave} data-ancla={'ej-' + clave} data-fuera={fuera ? '' : undefined} sx={{ p: 0, mb: '8px', scrollMarginTop: '90px', ...(fuera ? { opacity: 0.55, borderStyle: 'dashed' } : null) }}>
@@ -365,7 +398,7 @@ function plegado(clave: string, titulo: ReactNode, sub: ReactNode, r: Fin, fuera
           '&:hover': { bgcolor: tokens.surface2 }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: '-2px' } }}>
         <Box component="span" sx={{ display: 'grid', gap: '2px', minWidth: 0 }}>
           <span><b>{titulo}</b> <Box component="small" sx={{ color: 'text.secondary', fontWeight: 400, fontSize: 13 }}>{sub}</Box></span>
-          <Box component="span" sx={{ color: color ? 'text.primary' : 'text.secondary', fontSize: 14, overflowWrap: 'anywhere' }}>{fuera ? '⏭ Hoy no entra (poco tiempo) · ' : ''}{r.texto}</Box>
+          <Box component="span" sx={{ color: color ? 'text.primary' : 'text.secondary', fontSize: 14, overflowWrap: 'anywhere' }}>{fuera ? '⏭ Hoy no entra (poco tiempo) · ' : ''}{r.texto}{tiempo ? <Box component="span" sx={{ color: 'text.secondary' }}> · ⏱ {tiempo}</Box> : null}</Box>
         </Box>
         <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {r.sube && !r.hechas && !fuera ? <Contador color="sube" sx={{ fontSize: 13, whiteSpace: 'nowrap', p: '2px 8px' }}>⬆ Sube</Contador> : null}
@@ -400,7 +433,7 @@ function ejercicio(ej: Fin, sem: number, sufijo = '') {
   const est = e() as Fin, { ultimoEj, actualId } = G.verDia(), d = est.rutina.find((x: Fin) => x.ejercicios.includes(ej)), nombres = nombresBiserie(ej.nombre) as string[] | null, es = !sufijo && ej.id === actualId;
   const proxima = (ej.filas as Fin[]).findIndex((f) => { const x = estadoFila(filaDe(f, sem, est), regs(sem)[f.id + sufijo] || {}) as Fin; return x.hechas < x.plan; });
   const clave = ej.id + sufijo, v = varianteEn(ej, regs(sem), sufijo), fuera = !sufijo && d && (G.fueraHoy(d, sem) as Set<string>).has(ej.id);
-  if (!G.estaAbierto(clave, !fuera && (es || (!sufijo && ej.id === ultimoEj && sem === semanaActual())))) return plegado(clave, nombreConVariante(ej, v), ej.musculo, G.resumenEj(ej, sem, sufijo), fuera);
+  if (!G.estaAbierto(clave, !fuera && (es || (!sufijo && ej.id === ultimoEj && sem === semanaActual())))) { const t = d && !sufijo ? tiemposDe(d, sem)[ej.id] : null; return plegado(clave, nombreConVariante(ej, v), ej.musculo, G.resumenEj(ej, sem, sufijo), fuera, conTiempo(t) ? minutosTexto(t.ms) : ''); }
   return (
     <Card component="article" key={clave} data-ancla={'ej-' + clave} data-actual={es ? '' : undefined} sx={tarjeta(es)}>
       <Box component="header" sx={CABECERA}>
@@ -411,6 +444,7 @@ function ejercicio(ej: Fin, sem: number, sufijo = '') {
       {tecnica(ej)}
       {!sufijo ? <AproxEjercicio ej={ej} sem={sem} /> : null}
       {(ej.filas as Fin[]).map((f, i) => fila(f, sem, f.id + sufijo, ej, i, i !== proxima))}
+      {!sufijo && d ? lineaTiempo(ej, d, sem) : null}
       {!sufijo && sem === semanaActual() ? molestia(ej, G.avanceEj(ej, sem).hechas > 0) : null}
       {es && !sufijo ? <Button variant="text" onClick={() => accion('gym-ocupada', { ej: ej.id })} sx={{ ...ENLACE, display: 'block', mb: '4px' }}>⏭ Máquina ocupada: hago otro primero</Button> : null}
       {historialPlegado(ej, sem, v)}
@@ -647,6 +681,7 @@ export function dia(d: Fin, sem: number) {
       <Box sx={{ ...FILA, mt: '4px', mb: '6px' }}><b>{d.nombre}</b><span>{r.hechas} / {r.plan} series</span></Box>
       <Avance parte={r.plan ? r.hechas / r.plan : 0} />
       <ContadorEntreno d={d} sem={sem} />
+      <TiemposPorEjercicio d={d} sem={sem} />
       <AntesDeEntrenar key={d.id} d={d} sem={sem} />
       <TocaSubir d={d} sem={sem} />
       {sem === semanaActual() ? <ChequeoMensual /> : null}

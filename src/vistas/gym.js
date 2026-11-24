@@ -4,7 +4,7 @@
 import { e, guardar, repintar, semanaActual, abrirSemana, quitarSemana, dia as diaDe, sesionesDeFecha } from '../estado.js';
 import { iso, lunesDe, sumarDias, fechaCorta, diaSemana } from '../fechas.js';
 export { semanaActual };
-import { tiemposDia, lineaTiempos, anotarEnEntreno, gruposDia } from '../gym.js';
+import { tiemposDia, lineaTiempos, anotarEnEntreno, gruposDia, anotarHoras } from '../gym.js';
 import { planCorto, videoValido } from '../entreno-hoy.js';
 import { esDescarga, filaDe, ejDe, sinDescargas, metaDescarga, rutinaDe, metaLiviana, pesoLiviano, origenDescarga } from '../descarga.js';
 import { claveCardio, hayCardio, textoCardio, estadoFila, repsDe, registrosDeFila, ultimoRegistro, sugerencia, resumenSemana, numero, formatoPeso, PIERNAS, historial, records, consejoEstancado, metaSesion, enBiserie, nombresBiserie, tieneVariantes, varianteDe, varianteActual, varianteEn, nombreConVariante } from '../gym.js';
@@ -250,6 +250,9 @@ function cambiarReps(id, texto) {
   // Calentamiento con peso corporal: sin peso escrito, se anota el tuyo de ese día
   if (info.ej.calentamiento && !String(reg.peso || '').trim() && repsDe(reg.reps).length) { const c = pesoDelDia(id, semanaVista); if (c) { reg.peso = kgCorporal(c); reg.unidad = 'kg'; } }
   const ahora = repsDe(reg.reps).length;
+  // ⏱ La hora de cada serie nueva (solo en vivo, en la semana actual): con ella se sabe cuánto tomó cada ejercicio
+  const horas = anotarHoras(reg.horas, antes, ahora, semanaVista === semanaActual() ? Date.now() : null);
+  if (horas) reg.horas = horas; else delete reg.horas;
   if (!reg.unidad) { const u = ultimoRegistro(e().semanas, info.f, semanaVista, filtro, e().rutina); reg.unidad = (u && u.unidad) || 'kg'; }
   // Descanso automático al sumar una serie (si aún faltan). En una biserie lo arranca la ronda, después de los dos
   if (ahora > antes) {

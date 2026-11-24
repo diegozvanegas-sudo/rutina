@@ -17,6 +17,7 @@ import { tokens } from '../tema';
 import { TEMAS, LETRAS, leerApariencia } from '../../apariencia.js';
 import { datosLateral } from '../armazon.js';
 import { MAX_ABAJO } from '../../barra-abajo.js';
+import { almacen } from '../../almacen.js';
 import { usarEstado } from '../usarEstado';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, DOS } from '../ui/Campo';
@@ -232,6 +233,8 @@ export default function Ajustes() {
       </TarjetaPlegable>
       <TarjetaPlegable vista={VISTA} clave="Copia de seguridad" titulo="Copia de seguridad">
         <Nota>Todo se guarda en este celular. Exporta una copia de vez en cuando o para pasarla a otro equipo.</Nota>
+        {almacen.permanente === true ? <Nota data-t="permanente">🛡️ Guardado permanente: este navegador no borrará los datos de la app aunque le falte espacio.</Nota>
+          : almacen.permanente === false ? <Nota data-t="permanente">⚠️ Este navegador podría borrar los datos de la app si le falta espacio (el iPhone, si no la abres en 7 días). Instálala en la pantalla de inicio para que queden fijos, y deja la nube activa.</Nota> : null}
         <Botones>
           <Button data-accion="exportar">⬇ Exportar (JSON)</Button>
           <Button component="label" color="secondary">⬆ Importar<input type="file" accept="application/json,.json" data-cambio="importar" hidden /></Button>

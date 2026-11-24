@@ -15,7 +15,7 @@ import { puntajeDia, rango, revisionSemanal } from '../../progreso.js';
 import { horasSueno, partidos, energiaSegunPierna, semanaObjetivo } from '../../registro.js';
 import { comparativa, queFunciona, experimentos } from '../../mejora.js';
 import { TEMAS_RETOS, RETOS, retoActivo, hechoDe, cuantosHechos, avisoFutbol } from '../../retos.js';
-import { libro } from '../../libros/index.js';
+import { libro } from '../../contenidos.js';
 import { predicciones, promptSemanal, textoPrueba } from '../../prediccion.js';
 import { copiarTexto } from '../../ui.js';
 import { piezasGym } from '../../vistas/gym.js';

@@ -3,7 +3,7 @@
 import { e, guardar, repintar } from '../estado.js';
 import { iso } from '../fechas.js';
 import { registrar, toast } from '../ui.js';
-import { LIBROS, libro } from '../libros/index.js';
+import { LIBROS, libro, alCargarContenidos } from '../contenidos.js';
 import { progresoInicial, lecturaQueToca, buscar, resultadoEvaluacion } from '../biblioteca.js';
 
 let actual = null, pestana = 'hoy', abierto = null, consulta = '', consejo = null;
@@ -35,7 +35,7 @@ const total = (l) => l.lecturas.length;
 
 
 // Con un solo libro, la sección lo abre directo
-if (LIBROS.length === 1) actual = LIBROS[0].id;
+alCargarContenidos(() => { if (LIBROS.length === 1 && !actual) actual = LIBROS[0].id; });
 
 // Lo que necesita la pantalla de React (src/react/pantallas/Libros.tsx): el libro, la pestaña y lo abierto
 export const piezasLibros = {

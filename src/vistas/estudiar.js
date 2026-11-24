@@ -3,8 +3,8 @@
 import { e, guardar, repintar, alternarCrono } from '../estado.js';
 import { iso } from '../fechas.js';
 import { registrar, toast } from '../ui.js';
-import { CURSOS, curso, areas, area, catalogoAreas, catalogoCursos } from '../cursos/index.js';
-import { LIBROS } from '../libros/index.js';
+// Los cursos y los libros llegan después de abrir (src/contenidos.js): antes, las listas están vacías
+import { CURSOS, LIBROS, curso, areas, area, catalogoAreas, catalogoCursos } from '../contenidos.js';
 import { leidas } from '../biblioteca.js';
 import { progresoCurso, lecciones, leccion, leccionQueToca, hechas, sumarTarjetas, repasar, pendientes, planDelDia, siguientes, anotar } from '../estudio.js';
 import { registrarCatalogo, ve, veRuta } from '../permisos.js';

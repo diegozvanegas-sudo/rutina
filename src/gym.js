@@ -51,6 +51,43 @@ export function anotarEnEntreno(x, dia, ahora = Date.now(), quieto = 90 * 60000)
   if (ahora - ultimo > quieto) return pocas ? nuevo() : { ...x, fin: ultimo + 5 * 60000 };
   return { ...x, ultimo: ahora, n: (x.n ?? SERIES_ENTRENO) + 1 };
 }
+// ---------- ⏱ Tiempo de cada ejercicio ----------
+// Cada serie anotada en vivo guarda su hora en el registro: reg.horas[i] = ms (null si se escribió después, sin hora).
+// antes y ahora: cuántas series había y cuántas hay; t: la hora de las nuevas (null = sin hora). null si no queda ninguna hora
+export function anotarHoras(horas, antes, ahora, t = Date.now()) {
+  const h = (Array.isArray(horas) ? horas : []).slice(0, ahora);
+  while (h.length < Math.min(antes, ahora)) h.push(null);
+  while (h.length < ahora) h.push(t ?? null);
+  return h.some((x) => x != null) ? h : null;
+}
+// Cuánto tomó cada ejercicio del día: desde la última serie del ejercicio anterior (o el inicio del entreno) hasta su
+// última serie, con lo de montar y los descansos. Si antes no hubo nada cercano (más de 20 min), cuenta desde su primera
+// serie (aproximado). descanso: el promedio entre sus series, en segundos (sin pausas de más de 15 min).
+// regs: los registros de la semana (semanas[sem]). Devuelve { ejId: { inicio, fin, ms, series, descanso, aproximado } }
+const PREVIO_MAX = 20 * 60000, PAUSA_MAX = 15 * 60000;
+export function tiemposEjercicios(ejercicios, regs, inicioEntreno = null) {
+  const marcas = [];
+  for (const ej of ejercicios || []) for (const f of ej.filas || []) for (const [k, r] of Object.entries(regs || {})) {
+    if ((k === f.id || k.startsWith(f.id + '@')) && r && Array.isArray(r.horas)) for (const t of r.horas) if (t) marcas.push([t, ej.id]);
+  }
+  marcas.sort((a, b) => a[0] - b[0]);
+  const salida = {};
+  for (const ej of ejercicios || []) {
+    const mias = marcas.filter((m) => m[1] === ej.id).map((m) => m[0]);
+    if (!mias.length) continue;
+    const primera = mias[0], fin = mias[mias.length - 1], previa = marcas.filter((m) => m[0] < primera && m[1] !== ej.id).pop();
+    let desde = previa ? previa[0] : inicioEntreno;
+    if (!desde || desde > primera || primera - desde > PREVIO_MAX) desde = null;
+    const pausas = mias.slice(1).map((t, i) => t - mias[i]).filter((g) => g > 0 && g <= PAUSA_MAX);
+    salida[ej.id] = { inicio: desde ?? primera, fin, ms: fin - (desde ?? primera), series: mias.length, aproximado: desde == null,
+      descanso: pausas.length ? Math.round(pausas.reduce((x, y) => x + y, 0) / pausas.length / 1000) : null };
+  }
+  return salida;
+}
+// "8 min", "menos de 1 min" · y los segundos como "2:05"
+export const minutosTexto = (ms) => (ms < 60000 ? 'menos de 1 min' : Math.round(ms / 60000) + ' min');
+export const mmss = (seg) => Math.floor(seg / 60) + ':' + String(seg % 60).padStart(2, '0');
+
 // Un entreno de fuerza de más de 3 horas casi seguro es un error del contador: se ofrece corregir las horas
 export const ENTRENO_RARO = 180;
 // "1 h 42 min" o "45 min"

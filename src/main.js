@@ -30,6 +30,8 @@ import { montarReact, desmontarReact, montarFijo } from './react/montar.js';
 import { ponerLateral, ponerSesion, ponerBuscar } from './react/armazon.js';
 import { idsAbajo, alternarAbajo } from './barra-abajo.js';
 import { aplicarLetra, ponerTema, ponerLetra } from './apariencia.js';
+import { cargarContenidos, alCargarContenidos } from './contenidos.js';
+import { pedirQueNoSeBorre } from './almacen.js';
 import { refrescarReact } from './react/refrescar.js';
 import './vistas/lugares.js';
 import './vistas/suplementos.js';
@@ -56,6 +58,11 @@ const estilos = document.createElement('div');
 estilos.hidden = true;
 document.body.appendChild(estilos);
 montarFijo(estilos, () => import('./react/armazon/Estilos.tsx'));
+// Cursos y libros: se descargan en paralelo, sin frenar el arranque; al llegar se repinta lo que los muestra (Estudio de hoy)
+cargarContenidos().catch(() => {});
+alCargarContenidos(() => { pedirPintar(); refrescarReact(); });
+// 🛡️ Que el navegador no borre los datos de este equipo cuando le falte espacio (o tras días sin abrir, en el iPhone)
+pedirQueNoSeBorre();
 iniciarNube();
 iniciarHoja();
 iniciarAvisos();
@@ -63,10 +70,10 @@ iniciarAvisos();
 // Todas las pantallas son de React: se descargan al abrirlas y se montan dentro de #vista (ver react/montar.js)
 const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), compras: () => import('./react/pantallas/Compras.tsx'),
   ventas: () => import('./react/pantallas/Ventas.tsx'), recordatorios: () => import('./react/pantallas/Recordatorios.tsx'),
-  dieta: () => import('./react/pantallas/Dieta.tsx'), administrar: () => import('./react/pantallas/Administrar.tsx'),
-  libros: () => import('./react/pantallas/Libros.tsx'), lugares: () => import('./react/pantallas/Lugares.tsx'),
+  dieta: () => import('./react/pantallas/Dieta.tsx'), administrar: () => cargarContenidos().then(() => import('./react/pantallas/Administrar.tsx')),
+  libros: () => cargarContenidos().then(() => import('./react/pantallas/Libros.tsx')), lugares: () => import('./react/pantallas/Lugares.tsx'),
   metas: () => import('./react/pantallas/Metas.tsx'), suplementos: () => import('./react/pantallas/Suplementos.tsx'),
-  manana: () => import('./react/pantallas/Manana.tsx'), estudiar: () => import('./react/pantallas/Estudiar.tsx'),
+  manana: () => import('./react/pantallas/Manana.tsx'), estudiar: () => cargarContenidos().then(() => import('./react/pantallas/Estudiar.tsx')),
   sesiones: () => import('./react/pantallas/Sesiones.tsx'), hoy: () => import('./react/pantallas/Hoy.tsx'),
   progreso: () => import('./react/pantallas/Progreso.tsx'), editar: () => import('./react/pantallas/Editar.tsx'),
   clientes: () => import('./react/pantallas/Clientes.tsx'), ajustes: () => import('./react/pantallas/Ajustes.tsx'),

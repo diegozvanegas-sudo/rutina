@@ -7,7 +7,7 @@ import { ALIMENTOS, PLANES, CONFIG_DIETA } from './datos_dieta.js';
 import { FINANZAS, RECORDATORIOS, CATEGORIAS_GASTO, CATEGORIAS_INGRESO, CATEGORIAS_NUEVAS_V2 } from './datos_finanzas.js';
 import { LUGARES_INICIALES, LUGARES_ANTIOQUIA, LUGARES_RESTO } from './datos_lugares.js';
 import { tipoDeDia, tocaRecarga, totalPlan, macrosPorKg, objetivo, recalcular, quitarComidasRepetidas, conCambiosDelDia } from './dieta.js';
-import { LIBROS } from './libros/index.js';
+import { LIBROS, alCargarContenidos } from './contenidos.js';
 import { progresoInicial } from './biblioteca.js';
 import { visibles } from './orden.js';
 import { iso, sumarDias, semanaDe, diaSemana, hora, ponerSemana1, lunesDeFecha, SEMANA_1_INICIAL } from './fechas.js';
@@ -177,8 +177,8 @@ const leerClave = (k) => { try { return JSON.parse(localStorage.getItem(k)); } c
 export function cargar() {
   const guardado = leerClave(CLAVE);
   estado = guardado && guardado.version === 1 ? { ...inicial(), ...guardado } : nuevo();
-  // Sesiones nuevas que trae una versión de la app y aún no están en el celular
-  for (const s of [...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])]) if (!estado.sesiones.some((x) => x.id === s.id)) estado.sesiones.push(copia(s));
+  // Sesiones nuevas que trae una versión de la app y aún no están en el celular (las de los libros, cuando lleguen: src/contenidos.js)
+  sumarSesiones();
   // Una sola vez: últimos registros, descansos y semana 1 traídos de la hoja de Google
   if (!estado.hojaAplicada) { aplicarHoja(estado); estado.hojaAplicada = true; }
   if (!estado.diasV2) { moverDias(estado); estado.diasV2 = true; }
@@ -333,6 +333,16 @@ function moverFenix(est) {
   for (const d of Object.values(est.dias)) if (d.fenix) { (d.libros ??= {}).fenix = d.fenix; delete d.fenix; }
   delete est.fenix;
 }
+
+// Las sesiones de siempre y las de los libros que aún no tiene este usuario. Devuelve cuántas sumó
+function sumarSesiones() {
+  if (!estado || !estado.sesiones) return 0;
+  let n = 0;
+  for (const s of [...SESIONES, ...LIBROS.flatMap((l) => l.sesiones || [])]) if (!estado.sesiones.some((x) => x.id === s.id)) { estado.sesiones.push(copia(s)); n++; }
+  return n;
+}
+// Al llegar los libros (después de abrir la app), sus sesiones entran como antes entraban al cargar
+alCargarContenidos(() => { if (sumarSesiones()) escribir(); });
 
 let pendiente = null, alGuardar = [];
 function escribir() {

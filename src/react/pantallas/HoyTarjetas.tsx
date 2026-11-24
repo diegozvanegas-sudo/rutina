@@ -20,7 +20,7 @@ import { cumplimientoEstandares, IDEAS_POR_TEMA } from '../../vida.js';
 import { editandoLosEstandares } from '../../vistas/vida.js';
 import { cierreDeHoy, piezasSesiones } from '../../vistas/sesiones.js';
 import { piezasEstudio, librosVisibles } from '../../vistas/estudiar.js';
-import { curso } from '../../cursos/index.js';
+import { curso } from '../../contenidos.js';
 import { leccion } from '../../estudio.js';
 import { lecturaQueToca } from '../../biblioteca.js';
 import { rachaEstudio } from '../../estudio.js';
@@ -206,7 +206,7 @@ export function Foco({ e, hoy = iso() }: { e: Fin; hoy?: string }) {
 // ---------- 🎓 Estudio de hoy ----------
 export function EstudioHoy({ e }: { e: Fin }) {
   const S = piezasEstudio as Fin, p = S.plan() as Fin, r = rachaEstudio(e.estudio.dias) as number, minutos = e.config.estudio.minutos;
-  const nombre = (s: Fin) => { const c = curso(s.curso) as Fin, l = leccion(c, s.n) as Fin; return c.icono + ' ' + c.nombre + ' · lección ' + s.n + ': ' + l.titulo; };
+  const nombre = (s: Fin) => { const c = curso(s.curso) as Fin, l = c && leccion(c, s.n) as Fin; return c && l ? c.icono + ' ' + c.nombre + ' · lección ' + s.n + ': ' + l.titulo : 'Lección ' + s.n; };
   const libros = (librosVisibles() as Fin[]).filter((l) => e.libros[l.id] && lecturaQueToca(l, e.libros[l.id]));
   const lineas: string[] = [];
   if (p.repasos) lineas.push('🔁 ' + p.repasos + (p.repasos === 1 ? ' tarjeta' : ' tarjetas') + ' para repasar');

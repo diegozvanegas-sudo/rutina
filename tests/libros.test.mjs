@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { e } from '../src/estado.js';
+import { cargarContenidos, contenidosListos } from '../src/contenidos.js';
 import { LIBROS, libro } from '../src/libros/index.js';
 import { SESIONES } from '../src/datos_iniciales.js';
 import { progresoInicial, lecturaQueToca, leidas, racha, buscar, afirmacionDelDia, resultadoEvaluacion } from '../src/biblioteca.js';
@@ -95,9 +96,13 @@ test('el buscador encuentra la lectura y el consejo que corresponde', () => {
   assert.deepEqual(buscar(fenix, 'de la'), { consejos: [], lecturas: [], conceptos: [] });
 });
 
-test('el estado trae los libros, sus sesiones y una afirmación por día', () => {
+test('el estado trae los libros, sus sesiones y una afirmación por día', async () => {
   assert.deepEqual(e().libros, {});
+  // Los libros llegan aparte (src/contenidos.js): al llegar, sus sesiones entran al estado, sin repetirse
+  await cargarContenidos();
+  assert.ok(contenidosListos());
   assert.ok(e().sesiones.some((s) => s.id === 'respiracion-448'));
+  assert.equal(e().sesiones.filter((s) => s.id === 'respiracion-448').length, 1);
   assert.notEqual(afirmacionDelDia(fenix, '2026-10-24'), afirmacionDelDia(fenix, '2026-10-25'));
 });
 

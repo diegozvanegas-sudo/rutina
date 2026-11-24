@@ -217,6 +217,17 @@ function rutina(l: Fin) {
     <>
       <Nota>Todo el libro convertido en un día. Síguela mientras lo lees (y después).</Nota>
       {(l.rutina as [string, string[]][]).map(([t, pasos]) => <TarjetaPlegable key={t} vista={VISTA} clave={t} titulo={t}><Puntos items={pasos} /></TarjetaPlegable>)}
+      {(l.musica || []).length ? (
+        <TarjetaPlegable vista={VISTA} clave="🎧 Música del seminario" titulo="🎧 Música del seminario">
+          <Nota>Listas de 100 canciones en Spotify. Se abren en la app de Spotify (o en el navegador).</Nota>
+          {(l.musica as Fin[]).map((m) => (
+            <Button key={m.url} component="a" href={m.url} target="_blank" rel="noopener noreferrer" fullWidth color="secondary"
+              sx={{ justifyContent: 'flex-start', textAlign: 'left', minHeight: 56, mt: '8px', display: 'grid', gap: '2px', textTransform: 'none' }}>
+              <b>{m.nombre} ↗</b><Box component="small" sx={{ color: 'text.secondary', fontWeight: 400 }}>{m.para}</Box>
+            </Button>
+          ))}
+        </TarjetaPlegable>
+      ) : null}
       {(l.sesiones || []).length ? <TarjetaPlegable vista={VISTA} clave="🧘 Sesiones guiadas" titulo="🧘 Sesiones guiadas"><Botones>{(l.sesiones as Fin[]).map((s) => <Sesion key={s.id} id={s.id} texto={'▶ ' + s.nombre} />)}</Botones></TarjetaPlegable> : null}
     </>
   );

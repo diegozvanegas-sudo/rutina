@@ -1235,6 +1235,13 @@ export default {
   consejos: CONSEJOS,
   grupos: GRUPOS,
   rutina: RUTINA,
+  // Listas de Spotify armadas con lo que dicen los días 13 y 14 (clásica y relajación) y para el gym (abren en Spotify)
+  musica: [
+    { nombre: '📖 Fénix Estudiar', para: 'Bach, Mozart y piano sin letra para leer y estudiar (días 13 y 14)', url: 'https://open.spotify.com/playlist/4sk8BJm7UieX1ljcAwYJ28' },
+    { nombre: '🌙 Fénix Relajar y Dormir', para: 'Relajación progresiva, respiración 4-4-8 y antes de dormir (días 14 y 23)', url: 'https://open.spotify.com/playlist/4XaDIQPGILCqgllQVL1U1w' },
+    { nombre: '🎯 Fénix Visualizar', para: 'Instrumental épica para visualizar tus metas y repetir afirmaciones (días 4, 9 y 16)', url: 'https://open.spotify.com/playlist/5kGk3fE7O6aBAxao11JCTh' },
+    { nombre: '💪 Fénix Gym', para: 'Para entrenar: calentamiento, series pesadas y cardio', url: 'https://open.spotify.com/playlist/6lY59wn8rO1HyM7zkEu5va' },
+  ],
   racha: { meta: 21, texto: 'Regla de los 21 días' },
   diario: {
     titulo: '🌙 Noche: gratitud y tareas de mañana',

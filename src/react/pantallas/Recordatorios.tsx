@@ -86,7 +86,8 @@ function fila(f: Fila) {
   );
   const base = { ...rejilla, display: 'grid', alignItems: 'center', columnGap: { xs: '8px', [PC]: '12px' }, rowGap: '2px', minHeight: 48, p: '4px 6px', borderRadius: '8px', color: 'text.primary', font: 'inherit', textAlign: 'left', justifyContent: 'stretch' };
   return (
-    <Box component="section" key={f.id} data-rec-id={f.abrir ? f.id : undefined}
+    // 📱 Deslizar a la derecha es «✓ Hecho hoy»; a la izquierda abre el detalle (main.js, data-deslizar)
+    <Box component="section" key={f.id} data-rec-id={f.abrir ? f.id : undefined} data-deslizar="[data-accion=rec-hoy]" data-deslizar-izq={f.abrir ? '[data-accion=rec-abrir]' : undefined}
       sx={[{ bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderLeft: '4px solid', borderLeftColor: f.sug ? tokens.line : BORDE[f.estado] || tokens.line, borderRadius: '12px' },
         f.activa ? { borderColor: 'primary.main', boxShadow: '0 0 0 2px ' + tokens.brand + ', 0 10px 30px rgba(0, 0, 0, .45)', position: 'relative', zIndex: 1 } : null]}>
       <Box sx={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: f.sug ? { xs: 'start', [PC]: 'center' } : 'center', gap: '8px', p: '6px 8px 6px 4px' }}>

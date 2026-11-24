@@ -27,7 +27,9 @@ import './vistas/mivida.js';
 import './vistas/libros.js';
 import './vistas/estudiar.js';
 import { montarReact, desmontarReact, montarFijo } from './react/montar.js';
-import { ponerLateral, ponerSesion } from './react/armazon.js';
+import { ponerLateral, ponerSesion, ponerBuscar } from './react/armazon.js';
+import { idsAbajo, alternarAbajo } from './barra-abajo.js';
+import { aplicarLetra, ponerTema, ponerLetra } from './apariencia.js';
 import { refrescarReact } from './react/refrescar.js';
 import './vistas/lugares.js';
 import './vistas/suplementos.js';
@@ -44,6 +46,8 @@ import { ve, veRuta, esAdmin, viendoComo, ponerPermisos, rolVisto } from './perm
 import { ponerDatosAdmin } from './vistas/administrar.js';
 
 registerSW({ immediate: true });
+// 🔠 El tamaño de letra de este equipo (Ajustes → 🎨 Cómo se ve), antes de pintar nada
+aplicarLetra();
 // Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
 if (configurada) esperarUsuario(); else cargar();
 // Los estilos de toda la app (armazón, lo general, gráficos y figuras): React, una sola vez y antes que cualquier pantalla.
@@ -119,7 +123,9 @@ function aplicarBarra() {
   document.body.classList.toggle('barra-izquierda', b.lado === 'izquierda');
   // 📱 Celular: el menú sale del lado de tu mano y, con "una mano", ☰ abajo al alcance del pulgar
   document.body.classList.toggle('mano-izquierda', b.mano === 'izquierda');
-  document.body.classList.toggle('una-mano', !!b.unaMano);
+  document.body.classList.toggle('una-mano', !!b.unaMano && !!b.sinAbajo);
+  // 📱 La barra de abajo del celular (react/armazon/Abajo.tsx): encendida salvo que la apague en Ajustes
+  document.body.classList.toggle('con-abajo', !b.sinAbajo);
   document.documentElement.style.setProperty('--ancho-barra', (b.ancho || 260) + 'px');
 }
 
@@ -132,6 +138,10 @@ function datosLateral() {
   // "Mi entrenador" sale en el menú solo a quien tiene entrenador (por enlace se abre siempre, para unirse con el código)
   // 📝 Notas no va en la lista: tiene su botón siempre a la vista (#boton-notas)
   const ids = visibles(c, 'menu').filter((k) => k !== 'notas' && ve('seccion', k) && (k !== 'entrenador' || tieneEntrenador() || v === 'entrenador') && (k !== 'panel' || permitida('panel'))).concat(SOLO_ADMIN.filter(permitida));
+  // 📱 Barra de abajo: de lo que puede abrir (también 📝 Notas), las que eligió o las de siempre
+  const disponibles = ids.includes('notas') || !permitida('notas') ? ids : ids.concat('notas');
+  const enlaceDe = (k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], actual: k === (DENTRO[v] || v), insignia: k === 'recordatorios' ? avisos : 0 });
+  const abajo = idsAbajo(b, disponibles).map(enlaceDe), abajoOpciones = disponibles.map(enlaceDe);
   const total = habitosDe().length, m = avanceMetas(), r = resumenSemana(e().rutina, e().semanas[semanaActual()] || {});
   const enlaces = ids.map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1], actual: k === (DENTRO[v] || v), insignia: k === 'recordatorios' ? avisos : 0 }));
   // 🎨 Cada lado ve su portal (src/marca.js): el cliente, lo suyo primero con la marca de su entrenador y lo demás en "Más";
@@ -156,9 +166,16 @@ function datosLateral() {
     ].filter(Boolean),
     nube: { estado: nube.estado, texto: textoNube(), titulo: nube.error || textoNube() },
     correo: nube.usuario ? nube.usuario.correo : null,
+    abajo, abajoOpciones, sinAbajo: !!b.sinAbajo, avisos,
   };
 }
 ponerLateral(datosLateral);
+// 🔎 Buscar: todas las secciones que puede abrir (también las que escondió del menú), sus pestañas y los hábitos
+ponerBuscar(() => ({
+  secciones: Object.keys(VISTAS).filter((k) => permitida(k) && k !== 'libros').map((k) => ({ k, icono: VISTAS[k][0], nombre: VISTAS[k][1] })),
+  subs: SUBSECCIONES, habitos: e().habitos || [],
+}));
+const abrirBuscar = () => { menu(false); window.dispatchEvent(new Event('rutina:buscar')); };
 // 🎨 La barra de arriba del celular lleva la misma marca que el menú (la del entrenador del cliente o la tuya); sin marca, Rutina.
 // Se arma con nodos (nunca HTML con lo que escribió el entrenador)
 let marcaPintada = '';
@@ -185,6 +202,9 @@ function montarArmazon() {
   montarFijo($('lateral'), () => import('./react/armazon/Lateral.tsx'));
   montarFijo($('flotante'), () => import('./react/armazon/Flotante.tsx'));
   montarFijo($('reproductor'), () => import('./react/armazon/Reproductor.tsx'));
+  montarFijo($('arriba'), () => import('./react/armazon/Arriba.tsx'));
+  montarFijo($('abajo'), () => import('./react/armazon/Abajo.tsx'));
+  montarFijo($('buscar'), () => import('./react/armazon/Buscar.tsx'));
 }
 
 // Lo último que se tocó: si está dentro de algo con data-ancla, ese bloque no se mueve al repintar.
@@ -205,6 +225,13 @@ function modoSesion() {
   return prueba.modo === 'bloqueada' || bloqueada() ? 'bloqueada' : null;
 }
 ponerSesion(() => ({ modo: modoSesion(), correo: nube.usuario ? nube.usuario.correo : '' }));
+// 🔔 Lo pendiente en el ícono de la app instalada (donde el celular o el computador lo permitan)
+let insigniaPuesta = -1;
+function ponerInsignia(n) {
+  if (n === insigniaPuesta || !('setAppBadge' in navigator)) return;
+  insigniaPuesta = n;
+  (n ? navigator.setAppBadge(n) : navigator.clearAppBadge()).catch(() => {});
+}
 function pintar() {
   // Entrar o el candado (React conserva lo escrito en correo y contraseña cuando se repinta)
   const modo = modoSesion();
@@ -236,7 +263,9 @@ function pintar() {
   }
   montarArmazon();
   aplicarBarra();
-  document.title = VISTAS[v][1] + ' · Rutina';
+  const pendientes = ve('seccion', 'recordatorios') ? alertas().length : 0;
+  document.title = (pendientes ? '(' + pendientes + ') ' : '') + VISTAS[v][1] + ' · Rutina';
+  ponerInsignia(pendientes);
   if (v === ultimaVista) {
     window.scrollTo(0, y);
     const nuevas = ancla && ancla.length ? [...document.querySelectorAll('#vista [data-ancla]')] : [];
@@ -378,6 +407,47 @@ function menu(abrir) {
   document.addEventListener('touchend', soltarMenu);
   document.addEventListener('touchcancel', soltarMenu);
 })();
+// 📱 Deslizar una fila con el dedo: a la derecha toca su botón de hecho (data-deslizar = selector dentro de la fila) y a la
+// izquierda el de abrir o editar (data-deslizar-izq). La fila sigue al dedo; pasado el umbral se pinta y, al soltar, se toca
+// el botón (la misma acción de siempre, con su deshacer). Un gesto vertical sigue siendo desplazar la pantalla
+(() => {
+  const UMBRAL = 80;
+  let d = null;
+  const limpiar = (el) => { el.style.transition = 'transform .15s'; el.style.transform = ''; el.removeAttribute('data-deslizando'); setTimeout(() => { el.style.transition = ''; }, 160); };
+  document.addEventListener('touchstart', (ev) => {
+    d = null;
+    if (ev.touches.length !== 1 || document.body.classList.contains('menu-abierto')) return;
+    const t = ev.target, el = t.closest && t.closest('[data-deslizar], [data-deslizar-izq]');
+    if (!el || t.closest('input, textarea, select, [contenteditable="true"], [draggable="true"], [data-ordenable]')) return;
+    d = { el, x: ev.touches[0].clientX, y: ev.touches[0].clientY, dx: 0, horiz: null };
+  }, { passive: true });
+  document.addEventListener('touchmove', (ev) => {
+    if (!d) return;
+    const dx = ev.touches[0].clientX - d.x, dy = ev.touches[0].clientY - d.y;
+    if (d.horiz === null) {
+      if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+      d.horiz = Math.abs(dx) > Math.abs(dy) * 1.5;
+      if (!d.horiz) { d = null; return; }
+    }
+    const sel = dx > 0 ? d.el.dataset.deslizar : d.el.dataset.deslizarIzq;
+    d.boton = sel ? d.el.querySelector(sel) : null;
+    d.dx = d.boton ? Math.max(-140, Math.min(140, dx)) : dx / 6; // sin botón para ese lado: apenas se mueve
+    d.el.style.transition = 'none';
+    d.el.style.transform = 'translateX(' + d.dx + 'px)';
+    if (d.boton && Math.abs(d.dx) >= UMBRAL) d.el.setAttribute('data-deslizando', d.dx > 0 ? 'hecho' : 'abrir');
+    else d.el.removeAttribute('data-deslizando');
+  }, { passive: true });
+  const soltarFila = () => {
+    if (!d) return;
+    const { el, boton, dx } = d;
+    d = null;
+    limpiar(el);
+    if (boton && Math.abs(dx) >= UMBRAL && boton.isConnected) { if (navigator.vibrate) navigator.vibrate(15); boton.click(); }
+  };
+  document.addEventListener('touchend', soltarFila);
+  document.addEventListener('touchcancel', () => { if (d) { limpiar(d.el); d = null; } });
+})();
+
 registrar({
   't-sumar'() { sumar(30); },
   't-parar'() { detener(); },
@@ -397,6 +467,20 @@ registrar({
   'barra-mover-grupo'({ id, g }) { if (moverAGrupo(e().config, id, g)) guardar(); },
   'barra-mano'({ v }) { ajustesBarra().mano = v === 'izquierda' ? 'izquierda' : 'derecha'; guardar(); },
   'barra-una-mano'() { const b = ajustesBarra(); b.unaMano = !b.unaMano; guardar(); },
+  // 📱 Barra de abajo: encender o apagar, y poner o quitar una sección (máximo 4)
+  'barra-abajo'() { const b = ajustesBarra(); b.sinAbajo = !b.sinAbajo; guardar(); },
+  'barra-abajo-id'({ id }) { const d = datosLateral(); if (d) { alternarAbajo(ajustesBarra(), d.abajoOpciones.map((x) => x.k), id); guardar(); } },
+  'barra-abajo-restablecer'() { delete ajustesBarra().abajo; guardar(); },
+  // 🎨 Tema y letra de este equipo (src/apariencia.js)
+  'apariencia-tema'({ v }) { ponerTema(v); refrescarReact(); },
+  'apariencia-letra'({ v }) { ponerLetra(v); refrescarReact(); },
+  buscar() { abrirBuscar(); },
+});
+// 🔎 Ctrl+K (⌘K en Mac) o "/" fuera de un campo abren el buscador
+document.addEventListener('keydown', (ev) => {
+  if (modoSesion()) return;
+  const escribiendo = ev.target.closest && ev.target.closest('input, textarea, select, [contenteditable="true"]');
+  if (((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') || (ev.key === '/' && !escribiendo && !ev.ctrlKey && !ev.metaKey && !ev.altKey)) { ev.preventDefault(); abrirBuscar(); }
 });
 
 document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') menu(false); });

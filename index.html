@@ -11,6 +11,8 @@
     <!-- Mientras llegan los estilos (React, src/react/armazon/Estilos.tsx): el fondo de la app y nada a la vista. Estilos.tsx
          vuelve a mostrar la página (y deja html sin fondo, como siempre). El color es el fondo del tema (tokens.bg), igual que theme-color -->
     <style>html { background: #101418; color-scheme: dark; } body { visibility: hidden; }</style>
+    <!-- ☀️ Con el tema claro (Ajustes → 🎨 Cómo se ve, src/apariencia.js) el fondo de espera también es claro -->
+    <script>try { var a = JSON.parse(localStorage.getItem('rutina_apariencia')) || {}; if (a.tema === 'claro' || (a.tema === 'sistema' && matchMedia('(prefers-color-scheme: light)').matches)) { document.documentElement.style.background = '#f4f6f8'; document.documentElement.style.colorScheme = 'light'; var m = document.querySelector('meta[name=theme-color]'); if (m) m.content = '#f4f6f8'; } } catch (err) {}</script>
     <!-- Lo que se ve al compartir el enlace (WhatsApp, redes) -->
     <meta name="description" content="Tu entrenamiento, tu comida y tu progreso en un solo lugar. Para quien entrena y para el entrenador que lo acompaña. Funciona sin señal en el gym.">
     <meta property="og:title" content="Rutina: entrenamiento, comida y progreso">
@@ -23,6 +25,8 @@
 <div class="app">
     <header class="top-movil">
         <span class="marca"><span class="logo" aria-hidden="true">🏋️</span><b>Rutina</b></span>
+        <!-- ☁️ Lo guardado y 🔎 Buscar (React, src/react/armazon/Arriba.tsx) -->
+        <span id="arriba" class="arriba"></span>
         <button type="button" class="icono menu" data-accion="menu" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false">☰</button>
     </header>
     <main id="vista"></main>
@@ -33,6 +37,10 @@
 <button type="button" class="menu-pulgar" data-accion="menu" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false">☰</button>
 <!-- 📝 Notas: siempre a la vista, fuera del menú (main.js lo esconde dentro de Notas y si no tiene permiso) -->
 <a href="#notas" id="boton-notas" class="boton-notas" aria-label="Notas" title="Notas" hidden>📝</a>
+<!-- 📱 Celular: las secciones de siempre al alcance del pulgar (React, src/react/armazon/Abajo.tsx) -->
+<nav id="abajo" class="abajo" aria-label="Secciones principales"></nav>
+<!-- 🔎 Buscar en toda la app (React, src/react/armazon/Buscar.tsx) -->
+<div id="buscar"></div>
 <div id="flotante" class="flotante" role="timer" hidden></div>
 <div id="reproductor" class="reproductor" role="dialog" aria-modal="true" aria-label="Sesión guiada" hidden></div>
 <div id="toast" class="toast" role="status" hidden></div>

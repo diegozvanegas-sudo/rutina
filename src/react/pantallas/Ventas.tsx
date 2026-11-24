@@ -308,5 +308,5 @@ export default function Ventas() {
 
 // Aviso amarillo (lo que falta, lo que hay que tener en cuenta)
 function Aviso({ children }: { children: ReactNode }) {
-  return <Box component="p" sx={{ color: 'warning.main', bgcolor: '#3a2d10', borderRadius: '10px', p: '8px 10px', fontSize: 14, my: '8px' }}>{children}</Box>;
+  return <Box component="p" sx={{ color: 'warning.main', bgcolor: tokens.amarilloFondo, borderRadius: '10px', p: '8px 10px', fontSize: 14, my: '8px' }}>{children}</Box>;
 }

@@ -4,6 +4,7 @@
 // las demás reglas son las de siempre (cierre, reto-…).
 import { useState, type ReactNode } from 'react';
 import { Box, Button, Chip, Link } from '@mui/material';
+import { Vacio } from '../ui/Vacio';
 import { avanceMetas, racha, semanaActual } from '../../estado.js';
 import { visibles, METAS } from '../../orden.js';
 import { iso, sumarDias, fechaCorta, diaSemana, lunesDe, semanaDe } from '../../fechas.js';
@@ -102,7 +103,7 @@ function mejora() {
             </li>
           ))}
         </Box>
-      ) : <Parrafo>Todavía no hay datos para comparar. Sigue anotando: con unas semanas aparece tu tendencia.</Parrafo>}
+      ) : <Vacio icono="📈" accion={<Button href="#hoy" sx={{ minHeight: 44 }}>🏠 Anotar lo de hoy</Button>}>Todavía no hay datos para comparar. Sigue anotando: con unas semanas aparece tu tendencia.</Vacio>}
       {faltan.length && con.length ? <Nota>Aún sin datos para comparar: {faltan.map((x) => x.nombre).join(', ')}.</Nota> : null}
     </TarjetaPlegable>
   );

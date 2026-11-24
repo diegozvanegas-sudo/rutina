@@ -3,7 +3,7 @@
 // llevan data-cambio y los botones data-accion (main.js los despacha igual que antes).
 // pantallaEntrar y pantallaBloqueo (vistas/ajustes.js) son del armazón de la app y se quedan allá.
 import type { ReactNode } from 'react';
-import { Box, Button, Checkbox, Link } from '@mui/material';
+import { Box, Button, Checkbox, Chip, Link } from '@mui/material';
 import { semanaActual } from '../../estado.js';
 import { hora, fechaLarga } from '../../fechas.js';
 import { nube, configurada, textoNube } from '../../nube.js';
@@ -14,6 +14,9 @@ import { bloqueo, huellaActiva } from '../../bloqueo.js';
 import { avisosDeSuplementos } from '../../vistas/suplementos.js';
 import { piezasAjustes } from '../../vistas/ajustes.js';
 import { tokens } from '../tema';
+import { TEMAS, LETRAS, leerApariencia } from '../../apariencia.js';
+import { datosLateral } from '../armazon.js';
+import { MAX_ABAJO } from '../../barra-abajo.js';
 import { usarEstado } from '../usarEstado';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, DOS } from '../ui/Campo';
@@ -124,6 +127,37 @@ function Nube() {
   );
 }
 
+// 🎨 Cómo se ve: tema y letra (de este equipo, src/apariencia.js), la barra de abajo del celular y dónde esconder secciones
+const Opcion = ({ activa, children, ...datos }: { activa: boolean; children: ReactNode; [k: string]: unknown }) => (
+  <Chip clickable label={children} aria-pressed={activa} color={activa ? 'primary' : 'default'} variant={activa ? 'filled' : 'outlined'} {...datos} />
+);
+const Opciones = ({ children }: { children: ReactNode }) => <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', mb: '10px' }}>{children}</Box>;
+function ComoSeVe() {
+  const ap = leerApariencia(), d = datosLateral() as Fin;
+  const enBarra = new Set(((d && d.abajo) || []).map((x: Fin) => x.k));
+  return (
+    <TarjetaPlegable vista={VISTA} clave="🎨 Cómo se ve" titulo="🎨 Cómo se ve">
+      <Subtitulo>Colores</Subtitulo>
+      <Opciones>{TEMAS.map(([k, t]) => <Opcion key={k} activa={ap.tema === k} data-accion="apariencia-tema" data-v={k} data-t="tema">{t}</Opcion>)}</Opciones>
+      <Subtitulo>Tamaño de la letra</Subtitulo>
+      <Opciones>{LETRAS.map(([k, t]) => <Opcion key={k} activa={ap.letra === k} data-accion="apariencia-letra" data-v={String(k)} data-t="letra">{t}</Opcion>)}</Opciones>
+      <Nota>Colores y letra son de este equipo: el celular y el computador pueden ir distinto.</Nota>
+      {d ? <>
+        <Subtitulo>📱 Barra de abajo (celular)</Subtitulo>
+        <Interruptor marcado={!d.sinAbajo} datos={{ 'data-cambio': 'barra-abajo' }}>Secciones abajo, al alcance del pulgar, con «☰ Más» para el resto</Interruptor>
+        {!d.sinAbajo ? <>
+          <Nota>Elige hasta {MAX_ABAJO} ({enBarra.size} de {MAX_ABAJO}). Si ya hay {MAX_ABAJO}, la nueva entra en lugar de la última.</Nota>
+          <Opciones>
+            {(d.abajoOpciones as Fin[]).map((x) => <Opcion key={x.k} activa={enBarra.has(x.k)} data-accion="barra-abajo-id" data-id={x.k} data-t="abajo-opcion">{x.icono} {x.nombre}</Opcion>)}
+          </Opciones>
+          <Botones><Button color="secondary" size="small" data-accion="barra-abajo-restablecer">↺ Las de siempre</Button></Botones>
+        </> : null}
+      </> : null}
+      <Nota><Link href="#editar/pantallas" sx={{ color: 'primary.main' }}>🧩 Esconder u ordenar las secciones del menú y las tarjetas de Hoy</Link></Nota>
+    </TarjetaPlegable>
+  );
+}
+
 function AvisosDelDia({ c }: { c: Fin }) {
   const av = c.avisos || {}, horas = { ...HORAS_AVISOS, ...(av.horas || {}) } as Record<string, string>, apagados = av.apagados || {};
   const hoy = avisosDelDia(c) as Fin[], sups = avisosDeSuplementos() as Fin[];
@@ -175,6 +209,7 @@ export default function Ajustes() {
     <>
       <TituloPantalla>Ajustes</TituloPantalla>
       <Perfil c={c} />
+      <ComoSeVe />
       <Nube />
       <AvisosDelDia c={c} />
       <Hoja c={c} />

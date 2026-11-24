@@ -218,6 +218,11 @@ export default function Lateral() {
   const plegar = d.compacta ? 'Expandir el menú' : 'Dejar solo los íconos';
   // 📱 Con "una mano", las secciones van al final (donde llega el pulgar) y el resumen arriba
   const abajo = !pc && !!d.unaMano;
+  // 🔎 Buscar en toda la app (armazon/Buscar.tsx; también Ctrl+K). En el celular va en la barra de arriba
+  const lupa = (
+    <ButtonBase data-accion="buscar" data-t="buscar-abrir" aria-label="Buscar en la app (Ctrl+K)" title="Buscar (Ctrl+K)"
+      sx={{ ml: chica ? 0 : 'auto', minWidth: 44, minHeight: 44, borderRadius: '12px', fontSize: 18, color: 'text.primary', '&:hover': { bgcolor: tokens.surface2 }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }}><span aria-hidden="true">🔎</span></ButtonBase>
+  );
   const secciones = (
     <>
       {d.negocio.length ? <>{chica ? null : <Grupo>Tu negocio</Grupo>}<Secciones d={d} chica={chica} lista={d.negocio} nombre="Tu negocio" />{chica ? null : <Grupo>Tu app</Grupo>}</> : null}
@@ -250,11 +255,13 @@ export default function Lateral() {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: 18, justifyContent: chica ? 'center' : undefined }}>
         {d.marca ? <Box sx={{ flex: 1, minWidth: 0 }}><MarcaCabecera marca={d.marca} chica={chica} sub={d.modo === 'cliente' ? 'Tu entrenador' + (d.marca.correo && !d.marca.negocio ? ' · ' + d.marca.correo : '') : 'Tu negocio · Rutina'} /></Box>
           : chica ? null : <><Box component="span" aria-hidden="true" sx={{ width: 34, height: 34, borderRadius: '10px', bgcolor: tokens.brandSoft, display: 'grid', placeItems: 'center', fontSize: 18 }}>🏋️</Box><b>Rutina</b></>}
+        {pc && !chica ? lupa : null}
         {pc ? (
           <ButtonBase data-accion="barra-compacta" aria-pressed={!!d.compacta} aria-label={plegar} title={plegar}
-            sx={{ ml: chica ? 0 : 'auto', minWidth: 44, minHeight: 44, borderRadius: '12px', fontSize: 20, color: 'text.primary', '&:hover': { bgcolor: tokens.surface2 }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }}>{hacia}</ButtonBase>
+            sx={{ ml: 0, minWidth: 44, minHeight: 44, borderRadius: '12px', fontSize: 20, color: 'text.primary', '&:hover': { bgcolor: tokens.surface2 }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }}>{hacia}</ButtonBase>
         ) : null}
       </Box>
+      {pc && chica ? <Box sx={{ display: 'flex', justifyContent: 'center' }}>{lupa}</Box> : null}
       {d.organizando ? <Organizar d={d} pc={pc} /> : abajo ? <>{extras}{secciones}</> : <>{secciones}{extras}</>}
       {/* Con sesión: quién está adentro y Salir, siempre a la vista (en el celular, al abrir ☰) */}
       {d.correo ? (

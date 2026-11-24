@@ -13,8 +13,8 @@ export const FILA = { display: 'flex', justifyContent: 'space-between', alignIte
 export const FILA_BOTONES = { display: 'flex', gap: '8px', flexWrap: 'wrap', my: '8px' };
 export const GRANDE = { minHeight: 56, fontSize: 17, mt: '8px', mb: '14px' };
 const COLOR_ESTADO: Record<string, { bgcolor: string; color: string }> = {
-  pagado: { bgcolor: tokens.brandSoft, color: tokens.brand }, pronto: { bgcolor: '#3a2d10', color: tokens.amarillo },
-  vencido: { bgcolor: '#4a1d1d', color: '#ffb3b3' }, pendiente: { bgcolor: tokens.surface2, color: tokens.muted },
+  pagado: { bgcolor: tokens.brandSoft, color: tokens.brand }, pronto: { bgcolor: tokens.amarilloFondo, color: tokens.amarillo },
+  vencido: { bgcolor: tokens.rojoFondo, color: tokens.rojoSuave }, pendiente: { bgcolor: tokens.surface2, color: tokens.muted },
 };
 
 // Campo de dinero que guarda al salir: acepta "25.000", "25000", "25k", "1,5M"
@@ -50,7 +50,7 @@ export const Estado = ({ estado, children }: { estado: string; children: ReactNo
 );
 // Tarjeta de un elemento que se edita (una categoría, un fijo, una meta, una deuda)
 export const Item = ({ children }: { children: ReactNode }) => <Card component="section" sx={{ mb: '14px', display: 'grid', gap: '10px' }}>{children}</Card>;
-export const Aviso = ({ children }: { children: ReactNode }) => <Box component="p" sx={{ color: 'warning.main', bgcolor: '#3a2d10', borderRadius: '10px', p: '8px 10px', fontSize: 14, my: '8px' }}>{children}</Box>;
+export const Aviso = ({ children }: { children: ReactNode }) => <Box component="p" sx={{ color: 'warning.main', bgcolor: tokens.amarilloFondo, borderRadius: '10px', p: '8px 10px', fontSize: 14, my: '8px' }}>{children}</Box>;
 export const Chico = ({ children }: { children: ReactNode }) => <Box component="small" sx={{ color: 'text.secondary', fontSize: 13 }}>{children}</Box>;
 // "monto + botones" en una fila
 export const Aportar = ({ children, columnas = '1fr auto auto' }: { children: ReactNode; columnas?: string }) => <Box sx={{ display: 'grid', gridTemplateColumns: columnas, gap: '8px' }}>{children}</Box>;

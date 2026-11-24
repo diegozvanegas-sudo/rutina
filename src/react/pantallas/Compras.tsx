@@ -163,8 +163,9 @@ export default function Compras({ pestana }: { pestana?: string }) {
     const extra = [x.cant, Number(x.precio) > 0 && pesos(x.precio!), !esMercado && ver, x.nota].filter(Boolean) as ReactNode[];
     const consejo: string = !esMercado && !x.hecho ? consejoDeseo(x, iso()) : '';
     return (
-      <Box component="li" key={x.id} sx={{ display: 'flex', alignItems: 'flex-start', gap: '10px', py: '8px', borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { borderBottom: 0 } }}>
-        <ButtonBase aria-pressed={!!x.hecho} aria-label={(x.hecho ? 'Desmarcar ' : 'Comprado: ') + x.nombre} onClick={() => marcar(x)}
+      // 📱 Deslizar a la derecha marca comprado; a la izquierda, editar (main.js, data-deslizar)
+      <Box component="li" key={x.id} data-deslizar={x.hecho ? undefined : '[data-t=marcar-compra]'} data-deslizar-izq={x.hecho ? undefined : '[data-t=editar-compra]'} sx={{ display: 'flex', alignItems: 'flex-start', gap: '10px', py: '8px', borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { borderBottom: 0 } }}>
+        <ButtonBase data-t="marcar-compra" aria-pressed={!!x.hecho} aria-label={(x.hecho ? 'Desmarcar ' : 'Comprado: ') + x.nombre} onClick={() => marcar(x)}
           sx={{ flex: 'none', width: 32, height: 32, mt: '2px', borderRadius: '50%', border: '2px solid', borderColor: x.hecho ? 'primary.main' : 'text.secondary',
             bgcolor: x.hecho ? 'primary.main' : 'transparent', color: 'primary.contrastText', fontWeight: 700, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: 2 } }}>
           {x.hecho ? '✓' : ''}
@@ -175,7 +176,7 @@ export default function Compras({ pestana }: { pestana?: string }) {
           {x.hecho && x.comprado && <Detalle>Comprado el {fechaCorta(x.comprado)}</Detalle>}
           {consejo && <Detalle sx={{ color: 'warning.main' }}>⏳ {consejo}</Detalle>}
         </Box>
-        {!x.hecho && <IconButton aria-label={'Editar ' + x.nombre} onClick={() => ponerEditando(x.id)} sx={{ fontSize: 20 }}>✏️</IconButton>}
+        {!x.hecho && <IconButton data-t="editar-compra" aria-label={'Editar ' + x.nombre} onClick={() => ponerEditando(x.id)} sx={{ fontSize: 20 }}>✏️</IconButton>}
       </Box>
     );
   }

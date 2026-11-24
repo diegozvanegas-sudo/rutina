@@ -1,9 +1,10 @@
 // Tema de Material UI con los colores y las medidas de la app (los mismos de :root en armazon/estilosArmazon.ts):
 // oscuro, compacto y con botones cómodos para el dedo. Todas las pantallas de React salen de aquí
 import { createTheme } from '@mui/material/styles';
+import { temaClaro } from '../apariencia.js';
 
 // Los valores de siempre (los de :root, ahora en armazon/estilosArmazon.ts)
-export const tokens = {
+const OSCURO = {
   bg: '#101418', surface: '#181e24', surface2: '#212932', line: '#2c3640',
   ink: '#e9eef2', muted: '#93a1ad',
   brand: '#3dd68c', brandInk: '#062b18', brandSoft: '#173a2a',
@@ -51,13 +52,35 @@ export const tokens = {
   // 🏋️ Figuras de los ejercicios (figuras.js): los objetos (banco, barra), el brazo y la pierna lejanos
   fgObjeto: '#4a5866', fgLejos: '#6f7d89', fgPierna: '#a9b4be', fgPiernaLejos: '#4f5b66',
   prSombra: 'rgba(0, 0, 0, .35)', prSombraFuerte: 'rgba(0, 0, 0, .45)', prBrilloInterno: 'rgba(255, 255, 255, .04)',
+  // El gris del botón secundario al pasar encima
+  hover: '#2a3440',
   radio: 14,
 };
+// ☀️ Tema claro (Ajustes → 🎨 Cómo se ve): los mismos nombres con colores para fondo blanco. Lo que no está aquí queda igual
+// (el papel, las figuras de los cursos y la presentación de entrar ya son de colores propios)
+const CLARO: Partial<typeof OSCURO> = {
+  bg: '#f4f6f8', surface: '#ffffff', surface2: '#e9edf1', line: '#d3dae1',
+  ink: '#141a20', muted: '#5b6873',
+  brand: '#14864f', brandInk: '#ffffff', brandSoft: '#dcf3e6',
+  amarillo: '#a86b00', verde: '#14864f', azul: '#1d6fd6', rojo: '#cf3030',
+  amarilloInk: '#ffffff', amarilloFondo: '#fff3d4', azulFondo: '#e3eefc', verComoFondo: '#e3eefc',
+  rojoFondo: '#fde4e4', rojoSuave: '#a32020', peligroInk: '#8f1d1d',
+  dorado: '#a86f12', doradoSuave: '#7a5208', notaFondo: '#eef3f8', notaBorde: '#c9d6e3',
+  brandClaro: '#0f6b3e', mapaQuiero: 'rgba(168, 107, 0, .16)',
+  topFondo: '#fdebd3', topInk: '#8a4b00', backoffInk: '#1d5fbf', subeFondo: '#e3eefc', azulInk: '#ffffff',
+  moradoFondo: '#ece8fb', moradoInk: '#5b3fc4',
+  barraArriba: 'rgba(244, 246, 248, .92)', velo: 'rgba(0, 0, 0, .35)', sombraAviso: 'rgba(0, 0, 0, .2)', flotanteFondo: '#e6f6ee',
+  graficoBase: '#b8c3cc', graficoZona: 'rgba(0, 0, 0, .05)', graficoPista: '#e3e8ed',
+  fgObjeto: '#9aa8b4', fgLejos: '#7d8a95', fgPierna: '#4f5b66', fgPiernaLejos: '#a9b4be',
+  hover: '#dde3e9',
+};
+export const claro = temaClaro() as boolean;
+export const tokens = { ...OSCURO, ...(claro ? CLARO : {}) };
 const FUENTE = '"Twemoji Country Flags", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
 
 export const tema = createTheme({
   palette: {
-    mode: 'dark',
+    mode: claro ? 'light' : 'dark',
     background: { default: tokens.bg, paper: tokens.surface },
     primary: { main: tokens.brand, contrastText: tokens.brandInk },
     secondary: { main: tokens.surface2, contrastText: tokens.ink },
@@ -95,7 +118,7 @@ export const tema = createTheme({
           minHeight: 48, padding: '10px 16px', borderRadius: 12,
           variants: [
             // El botón "secundario" de la app: gris con borde
-            { props: { variant: 'contained', color: 'secondary' }, style: { border: '1px solid ' + tokens.line, '&:hover': { backgroundColor: '#2a3440' } } },
+            { props: { variant: 'contained', color: 'secondary' }, style: { border: '1px solid ' + tokens.line, '&:hover': { backgroundColor: tokens.hover } } },
             { props: { size: 'small' }, style: { minHeight: 36, padding: '4px 12px', fontSize: 13, borderRadius: 999 } },
           ],
         },

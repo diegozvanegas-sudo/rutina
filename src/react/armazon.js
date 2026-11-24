@@ -9,3 +9,7 @@ let sesion = () => ({ modo: null });
 export const ponerSesion = (f) => { sesion = f; };
 export const datosSesion = () => sesion();
 export const modoSesion = () => sesion().modo;
+let buscar = () => ({ secciones: [], subs: {}, habitos: [] });
+/** main.js: lo que se puede buscar (secciones que puede abrir, sus pestañas y los hábitos) para armazon/Buscar.tsx */
+export const ponerBuscar = (f) => { buscar = f; };
+export const datosBuscar = () => buscar();

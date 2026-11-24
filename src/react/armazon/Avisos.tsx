@@ -46,7 +46,7 @@ export default function Avisos() {
       ) : null}
       <Collapse in={!cerrados} timeout={150} unmountOnExit>
       {diarios.map((x) => (
-        <Box key={x.id} sx={{ ...CAJA, flexWrap: 'wrap', bgcolor: tokens.amarilloFondo, borderColor: tokens.amarillo }}>
+        <Box key={x.id} data-deslizar="[data-accion=rec-hoy]" data-deslizar-izq="[data-accion=rec-gestionar]" sx={{ ...CAJA, flexWrap: 'wrap', bgcolor: tokens.amarilloFondo, borderColor: tokens.amarillo }}>
           <Box component="span" sx={{ display: 'grid', minWidth: 0, flex: '1 1 200px' }}>
             <span>{x.icono} <b>{x.nombre}</b></span>
             {x.detalle ? <Box component="small" sx={{ color: 'text.secondary' }}>{x.detalle}</Box> : null}

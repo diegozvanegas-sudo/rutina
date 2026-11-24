@@ -3,6 +3,7 @@
 // El formulario vive en "form" (de ese archivo): se va llenando con cada toque y la acción "fin-guardar" lo lee.
 import { useEffect, useState, type ReactNode } from 'react';
 import { Box, Button, ButtonBase, Card, Chip, IconButton, Link, OutlinedInput, Typography } from '@mui/material';
+import { Vacio } from '../ui/Vacio';
 import { iso, fechaCorta, fechaLarga, sumarDias } from '../../fechas.js';
 import {
   mesDe, sumarMeses, pesos, gastoDe, resumenMes, estadoFijo, tarjetaDe, subsDe, subDe, buscarCategorias, frecuentes, notasFrecuentes, pagosSinDeuda,
@@ -29,7 +30,7 @@ const FILA = { display: 'flex', justifyContent: 'space-between', alignItems: 'ce
 const COLOR_MONTO: Record<string, string> = { gasto: tokens.rojo, ingreso: tokens.verde, retiro: tokens.verde, cobro: tokens.verde, ahorro: tokens.azul, transferencia: tokens.muted };
 const CHIPS = { display: 'flex', flexWrap: 'wrap', gap: '8px', pb: '6px' };
 const Titulo = ({ children }: { children: ReactNode }) => <Typography sx={{ m: '4px 0 6px', fontSize: 13, fontWeight: 700, color: 'text.secondary' }}>{children}</Typography>;
-const Aviso = ({ children }: { children: ReactNode }) => <Box component="p" sx={{ color: 'warning.main', bgcolor: '#3a2d10', borderRadius: '10px', p: '8px 10px', fontSize: 14, my: '8px' }}>{children}</Box>;
+const Aviso = ({ children }: { children: ReactNode }) => <Box component="p" sx={{ color: 'warning.main', bgcolor: tokens.amarilloFondo, borderRadius: '10px', p: '8px 10px', fontSize: 14, my: '8px' }}>{children}</Box>;
 const Chico = ({ children, sx }: { children: ReactNode; sx?: object }) => <Box component="small" sx={{ color: 'text.secondary', fontSize: 13, ...sx }}>{children}</Box>;
 const color = (c: string) => ({ rojo: 'error.main', verde: 'success.main', amarillo: 'warning.main' }[c]);
 // A Deudas, con la acción de siempre (cambia de pestaña)
@@ -60,7 +61,7 @@ export function listaMovimientos(f: Fin, movs: Fin[]) {
   const porDia: Record<string, Fin[]> = {};
   for (const m of [...movs].sort((a, b) => b.fecha.localeCompare(a.fecha) || (b.id > a.id ? 1 : -1))) (porDia[m.fecha] ??= []).push(m);
   const dias = Object.entries(porDia);
-  if (!dias.length) return <Nota>Todavía no hay movimientos este mes.</Nota>;
+  if (!dias.length) return <Vacio icono="💸" accion={<Button href="#finanzas/registrar" sx={{ minHeight: 44 }}>➕ Anotar un gasto o ingreso</Button>}>Todavía no hay movimientos este mes. Anotar cada gasto el mismo día toma un minuto y te dice a dónde se va la plata.</Vacio>;
   return dias.map(([fecha, lista]) => (
     <Box key={fecha}>
       <Typography component="h3" sx={{ fontSize: 13, color: 'text.secondary', textTransform: 'capitalize', m: '10px 0 2px', fontWeight: 700 }}>{fecha === iso() ? 'Hoy' : fecha === sumarDias(iso(), -1) ? 'Ayer' : fechaLarga(fecha)}</Typography>
@@ -201,7 +202,7 @@ export function Registrar({ f }: { f: Fin }) {
     <>
       {porLlegar.map((x) => (
         <Card key={x.id} component="button" type="button" onClick={() => accion('fin-pagar-fijo', { id: x.id })}
-          sx={{ mb: '14px', display: 'grid', gap: '4px', width: '100%', textAlign: 'left', font: 'inherit', color: 'text.primary', cursor: 'pointer', borderColor: 'warning.main', bgcolor: '#2a2410' }}>
+          sx={{ mb: '14px', display: 'grid', gap: '4px', width: '100%', textAlign: 'left', font: 'inherit', color: 'text.primary', cursor: 'pointer', borderColor: 'warning.main', bgcolor: tokens.amarilloFondo }}>
           <b>{cat('ingreso', x.categoria).icono} ¿Llegó {x.nombre}?</b><Box component="span" sx={{ color: 'text.secondary', fontSize: 14 }}>Toca para registrar {pesos(x.monto)}</Box>
         </Card>
       ))}

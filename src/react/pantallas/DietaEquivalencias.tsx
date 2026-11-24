@@ -194,7 +194,7 @@ export function Equivalencias({ e, cambio = null }: { e: Fin; cambio?: Fin }) {
                 <Box component="b" data-t="cantidad" sx={{ fontSize: 30, lineHeight: 1.1, color: 'primary.main' }}>≈ {cant(r.cantidad, sust)}</Box>
                 <b>de {Q.nombreCompleto(sust)}</b>
                 <Box component="small" sx={{ color: 'text.secondary' }}>en {NOMBRE[criterio].toLowerCase()}: {numero(r.objetivo, criterio === 'kcal' ? 0 : 1)} {criterio === 'kcal' ? 'kcal' : 'g'}{r.cantidad !== Math.round(r.exacta * 10) / 10 ? ' (exacto: ' + cant(r.exacta, sust) + ')' : ''}</Box>
-                {!r.practica.ok ? <Box component="p" data-t="poco-practica" sx={{ m: 0, color: 'warning.main', bgcolor: '#3a2d10', borderRadius: '10px', p: '8px 10px', fontSize: 14 }}>⚠ Porción poco práctica: {r.practica.motivo}. Mira los sugeridos de abajo.</Box> : null}
+                {!r.practica.ok ? <Box component="p" data-t="poco-practica" sx={{ m: 0, color: 'warning.main', bgcolor: tokens.amarilloFondo, borderRadius: '10px', p: '8px 10px', fontSize: 14 }}>⚠ Porción poco práctica: {r.practica.motivo}. Mira los sugeridos de abajo.</Box> : null}
                 <Nota sx={{ my: 0 }}>{Q.AVISO_MACROS}</Nota>
                 <Tabla tabla={r.tabla} orig={orig} sust={sust} />
                 <Box sx={{ ...FILA, flexWrap: 'wrap', justifyContent: 'space-between' }}>

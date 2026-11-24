@@ -4,6 +4,7 @@
 // del navegador, sin librerías: lo que se guarda pasa siempre por limpiarHtml.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Box, Button } from '@mui/material';
+import { Vacio } from '../ui/Vacio';
 import { fechaCorta } from '../../fechas.js';
 import { toast, copiarTexto } from '../../ui.js';
 import { Reconocedor } from '../../voz.js';
@@ -552,7 +553,7 @@ export default function Notas({ pestana }: { pestana?: string } = {}) {
       <Box component="ul" aria-label="Notas" sx={{ listStyle: 'none', m: '10px 0 0', p: 0, display: 'grid', gap: '6px' }}>
         {lista.map((n: Fin) => <Fila key={n.id} n={n} est={est} alAbrir={() => ponerAbierta(n.id)} conCarpeta={!f.carpeta || f.carpeta === 'sin' || N.carpetasEnOrden(est).some((c: Fin) => c.padre === f.carpeta)} />)}
       </Box>
-      {!hay ? <Nota>Aquí van tus notas: ideas, listas, lo que quieras. Se guardan solas mientras escribes, también sin internet.</Nota>
+      {!hay ? <Vacio icono="📝" accion={<Button onClick={nueva}>＋ Escribir la primera nota</Button>}>Aquí van tus notas: ideas, listas, lo que quieras. Se guardan solas mientras escribes, también sin internet.</Vacio>
         : !lista.length ? <Box sx={{ ...FILA, mt: '8px' }}><Nota sx={{ m: 0 }}>Ninguna nota con ese filtro.</Nota><Button color="secondary" onClick={() => ponerF({ carpeta: '', etiquetas: [], buscar: '' })}>Quitar filtros</Button></Box> : null}
       {filtrando && lista.length ? <Nota>{lista.length} de {hay} notas</Nota> : null}
       <Box sx={{ display: 'grid', gap: '8px', mt: '16px' }}>

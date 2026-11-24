@@ -3,7 +3,7 @@
 // celular, el velo del menú), lo general (letra, títulos, enlaces, campos), el cronómetro flotante, el reproductor, el aviso
 // (toast), lo que pintan los HTML en texto (tablas del historial, la vista del PDF de Ventas, los puntos del plan) y la
 // impresión del PDF del plan. Los colores salen del tema; las variables --x se dejan para el HTML en texto que las lea.
-import { tokens as t } from '../tema';
+import { tokens as t, claro } from '../tema';
 
 export const ARMAZON = `:root {
   --bg: ${t.bg};
@@ -20,7 +20,7 @@ export const ARMAZON = `:root {
   --azul: ${t.azul};
   --rojo: ${t.rojo};
   --radio: ${t.radio}px;
-  color-scheme: dark;
+  color-scheme: ${claro ? 'light' : 'dark'};
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; background: transparent; }
@@ -32,7 +32,7 @@ a { color: ${t.brand}; }
 small { color: ${t.muted}; }
 .nota-corta { color: ${t.muted}; font-size: 14px; margin: 6px 0; }
 .app { min-height: 100dvh; }
-#vista { padding: 12px 16px calc(100px + env(safe-area-inset-bottom)); max-width: 760px; margin: 0 auto; }
+#vista { padding: 12px 16px calc(100px + var(--abajo, 0px) + env(safe-area-inset-bottom)); max-width: 760px; margin: 0 auto; }
 .top-movil { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; padding: calc(8px + env(safe-area-inset-top)) 16px 8px; background: ${t.barraArriba}; backdrop-filter: blur(8px); border-bottom: 1px solid ${t.line}; }
 .marca { display: flex; align-items: center; gap: 8px; font-size: 18px; }
 .logo { width: 34px; height: 34px; border-radius: 10px; background: ${t.brandSoft}; display: grid; place-items: center; font-size: 18px; }
@@ -45,6 +45,20 @@ small { color: ${t.muted}; }
 #lateral, .velo { touch-action: pan-y; overscroll-behavior: contain; }
 /* 📱 Celular: el menú del lado de tu mano y, con "una mano", ☰ abajo al alcance del pulgar y las secciones abajo */
 .menu-pulgar { display: none; }
+/* ☁️ Lo guardado y 🔎 Buscar en la barra de arriba del celular (armazon/Arriba.tsx) */
+.arriba { margin-left: auto; display: flex; align-items: center; }
+/* 📱 Barra de abajo (armazon/Abajo.tsx): solo en el celular; lo que flota abajo (📝, cronómetro) sube su alto (--abajo).
+   Mientras escribes se esconde, para dejarle el espacio al teclado */
+.abajo { display: none; }
+@media (max-width: 899px) {
+  .con-abajo { --abajo: 64px; }
+  .con-abajo .abajo { display: flex; align-items: center; gap: 2px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; height: calc(64px + env(safe-area-inset-bottom)); padding: 2px 6px env(safe-area-inset-bottom); background: ${t.barraArriba}; backdrop-filter: blur(8px); border-top: 1px solid ${t.line}; }
+  body.con-abajo:has(:is(input, textarea, select, [contenteditable="true"]):focus) { --abajo: 0px; }
+  body.con-abajo:has(:is(input, textarea, select, [contenteditable="true"]):focus) .abajo { display: none; }
+}
+/* 📱 Deslizar una fila (main.js, data-deslizar): pasado el umbral se pinta de lo que va a hacer */
+[data-deslizando="hecho"] { box-shadow: inset 6px 0 0 ${t.brand}, 0 0 0 2px ${t.brand} !important; }
+[data-deslizando="abrir"] { box-shadow: inset -6px 0 0 ${t.azul}, 0 0 0 2px ${t.azul} !important; }
 @media (max-width: 899px) {
   .mano-izquierda #lateral { right: auto; left: 0; border-left: 0; border-right: 1px solid ${t.line}; transform: translateX(-105%); }
   .menu-abierto.mano-izquierda #lateral { transform: none; box-shadow: 12px 0 40px ${t.velo}; }
@@ -55,7 +69,7 @@ small { color: ${t.muted}; }
   .una-mano #lateral nav[data-t="grupos"] { margin-top: auto; }
 }
 .velo[hidden] { display: none; }
-.sin-sesion #lateral, .sin-sesion .top-movil .menu, .sin-sesion .menu-pulgar, .sin-sesion #flotante, .sin-sesion #reproductor { display: none !important; }
+.sin-sesion #lateral, .sin-sesion .top-movil .menu, .sin-sesion .abajo, .sin-sesion .arriba, .sin-sesion .menu-pulgar, .sin-sesion #flotante, .sin-sesion #reproductor { display: none !important; }
 @media (min-width: 900px) {
   .sin-sesion .app { display: block; }
 }
@@ -100,14 +114,14 @@ details summary { cursor: pointer; color: ${t.muted}; padding: 6px 0; }
 .vt-papel th, .vt-papel td { border-bottom: 1px solid ${t.papelLinea}; padding: 5px 6px; text-align: left; vertical-align: top; }
 .vt-papel th { background: ${t.papelCabeza}; }
 .vt-papel small { color: ${t.papelGris}; }
-.flotante { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: ${t.flotanteFondo}; border: 1px solid ${t.brand}; box-shadow: 0 8px 30px ${t.velo}; overflow: hidden; }
+.flotante { position: fixed; left: 12px; right: 12px; bottom: calc(12px + var(--abajo, 0px) + env(safe-area-inset-bottom)); z-index: 40; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: ${t.flotanteFondo}; border: 1px solid ${t.brand}; box-shadow: 0 8px 30px ${t.velo}; overflow: hidden; }
 .flotante[hidden] { display: none; }
 /* 📝 Notas: botón redondo siempre a la vista, abajo a la derecha; sube cuando hay cronómetro o ☰ de una mano */
-.boton-notas { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 42; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; text-decoration: none; background: ${t.surface2}; border: 2px solid ${t.brand}; box-shadow: 0 6px 20px ${t.velo}; }
+.boton-notas { position: fixed; right: 16px; bottom: calc(16px + var(--abajo, 0px) + env(safe-area-inset-bottom)); z-index: 42; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; text-decoration: none; background: ${t.surface2}; border: 2px solid ${t.brand}; box-shadow: 0 6px 20px ${t.velo}; }
 .boton-notas:hover { background: ${t.brandSoft}; }
 .boton-notas:focus-visible { outline: 3px solid ${t.brand}; outline-offset: 2px; }
 .boton-notas[hidden], .sin-sesion .boton-notas { display: none; }
-body:has(#flotante:not([hidden])) .boton-notas { bottom: calc(96px + env(safe-area-inset-bottom)); }
+body:has(#flotante:not([hidden])) .boton-notas { bottom: calc(96px + var(--abajo, 0px) + env(safe-area-inset-bottom)); }
 @media (max-width: 899px) {
   .una-mano .boton-notas { bottom: calc(88px + env(safe-area-inset-bottom)); }
   .una-mano.mano-izquierda .boton-notas { right: auto; left: 18px; }
@@ -122,7 +136,7 @@ body:has(#flotante:not([hidden])) .boton-notas { bottom: calc(96px + env(safe-ar
 }
 /* Que el 📝 nunca tape lo último de la pantalla: el espacio de abajo crece cuando el botón sube (cronómetro, ☰ de una mano).
    En el computador, además, el contenido deja libre la columna del botón a la derecha */
-body:has(.boton-notas:not([hidden])):has(#flotante:not([hidden])) #vista { padding-bottom: calc(170px + env(safe-area-inset-bottom)); }
+body:has(.boton-notas:not([hidden])):has(#flotante:not([hidden])) #vista { padding-bottom: calc(170px + var(--abajo, 0px) + env(safe-area-inset-bottom)); }
 @media (max-width: 899px) {
   .una-mano:has(.boton-notas:not([hidden])) #vista { padding-bottom: calc(160px + env(safe-area-inset-bottom)); }
   .una-mano:has(.boton-notas:not([hidden])):has(#flotante:not([hidden])) #vista { padding-bottom: calc(240px + env(safe-area-inset-bottom)); }

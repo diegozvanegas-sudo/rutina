@@ -4,7 +4,7 @@
 // - Después sube a tu Drive por el Apps Script (apps_script/Imagenes.gs; dirección y clave en Ajustes → 🖼️ Google Drive).
 // - En otro equipo, la lista llega con la nube y cada imagen se baja de Drive la primera vez que se mira.
 import { e, guardar, repintar } from './estado.js';
-import { todas, nuevaImagen, juntarConDrive, porSubir, porActualizar, descripcionDrive } from './imagenes.js';
+import { todas, nuevaImagen, juntarConDrive, porSubir, porActualizar, descripcionDrive, explicarError } from './imagenes.js';
 
 export const drive = { estado: 'inactivo', mensaje: '', ultima: null }; // inactivo · trabajando · ok · error
 const config = () => e().config.drive || {};
@@ -165,7 +165,7 @@ export function sincronizar({ traer = false } = {}) {
       if (traer) { const r = await llamar('listar'); if (juntarConDrive(e(), r.archivos)) guardar(); }
       drive.estado = 'ok'; drive.ultima = Date.now(); drive.mensaje = n ? '☁️ ' + n + (n === 1 ? ' imagen subida' : ' imágenes subidas') + ' a Drive' : '';
     } catch (err) {
-      drive.estado = 'error'; drive.mensaje = err.message || String(err);
+      drive.estado = 'error'; drive.mensaje = explicarError(err.message || String(err));
     } finally { corriendo = null; repintar(); }
   })();
   return corriendo;

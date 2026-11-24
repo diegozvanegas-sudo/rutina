@@ -76,3 +76,26 @@ test('juntar con Drive: entra lo que no conoce y toma el álbum de Drive si lo m
   assert.deepEqual([nueva.nombre, nueva.album, nueva.etiquetas, nueva.nota], ['Espalda', 'Movilidad', ['espalda'], 'de la carpeta']);
   assert.equal(juntarConDrive(est, [{ id: 'd9', nombre: 'Espalda.png', album: 'Movilidad' }]), 0); // sin repetir
 });
+
+import { urlDrive, idDeUrl, claveNueva, scriptConClave, problemaDrive, explicarError } from '../src/imagenes.js';
+const ID = 'AKfycbycBvfWpgv5mt1Q-YSAKZCmGoCdVhl1vWuOtCQowBMCBlW0N2jrBscaMmIO36VQdXoq1Q';
+test('conectar Drive: la dirección queda la /exec aunque peguen el ID o la /dev', () => {
+  const ok = 'https://script.google.com/macros/s/' + ID + '/exec';
+  assert.equal(urlDrive(ID), ok);
+  assert.equal(urlDrive(' ' + ok + ' '), ok);
+  assert.equal(urlDrive('https://script.google.com/macros/s/' + ID + '/dev'), ok);
+  assert.equal(urlDrive('https://script.google.com/macros/s/' + ID), ok);
+  assert.equal(idDeUrl(ok), ID);
+  assert.equal(urlDrive('hola'), 'hola');
+});
+test('conectar Drive: avisa si la clave es el ID, y el script sale con la clave puesta', () => {
+  const url = urlDrive(ID);
+  assert.match(problemaDrive({ url, clave: ID }), /ID de implementación/);
+  assert.match(problemaDrive({ url: 'https://google.com', clave: 'x' }), /termina en \/exec/);
+  assert.equal(problemaDrive({ url, clave: 'rutina-abc' }), '');
+  const c = claveNueva(() => 0.5);
+  assert.match(c, /^rutina-[\w]{24}$/);
+  assert.equal(scriptConClave("x\nconst CLAVE = 'CAMBIA-ESTA-CLAVE';\ny", c), "x\nconst CLAVE = '" + c + "';\ny");
+  assert.match(explicarError('Clave incorrecta'), /Nueva versión/);
+  assert.match(explicarError('Unexpected token < in JSON'), /Cualquier usuario/);
+});

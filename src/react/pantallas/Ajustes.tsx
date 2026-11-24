@@ -2,7 +2,7 @@
 // copia de seguridad y empezar de cero. React pinta; las reglas son las de src/vistas/ajustes.js: los campos y casillas
 // llevan data-cambio y los botones data-accion (main.js los despacha igual que antes).
 // pantallaEntrar y pantallaBloqueo (vistas/ajustes.js) son del armazón de la app y se quedan allá.
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Box, Button, Checkbox, Chip, Link } from '@mui/material';
 import { semanaActual } from '../../estado.js';
 import { hora, fechaLarga } from '../../fechas.js';
@@ -19,7 +19,10 @@ import { datosLateral } from '../armazon.js';
 import { MAX_ABAJO } from '../../barra-abajo.js';
 import { almacen } from '../../almacen.js';
 import { e, guardar } from '../../estado.js';
-import { drive, driveListo, probarDrive, sincronizar } from '../../imagenes-equipo.js';
+import { drive, probarDrive, sincronizar } from '../../imagenes-equipo.js';
+import { urlDrive, idDeUrl, claveNueva, scriptConClave, problemaDrive, explicarError } from '../../imagenes.js';
+import SCRIPT_DRIVE from '../../../apps_script/Imagenes.gs?raw';
+import { Desplegable } from '../ui/Desplegable';
 import { toast } from '../../ui.js';
 import { usarEstado } from '../usarEstado';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
@@ -187,25 +190,68 @@ function AvisosDelDia({ c }: { c: Fin }) {
   );
 }
 
-// 🖼️ Google Drive: el Apps Script de apps_script/Imagenes.gs guarda las imágenes en tu Drive (src/imagenes-equipo.js)
+// 🖼️ Google Drive: el Apps Script de apps_script/Imagenes.gs guarda las imágenes en tu Drive (src/imagenes-equipo.js).
+// En pasos: la app crea la clave y da el script con ella puesta, arregla la dirección si pegan el ID y explica cada error
+const Paso = ({ n, listo, titulo, children }: { n: number; listo: boolean; titulo: ReactNode; children?: ReactNode }) => (
+  <Box component="li" data-t={'drive-paso-' + n} sx={{ display: 'grid', gridTemplateColumns: '32px minmax(0, 1fr)', gap: '10px', p: '10px 0', borderTop: n > 1 ? '1px solid' : 0, borderColor: 'divider' }}>
+    <Box component="span" aria-label={listo ? 'Listo' : 'Paso ' + n} sx={{ width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', fontWeight: 800, fontSize: 14, bgcolor: listo ? 'primary.main' : tokens.surface2, color: listo ? 'primary.contrastText' : 'text.primary' }}>{listo ? '✓' : n}</Box>
+    <Box sx={{ minWidth: 0, display: 'grid', gap: '8px' }}><Box component="b" sx={{ fontSize: 15 }}>{titulo}</Box>{children}</Box>
+  </Box>
+);
+async function copiar(texto: string, aviso: string) {
+  try { await navigator.clipboard.writeText(texto); toast('📋 ' + aviso); }
+  catch (err) { const t = document.createElement('textarea'); t.value = texto; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); toast('📋 ' + aviso); }
+}
 function Drive({ c }: { c: Fin }) {
-  const d = c.drive || {}, D = drive as Fin;
-  const poner = (k: string, v: string) => { const cfg = (e().config.drive ??= {}); if ((cfg[k] || '') === v.trim()) return; cfg[k] = v.trim(); guardar(); };
-  const probar = async () => { try { await probarDrive(); toast('☁️ Drive conectado'); sincronizar({ traer: true }); } catch (err: any) { toast('Drive: ' + (err && err.message || err)); } };
+  const d = c.drive || {}, D = drive as Fin, [fallo, ponerFallo] = useState(''), [probando, ponerProbando] = useState(false);
+  const cfg = () => (e().config.drive ??= {});
+  const poner = (k: string, v: string) => { const x = cfg(), val = k === 'url' ? urlDrive(v) : v.trim(); if ((x[k] || '') === val) return; x[k] = val; delete x.probada; ponerFallo(''); guardar(); };
+  const crearClave = () => { cfg().clave = claveNueva(); delete cfg().probada; ponerFallo(''); guardar(); };
+  const probar = async () => {
+    ponerProbando(true); ponerFallo('');
+    try { await probarDrive(); cfg().probada = Date.now(); guardar(); toast('☁️ Drive conectado'); sincronizar({ traer: true }); }
+    catch (err: any) { ponerFallo(explicarError(err && err.message || err)); }
+    finally { ponerProbando(false); }
+  };
+  const problema = problemaDrive({ url: d.url || '', clave: d.clave || '' }) as string;
+  const claveBuena = !!d.clave && d.clave !== idDeUrl(d.url), urlBuena = !!d.url && !/dirección/.test(problema);
   return (
-    <TarjetaPlegable vista={VISTA} clave="🖼️ Google Drive" titulo="🖼️ Google Drive">
-      <Nota>Las imágenes de 🖼️ Imágenes se guardan en tu Drive, en la carpeta «Rutina · Imágenes» (una subcarpeta por álbum). Quedan privadas: solo tú las ves.</Nota>
-      <Box component="ol" sx={{ m: '0 0 8px', pl: '22px', fontSize: 14, color: 'text.secondary', display: 'grid', gap: '4px' }}>
-        <li>Entra a <Link href="https://script.google.com/home/start" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>script.google.com</Link> → Nuevo proyecto, y pega el archivo <b>apps_script/Imagenes.gs</b>. Cambia <b>CLAVE</b> por una clave tuya.</li>
-        <li>Implementar → Nueva implementación → Aplicación web · Ejecutar como: <b>yo</b> · Acceso: <b>cualquier usuario</b> → Implementar y autorizar.</li>
-        <li>Pega aquí la dirección que termina en <b>/exec</b> y la misma clave, y toca Probar.</li>
+    <TarjetaPlegable vista={VISTA} clave="🖼️ Google Drive" titulo={'🖼️ Google Drive' + (d.probada ? ' ✓' : '')}>
+      <Nota>Las imágenes de <Link href="#imagenes" sx={{ color: 'primary.main' }}>🖼️ Imágenes</Link> se guardan en tu Drive, en la carpeta «Rutina · Imágenes» (una subcarpeta por álbum). Quedan privadas: solo tú las ves. Se hace una sola vez.</Nota>
+      <Box component="ol" sx={{ listStyle: 'none', m: 0, p: 0 }}>
+        <Paso n={1} listo={claveBuena} titulo="Tu clave y el script">
+          {claveBuena ? <Box component="code" data-t="drive-clave-ver" sx={{ fontSize: 13, wordBreak: 'break-all', bgcolor: 'background.default', p: '6px 8px', borderRadius: '8px' }}>{d.clave}</Box>
+            : <Nota sx={{ m: 0 }}>{d.clave ? '⚠️ Esa no sirve como clave (es el ID de implementación). ' : ''}La app crea una clave al azar y te da el script con ella ya puesta.</Nota>}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {claveBuena
+              ? <Button data-t="drive-copiar-script" onClick={() => copiar(scriptConClave(SCRIPT_DRIVE, d.clave), 'Script copiado con tu clave: pégalo en script.google.com')}>📋 Copiar el script</Button>
+              : <Button data-t="drive-crear-clave" onClick={crearClave}>🎲 Crear mi clave</Button>}
+            {claveBuena ? <Button size="small" color="secondary" onClick={crearClave}>Otra clave</Button> : null}
+          </Box>
+        </Paso>
+        <Paso n={2} listo={urlBuena} titulo="Pégalo en Google e impleméntalo">
+          <Box component="ol" sx={{ m: 0, pl: '20px', fontSize: 14, color: 'text.secondary', display: 'grid', gap: '4px' }}>
+            <li>Abre <Link href="https://script.google.com/home/start" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>script.google.com ↗</Link> → tu proyecto (o Nuevo proyecto). Borra todo, pega el script y guarda (💾).</li>
+            <li><b>Implementar → Nueva implementación</b> → tipo <b>Aplicación web</b> · Ejecutar como: <b>yo</b> · Quién tiene acceso: <b>Cualquier usuario</b> → Implementar, y autoriza el acceso a Drive.</li>
+            <li>Si ya lo habías implementado: <b>Implementar → Gestionar implementaciones → ✏️ → Versión: Nueva versión → Implementar</b>. La dirección no cambia.</li>
+          </Box>
+        </Paso>
+        <Paso n={3} listo={urlBuena} titulo="La dirección de la aplicación web">
+          <Campo key={'u' + (d.url || '')} etiqueta="La URL que te da Google (termina en /exec)" type="url" defaultValue={d.url || ''} placeholder="https://script.google.com/macros/s/…/exec" onBlur={(ev) => { poner('url', ev.target.value); ev.target.value = urlDrive(ev.target.value); }} data-t="drive-url" />
+          {d.url && !urlBuena ? <Aviso>{problema}</Aviso> : null}
+        </Paso>
+        <Paso n={4} listo={!!d.probada} titulo="Probar">
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+            <Button data-t="drive-probar" onClick={probar} disabled={!!problema || probando}>{probando ? 'Probando…' : '☁️ Probar conexión'}</Button>
+            {d.probada && D.enlace ? <Link href={D.enlace} target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>Abrir la carpeta ↗</Link> : null}
+          </Box>
+          {problema && urlBuena ? <Nota sx={{ m: 0 }}>{problema}</Nota> : null}
+          {fallo ? <Aviso alerta>{fallo}</Aviso> : d.probada ? <Nota sx={{ m: 0 }}>✓ Conectado. Lo que agregues en 🖼️ Imágenes sube solo a tu Drive.</Nota> : null}
+        </Paso>
       </Box>
-      <Box sx={{ display: 'grid', gap: '10px', mb: '4px' }}>
-        <Campo etiqueta="Dirección de la aplicación web" type="url" defaultValue={d.url || ''} placeholder="https://script.google.com/macros/s/…/exec" onBlur={(ev) => poner('url', ev.target.value)} data-t="drive-url" />
-        <Campo etiqueta="Clave (la misma de CLAVE en el script)" defaultValue={d.clave || ''} onBlur={(ev) => poner('clave', ev.target.value)} data-t="drive-clave" />
-      </Box>
-      {D.mensaje ? (D.estado === 'error' ? <Aviso>{D.mensaje}</Aviso> : <Nota>{D.mensaje}{D.enlace ? <> · <Link href={D.enlace} target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>Abrir la carpeta ↗</Link></> : null}</Nota>) : null}
-      <Botones><Button onClick={probar} disabled={!driveListo() || D.estado === 'trabajando'}>☁️ Probar conexión</Button></Botones>
+      <Desplegable titulo="Clave a mano (si ya tienes una en el script)">
+        <Campo key={'c' + (d.clave || '')} etiqueta="Lo que va en const CLAVE dentro del script" defaultValue={d.clave || ''} onBlur={(ev) => poner('clave', ev.target.value)} data-t="drive-clave" />
+      </Desplegable>
     </TarjetaPlegable>
   );
 }

@@ -92,3 +92,36 @@ export function juntarConDrive(est, archivos) {
 }
 export const porSubir = (est) => todas(est).filter((x) => !x.driveId);
 export const porActualizar = (est) => todas(est).filter((x) => x.driveId && x.cambio);
+
+// ---------- Conectar Google Drive (Ajustes → 🖼️ Google Drive) ----------
+// La dirección de la aplicación web: si pegan solo el ID de implementación ("AKfycb…") o la de prueba (/dev), queda la /exec
+export function urlDrive(texto) {
+  const t = String(texto || '').trim();
+  if (/^AKfyc[\w-]{20,}$/.test(t)) return 'https://script.google.com/macros/s/' + t + '/exec';
+  const m = t.match(/^https:\/\/script\.google\.com\/(?:a\/[^/]+\/)?macros\/s\/([\w-]{20,})(?:\/(?:exec|dev))?\/?(?:\?.*)?$/);
+  return m ? t.replace(/\/macros\/s\/[\w-]+.*$/, '/macros/s/' + m[1] + '/exec') : t;
+}
+export const idDeUrl = (u) => { const m = String(u || '').match(/\/macros\/s\/([\w-]+)/); return m ? m[1] : ''; };
+// Una clave para el script: 24 letras y números al azar
+export function claveNueva(azar = Math.random) {
+  const letras = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return 'rutina-' + Array.from({ length: 24 }, () => letras[Math.floor(azar() * letras.length)]).join('');
+}
+// El script listo para pegar, con la clave ya puesta
+export const scriptConClave = (script, clave) => String(script).replace(/const CLAVE = '[^']*';/, "const CLAVE = '" + String(clave).replace(/[^\w-]/g, '') + "';");
+// Qué está mal, dicho para arreglarlo
+export function problemaDrive({ url, clave }) {
+  if (!url) return 'Falta la dirección de la aplicación web (paso 3).';
+  if (!/^https:\/\/script\.google\.com\/.*\/macros\/s\/[\w-]+\/exec$|^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) return 'La dirección debe ser la de la aplicación web: empieza con https://script.google.com/macros/s/ y termina en /exec.';
+  if (!clave) return 'Falta la clave (paso 1).';
+  if (clave === idDeUrl(url)) return 'Pusiste el ID de implementación como clave. La clave es la que va en const CLAVE dentro del script: toca «Crear mi clave» (paso 1).';
+  return '';
+}
+export function explicarError(mensaje) {
+  const m = String(mensaje || '');
+  if (/clave incorrecta/i.test(m)) return 'La clave no coincide con la del script. Copia el script con tu clave (paso 1), pégalo en tu proyecto reemplazando todo, guarda y en Implementar → Gestionar implementaciones → ✏️ → Versión: Nueva versión → Implementar (la dirección no cambia).';
+  if (/failed to fetch|networkerror|load failed/i.test(m)) return 'No se pudo llegar al script. Revisa que la dirección termine en /exec, que tengas internet y que en la implementación diga Acceso: «Cualquier usuario».';
+  if (/json|unexpected token|<!doctype/i.test(m)) return 'Google pidió iniciar sesión en vez de responder: en la implementación, Acceso debe ser «Cualquier usuario» (no «Solo yo»).';
+  if (/autoriza|authoriz|permission|permiso/i.test(m)) return 'Falta autorizar el script: en el editor, ejecuta una vez «doPost» o vuelve a Implementar y acepta los permisos de Drive.';
+  return m;
+}

@@ -20,6 +20,7 @@ const SIN_ALBUM = 'Sin álbum';
 function doPost(e) {
   try {
     const p = JSON.parse(e.postData.contents);
+    if (CLAVE === 'CAMBIA-ESTA-CLAVE') return salida({ ok: false, mensaje: 'Clave incorrecta: el script aún tiene la clave de ejemplo. Copia el script desde la app (Ajustes → 🖼️ Google Drive), que ya trae tu clave.' });
     if (p.clave !== CLAVE) return salida({ ok: false, mensaje: 'Clave incorrecta' });
     const raiz = carpetaRaiz();
     switch (p.accion) {

@@ -14,7 +14,7 @@ import { AvisoPesos, FutbolHoy, Esencial, Ocupadas, AproxEjercicio, HoyVsUltima,
 import { DescansoDia } from './GymDescanso';
 import { juegaEl } from '../../futbol.js';
 import { estadoFila, ultimoRegistro, sugerencia, aproximacion, resumenSemana, numero, formatoPeso, historial, records, ultimaSubida, estancamiento, seriesRaras, metaSesion,
-  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO, tiemposEjercicios, minutosTexto, mmss } from '../../gym.js';
+  consejoRir, gruposDia, nombresBiserie, bajonReps, tieneVariantes, varianteEn, nombreConVariante, repsDe, CAMPOS_CARDIO, claveCardio, hayCardio, textoCardio, tiemposDia, duracion, ENTRENO_RARO, tiemposEjercicios, minutosTexto, mmss, numerosDia } from '../../gym.js';
 import { resumenEjercicios, promptEntreno, ICONO_ESTADO, TEXTO_ESTADO } from '../../analisis.js';
 import { piezasGym, textoDia, sesionCalentamiento, extrasCalentamiento, entrenoHoy, minutosEntreno, entrenoQuieto, molestiaHoy, molestiaReciente } from '../../vistas/gym.js';
 import { accion } from '../acciones';
@@ -23,7 +23,7 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoLargoSolo, CampoSolo } from '../ui/Campo';
 import { Desplegable } from '../ui/Desplegable';
 import { Nota } from '../ui/Textos';
-import { Avance } from '../ui/Varios';
+import { Avance, Cifras } from '../ui/Varios';
 import { Linea, TablaDatos } from '../ui/Graficos';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -57,16 +57,50 @@ function lineaTiempo(ej: Fin, d: Fin, sem: number) {
   return (
     <Box data-t="tiempo-ej" sx={{ fontSize: 13, color: 'text.secondary', m: '2px 0 6px' }}>
       ⏱ <b>{minutosTexto(t.ms)}</b>{t.aproximado ? ' desde la 1.ª serie' : ''}{t.descanso ? ' · descanso medio ' + mmss(t.descanso) : ''}{conTiempo(antes) ? ' · la semana pasada ' + minutosTexto(antes.ms) : ''}
+      {t.descansos && t.descansos.length ? (
+        <Box component="span" data-t="descansos-ej" sx={{ display: 'block' }}>
+          😮‍💨 Descansos: {(t.descansos as Fin[]).map((x, i) => { const pasado = !!x.plan && x.seg > x.plan + 30; return <Box component="span" key={i} title={x.plan ? 'Plan ' + mmss(x.plan) : undefined} sx={{ color: pasado ? 'warning.main' : 'inherit', fontWeight: pasado ? 700 : 400 }}>{i ? ' · ' : ''}{mmss(x.seg)}{!t.plan && x.plan ? ' /' + mmss(x.plan) : ''}</Box>; })}{t.plan ? ' (plan ' + mmss(t.plan) + ')' : ''}
+        </Box>
+      ) : null}
     </Box>
   );
 }
-// La lista del día: cada ejercicio con su tiempo, sus series y su descanso medio
+// ⏱ Los números del día: una línea siempre a la vista y, al abrir, todo (contra la semana pasada) y cada ejercicio
+const kgTexto = (n: number) => n.toLocaleString('es-CO') + ' kg';
+function compara(ahora: number | null, antes: number | null, menosEsMejor: boolean, fmt: (n: number) => string) {
+  if (ahora == null || antes == null || !antes) return undefined;
+  const dif = ahora - antes;
+  if (Math.abs(dif) / antes < 0.03) return 'igual que la semana pasada';
+  const mejor = menosEsMejor ? dif < 0 : dif > 0;
+  return (mejor ? '✓ ' : '') + (dif > 0 ? '+' : '−') + fmt(Math.abs(dif)) + ' vs la semana pasada';
+}
 function TiemposPorEjercicio({ d, sem }: { d: Fin; sem: number }) {
   const t = tiemposDe(d, sem), filas = (d.ejercicios as Fin[]).filter((ej) => conTiempo(t[ej.id]));
-  if (!filas.length) return null;
-  const total = filas.reduce((n, ej) => n + t[ej.id].ms, 0);
+  const n = numerosDia(d.ejercicios, regs(sem)) as Fin, a = sem > 1 ? numerosDia(d.ejercicios, regs(sem - 1)) as Fin : null;
+  if (!n.series) return null;
+  const total = filas.reduce((x, ej) => x + t[ej.id].ms, 0), conTiempos = n.conHora > 1;
+  const min = (ms: number) => minutosTexto(ms), ms = (x: number) => minutosTexto(x * 60000);
+  const pct = (x: number) => (n.trabajoMs ? Math.round((x / n.trabajoMs) * 100) + ' %' : '');
+  const linea = [conTiempos ? '⏱ ' + min(n.trabajoMs) + ' entrenando' : null, conTiempos && n.descansoMs ? '😮‍💨 ' + min(n.descansoMs) + ' descansando' : null, n.series + ' series', n.kg ? kgTexto(n.kg) : null].filter(Boolean).join(' · ');
   return (
-    <Desplegable titulo={'⏱ Tiempo por ejercicio (' + filas.length + ')'} sx={{ mb: '12px' }}>
+    <Box data-t="numeros-dia" sx={{ mb: '12px' }}>
+      <Box component="p" data-t="numeros-linea" sx={{ m: '0 0 4px', fontSize: 14 }}>{linea}</Box>
+      <Desplegable titulo={'📊 Tiempos y números de hoy' + (filas.length ? ' (' + filas.length + ' ejercicios)' : '')}>
+        {conTiempos ? <Cifras datos={[
+          { titulo: '⏱ Entrenando', valor: min(n.trabajoMs), nota: compara(n.trabajoMs / 60000, a && a.conHora > 1 ? a.trabajoMs / 60000 : null, true, ms) || 'de la 1.ª a la última serie' },
+          { titulo: '😮‍💨 Descansando', valor: min(n.descansoMs), nota: pct(n.descansoMs) + ' del entreno · ' + n.descansos + ' descansos' },
+          { titulo: 'Descanso medio', valor: n.descansoMedio != null ? mmss(n.descansoMedio) : '—', nota: [n.pasados ? '⚠️ ' + n.pasados + ' de ' + n.descansos + ' pasados (+30 s del plan)' : n.descansos ? '✓ todos dentro del plan' : '', compara(n.descansoMedio, a ? a.descansoMedio : null, true, (x) => mmss(Math.round(x)))].filter(Boolean).join(' · '), color: n.pasados > n.descansos / 3 ? tokens.amarillo : undefined },
+          { titulo: '🔁 Cambiando de ejercicio', valor: n.cambios ? min(n.cambioMs) : '—', nota: n.cambios ? n.cambios + ' cambios · ' + mmss(n.cambioMedio) + ' cada uno' : undefined },
+          { titulo: 'Ritmo', valor: n.seriesHora != null ? n.seriesHora.toLocaleString('es-CO') + ' series/h' : '—', nota: n.kgMinuto ? n.kgMinuto.toLocaleString('es-CO') + ' kg por minuto' : undefined },
+        ]} /> : <Nota sx={{ mt: 0 }}>Los tiempos salen con las series que anotas en vivo (cada una guarda su hora).</Nota>}
+        <Cifras datos={[
+          { titulo: 'Series', valor: n.series, nota: compara(n.series, a ? a.series : null, false, (x) => String(Math.round(x))) },
+          { titulo: 'Reps', valor: n.reps.toLocaleString('es-CO'), nota: compara(n.reps, a ? a.reps : null, false, (x) => String(Math.round(x))) },
+          { titulo: 'Kg levantados', valor: n.kg ? kgTexto(n.kg) : '—', nota: compara(n.kg, a ? a.kg : null, false, (x) => kgTexto(Math.round(x))) || 'peso × reps (los discos no se suman)' },
+          { titulo: 'Ejercicios', valor: n.ejercicios + ' de ' + (d.ejercicios as Fin[]).length },
+        ]} />
+        {n.pausas ? <Nota>⏸ {n.pausas === 1 ? '1 pausa' : n.pausas + ' pausas'} de más de 15 min (no cuentan como descanso).</Nota> : null}
+        {filas.length ? <Box component="h3" sx={{ fontSize: 15, m: '8px 0 4px' }}>⏱ Por ejercicio</Box> : null}
       <Box component="ul" data-t="tiempos-ej" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '2px' }}>
         {filas.map((ej) => { const x = t[ej.id]; return (
           <Box component="li" key={ej.id} sx={{ display: 'flex', justifyContent: 'space-between', gap: '10px', p: '6px 0', borderBottom: '1px solid', borderColor: 'divider', fontSize: 14 }}>
@@ -75,8 +109,9 @@ function TiemposPorEjercicio({ d, sem }: { d: Fin; sem: number }) {
           </Box>
         ); })}
       </Box>
-      <Box component="p" sx={{ fontSize: 13, color: 'text.secondary', m: '6px 0 0' }}>Suman {minutosTexto(total)}. Cada uno cuenta desde que terminaste el anterior: montar, series y descansos.{filas.some((ej) => t[ej.id].aproximado) ? ' * Desde su primera serie (antes no hubo nada cerca).' : ''}</Box>
-    </Desplegable>
+      {filas.length ? <Box component="p" sx={{ fontSize: 13, color: 'text.secondary', m: '6px 0 0' }}>Suman {minutosTexto(total)}. Cada uno cuenta desde que terminaste el anterior: montar, series y descansos.{filas.some((ej) => t[ej.id].aproximado) ? ' * Desde su primera serie (antes no hubo nada cerca).' : ''}</Box> : null}
+      </Desplegable>
+    </Box>
   );
 }
 

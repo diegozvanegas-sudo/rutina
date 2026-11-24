@@ -68,22 +68,65 @@ const PREVIO_MAX = 20 * 60000, PAUSA_MAX = 15 * 60000;
 export function tiemposEjercicios(ejercicios, regs, inicioEntreno = null) {
   const marcas = [];
   for (const ej of ejercicios || []) for (const f of ej.filas || []) for (const [k, r] of Object.entries(regs || {})) {
-    if ((k === f.id || k.startsWith(f.id + '@')) && r && Array.isArray(r.horas)) for (const t of r.horas) if (t) marcas.push([t, ej.id]);
+    if ((k === f.id || k.startsWith(f.id + '@')) && r && Array.isArray(r.horas)) for (const t of r.horas) if (t) marcas.push([t, ej.id, f.descanso || null]);
   }
   marcas.sort((a, b) => a[0] - b[0]);
   const salida = {};
   for (const ej of ejercicios || []) {
-    const mias = marcas.filter((m) => m[1] === ej.id).map((m) => m[0]);
+    const propias = marcas.filter((m) => m[1] === ej.id), mias = propias.map((m) => m[0]);
     if (!mias.length) continue;
     const primera = mias[0], fin = mias[mias.length - 1], previa = marcas.filter((m) => m[0] < primera && m[1] !== ej.id).pop();
     let desde = previa ? previa[0] : inicioEntreno;
     if (!desde || desde > primera || primera - desde > PREVIO_MAX) desde = null;
     const pausas = mias.slice(1).map((t, i) => t - mias[i]).filter((g) => g > 0 && g <= PAUSA_MAX);
+    // Cada descanso con el plan de la serie que lo antecede (el top set descansa más que el back-off)
+    const conPlan = propias.slice(1).map((m, i) => ({ seg: Math.round((m[0] - propias[i][0]) / 1000), plan: propias[i][2] })).filter((x) => x.seg > 0 && x.seg * 1000 <= PAUSA_MAX);
+    const plan = conPlan.length && conPlan.every((x) => x.plan === conPlan[0].plan) ? conPlan[0].plan : null;
     salida[ej.id] = { inicio: desde ?? primera, fin, ms: fin - (desde ?? primera), series: mias.length, aproximado: desde == null,
-      descanso: pausas.length ? Math.round(pausas.reduce((x, y) => x + y, 0) / pausas.length / 1000) : null };
+      descanso: pausas.length ? Math.round(pausas.reduce((x, y) => x + y, 0) / pausas.length / 1000) : null,
+      descansos: conPlan, plan };
   }
   return salida;
 }
+// ---------- ⏱ Los números del entreno de un día: tiempos y conteos ----------
+// Con la hora de cada serie: cuánto estuviste entrenando (de la primera a la última serie), cuánto descansando entre series
+// del mismo ejercicio (y cuántos descansos se pasaron más de 30 s del plan), cuánto en cambiar de ejercicio, y el ritmo
+// (series por hora, kg por minuto). Los conteos (series, reps, kg levantados, ejercicios) cuentan todo lo anotado, con hora
+// o sin ella. Las pausas de más de 15 min no cuentan como descanso. kg: solo lo anotado en kg (los discos no se suman)
+export function numerosDia(ejercicios, regs) {
+  const marcas = [];
+  let series = 0, reps = 0, kg = 0, conSeries = 0;
+  for (const ej of ejercicios || []) {
+    let delEj = 0;
+    for (const f of ej.filas || []) for (const [k, r] of Object.entries(regs || {})) {
+      if (!(k === f.id || k.startsWith(f.id + '@')) || !r) continue;
+      const rs = repsDe(r.reps), peso = r.unidad === 'discos' ? null : numero(r.peso);
+      series += rs.length; delEj += rs.length;
+      for (const n of rs) { reps += n; if (peso) kg += peso * n; }
+      (r.horas || []).forEach((t, i) => { if (t) marcas.push({ t, ej: ej.id, plan: f.descanso || null, reps: rs[i] || 0, kg: peso && rs[i] ? peso * rs[i] : 0 }); });
+    }
+    if (delEj) conSeries++;
+  }
+  marcas.sort((a, b) => a.t - b.t);
+  let descansoMs = 0, descansos = 0, pasados = 0, cambioMs = 0, cambios = 0, pausas = 0;
+  for (let i = 1; i < marcas.length; i++) {
+    const g = marcas[i].t - marcas[i - 1].t;
+    if (g <= 0) continue; // varias series anotadas de una vez
+    if (g > PAUSA_MAX) { pausas++; continue; }
+    if (marcas[i].ej === marcas[i - 1].ej) { descansoMs += g; descansos++; if (marcas[i - 1].plan && g / 1000 > marcas[i - 1].plan + 30) pasados++; }
+    else { cambioMs += g; cambios++; }
+  }
+  const trabajoMs = marcas.length > 1 ? marcas[marcas.length - 1].t - marcas[0].t : 0;
+  const kgConHora = marcas.reduce((n, m) => n + m.kg, 0);
+  return {
+    series, reps, kg: Math.round(kg), ejercicios: conSeries, conHora: marcas.length,
+    trabajoMs, descansoMs, descansos, descansoMedio: descansos ? Math.round(descansoMs / descansos / 1000) : null, pasados,
+    cambioMs, cambios, cambioMedio: cambios ? Math.round(cambioMs / cambios / 1000) : null, pausas,
+    seriesHora: trabajoMs >= 10 * 60000 ? Math.round((marcas.length / (trabajoMs / 3600000)) * 10) / 10 : null,
+    kgMinuto: trabajoMs >= 10 * 60000 && kgConHora ? Math.round(kgConHora / (trabajoMs / 60000)) : null,
+  };
+}
+
 // "8 min", "menos de 1 min" · y los segundos como "2:05"
 export const minutosTexto = (ms) => (ms < 60000 ? 'menos de 1 min' : Math.round(ms / 60000) + ' min');
 export const mmss = (seg) => Math.floor(seg / 60) + ':' + String(seg % 60).padStart(2, '0');

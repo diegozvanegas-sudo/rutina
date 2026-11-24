@@ -48,6 +48,9 @@ export function armarIndice(est, { secciones = [], subs = {}, habitos = [] } = {
       poner({ tipo: m.tipo === 'ingreso' ? 'Ingreso' : 'Gasto', icono: m.tipo === 'ingreso' ? '💵' : '💸', titulo: m.nota || cat || 'Movimiento', sub: [m.fecha, pesos(m.monto), m.nota ? cat : ''].filter(Boolean).join(' · '), extra: cat + ' ' + Math.round(m.monto || 0), ir: '#finanzas/mes' });
     }
   }
+  if (puede.has('imagenes')) {
+    for (const x of Object.values(est.imagenes || {})) if (x && x.id) poner({ tipo: 'Imagen', icono: '🖼️', titulo: x.nombre, sub: [x.album, (x.etiquetas || []).map((t) => '#' + t).join(' ')].filter(Boolean).join(' · ') || 'Imágenes', extra: x.nota, ir: '#imagenes/' + x.id });
+  }
   if (puede.has('compras') && est.compras) {
     for (const x of est.compras.lista || []) if (!x.comprado) poner({ tipo: x.tipo === 'deseo' ? 'Deseo' : 'Compra', icono: x.tipo === 'deseo' ? '✨' : '🛒', titulo: x.nombre, sub: x.tipo === 'deseo' ? 'Lista de deseos' : 'Lista del mercado', extra: x.nota, ir: x.tipo === 'deseo' ? '#compras/deseos' : '#compras' });
   }

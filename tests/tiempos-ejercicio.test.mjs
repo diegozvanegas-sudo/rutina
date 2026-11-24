@@ -43,3 +43,30 @@ test('textos', () => {
   assert.equal(minutosTexto(8.4 * M), '8 min');
   assert.equal(mmss(125), '2:05');
 });
+
+import { numerosDia } from '../src/gym.js';
+test('números del día: entrenando, descansando (y pasados del plan), cambios, conteos y ritmo', () => {
+  const ejs = [{ id: 'a', filas: [{ id: 'fa', descanso: 120 }] }, { id: 'b', filas: [{ id: 'fb', descanso: 90 }] }];
+  const regs = {
+    fa: { peso: '60', unidad: 'kg', reps: '10 9 8', horas: [T0, T0 + 2 * M, T0 + 5 * M] }, // descansos 2:00 y 3:00 (este pasado)
+    fb: { peso: '4', unidad: 'discos', reps: '12 12', horas: [T0 + 8 * M, T0 + 9.5 * M] }, // cambio 3 min, descanso 1:30
+  };
+  const n = numerosDia(ejs, regs);
+  assert.deepEqual([n.series, n.reps, n.kg, n.ejercicios, n.conHora], [5, 51, 1620, 2, 5]); // los discos no suman kg
+  assert.equal(n.trabajoMs, 9.5 * M);
+  assert.equal(n.descansoMs, 6.5 * M);
+  assert.equal(n.descansos, 3);
+  assert.equal(n.descansoMedio, 130);
+  assert.equal(n.pasados, 1);
+  assert.deepEqual([n.cambios, n.cambioMedio], [1, 180]);
+  assert.equal(n.seriesHora, null); // menos de 10 min: sin ritmo
+  const t = tiemposEjercicios(ejs, regs, T0);
+  assert.deepEqual([t.a.descansos, t.a.plan], [[{ seg: 120, plan: 120 }, { seg: 180, plan: 120 }], 120]);
+});
+test('números del día: sin horas cuenta igual; las pausas largas no son descanso', () => {
+  const ejs = [{ id: 'a', filas: [{ id: 'fa', descanso: 120 }] }];
+  assert.deepEqual([numerosDia(ejs, { fa: { peso: '50', reps: '10 10' } }).series, numerosDia(ejs, { fa: { peso: '50', reps: '10 10' } }).trabajoMs], [2, 0]);
+  const n = numerosDia(ejs, { fa: { peso: '50', reps: '10 10 10', horas: [T0, T0 + 30 * M, T0 + 32 * M] } });
+  assert.deepEqual([n.pausas, n.descansos, n.descansoMs], [1, 1, 2 * M]);
+  assert.equal(n.seriesHora, 5.6);
+});

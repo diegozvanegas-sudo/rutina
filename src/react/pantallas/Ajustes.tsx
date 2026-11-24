@@ -18,6 +18,9 @@ import { TEMAS, LETRAS, leerApariencia } from '../../apariencia.js';
 import { datosLateral } from '../armazon.js';
 import { MAX_ABAJO } from '../../barra-abajo.js';
 import { almacen } from '../../almacen.js';
+import { e, guardar } from '../../estado.js';
+import { drive, driveListo, probarDrive, sincronizar } from '../../imagenes-equipo.js';
+import { toast } from '../../ui.js';
 import { usarEstado } from '../usarEstado';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, DOS } from '../ui/Campo';
@@ -184,6 +187,29 @@ function AvisosDelDia({ c }: { c: Fin }) {
   );
 }
 
+// 🖼️ Google Drive: el Apps Script de apps_script/Imagenes.gs guarda las imágenes en tu Drive (src/imagenes-equipo.js)
+function Drive({ c }: { c: Fin }) {
+  const d = c.drive || {}, D = drive as Fin;
+  const poner = (k: string, v: string) => { const cfg = (e().config.drive ??= {}); if ((cfg[k] || '') === v.trim()) return; cfg[k] = v.trim(); guardar(); };
+  const probar = async () => { try { await probarDrive(); toast('☁️ Drive conectado'); sincronizar({ traer: true }); } catch (err: any) { toast('Drive: ' + (err && err.message || err)); } };
+  return (
+    <TarjetaPlegable vista={VISTA} clave="🖼️ Google Drive" titulo="🖼️ Google Drive">
+      <Nota>Las imágenes de 🖼️ Imágenes se guardan en tu Drive, en la carpeta «Rutina · Imágenes» (una subcarpeta por álbum). Quedan privadas: solo tú las ves.</Nota>
+      <Box component="ol" sx={{ m: '0 0 8px', pl: '22px', fontSize: 14, color: 'text.secondary', display: 'grid', gap: '4px' }}>
+        <li>Entra a <Link href="https://script.google.com/home/start" target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>script.google.com</Link> → Nuevo proyecto, y pega el archivo <b>apps_script/Imagenes.gs</b>. Cambia <b>CLAVE</b> por una clave tuya.</li>
+        <li>Implementar → Nueva implementación → Aplicación web · Ejecutar como: <b>yo</b> · Acceso: <b>cualquier usuario</b> → Implementar y autorizar.</li>
+        <li>Pega aquí la dirección que termina en <b>/exec</b> y la misma clave, y toca Probar.</li>
+      </Box>
+      <Box sx={{ display: 'grid', gap: '10px', mb: '4px' }}>
+        <Campo etiqueta="Dirección de la aplicación web" type="url" defaultValue={d.url || ''} placeholder="https://script.google.com/macros/s/…/exec" onBlur={(ev) => poner('url', ev.target.value)} data-t="drive-url" />
+        <Campo etiqueta="Clave (la misma de CLAVE en el script)" defaultValue={d.clave || ''} onBlur={(ev) => poner('clave', ev.target.value)} data-t="drive-clave" />
+      </Box>
+      {D.mensaje ? (D.estado === 'error' ? <Aviso>{D.mensaje}</Aviso> : <Nota>{D.mensaje}{D.enlace ? <> · <Link href={D.enlace} target="_blank" rel="noopener" sx={{ color: 'primary.main' }}>Abrir la carpeta ↗</Link></> : null}</Nota>) : null}
+      <Botones><Button onClick={probar} disabled={!driveListo() || D.estado === 'trabajando'}>☁️ Probar conexión</Button></Botones>
+    </TarjetaPlegable>
+  );
+}
+
 function Hoja({ c }: { c: Fin }) {
   const h = c.hoja || {}, lista = hojaLista();
   return (
@@ -214,6 +240,7 @@ export default function Ajustes() {
       <Nube />
       <AvisosDelDia c={c} />
       <Hoja c={c} />
+      <Drive c={c} />
       <TarjetaPlegable vista={VISTA} clave="Metas diarias" titulo="Metas diarias">
         <Box sx={DOS}>
           {ETIQUETAS.map(([k, t]) => <Campo key={k} etiqueta={t} {...numero} min={0} data-cambio="conf-meta" data-k={k} defaultValue={c.metas[k]} />)}

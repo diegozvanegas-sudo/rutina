@@ -147,6 +147,14 @@ Instalación (una vez):
 3. Copia la URL que termina en `/exec` y pégala en la app (Ajustes > Google Sheets) junto con la misma clave.
 4. "Enviar semana actual" para probar. Después se envía sola un minuto después de cada cambio.
 
+## Google Drive (🖼️ Imágenes)
+`apps_script/Imagenes.gs` guarda las imágenes de la sección 🖼️ Imágenes en tu Drive, en la carpeta «Rutina · Imágenes»
+(se crea sola, una subcarpeta por álbum; los archivos quedan privados). La app reduce cada imagen (máx. 2048 px), la guarda
+también en el equipo (IndexedDB) para verla sin señal, y la sube; en otro equipo la baja de Drive la primera vez que se mira.
+1. script.google.com > Nuevo proyecto > pega `Imagenes.gs` y cambia `CLAVE`.
+2. Implementar > Nueva implementación > Aplicación web > Ejecutar como: yo · Acceso: cualquier usuario > Implementar y autorizar.
+3. En la app: Ajustes > 🖼️ Google Drive, la URL `/exec` y la clave > Probar conexión.
+
 ## Publicación
 - GitHub: `github.com/diegozvanegas-sudo/rutina`. Para subir cambios: doble clic en `Subir_a_GitHub.bat`.
 - Cada subida a `main` corre las pruebas y publica en GitHub Pages: https://diegozvanegas-sudo.github.io/rutina/

@@ -80,7 +80,7 @@ const REACT = { calendario: () => import('./react/pantallas/Calendario.tsx'), co
   entrenador: () => import('./react/pantallas/Entrenador.tsx'), finanzas: () => import('./react/pantallas/Finanzas.tsx'),
   gym: () => import('./react/pantallas/Gym.tsx'), vida: () => import('./react/pantallas/MiVida.tsx'), panel: () => import('./react/pantallas/Panel.tsx'),
   voz: () => import('./react/pantallas/Voz.tsx'), energia: () => import('./react/pantallas/Energia.tsx'),
-  notas: () => import('./react/pantallas/Notas.tsx') };
+  notas: () => import('./react/pantallas/Notas.tsx'), imagenes: () => import('./react/pantallas/Imagenes.tsx') };
 // La pestaña de un enlace (#compras/deseos) hacia una pantalla de React: se le pasa al montarla
 let pestanaReact = null;
 // Icono y nombre. El menú sigue el orden del usuario y no muestra las que escondió (aunque se pueden abrir por enlace)

@@ -219,7 +219,7 @@ function rutina(l: Fin) {
       {(l.rutina as [string, string[]][]).map(([t, pasos]) => <TarjetaPlegable key={t} vista={VISTA} clave={t} titulo={t}><Puntos items={pasos} /></TarjetaPlegable>)}
       {(l.musica || []).length ? (
         <TarjetaPlegable vista={VISTA} clave="🎧 Música del seminario" titulo="🎧 Música del seminario">
-          <Nota>Listas de 100 canciones en Spotify. Se abren en la app de Spotify (o en el navegador).</Nota>
+          <Nota>Listas de unas 200 canciones en Spotify. Se abren en la app de Spotify (o en el navegador).</Nota>
           {(l.musica as Fin[]).map((m) => (
             <Button key={m.url} component="a" href={m.url} target="_blank" rel="noopener noreferrer" fullWidth color="secondary"
               sx={{ justifyContent: 'flex-start', textAlign: 'left', minHeight: 56, mt: '8px', display: 'grid', gap: '2px', textTransform: 'none' }}>

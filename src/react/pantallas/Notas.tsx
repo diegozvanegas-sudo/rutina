@@ -1,4 +1,5 @@
-// 📝 Notas: lista de una fila por nota (fijadas arriba) con carpeta, etiquetas y buscador; al tocarla se abre el editor con
+// 📝 Notas, como un bloc de notas: lista de dos líneas (título y comienzo del texto, fijadas arriba) con buscador; carpetas y
+// etiquetas detrás de «Filtrar» y lo de organizar en un solo «⚙️ Organizar». Al tocar una nota se abre el editor con
 // formato (barra encima del teclado en el celular), que se guarda solo mientras se escribe. Papelera de 30 días.
 // La lógica (HTML limpio, filtros, carpetas, etiquetas, WhatsApp) está en src/notas.js. El editor es el contentEditable
 // del navegador, sin librerías: lo que se guarda pasa siempre por limpiarHtml.
@@ -101,34 +102,52 @@ function Fila({ n, est, alAbrir, conCarpeta = true }: { n: Fin; est: Fin; alAbri
   const carpeta = conCarpeta && n.carpeta && N.carpetaDe(est, n.carpeta) ? N.rutaCarpeta(est, n.carpeta) : '';
   return (
     <Box component="li" data-nota={n.id}>
+      {/* Como en un bloc de notas: arriba el título y la fecha; debajo, en gris, el comienzo del texto */}
       <Box component="button" type="button" onClick={alAbrir}
-        sx={{ all: 'unset', boxSizing: 'border-box', width: '100%', cursor: 'pointer', display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr) auto', alignItems: 'center', gap: '8px', p: '10px 12px', minHeight: 48, borderRadius: '12px', bgcolor: tokens.surface2, '&:hover': { bgcolor: tokens.line }, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
-        <Box component="span" aria-hidden sx={{ display: 'flex', gap: '3px', alignItems: 'center', minWidth: 10 }}>
-          {n.fijada ? <span title="Fijada">📌</span> : null}
-          {tags.slice(0, 3).map((t: Fin) => <Box key={t.id} component="span" sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: t.color }} />)}
+        sx={{ all: 'unset', boxSizing: 'border-box', width: '100%', cursor: 'pointer', display: 'grid', gap: '2px', p: '10px 14px', minHeight: 56, borderRadius: '12px', bgcolor: tokens.surface2, '&:hover': { bgcolor: tokens.line }, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
+        <Box component="span" sx={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
+          {n.fijada ? <span title="Fijada" aria-label="Fijada">📌</span> : null}
+          <Box component="b" data-t="titulo" sx={{ fontWeight: 700, fontSize: 16, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{N.tituloDe(n)}</Box>
+          <Box component="small" sx={{ color: 'text.secondary', whiteSpace: 'nowrap', flex: 'none' }}>{cuando(n.editada || n.creada)}</Box>
         </Box>
-        <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {carpeta ? <Box component="span" data-t="carpeta" sx={{ color: 'text.secondary', fontSize: 13 }}>📁 {carpeta} · </Box> : null}
-          <Box component="b" data-t="titulo" sx={{ fontWeight: 700 }}>{N.tituloDe(n)}</Box>
-          {resumen ? <Box component="span" sx={{ color: 'text.secondary' }}> · {resumen}</Box> : null}
-        </Box>
-        <Box component="small" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{cuando(n.editada || n.creada)}</Box>
+        {resumen || carpeta || tags.length ? (
+          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, color: 'text.secondary', fontSize: 14 }}>
+            {tags.slice(0, 3).map((t: Fin) => <Box key={t.id} component="span" aria-hidden sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: t.color, flex: 'none' }} />)}
+            {carpeta ? <Box component="span" data-t="carpeta" sx={{ flex: 'none', maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📁 {carpeta}{resumen ? ' ·' : ''}</Box> : null}
+            <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{resumen}</Box>
+          </Box>
+        ) : null}
       </Box>
     </Box>
   );
 }
 
 function Filtros({ est, f, poner }: { est: Fin; f: Filtro; poner: (f: Filtro) => void }) {
-  const etiquetas = N.meta(est).etiquetas;
+  const etiquetas = N.meta(est).etiquetas, carpetas = N.meta(est).carpetas;
   const alternar = (id: string) => poner({ ...f, etiquetas: f.etiquetas.includes(id) ? f.etiquetas.filter((x) => x !== id) : [...f.etiquetas, id] });
+  // Carpetas y etiquetas no se ven hasta tocar "Filtrar": así arriba solo queda el buscador
+  const activos = (f.carpeta ? 1 : 0) + f.etiquetas.length, [abierto, ponerAbierto] = useState(activos > 0);
+  const nombre = f.carpeta === 'sin' ? 'Sin carpeta' : f.carpeta ? (N.carpetaDe(est, f.carpeta) || {}).nombre : '';
   return (
     <Box sx={{ display: 'grid', gap: '8px' }}>
-      <ElegirCarpeta est={est} valor={f.carpeta} alElegir={(id) => poner({ ...f, carpeta: id })} filtro nombre="Carpeta" />
-      <Box component="input" type="search" placeholder="🔎 Buscar en título, texto, carpeta o etiqueta" aria-label="Buscar notas" value={f.buscar}
-        onChange={(ev: Fin) => poner({ ...f, buscar: ev.target.value })} sx={CAMPO} />
-      {etiquetas.length ? (
-        <Box role="group" aria-label="Filtrar por etiqueta" sx={{ display: 'flex', gap: '6px', overflowX: 'auto', pb: '2px', scrollbarWidth: 'none' }}>
-          {etiquetas.map((t: Fin) => <Chip key={t.id} t={t} activa={f.etiquetas.includes(t.id)} alTocar={() => alternar(t.id)} />)}
+      <Box sx={{ display: 'flex', gap: '6px' }}>
+        <Box component="input" type="search" placeholder="🔎 Buscar" aria-label="Buscar notas" value={f.buscar}
+          onChange={(ev: Fin) => poner({ ...f, buscar: ev.target.value })} sx={{ ...CAMPO, flex: 1 }} />
+        {carpetas.length || etiquetas.length ? (
+          <Button color="secondary" aria-expanded={abierto} data-t="filtrar" onClick={() => ponerAbierto(!abierto)}
+            sx={{ minHeight: 44, flex: 'none', ...(activos ? ACTIVO : {}) }}>
+            {activos ? '📁 ' + (nombre || 'Filtro') + (f.etiquetas.length ? ' +' + f.etiquetas.length : '') : 'Filtrar'} {abierto ? '▴' : '▾'}
+          </Button>
+        ) : null}
+      </Box>
+      {abierto ? (
+        <Box sx={{ display: 'grid', gap: '8px', p: '10px', borderRadius: '12px', bgcolor: tokens.surface2 }}>
+          <ElegirCarpeta est={est} valor={f.carpeta} alElegir={(id) => poner({ ...f, carpeta: id })} filtro nombre="Carpeta" />
+          {etiquetas.length ? (
+            <Box role="group" aria-label="Filtrar por etiqueta" sx={{ display: 'flex', gap: '6px', overflowX: 'auto', pb: '2px', scrollbarWidth: 'none' }}>
+              {etiquetas.map((t: Fin) => <Chip key={t.id} t={t} activa={f.etiquetas.includes(t.id)} alTocar={() => alternar(t.id)} />)}
+            </Box>
+          ) : null}
         </Box>
       ) : null}
     </Box>
@@ -271,7 +290,7 @@ function usarTeclado(activo: boolean) {
 function Editor({ n, est, alCerrar }: { n: Fin; est: Fin; alCerrar: () => void }) {
   const caja = useRef<HTMLDivElement>(null), espera = useRef<Fin>(null), rango = useRef<Range | null>(null);
   const [estado, ponerEstado] = useState<'guardado' | 'guardando'>('guardado'), [foco, ponerFoco] = useState(false), [marcas, ponerMarcas] = useState<Record<string, boolean>>({});
-  const [enlace, ponerEnlace] = useState<string | null>(null), [detalles, ponerDetalles] = useState(false);
+  const [enlace, ponerEnlace] = useState<string | null>(null), [detalles, ponerDetalles] = useState(false), [masFormato, ponerMasFormato] = useState(false);
   const [oyendo, ponerOyendo] = useState(false), [parcial, ponerParcial] = useState(''), rec = useRef<Fin>(null), seguir = useRef(false);
   const abajo = usarTeclado(foco);
   const [arriba, ponerArriba] = useState(0);
@@ -429,41 +448,50 @@ function Editor({ n, est, alCerrar }: { n: Fin; est: Fin; alCerrar: () => void }
         <Box sx={{ ...FILA, gap: '4px' }}>
           <Box component="small" data-t="guardado" aria-live="polite" sx={{ color: 'text.secondary', mr: '4px' }}>{estado === 'guardando' ? 'Guardando…' : '✓ Guardado'}</Box>
           <Button color="secondary" aria-pressed={!!n.fijada} aria-label={n.fijada ? 'Quitar de fijadas' : 'Fijar arriba'} onClick={() => N.guardarNota(n.id, { fijada: !n.fijada })} sx={n.fijada ? ACTIVO : undefined}>📌</Button>
+          <Button color="secondary" aria-label="Más opciones de la nota" aria-expanded={detalles} data-t="opciones" onClick={() => ponerDetalles(!detalles)} sx={{ minWidth: 44, fontSize: 20, ...(detalles ? ACTIVO : {}) }}>⋯</Button>
         </Box>
       </Box>
-      <Box component="input" key={'t' + n.id} defaultValue={n.titulo} placeholder="Título (si no, la primera línea)" aria-label="Título de la nota"
+
+      {/* ⋯ Opciones: carpeta, etiquetas, copiar, WhatsApp y borrar; cerradas para que la nota sea solo título y texto */}
+      {detalles ? (
+        <Box data-t="panel-opciones" sx={{ display: 'grid', gap: '10px', p: '12px', mb: '10px', borderRadius: '12px', bgcolor: tokens.surface2 }}>
+          <Box sx={{ display: 'grid', gap: '4px' }}>
+            <Box component="small" sx={{ color: 'text.secondary' }}>📁 Carpeta</Box>
+            <ElegirCarpeta est={est} valor={n.carpeta && N.carpetaDe(est, n.carpeta) ? n.carpeta : ''} alElegir={(id) => N.guardarNota(n.id, { carpeta: id || null })} nombre="Carpeta de la nota" />
+          </Box>
+          <Box sx={{ display: 'grid', gap: '4px' }}>
+            <Box component="small" sx={{ color: 'text.secondary' }}>🏷️ Etiquetas</Box>
+            {etiquetas.length ? (
+              <Box role="group" aria-label="Etiquetas de la nota" sx={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {etiquetas.map((t: Fin) => <Chip key={t.id} t={t} activa={suyas.includes(t.id)} alTocar={() => N.guardarNota(n.id, { etiquetas: suyas.includes(t.id) ? suyas.filter((x) => x !== t.id) : [...suyas, t.id] })} />)}
+              </Box>
+            ) : null}
+            <Box component="input" placeholder="＋ Etiqueta nueva (Enter)" aria-label="Etiqueta nueva para la nota"
+              onKeyDown={(ev: Fin) => { if (ev.key !== 'Enter') return; const t = N.crearEtiqueta(ev.target.value); if (t) { if (!suyas.includes(t.id)) N.guardarNota(n.id, { etiquetas: [...suyas, t.id] }); ev.target.value = ''; } }} sx={CAMPO} />
+          </Box>
+          <Box sx={{ ...FILA, gap: '6px' }}>
+            <Button color="secondary" onClick={() => copiarTexto(whatsapp(), 'Copiado con el formato de WhatsApp')}>📋 Copiar</Button>
+            <Button color="secondary" onClick={() => { window.open('https://wa.me/?text=' + encodeURIComponent(whatsapp()), '_blank', 'noopener'); }}>💬 WhatsApp</Button>
+            <Button color="secondary" onClick={borrar} aria-label="Mandar la nota a la papelera">🗑 Borrar</Button>
+          </Box>
+        </Box>
+      ) : null}
+      <Box component="input" key={'t' + n.id} defaultValue={n.titulo} placeholder="Título" aria-label="Título de la nota"
         onInput={(ev: Fin) => { const v = ev.target.value; ponerEstado('guardando'); clearTimeout(espera.current); espera.current = setTimeout(() => { N.guardarNota(n.id, { titulo: v }); guardarYa(); }, 600); }}
         onKeyDown={(ev: Fin) => { if (ev.key === 'Enter') { ev.preventDefault(); caja.current?.focus(); } }}
         sx={{ all: 'unset', boxSizing: 'border-box', width: '100%', fontSize: 22, fontWeight: 700, p: '6px 2px', '&::placeholder': { color: 'text.secondary', opacity: 0.7 } }} />
 
-      {/* 📁 Carpeta de la nota: siempre a la vista, un toque para cambiarla o crear una nueva */}
-      <Box sx={{ mb: '6px' }}>
-        <ElegirCarpeta est={est} valor={n.carpeta && N.carpetaDe(est, n.carpeta) ? n.carpeta : ''} alElegir={(id) => N.guardarNota(n.id, { carpeta: id || null })} nombre="Carpeta de la nota" />
-      </Box>
-      {/* Etiquetas de la nota: una fila que se abre */}
-      <Box sx={{ ...FILA, gap: '6px', mb: '6px' }}>
-        <Box component="button" type="button" aria-expanded={detalles} onClick={() => ponerDetalles(!detalles)}
-          sx={{ all: 'unset', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: 36, color: 'text.secondary', fontSize: 14, '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
-          🏷️ {suyas.length ? 'Etiquetas' : 'Sin etiquetas'}
-          <span aria-hidden>{detalles ? '▴' : '▾'}</span>
-        </Box>
-        {suyas.map((id) => N.etiquetaDe(est, id)).filter(Boolean).map((t: Fin) => <Chip key={t.id} t={t} chica />)}
-      </Box>
-      {detalles ? (
-        <Box sx={{ display: 'grid', gap: '8px', p: '10px', mb: '8px', borderRadius: '12px', bgcolor: tokens.surface2 }}>
-          {etiquetas.length ? (
-            <Box role="group" aria-label="Etiquetas de la nota" sx={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {etiquetas.map((t: Fin) => <Chip key={t.id} t={t} activa={suyas.includes(t.id)} alTocar={() => N.guardarNota(n.id, { etiquetas: suyas.includes(t.id) ? suyas.filter((x) => x !== t.id) : [...suyas, t.id] })} />)}
-            </Box>
-          ) : null}
-          <Box component="input" placeholder="＋ Etiqueta nueva (Enter)" aria-label="Etiqueta nueva para la nota"
-            onKeyDown={(ev: Fin) => { if (ev.key !== 'Enter') return; const t = N.crearEtiqueta(ev.target.value); if (t) { if (!suyas.includes(t.id)) N.guardarNota(n.id, { etiquetas: [...suyas, t.id] }); ev.target.value = ''; } }} sx={CAMPO} />
+      {/* Carpeta y etiquetas puestas, en una línea chica (se cambian en ⋯) */}
+      {(n.carpeta && N.carpetaDe(est, n.carpeta)) || suyas.length ? (
+        <Box sx={{ ...FILA, gap: '6px', mb: '4px', color: 'text.secondary', fontSize: 13 }}>
+          {n.carpeta && N.carpetaDe(est, n.carpeta) ? <span>📁 {N.rutaCarpeta(est, n.carpeta)}</span> : null}
+          {suyas.map((id) => N.etiquetaDe(est, id)).filter(Boolean).map((t: Fin) => <Chip key={t.id} t={t} chica />)}
         </Box>
       ) : null}
 
       {/* Barra de formato: arriba del texto; en el celular con el teclado abierto, pegada encima del teclado */}
       <Box role="toolbar" aria-label="Formato" data-t="barra"
-        sx={{ display: 'flex', gap: '2px', overflowX: 'auto', scrollbarWidth: 'none', p: '4px', bgcolor: tokens.surface, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', zIndex: 30,
+        sx={{ display: 'flex', gap: '2px', flexWrap: masFormato ? 'wrap' : 'nowrap', overflowX: 'auto', scrollbarWidth: 'none', p: '4px', bgcolor: tokens.surface, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider', zIndex: 30,
           ...(barraFija ? { position: 'fixed', left: 0, right: 0, bottom: abajo + 'px' } : { position: 'sticky', top: arriba + 'px', mx: '-4px', borderRadius: '10px', border: '1px solid', borderColor: 'divider' }) }}>
         {enlace != null ? (
           <Box sx={{ display: 'flex', gap: '6px', alignItems: 'center', width: '100%' }}>
@@ -474,17 +502,24 @@ function Editor({ n, est, alCerrar }: { n: Fin; est: Fin; alCerrar: () => void }
           </Box>
         ) : (
           <>
+            {/* Lo de siempre a la vista; "Aa" muestra el resto del formato */}
             <Boton activo={!!marcas.b} titulo="Negrita" alTocar={() => hacer(() => exec('bold'))}><b>B</b></Boton>
             <Boton activo={!!marcas.i} titulo="Cursiva" alTocar={() => hacer(() => exec('italic'))}><i>I</i></Boton>
-            <Boton activo={!!marcas.u} titulo="Subrayado" alTocar={() => hacer(() => exec('underline'))}><u>U</u></Boton>
-            <Boton activo={!!marcas.h2} titulo="Título" alTocar={() => bloque('h2')}>H1</Boton>
-            <Boton activo={!!marcas.h3} titulo="Subtítulo" alTocar={() => bloque('h3')}>H2</Boton>
             <Boton activo={!!marcas.ul} titulo="Viñetas" alTocar={() => hacer(() => { const ul = cerca(caja.current, (el) => el.tagName === 'UL'); if (ul && ul.dataset.tipo) delete ul.dataset.tipo; else exec('insertUnorderedList'); })}>•≡</Boton>
-            <Boton activo={!!marcas.ol} titulo="Lista numerada" alTocar={() => hacer(() => exec('insertOrderedList'))}>1.</Boton>
             <Boton activo={!!marcas.checks} titulo="Casillas" alTocar={casillas}>☑</Boton>
-            <Boton activo={!!marcas.mark} titulo="Resaltar" alTocar={resaltar}>🖍</Boton>
-            <Boton activo={!!marcas.a} titulo={marcas.a ? 'Quitar enlace' : 'Enlace'} alTocar={linkBoton}>🔗</Boton>
             <Boton titulo={oyendo ? 'Parar el dictado' : 'Dictar'} alTocar={dictar}>{oyendo ? '⏹' : '🎙️'}</Boton>
+            {masFormato ? (
+              <>
+                <Boton activo={!!marcas.h2} titulo="Título" alTocar={() => bloque('h2')}>H1</Boton>
+                <Boton activo={!!marcas.h3} titulo="Subtítulo" alTocar={() => bloque('h3')}>H2</Boton>
+                <Boton activo={!!marcas.u} titulo="Subrayado" alTocar={() => hacer(() => exec('underline'))}><u>U</u></Boton>
+                <Boton activo={!!marcas.ol} titulo="Lista numerada" alTocar={() => hacer(() => exec('insertOrderedList'))}>1.</Boton>
+                <Boton activo={!!marcas.mark} titulo="Resaltar" alTocar={resaltar}>🖍</Boton>
+                <Boton activo={!!marcas.a} titulo={marcas.a ? 'Quitar enlace' : 'Enlace'} alTocar={linkBoton}>🔗</Boton>
+              </>
+            ) : null}
+            <Box sx={{ flex: 1 }} />
+            <Boton activo={masFormato} titulo={masFormato ? 'Menos formato' : 'Más formato'} alTocar={() => ponerMasFormato(!masFormato)}>Aa</Boton>
           </>
         )}
       </Box>
@@ -503,12 +538,6 @@ function Editor({ n, est, alCerrar }: { n: Fin; est: Fin; alCerrar: () => void }
           '& ul[data-tipo="checks"] > li::before': { content: '""', position: 'absolute', left: 2, top: 2, width: 20, height: 20, boxSizing: 'border-box', border: '2px solid', borderColor: 'text.secondary', borderRadius: '5px', cursor: 'pointer' },
           '& ul[data-tipo="checks"] > li[data-hecho="1"]': { textDecoration: 'line-through', color: 'text.secondary' },
           '& ul[data-tipo="checks"] > li[data-hecho="1"]::before': { content: '"✓"', bgcolor: 'primary.main', borderColor: 'primary.main', color: tokens.brandInk, fontSize: 14, fontWeight: 900, lineHeight: '16px', textAlign: 'center' } }} />
-
-      <Box sx={{ ...FILA, mt: '14px' }}>
-        <Button color="secondary" onClick={() => copiarTexto(whatsapp(), 'Copiado con el formato de WhatsApp')}>📋 Copiar</Button>
-        <Button color="secondary" onClick={() => { window.open('https://wa.me/?text=' + encodeURIComponent(whatsapp()), '_blank', 'noopener'); }}>💬 WhatsApp</Button>
-        <Button color="secondary" onClick={borrar} aria-label="Mandar la nota a la papelera">🗑 Borrar</Button>
-      </Box>
     </Box>
   );
 }
@@ -549,18 +578,25 @@ export default function Notas({ pestana }: { pestana?: string } = {}) {
           <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>＋ {enCarpeta ? 'Nota en ' + enCarpeta.nombre : 'Nota nueva'}</Box>
         </Button>
       </Box>
-      <Filtros est={est} f={f} poner={ponerF} />
+      {hay ? <Filtros est={est} f={f} poner={ponerF} /> : null}
       <Box component="ul" aria-label="Notas" sx={{ listStyle: 'none', m: '10px 0 0', p: 0, display: 'grid', gap: '6px' }}>
         {lista.map((n: Fin) => <Fila key={n.id} n={n} est={est} alAbrir={() => ponerAbierta(n.id)} conCarpeta={!f.carpeta || f.carpeta === 'sin' || N.carpetasEnOrden(est).some((c: Fin) => c.padre === f.carpeta)} />)}
       </Box>
       {!hay ? <Vacio icono="📝" accion={<Button onClick={nueva}>＋ Escribir la primera nota</Button>}>Aquí van tus notas: ideas, listas, lo que quieras. Se guardan solas mientras escribes, también sin internet.</Vacio>
         : !lista.length ? <Box sx={{ ...FILA, mt: '8px' }}><Nota sx={{ m: 0 }}>Ninguna nota con ese filtro.</Nota><Button color="secondary" onClick={() => ponerF({ carpeta: '', etiquetas: [], buscar: '' })}>Quitar filtros</Button></Box> : null}
       {filtrando && lista.length ? <Nota>{lista.length} de {hay} notas</Nota> : null}
-      <Box sx={{ display: 'grid', gap: '8px', mt: '16px' }}>
-        <Desplegable titulo={'📁 Carpetas' + (N.meta(est).carpetas.length ? ' (' + N.meta(est).carpetas.length + ')' : '')}><Carpetas est={est} /></Desplegable>
-        <Desplegable titulo={'🏷️ Etiquetas' + (N.meta(est).etiquetas.length ? ' (' + N.meta(est).etiquetas.length + ')' : '')}><Etiquetas est={est} /></Desplegable>
-        <Button color="secondary" onClick={() => ponerPapelera(true)} sx={{ justifySelf: 'start' }}>🗑 Papelera{enPapelera ? ' (' + enPapelera + ')' : ''}</Button>
-      </Box>
+      {/* Lo de organizar (crear y renombrar carpetas y etiquetas, papelera) va junto y cerrado, para no estorbar */}
+      {hay || enPapelera ? (
+        <Box sx={{ mt: '20px' }}>
+          <Desplegable titulo={<Box component="span" data-t="organizar" sx={{ fontWeight: 400, color: 'text.secondary' }}>⚙️ Organizar: carpetas, etiquetas y papelera</Box>}>
+            <Box sx={{ display: 'grid', gap: '8px' }}>
+              <Desplegable titulo={'📁 Carpetas' + (N.meta(est).carpetas.length ? ' (' + N.meta(est).carpetas.length + ')' : '')}><Carpetas est={est} /></Desplegable>
+              <Desplegable titulo={'🏷️ Etiquetas' + (N.meta(est).etiquetas.length ? ' (' + N.meta(est).etiquetas.length + ')' : '')}><Etiquetas est={est} /></Desplegable>
+              <Button color="secondary" onClick={() => ponerPapelera(true)} sx={{ justifySelf: 'start' }}>🗑 Papelera{enPapelera ? ' (' + enPapelera + ')' : ''}</Button>
+            </Box>
+          </Desplegable>
+        </Box>
+      ) : null}
     </>
   );
 }

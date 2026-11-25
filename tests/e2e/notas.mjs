@@ -57,6 +57,8 @@ export default async (p) => {
     // Negrita y cursiva sobre lo seleccionado
     await p.ev(elegir('huevos')); await dormir(150); await boton('Negrita');
     await p.ev(elegir('pan')); await dormir(150); await boton('Cursiva');
+    // Título, resaltar y enlace están detrás de «Aa» (más formato)
+    await boton('Más formato');
     // Título: la primera línea
     await p.ev(elegir('Lista')); await dormir(150); await boton('Título');
     // Casillas: dos, y se marca la primera tocando su cuadrito
@@ -106,6 +108,8 @@ export default async (p) => {
 
     // Carpetas: Trabajo y, adentro, Clientes. Etiqueta urgente
     const sufijo = equipo === 'computador' ? '' : ' 2';
+    // Carpetas, etiquetas y papelera van dentro de «⚙️ Organizar»
+    await tocarTexto('⚙️ Organizar', '.MuiAccordionSummary-root', false);
     await tocarTexto('📁 Carpetas', '.MuiAccordionSummary-root', false);
     await a.escribir('[aria-label="Nombre de la carpeta nueva"]', 'Trabajo' + sufijo); await p.tocar('[aria-label="Crear carpeta"]');
     await a.escribir('[aria-label="Nombre de la carpeta nueva"]', 'Clientes' + sufijo);
@@ -120,10 +124,10 @@ export default async (p) => {
     // A la nota: carpeta Clientes y etiqueta urgente
     await p.tocar('[data-nota="' + n.id + '"] button');
     await a.esperar('[data-t=texto]');
-    // La carpeta se elige con un toque (los botones se ven siempre debajo del título)
+    // Carpeta y etiquetas están en ⋯ (opciones de la nota)
+    await p.tocar('[data-t=opciones]');
     await p.tocar('[data-t=carpetas-nota] [data-carpeta-id="' + clientes.id + '"]');
     falla(await p.ev(`document.querySelector('[data-t=carpetas-nota] [data-carpeta-id="${clientes.id}"]').getAttribute('aria-checked')`) === 'true', 'el botón de la carpeta no quedó marcado');
-    await p.tocar('[data-editor] button[aria-expanded]');
     await tocarTexto('urgente' + sufijo, '[aria-label="Etiquetas de la nota"] button');
     n = (await notas()).find((x) => x.id === n.id);
     falla(n.carpeta === clientes.id && n.etiquetas.includes(urg.id), 'no quedó la carpeta o la etiqueta: ' + JSON.stringify([n.carpeta, n.etiquetas]));
@@ -145,6 +149,7 @@ export default async (p) => {
 
     // Filtros: etiqueta, carpeta (con la de adentro) y buscador
     const filas = () => p.ev(`[...document.querySelectorAll('#vista ul[aria-label=Notas] li')].map(x=>x.dataset.nota)`);
+    await p.tocar('[data-t=filtrar]');
     await tocarTexto('urgente' + sufijo, '[aria-label="Filtrar por etiqueta"] button');
     falla(JSON.stringify(await filas()) === JSON.stringify([n.id]), 'el filtro de etiqueta no deja solo la nota');
     await tocarTexto('urgente' + sufijo, '[aria-label="Filtrar por etiqueta"] button');
@@ -160,6 +165,7 @@ export default async (p) => {
     const enTrabajo = (await notas()).find((x) => !antes.includes(x.id) && x.id !== n.id && x.id !== otra.id);
     falla(enTrabajo && enTrabajo.carpeta === trabajo.id, 'la nota nueva no quedó en la carpeta elegida: ' + JSON.stringify(enTrabajo));
     // Carpeta nueva desde la nota: se crea y la nota queda ahí de una vez
+    await p.tocar('[data-t=opciones]');
     await p.tocar('[data-t=carpetas-nota] [aria-label="Carpeta nueva"]');
     await a.escribir('[aria-label="Nombre para la carpeta nueva"]', 'Rápida' + sufijo);
     await p.tocar('[aria-label="Crear y elegir la carpeta"]');
@@ -178,12 +184,14 @@ export default async (p) => {
     // Copiar (con formato de WhatsApp)
     await p.tocar('[data-nota="' + n.id + '"] button');
     await a.esperar('[data-t=texto]');
+    await p.tocar('[data-t=opciones]');
     await tocarTexto('📋 Copiar');
     falla((await a.aviso()).includes('Copiado') || (await a.aviso()).includes('copiar'), 'copiar no avisó: ' + (await a.aviso()));
     // Borrar: a la papelera (el confirm se acepta solo) y recuperar
     await p.tocar('[aria-label="Mandar la nota a la papelera"]');
     falla((await notas()).find((x) => x.id === n.id).borrada, 'no fue a la papelera');
     falla(!(await p.cuantos('[data-nota="' + n.id + '"]')), 'sigue en la lista');
+    await tocarTexto('⚙️ Organizar', '.MuiAccordionSummary-root', false);
     await tocarTexto('🗑 Papelera (1)', 'button', false);
     falla(await p.cuantos('[data-papelera="' + n.id + '"]'), 'no está en la papelera');
     await p.foto('notas-papelera-' + equipo);
@@ -191,6 +199,7 @@ export default async (p) => {
     falla(!(await notas()).find((x) => x.id === n.id).borrada, 'no se recuperó');
     await tocarTexto('← Notas');
     // Borrar la carpeta Trabajo: Clientes queda arriba y la nota sigue en Clientes
+    await tocarTexto('⚙️ Organizar', '.MuiAccordionSummary-root', false);
     await tocarTexto('📁 Carpetas', '.MuiAccordionSummary-root', false);
     await p.tocar('[aria-label="Borrar la carpeta ' + 'Trabajo' + sufijo + '"]');
     const est3 = await p.estado();

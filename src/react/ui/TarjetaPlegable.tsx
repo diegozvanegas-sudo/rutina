@@ -15,18 +15,22 @@ type Props = {
   lado?: ReactNode;
   sx?: SxProps<Theme>;
   children: ReactNode;
+  /** De inicio cerrada (una fila por tema): se recuerda cuando el usuario la abre */
+  cerradaAlInicio?: boolean;
 };
 
-export function TarjetaPlegable({ vista, clave, titulo, lado, sx, children }: Props) {
+export function TarjetaPlegable({ vista, clave, titulo, lado, sx, children, cerradaAlInicio = false }: Props) {
   const k = basePlegable(vista, clave), [, repintar] = useState(0);
-  const cerrada = leerPlegadas().has(k);
-  const alternar = () => { alternarPlegada(k); repintar((n) => n + 1); };
+  // Las cerradas de inicio guardan al revés: '+clave' = la abrió
+  const marca = cerradaAlInicio ? '+' + k : k, marcada = leerPlegadas().has(marca);
+  const cerrada = cerradaAlInicio ? !marcada : marcada;
+  const alternar = () => { alternarPlegada(marca); repintar((n) => n + 1); };
   return (
     <Card component="section" data-t="tarjeta" data-plegable={k} data-estado={cerrada ? 'cerrada' : 'abierta'} sx={[{ mb: '14px' }, ...(Array.isArray(sx) ? sx : [sx])]}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
         <Typography component="h2" variant="h2" sx={{ flex: 1, minWidth: 0, m: 0 }}>
           <ButtonBase data-t="plegar" aria-expanded={!cerrada} onClick={alternar}
-            sx={{ width: '100%', justifyContent: 'flex-start', gap: '4px', font: 'inherit', color: 'inherit', textAlign: 'left', borderRadius: '8px', minHeight: 32, ml: '-6px', pl: '2px', pr: '6px',
+            sx={{ width: '100%', justifyContent: 'flex-start', gap: '4px', font: 'inherit', color: 'inherit', textAlign: 'left', borderRadius: '8px', minHeight: 44, ml: '-6px', pl: '2px', pr: '6px',
               '&:hover .flecha': { color: 'text.primary' }, '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main' } }}>
             <Flecha abierta={!cerrada} />
             <span>{titulo}</span>

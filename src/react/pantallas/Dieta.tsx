@@ -19,7 +19,7 @@ import { usarEstado } from '../usarEstado';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Campo, CampoLista, CampoSolo, DOS } from '../ui/Campo';
 import { TituloPantalla, Nota } from '../ui/Textos';
-import { Opciones, Avance, Cifras } from '../ui/Varios';
+import { Opciones, Avance, Cifras, PestanasConMas } from '../ui/Varios';
 import { Ajustar } from '../ui/Rapido';
 import { Barras } from '../ui/Graficos';
 import { MetaPeso } from './DietaMeta';
@@ -420,7 +420,7 @@ export default function Dieta({ pestana }: { pestana?: string }) {
           {ver.pestana === 'peso' ? null : <Button data-accion="dieta-pestana" data-p="peso" sx={{ justifySelf: 'start' }}>Anotar mi peso →</Button>}
         </Card>
       ) : null}
-      <Opciones nombre="Pestañas de Dieta" activa={ver.pestana} opciones={PESTANAS} datos={(k) => ({ 'data-accion': 'dieta-pestana', 'data-p': k })} sx={{ '& .MuiChip-root': { fontSize: 15 } }} />
+      <PestanasConMas nombre="Pestañas de Dieta" activa={ver.pestana} opciones={PESTANAS} principales={['hoy', 'planes', 'peso']} datos={(k) => ({ 'data-accion': 'dieta-pestana', 'data-p': k })} sx={{ '& .MuiChip-root': { fontSize: 15 } }} />
       {ver.pestana === 'planes' ? planes(e, ver.planVista) : ver.pestana === 'peso' ? peso(e) : ver.pestana === 'alimentos' ? alimentos(e) : ver.pestana === 'equivalencias' ? <Equivalencias key={JSON.stringify(D.cambio())} e={e} cambio={D.cambio()} /> : ver.pestana === 'corte' ? <Corte e={e} /> : ver.pestana === 'antojos' ? <Antojos e={e} /> : hoyDieta(e)}
     </>
   );

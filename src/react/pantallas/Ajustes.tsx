@@ -18,6 +18,8 @@ import { TEMAS, LETRAS, leerApariencia } from '../../apariencia.js';
 import { datosLateral } from '../armazon.js';
 import { MAX_ABAJO } from '../../barra-abajo.js';
 import { almacen } from '../../almacen.js';
+import { leerUso, masUsadas, pocoUsadas, diasContando, DIAS_CONTANDO, DIAS_SIN_ABRIR } from '../../uso.js';
+import { SECCIONES } from '../../orden.js';
 import { e, guardar } from '../../estado.js';
 import { drive, probarDrive, sincronizar } from '../../imagenes-equipo.js';
 import { urlDrive, idDeUrl, claveNueva, scriptConClave, problemaDrive, explicarError } from '../../imagenes.js';
@@ -58,7 +60,7 @@ const ETIQUETAS_HORA: [string, string][] = [['pastilla', '💊 Pastilla'], ['par
 // Lo propio de cada usuario: cómo saludarlo y desde cuándo cuentan las semanas del gym
 function Perfil({ c }: { c: Fin }) {
   return (
-    <TarjetaPlegable vista={VISTA} clave="👤 Perfil" titulo="👤 Perfil">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="👤 Perfil" titulo="👤 Perfil">
       <Box sx={DOS}>
         <Campo etiqueta="Tu nombre (para el saludo)" data-cambio="conf-nombre" defaultValue={c.nombre || ''} autoComplete="given-name" />
         <Campo etiqueta="Semana 1 del gym empieza" type="date" data-cambio="conf-semana1" defaultValue={c.semana1} />
@@ -114,7 +116,7 @@ function Huella() {
 function Nube() {
   if (!configurada || !N.usuario) return null;
   return (
-    <TarjetaPlegable vista={VISTA} clave="☁️ Nube" titulo="☁️ Nube">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="☁️ Nube" titulo="☁️ Nube">
       <Parrafo>{N.usuario.correo}</Parrafo>
       <Box component="p" sx={{ fontSize: 13, color: COLOR_NUBE[N.estado] || 'text.secondary', my: '6px' }}>{textoNube()}{N.ultima ? ' · ' + hora(N.ultima) : ''}</Box>
       {N.error ? <Aviso>{N.error}</Aviso> : null}
@@ -143,7 +145,7 @@ function ComoSeVe() {
   const ap = leerApariencia(), d = datosLateral() as Fin;
   const enBarra = new Set(((d && d.abajo) || []).map((x: Fin) => x.k));
   return (
-    <TarjetaPlegable vista={VISTA} clave="🎨 Cómo se ve" titulo="🎨 Cómo se ve">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🎨 Cómo se ve" titulo="🎨 Cómo se ve">
       <Subtitulo>Colores</Subtitulo>
       <Opciones>{TEMAS.map(([k, t]) => <Opcion key={k} activa={ap.tema === k} data-accion="apariencia-tema" data-v={k} data-t="tema">{t}</Opcion>)}</Opciones>
       <Subtitulo>Tamaño de la letra</Subtitulo>
@@ -169,7 +171,7 @@ function AvisosDelDia({ c }: { c: Fin }) {
   const av = c.avisos || {}, horas = { ...HORAS_AVISOS, ...(av.horas || {}) } as Record<string, string>, apagados = av.apagados || {};
   const hoy = avisosDelDia(c) as Fin[], sups = avisosDeSuplementos() as Fin[];
   return (
-    <TarjetaPlegable vista={VISTA} clave="🔔 Avisos del día" titulo="🔔 Avisos del día">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🔔 Avisos del día" titulo="🔔 Avisos del día">
       <Nota>Para que te avise siempre, aunque la app esté cerrada, agrega los avisos al calendario del celular. Los avisos de la app solo llegan con la app abierta o recién cerrada (también el fin del descanso del gym).</Nota>
       <Box sx={{ ...DOS, mb: '6px' }}>
         {ETIQUETAS_HORA.map(([k, t]) => <Campo key={k} etiqueta={t} type="time" data-cambio="aviso-hora" data-k={k} defaultValue={horas[k]} />)}
@@ -216,7 +218,7 @@ function Drive({ c }: { c: Fin }) {
   const problema = problemaDrive({ url: d.url || '', clave: d.clave || '' }) as string;
   const claveBuena = !!d.clave && d.clave !== idDeUrl(d.url), urlBuena = !!d.url && !/dirección/.test(problema);
   return (
-    <TarjetaPlegable vista={VISTA} clave="🖼️ Google Drive" titulo={'🖼️ Google Drive' + (d.probada ? ' ✓' : '')}>
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🖼️ Google Drive" titulo={'🖼️ Google Drive' + (d.probada ? ' ✓' : '')}>
       <Nota>Las imágenes de <Link href="#imagenes" sx={{ color: 'primary.main' }}>🖼️ Imágenes</Link> se guardan en tu Drive, en la carpeta «Rutina · Imágenes» (una subcarpeta por álbum). Quedan privadas: solo tú las ves. Se hace una sola vez.</Nota>
       <Box component="ol" sx={{ listStyle: 'none', m: 0, p: 0 }}>
         <Paso n={1} listo={claveBuena} titulo="Tu clave y el script">
@@ -259,7 +261,7 @@ function Drive({ c }: { c: Fin }) {
 function Hoja({ c }: { c: Fin }) {
   const h = c.hoja || {}, lista = hojaLista();
   return (
-    <TarjetaPlegable vista={VISTA} clave="📗 Google Sheets" titulo="📗 Google Sheets">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="📗 Google Sheets" titulo="📗 Google Sheets">
       <Nota>Escribe el gym en la pestaña "Rutina 2.0" (columna de cada semana) y los días en "Diario App". Instala antes el Apps Script de la carpeta apps_script (ver README).</Nota>
       <Box sx={{ display: 'grid', gap: '10px', mb: '4px' }}>
         <Campo etiqueta="Dirección de la aplicación web" type="url" data-cambio="conf-hoja" data-k="url" defaultValue={h.url || ''} placeholder="https://script.google.com/macros/s/…/exec" />
@@ -276,6 +278,32 @@ function Hoja({ c }: { c: Fin }) {
   );
 }
 
+// 📊 Lo que más usas en este equipo (src/uso.js) y el grupo 💤 Poco usado del menú
+const nombreSeccion = (k: string) => { const x = (SECCIONES as Record<string, string[]>)[k]; return x ? x[0] + ' ' + x[1] : k; };
+function Uso({ c }: { c: Fin }) {
+  const u = leerUso() as Fin, dias = diasContando(u) as number, top = (masUsadas(u) as [string, number][]).slice(0, 8), pestanas = (masUsadas(u, 'p') as [string, number][]).slice(0, 6);
+  const poco = pocoUsadas(Object.keys(SECCIONES), u) as string[], max = top.length ? top[0][1] : 1;
+  return (
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="📊 Lo que más usas" titulo="📊 Lo que más usas">
+      <Nota sx={{ mt: 0 }}>Se cuenta solo en este equipo, desde hace {dias} {dias === 1 ? 'día' : 'días'}. Con esto se sabe qué sobra.</Nota>
+      {top.length ? (
+        <Box component="ol" sx={{ listStyle: 'none', m: '8px 0', p: 0, display: 'grid', gap: '6px' }}>
+          {top.map(([k, n]) => (
+            <Box component="li" key={k} sx={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 10px', fontSize: 15 }}>
+              <span>{nombreSeccion(k)}</span><b>{n}</b>
+              <Box sx={{ gridColumn: '1 / -1', height: 6, borderRadius: 3, bgcolor: tokens.surface2 }}><Box sx={{ height: 6, borderRadius: 3, bgcolor: 'primary.main', width: Math.max(4, (n / max) * 100) + '%' }} /></Box>
+            </Box>
+          ))}
+        </Box>
+      ) : null}
+      {pestanas.length ? <Nota>Pestañas más abiertas: {pestanas.map(([k, n]) => nombreSeccion(k.split('/')[0]) + ' → ' + k.split('/')[1] + ' (' + n + ')').join(' · ')}</Nota> : null}
+      <Interruptor marcado={!(c.barra || {}).sinPoco} datos={{ 'data-cambio': 'uso-poco' }}>💤 Mandar al final del menú lo que no abres hace {DIAS_SIN_ABRIR} días</Interruptor>
+      <Nota sx={{ m: 0 }}>{dias < DIAS_CONTANDO ? 'Empieza a funcionar cuando lleve ' + DIAS_CONTANDO + ' días contando.' : poco.length ? 'Ahora en 💤 Poco usado: ' + poco.map(nombreSeccion).join(', ') + '. Nada se borra: siguen ahí y en 🔎.' : 'Usas todo: nada va a Poco usado.'}</Nota>
+      <Botones><Button color="secondary" data-accion="uso-reiniciar">↺ Volver a contar desde hoy</Button></Botones>
+    </TarjetaPlegable>
+  );
+}
+
 export default function Ajustes() {
   const c = usarEstado().config as Fin;
   return (
@@ -283,28 +311,29 @@ export default function Ajustes() {
       <TituloPantalla>Ajustes</TituloPantalla>
       <Perfil c={c} />
       <ComoSeVe />
+      <Uso c={c} />
       <Nube />
       <AvisosDelDia c={c} />
       <Hoja c={c} />
       <Drive c={c} />
-      <TarjetaPlegable vista={VISTA} clave="Metas diarias" titulo="Metas diarias">
+      <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="Metas diarias" titulo="Metas diarias">
         <Box sx={DOS}>
           {ETIQUETAS.map(([k, t]) => <Campo key={k} etiqueta={t} {...numero} min={0} data-cambio="conf-meta" data-k={k} defaultValue={c.metas[k]} />)}
           {/* Lo guarda la acción de 🎓 Estudiar (vistas/estudiar.js) */}
           <Campo etiqueta="🎓 Estudio al día (min)" {...numero} min={5} max={240} step={5} data-cambio="estudio-minutos" defaultValue={c.estudio.minutos} />
         </Box>
       </TarjetaPlegable>
-      <TarjetaPlegable vista={VISTA} clave="Pastilla → desayuno" titulo="Pastilla → desayuno">
+      <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="Pastilla → desayuno" titulo="Pastilla → desayuno">
         <Nota>Ajústalo a lo que indique tu médico.</Nota>
         <Box sx={DOS}>
           <Campo etiqueta="Mínimo (min)" {...numero} min={0} data-cambio="conf-espera" data-k="minimo" defaultValue={c.espera.minimo} />
           <Campo etiqueta="Ideal (min)" {...numero} min={0} data-cambio="conf-espera" data-k="ideal" defaultValue={c.espera.ideal} />
         </Box>
       </TarjetaPlegable>
-      <TarjetaPlegable vista={VISTA} clave="Avisos" titulo="Avisos">
+      <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="Avisos" titulo="Avisos">
         <Interruptor marcado={!!c.sonido} datos={{ 'data-cambio': 'conf-sonido' }}>Sonido al terminar descansos y cambios de lado (la vibración siempre está activa)</Interruptor>
       </TarjetaPlegable>
-      <TarjetaPlegable vista={VISTA} clave="Copia de seguridad" titulo="Copia de seguridad">
+      <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="Copia de seguridad" titulo="Copia de seguridad">
         <Nota>Todo se guarda en este celular. Exporta una copia de vez en cuando o para pasarla a otro equipo.</Nota>
         {almacen.permanente === true ? <Nota data-t="permanente">🛡️ Guardado permanente: este navegador no borrará los datos de la app aunque le falte espacio.</Nota>
           : almacen.permanente === false ? <Nota data-t="permanente">⚠️ Este navegador podría borrar los datos de la app si le falta espacio (el iPhone, si no la abres en 7 días). Instálala en la pantalla de inicio para que queden fijos, y deja la nube activa.</Nota> : null}
@@ -318,7 +347,7 @@ export default function Ajustes() {
           <Button color="secondary" data-accion="csv" data-que="dias">☀️ Hábitos y metas por día</Button>
         </Botones>
       </TarjetaPlegable>
-      <TarjetaPlegable vista={VISTA} clave="Empezar de cero" titulo="Empezar de cero">
+      <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="Empezar de cero" titulo="Empezar de cero">
         <Botones><Button data-accion="reiniciar" sx={{ bgcolor: tokens.rojoFondo, color: tokens.peligroInk, '&:hover': { bgcolor: tokens.rojoFondo } }}>Borrar todos los datos</Button></Botones>
       </TarjetaPlegable>
     </>

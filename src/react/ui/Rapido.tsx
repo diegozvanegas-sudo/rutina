@@ -31,7 +31,7 @@ const Boton = ({ children, etiqueta, onClick }: { children: ReactNode; etiqueta:
 );
 const Fichas = ({ fichas, alElegir, nombre }: { fichas: [string, ReactNode][]; alElegir: (v: string) => void; nombre: string }) => (fichas.length
   ? <Box role="group" aria-label={nombre} sx={{ display: 'flex', flexWrap: 'wrap', gap: '6px', mt: '6px' }}>
-      {fichas.map(([v, t]) => <Chip key={v + String(t)} clickable size="small" variant="outlined" label={t} onClick={() => alElegir(v)} sx={{ height: 32, fontSize: 14 }} />)}
+      {fichas.map(([v, t]) => <Chip key={v + String(t)} clickable size="small" variant="outlined" label={t} onClick={() => alElegir(v)} sx={{ height: 40, fontSize: 14 }} />)}
     </Box>
   : null);
 

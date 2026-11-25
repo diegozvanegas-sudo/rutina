@@ -9,6 +9,7 @@ import { calendarioIcs } from '../registro.js';
 import { activarAvisos, desactivarAvisos } from '../avisos.js';
 import { activarHuella, quitarHuella, desbloquear, abrir } from '../bloqueo.js';
 import { registrar, toast } from '../ui.js';
+import { reiniciarUso } from '../uso.js';
 import { avisosDeSuplementos } from './suplementos.js';
 
 // Copias que guarda la nube (una cada 10 minutos de uso y antes de cualquier subida que quite datos)
@@ -87,6 +88,9 @@ registrar({
   'conf-meta'({ k }, el) { e().config.metas[k] = Math.max(0, Number(el.value) || 0); guardar(); },
   'conf-espera'({ k }, el) { e().config.espera[k] = Math.max(0, Number(el.value) || 0); guardar(); },
   'conf-sonido'(ds, el) { e().config.sonido = el.checked; guardar(); },
+  // 📊 Lo que más usas: mandar lo poco usado al final del menú (config.barra.sinPoco = no), y volver a contar
+  'uso-poco'(ds, el) { (e().config.barra ??= {}).sinPoco = !el.checked; guardar(); },
+  'uso-reiniciar'() { reiniciarUso(); toast('📊 Se vuelve a contar desde hoy'); repintar(); },
   exportar() { descargar(exportar(), 'application/json', 'rutina-' + iso() + '.json'); },
   csv({ que }) {
     const texto = que === 'gym' ? csvGym(e()) : csvDias(e(), avanceMetas);

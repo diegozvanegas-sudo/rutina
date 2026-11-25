@@ -7,6 +7,7 @@ polyfillCountryFlagEmojis('Twemoji Country Flags', fuenteBanderas);
 import { e, cargar, esperarUsuario, alCambiar, guardar, empezarDePrueba, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
 import { ejecutar, registrar, prepararAudio, pct } from './ui.js';
+import { anotarUso, pocoUsadas } from './uso.js';
 import { revisar, sumar, detener } from './temporizador.js';
 import { resumenSemana } from './gym.js';
 import './vistas/hoy.js';
@@ -161,7 +162,7 @@ function datosLateral() {
   return {
     compacta: !!b.compacta, lado: b.lado === 'izquierda' ? 'izquierda' : 'derecha', resumenAbierto: b.resumen !== false, organizando: organizandoMenu,
     // Por área de vida (el cliente de un entrenador ve su menú propio, sin grupos); cerrados: los grupos plegados
-    grupos: modo === 'cliente' ? null : agrupar(c, menu.principales.filter((x) => !enNegocio.has(x.k))), abiertos: gruposAbiertos(b), subs: SUBSECCIONES,
+    grupos: modo === 'cliente' ? null : agrupar(c, menu.principales.filter((x) => !enNegocio.has(x.k)), b.sinPoco ? [] : pocoUsadas(ids)), abiertos: gruposAbiertos(b), subs: SUBSECCIONES,
     mano: b.mano === 'izquierda' ? 'izquierda' : 'derecha', unaMano: !!b.unaMano, listaGrupos: GRUPOS,
     modo, marca: marcaVista, negocio, mas: menu.mas,
     enlaces: menu.principales.filter((x) => !enNegocio.has(x.k)),
@@ -212,6 +213,7 @@ function montarArmazon() {
   montarFijo($('arriba'), () => import('./react/armazon/Arriba.tsx'));
   montarFijo($('abajo'), () => import('./react/armazon/Abajo.tsx'));
   montarFijo($('buscar'), () => import('./react/armazon/Buscar.tsx'));
+  montarFijo($('anotar'), () => import('./react/armazon/Anotar.tsx'));
 }
 
 // Lo último que se tocó: si está dentro de algo con data-ancla, ese bloque no se mueve al repintar.
@@ -256,9 +258,9 @@ function pintar() {
     return;
   }
   marcaArriba();
-  // 📝 El botón de Notas: en todas las pantallas menos en la misma Notas, y solo si la puede abrir
+  // ＋ Anotar rápido: en todas las pantallas menos en Notas, si puede abrir algo de lo que anota
   const v0 = actual();
-  if ($('boton-notas')) $('boton-notas').hidden = v0 === 'notas' || !permitida('notas');
+  if ($('boton-notas')) $('boton-notas').hidden = v0 === 'notas' || !['notas', 'dieta', 'metas', 'finanzas'].some(permitida);
   const v = v0, y = window.scrollY, ancla = v === ultimaVista ? anclaDe() : null;
   $('vista').dataset.vista = v; // el CSS da más ancho a Hoy en pantallas grandes
   // La pantalla se monta una vez y se repinta sola (con sus avisos de arriba)
@@ -482,6 +484,7 @@ registrar({
   'apariencia-tema'({ v }) { ponerTema(v); refrescarReact(); },
   'apariencia-letra'({ v }) { ponerLetra(v); refrescarReact(); },
   buscar() { abrirBuscar(); },
+  anotar() { menu(false); window.dispatchEvent(new Event('rutina:anotar')); },
 });
 // 🔎 Ctrl+K (⌘K en Mac) o "/" fuera de un campo abren el buscador
 document.addEventListener('keydown', (ev) => {
@@ -520,7 +523,9 @@ document.addEventListener('focusin', (ev) => {
 window.addEventListener('scroll', () => { $('tip').hidden = true; }, { passive: true });
 
 alCambiar(pedirPintar);
-window.addEventListener('hashchange', () => { menu(false); abrirPestana(); pintar(); refrescarReact(); window.scrollTo(0, 0); });
+// 📊 Cuenta qué secciones y pestañas se abren (src/uso.js), para el grupo 💤 Poco usado y Ajustes
+const contarUso = () => { const sub = location.hash.slice(1).split('/')[1]; anotarUso(actual(), sub ? decodeURIComponent(sub) : undefined); };
+window.addEventListener('hashchange', () => { contarUso(); menu(false); abrirPestana(); pintar(); refrescarReact(); window.scrollTo(0, 0); });
 
 // Reloj: temporizadores, cronómetros y la espera de la pastilla, sin repintar toda la pantalla
 setInterval(() => {
@@ -565,5 +570,6 @@ if (import.meta.env.DEV) {
   };
 }
 
+contarUso();
 abrirPestana();
 pintar();

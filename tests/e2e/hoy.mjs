@@ -23,6 +23,19 @@ export default async (p) => {
     await paso('con el ejemplo');
   }
 
+  // ⏱ Lo de ahora: de inicio se ve solo lo que toca a esta hora; "Ver todo el día" muestra todas (y queda así)
+  await a.dormir(600);
+  if (await p.cuantos('#vista [data-accion=hoy-todo]')) {
+    const antes = await p.cuantos('#vista [data-carta]');
+    if (!(await p.estado()).config.hoyTodo) {
+      await p.tocar('#vista [data-accion=hoy-todo]');
+      await a.dormir(900);
+      falla((await a.texto()).includes('Solo lo de ahora'), 'Ver todo el día no cambió a «Solo lo de ahora»');
+      falla((await p.cuantos('#vista [data-carta]')) > antes, 'Ver todo el día no mostró más tarjetas');
+    }
+    await paso('todo el día');
+  }
+
   // La mañana: marcar el primer hábito
   if (await hay('[data-accion=marcar]')) {
     const id = await p.ev(`document.querySelector('#vista [data-accion=marcar]').dataset.id`);

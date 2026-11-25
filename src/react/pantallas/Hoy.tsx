@@ -32,7 +32,8 @@ import { calentamiento } from './GymDia';
 import { Experimento, RetoHoy, Entrenador, Foco, EstudioHoy, SuenoPeso, Partido, Estandares, PlataHoy, CierreHoy, SemanaGym, BotonSesion, Botones, TarjetaEnlace, Tarjeta, EnPlegada, Animo, Trabajo } from './HoyTarjetas';
 import { porRevisar, ruedaToca, ruedaActual } from '../../mivida.js';
 import { ControlDia, RevisionSemana } from './Control';
-import { tocaRevision } from '../../control.js';
+import { tocaRevision, controlDia, gymDelDia } from '../../control.js';
+import { repartirAhora } from '../../hoy-ahora.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -41,22 +42,40 @@ const FILA = { display: 'flex', justifyContent: 'space-between', alignItems: 'ce
 const NOMBRES = TARJETAS_HOY as Record<string, string>;
 
 // ---------- 🏋️ El gym de hoy y el fútbol ----------
-function futbolEstaNoche(e: Fin) {
+// En "lo de ahora", lo de consulta (consejos, calentamiento, anotar el partido antes de jugar) queda en una fila que se abre
+function Pliegue({ titulo, compacta, children, k }: { titulo: string; compacta: boolean; children: ReactNode; k: string }) {
+  const [abierto, poner] = useState(false);
+  if (!compacta) return <>{children}</>;
+  return (
+    <Box data-pliegue={k} sx={{ mb: '14px', borderRadius: tokens.radio + 'px', border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper', p: '4px 14px', '& > .MuiCollapse-root section, & > .MuiCollapse-root .MuiCard-root': { border: 0, p: 0, mb: 0, bgcolor: 'transparent' } }}>
+      <ButtonBase aria-expanded={abierto} onClick={() => poner(!abierto)} sx={{ width: '100%', justifyContent: 'flex-start', gap: '6px', minHeight: 44, font: 'inherit', fontWeight: 700, color: 'text.primary', textAlign: 'left' }}>
+        <Flecha abierta={abierto} />{titulo}
+      </ButtonBase>
+      <Collapse in={abierto} timeout={150} unmountOnExit><Box sx={{ pb: '8px' }}>{children}</Box></Collapse>
+    </Box>
+  );
+}
+function futbolEstaNoche(e: Fin, compacta: boolean) {
+  const consejos = (
+    <Box component="ul" sx={{ m: 0, pl: '20px', display: 'grid', gap: '4px' }}>
+      {['Comida pre-partido 2-3 h antes: arroz y pollo, poca grasa y poca fibra.', 'Plátano 1 h antes y agua todo el día; si hace calor o juegas más de 60 min, electrolitos.',
+        'Calienta 10-12 min antes de jugar, de suave a rápido.', 'Después: cena con proteína y carbos, y estira suave.'].map((t) => <li key={t}>{t}</li>)}
+    </Box>
+  );
   return (
     <Tarjeta titulo="⚽ Fútbol esta noche">
-      <Box component="ul" sx={{ m: 0, pl: '20px', display: 'grid', gap: '4px' }}>
-        {['Comida pre-partido 2-3 h antes: arroz y pollo, poca grasa y poca fibra.', 'Plátano 1 h antes y agua todo el día; si hace calor o juegas más de 60 min, electrolitos.',
-          'Calienta 10-12 min antes de jugar, de suave a rápido.', 'Después: cena con proteína y carbos, y estira suave.'].map((t) => <li key={t}>{t}</li>)}
-      </Box>
+      {compacta ? <Pliegue k="futbol-consejos" titulo="Qué comer y cómo llegar" compacta>{consejos}</Pliegue> : consejos}
       <Botones>{(e.config.sesionesPartido || []).map((id: string, i: number) => <BotonSesion key={id} e={e} id={id} primario={i === 0} />)}</Botones>
       <Botones><BotonSesion e={e} id="maletin-partido" texto="Maletín del partido" /></Botones>
     </Tarjeta>
   );
 }
-function entrenamiento(e: Fin) {
+function entrenamiento(e: Fin, compacta = false) {
   // El partido de hoy (o el de ayer si no se anotó) se registra junto al entreno
   const pendiente = fechaPartidoPendiente() as string | null, d = diaDeHoy() as Fin;
-  const futbol = <>{hayFutbol() ? futbolEstaNoche(e) : null}{pendiente ? <Partido e={e} fecha={pendiente} /> : null}</>;
+  // Antes de las 7 p. m. el partido de hoy aún no se juega: anotarlo queda en una fila
+  const partido = pendiente ? <Pliegue k="partido" titulo="⚽ Anotar el partido (después de jugar)" compacta={compacta && pendiente === iso() && new Date().getHours() < 19}><Partido e={e} fecha={pendiente} /></Pliegue> : null;
+  const futbol = <>{hayFutbol() ? futbolEstaNoche(e, compacta) : null}{partido}</>;
   if (!d && (hayFutbol() || pendiente)) return futbol;
   if (!d) return (
     <Tarjeta titulo="🏋️ Hoy">
@@ -85,13 +104,13 @@ function entrenamiento(e: Fin) {
         </Box>
       </Tarjeta>
       {futbol}
-      {calentamiento(d, semanaActual())}
+      {d.calentamiento ? <Pliegue k="calentamiento" titulo="🔥 Calentamiento" compacta={compacta}>{calentamiento(d, semanaActual())}</Pliegue> : null}
     </>
   );
 }
 
 // ---------- Las tarjetas del tablero (cada una devuelve null si no tiene nada que mostrar) ----------
-function tarjetas(e: Fin): Record<string, () => ReactNode> {
+function tarjetas(e: Fin, compacta: boolean): Record<string, () => ReactNode> {
   return {
     control: () => <ControlDia />,
     revision: () => (tocaRevision() ? <RevisionSemana enHoy /> : null),
@@ -100,7 +119,7 @@ function tarjetas(e: Fin): Record<string, () => ReactNode> {
     entrenador: () => Entrenador({ e }),
     foco: () => Foco({ e }),
     estudio: () => EstudioHoy({ e }),
-    manana: () => <Tarjeta titulo="☀️ Primera hora"><CabeceraManana /><ListaManana e={e} /></Tarjeta>,
+    manana: () => <Tarjeta titulo="☀️ Primera hora"><CabeceraManana /><ListaManana e={e} compacta={compacta} /></Tarjeta>,
     metas: () => {
       const m = avanceMetas() as Fin, ks = m.activas as string[];
       if (!ks.length) return null;
@@ -112,10 +131,10 @@ function tarjetas(e: Fin): Record<string, () => ReactNode> {
         </Tarjeta>
       );
     },
-    gym: () => entrenamiento(e),
+    gym: () => entrenamiento(e, compacta),
     suenoPeso: () => SuenoPeso({ e }),
     animo: () => Animo({ e }),
-    trabajo: () => Trabajo({ e }),
+    trabajo: () => <Trabajo e={e} compacta={compacta} />,
     estandares: () => Estandares({ e }),
     dieta: () => <Tarjeta titulo="🥗 Comidas" lado={<Link href="#dieta" sx={{ fontSize: 14, color: 'text.secondary' }}>Ver plan →</Link>}>{comidasHoy(e, true)}</Tarjeta>,
     plata: () => PlataHoy({ e }),
@@ -218,15 +237,54 @@ function pendienteHoy(e: Fin) {
   );
 }
 
+// Lo ya hecho hoy, para el modo "lo de ahora" (src/hoy-ahora.js)
+function hechoHoy(e: Fin): Record<string, boolean> {
+  const hoy = iso(), m = avanceMetas() as Fin, hs = habitosDe().length, plan = planDieta().comidas.length, sup = pendienteSuplementos() as [number, number] | null;
+  const x = experimentoActivo() as Fin, reto = retoActivo() as Fin, metaPasos = Number((e.config.metas || {}).pasos) || 8000;
+  const futbol = hayFutbol() || !!fechaPartidoPendiente();
+  return {
+    control: (controlDia(hoy, e, metaPasos) as Fin).listos === 4,
+    manana: hs > 0 && hechosManana() >= hs,
+    suplementos: !!sup && sup[0] >= sup[1],
+    experimento: !!x && !!(estadoExperimento(x) as Fin).hoyListo,
+    retos: !!reto && !!(estadoRacha(reto) as Fin).hoyListo,
+    gym: gymDelDia(hoy, e) === 'hecho' && !futbol,
+    dieta: plan > 0 && (comidasDelDia() as Fin).n >= plan,
+    metas: m.activas.length > 0 && m.total >= 1,
+  };
+}
+const gymHoy = (e: Fin) => gymDelDia(iso(), e) === 'pendiente' || hayFutbol() || !!fechaPartidoPendiente();
+
+// Una ficha por tarjeta ya hecha; al tocarla se abre ahí mismo
+function Hechas({ ids, abrir }: { ids: string[]; abrir: (k: string) => void }) {
+  if (!ids.length) return null;
+  return (
+    <Box data-t="hoy-hechas" sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', mb: '14px' }}>
+      <Box component="span" sx={{ color: 'text.secondary', fontSize: 14 }}>Ya hecho:</Box>
+      {ids.map((k) => (
+        <ButtonBase key={k} data-hecha={k} onClick={() => abrir(k)} sx={{ minHeight: 44, p: '6px 14px', borderRadius: 999, border: '1px solid', borderColor: 'primary.main', color: 'primary.main', fontWeight: 700, fontSize: 15 }}>
+          ✓ {NOMBRES[k].replace(/\s*\(.*\)$/, '')}
+        </ButtonBase>
+      ))}
+    </Box>
+  );
+}
+
 export default function Hoy() {
   const e = usarEstado() as Fin, ver = H.ver(), p = puntajeDia() as Fin;
+  const [abiertasAhora, ponerAbiertas] = useState<string[]>([]);
   // Las tarjetas de una sección que el admin escondió tampoco se ven
   const avisos = (ve('seccion', 'recordatorios') ? alertas() : []) as Fin[];
   const ids = (visibles(e.config, 'hoy') as string[]).filter((k) => !(SECCION_TARJETA as Record<string, string>)[k] || ve('seccion', (SECCION_TARJETA as Record<string, string>)[k]));
-  const T = tarjetas(e), contenido: Record<string, ReactNode> = {};
+  const T = tarjetas(e, !e.config.hoyTodo && !ver.organizando), contenido: Record<string, ReactNode> = {};
   for (const k of ids) { const c = T[k] ? T[k]() : null; if (c) contenido[k] = (H.PLEGABLES as string[]).includes(k) ? <Plegada k={k}>{c}</Plegada> : c; }
-  const anchas = ids.filter((k) => (H.ANCHAS as string[]).includes(k) && contenido[k]), resto = ids.filter((k) => !(H.ANCHAS as string[]).includes(k) && contenido[k]);
   const n = H.columnas() as number, moviendo = ver.organizando && n > 1;
+  // Lo de ahora: se ve lo que toca a esta hora; lo hecho, en fichas ✓; el resto detrás de "Ver todo el día"
+  const todo = !!e.config.hoyTodo || ver.organizando, conContenido = ids.filter((k) => contenido[k]);
+  const g = repartirAhora(conContenido, { hora: new Date().getHours(), dia: new Date().getDay(), hecho: hechoHoy(e), gymHoy: gymHoy(e), invita: { experimento: !experimentoActivo(), retos: !retoActivo(), suplementos: !((e.suplementos || {}).lista || []).length } }) as Record<string, string[]>;
+  const seVe = todo ? conContenido : conContenido.filter((k) => g.ahora.includes(k) || abiertasAhora.includes(k));
+  const hechas = todo ? [] : g.hecho.filter((k) => !abiertasAhora.includes(k)), escondidas = todo ? 0 : g.luego.filter((k) => !abiertasAhora.includes(k)).length;
+  const anchas = seVe.filter((k) => (H.ANCHAS as string[]).includes(k)), resto = seVe.filter((k) => !(H.ANCHAS as string[]).includes(k));
   const bienvenida = e.bienvenida && !(configurada && !nube.ultima);
   return (
     <>
@@ -256,6 +314,7 @@ export default function Hoy() {
         </Tarjeta>
       ) : null}
       {pendienteHoy(e)}
+      <Hechas ids={hechas} abrir={(k) => ponerAbiertas([...abiertasAhora, k])} />
       {/* Avisos, entrenador, foco y estudio: en el computador se acomodan lado a lado */}
       <Box sx={{ display: { md: 'grid' }, gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', columnGap: '14px', alignItems: 'start' }}>
         {avisos.length ? (
@@ -267,12 +326,15 @@ export default function Hoy() {
         {anchas.map((k) => <Box key={k} sx={{ minWidth: 0 }}>{contenido[k]}</Box>)}
       </Box>
       <Tablero ids={resto} contenido={contenido} n={n} moviendo={moviendo} />
+      {ver.organizando ? null : (e.config.hoyTodo
+        ? <Button fullWidth color="secondary" data-accion="hoy-todo" sx={{ minHeight: 48, mb: '8px' }}>⏱ Solo lo de ahora</Button>
+        : escondidas ? <Button fullWidth color="secondary" data-accion="hoy-todo" sx={{ minHeight: 48, mb: '8px' }}>Ver todo el día · {escondidas} {escondidas === 1 ? 'tarjeta más' : 'tarjetas más'}</Button> : null)}
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', mt: '6px' }}>
         <Button color="secondary" data-accion="hoy-organizar">{ver.organizando ? '✓ Listo' : '✋ Organizar tarjetas'}</Button>
         {ver.organizando && H.guardadas()[n] ? <Button color="secondary" data-accion="hoy-reordenar">↺ Acomodar solas</Button> : null}
       </Box>
       {ver.organizando ? <Nota sx={{ textAlign: 'center' }}>Arrastra cada tarjeta a la columna y el lugar que quieras. Se guarda para este ancho de pantalla.</Nota> : null}
-      <Nota sx={{ textAlign: 'center' }}><Link href="#editar/pantallas">↕ Ordenar o esconder tarjetas</Link></Nota>
+      <Nota sx={{ textAlign: 'center' }}><Link href="#editar/pantallas" sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>↕ Ordenar o esconder tarjetas</Link></Nota>
     </>
   );
 }

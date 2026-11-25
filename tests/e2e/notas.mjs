@@ -40,10 +40,13 @@ export default async (p) => {
     await p.ir('hoy');
     await a.esperar('#vista h1');
     falla(!(await p.cuantos('#lateral a[href="#notas"]')), 'Notas no debería estar en la lista del menú');
-    falla(await p.ev(`document.getElementById('boton-notas').checkVisibility()`), 'no se ve el botón 📝 en Hoy');
+    falla(await p.ev(`document.getElementById('boton-notas').checkVisibility()`), 'no se ve el botón ＋ Anotar en Hoy');
+    // ＋ Anotar rápido abre su hoja; de ahí, 📝 Notas
     await p.tocar('#boton-notas');
+    await a.dormir(400);
+    await p.tocar('[data-t=anotar-nota]');
     await a.esperar('#vista h1');
-    falla(!(await p.ev(`document.getElementById('boton-notas').checkVisibility()`)), 'el botón 📝 se sigue viendo dentro de Notas');
+    falla(!(await p.ev(`document.getElementById('boton-notas').checkVisibility()`)), 'el botón ＋ Anotar se sigue viendo dentro de Notas');
     falla((await a.texto()).includes('📝 Notas'), 'no abrió la sección');
     const antes = (await notas()).map((n) => n.id);
 

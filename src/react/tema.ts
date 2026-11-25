@@ -110,7 +110,7 @@ export const tema = createTheme({
       styleOverrides: { root: { padding: 14, borderRadius: tokens.radio, borderColor: tokens.line, backgroundColor: tokens.surface, backgroundImage: 'none' } },
     },
     MuiPaper: { styleOverrides: { root: { backgroundImage: 'none' } } },
-    // Botones cómodos para el dedo: 48 px de alto (36 px los pequeños)
+    // Botones cómodos para el dedo: 48 px de alto (40 px los pequeños)
     MuiButton: {
       defaultProps: { disableElevation: true, variant: 'contained' },
       styleOverrides: {
@@ -119,7 +119,7 @@ export const tema = createTheme({
           variants: [
             // El botón "secundario" de la app: gris con borde
             { props: { variant: 'contained', color: 'secondary' }, style: { border: '1px solid ' + tokens.line, '&:hover': { backgroundColor: tokens.hover } } },
-            { props: { size: 'small' }, style: { minHeight: 36, padding: '4px 12px', fontSize: 13, borderRadius: 999 } },
+            { props: { size: 'small' }, style: { minHeight: 40, padding: '4px 12px', fontSize: 13, borderRadius: 999 } },
           ],
         },
       },
@@ -152,13 +152,13 @@ export const tema = createTheme({
       },
     },
     MuiFormLabel: { styleOverrides: { root: { fontSize: 14, color: tokens.muted, lineHeight: 1.4, '&.Mui-focused': { color: tokens.muted } } } },
-    // Chips de pestañas y de un toque: 44 px (36 px las pequeñas), con borde; la activa en verde
+    // Chips de pestañas y de un toque: 44 px (40 px las pequeñas), con borde; la activa en verde
     MuiChip: {
       styleOverrides: {
         root: {
           height: 44, borderRadius: 999, fontSize: 14, fontWeight: 600, fontFamily: FUENTE,
           variants: [
-            { props: { size: 'small' }, style: { height: 36, fontSize: 13, '& .MuiChip-label': { paddingLeft: 10, paddingRight: 10 } } },
+            { props: { size: 'small' }, style: { height: 40, fontSize: 13, '& .MuiChip-label': { paddingLeft: 10, paddingRight: 10 } } },
             { props: { variant: 'outlined' }, style: { borderColor: tokens.line, backgroundColor: tokens.surface, color: tokens.ink } },
           ],
         },

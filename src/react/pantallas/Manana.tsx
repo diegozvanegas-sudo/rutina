@@ -128,12 +128,13 @@ function Prioridades({ fecha }: { fecha: string }) {
   );
 }
 
-export function ListaManana({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
-  const d = dia(fecha) as Fin;
+// compacta (Hoy en "lo de ahora"): los hábitos ya hechos quedan en una línea que se abre al tocarla
+export function ListaManana({ e, fecha = iso(), compacta = false }: { e: Fin; fecha?: string; compacta?: boolean }) {
+  const d = dia(fecha) as Fin, [verHechos, ponerVerHechos] = useState(false);
   if (!e.habitos.length) return <><Nota>Aún no tienes hábitos de mañana. Agrega el primero aquí abajo.</Nota><Agregar e={e} /></>;
   const lista = habitosDe(fecha) as Fin[];
   if (!lista.length) return <><Nota>Hoy no tienes hábitos programados. Día libre 🙌</Nota><Agregar e={e} /></>;
-  const corta = mananaCorta(fecha);
+  const corta = mananaCorta(fecha), nHechos = lista.filter((h) => d.habitos[h.id]).length, plegar = compacta && nHechos > 0 && !verHechos;
   return (
     <>
       {corta === 'hoy' ? <Aviso>⚽ Hoy juegas: con 20 min suaves de caminata basta, llega fresco al partido.</Aviso> : null}
@@ -141,8 +142,16 @@ export function ListaManana({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
       <Brujula e={e} fecha={fecha} />
       <Prioridades fecha={fecha} />
       <Box component="ol" sx={{ listStyle: 'none', m: '8px 0 0', p: 0, display: 'grid', gap: '8px' }}>
+        {plegar ? (
+          <Box component="li" sx={{ listStyle: 'none' }}>
+            <ButtonBase data-t="manana-hechos" onClick={() => ponerVerHechos(true)} sx={{ width: '100%', justifyContent: 'flex-start', minHeight: 44, p: '8px 12px', borderRadius: '12px', bgcolor: 'background.default', color: 'primary.main', fontWeight: 700, font: 'inherit' }}>
+              ✓ {nHechos} {nHechos === 1 ? 'hecho' : 'hechos'} · ver
+            </ButtonBase>
+          </Box>
+        ) : null}
         {lista.map((h, i) => {
           const reg = d.habitos[h.id], partido = !reg && corta && esCaminata(h);
+          if (plegar && reg) return null;
           return (
             <Box component="li" key={h.id} data-tip={reg && h.detalle ? h.nombre + '\n' + h.detalle : undefined} sx={{ display: 'flex', gap: '12px', alignItems: 'flex-start', p: '10px', borderRadius: '12px', bgcolor: 'background.default' }}>
               <ButtonBase data-accion="marcar" data-id={h.id} aria-pressed={!!reg} aria-label={h.nombre}

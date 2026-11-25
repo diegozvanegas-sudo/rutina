@@ -29,7 +29,7 @@ import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { CampoSolo, DOS } from '../ui/Campo';
 import { Desplegable } from '../ui/Desplegable';
 import { TituloPantalla, Nota, Parrafo } from '../ui/Textos';
-import { Opciones, Cifras, Avance } from '../ui/Varios';
+import { Cifras, Avance, PestanasConMas } from '../ui/Varios';
 import { Linea, BarrasAgrupadas, TablaDatos } from '../ui/Graficos';
 
 const VISTA = 'finanzas';
@@ -283,8 +283,8 @@ export default function Finanzas() {
     <>
       <TituloPantalla>Finanzas</TituloPantalla>
       {/* Tocar una pestaña es la acción de siempre: si esa pestaña aún no es de React, main.js pinta la pantalla de antes */}
-      <Opciones nombre="Secciones de Finanzas" activa={pestana} datos={(p) => ({ 'data-accion': 'fin-pestana', 'data-p': p })} opciones={PESTANAS}
-        sx={{ flexWrap: { md: 'wrap' }, overflowX: { md: 'visible' } }} />
+      {/* A la vista: anotar, el mes y lo que viene; las otras 10, en ⋯ Más */}
+      <PestanasConMas nombre="Secciones de Finanzas" activa={pestana} datos={(p) => ({ 'data-accion': 'fin-pestana', 'data-p': p })} opciones={PESTANAS} principales={['registrar', 'mes', 'viene']} />
       {/* Registrar es un componente (recuerda lo que se escribe en el buscador); las demás pestañas solo pintan */}
       {pestana === 'registrar' ? <Registrar f={f} /> : pestana === 'calcular' ? <Calcular /> : pestana === 'planb' ? planb(estado, moduloPlanB()) : PESTANA[pestana] ? PESTANA[pestana](f) : null}
     </>

@@ -35,8 +35,10 @@
 <div id="velo" class="velo" data-accion="menu-cerrar" hidden></div>
 <!-- 📱 Con "una mano": ☰ abajo, del lado de tu mano (lo muestra la clase una-mano en el celular) -->
 <button type="button" class="menu-pulgar" data-accion="menu" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false">☰</button>
-<!-- 📝 Notas: siempre a la vista, fuera del menú (main.js lo esconde dentro de Notas y si no tiene permiso) -->
-<a href="#notas" id="boton-notas" class="boton-notas" aria-label="Notas" title="Notas" hidden>📝</a>
+<!-- ＋ Anotar rápido (peso, pasos, agua, comida, gasto y 📝 Notas): siempre a la vista (main.js lo esconde dentro de Notas).
+     Abre src/react/armazon/Anotar.tsx -->
+<button type="button" id="boton-notas" class="boton-notas" data-accion="anotar" aria-label="Anotar rápido" title="Anotar rápido: peso, pasos, agua, comida, gasto o nota" hidden>＋</button>
+<div id="anotar"></div>
 <!-- 📱 Celular: las secciones de siempre al alcance del pulgar (React, src/react/armazon/Abajo.tsx) -->
 <nav id="abajo" class="abajo" aria-label="Secciones principales"></nav>
 <!-- 🔎 Buscar en toda la app (React, src/react/armazon/Buscar.tsx) -->

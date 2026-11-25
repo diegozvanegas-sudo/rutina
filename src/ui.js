@@ -1,4 +1,5 @@
 // Pequeñas piezas de pantalla compartidas por las vistas
+import { anotarPestana } from './uso.js';
 import { e } from './estado.js';
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,6 +28,8 @@ export function registrar(mapa) { Object.assign(acciones, mapa); }
 export function ejecutar(nombre, el, ev) {
   const f = acciones[nombre];
   if (f) f(el.dataset, el, ev);
+  // 📊 Las pestañas (fin-pestana, dieta-pestana…) cuentan para saber qué se usa (src/uso.js)
+  if (f && /-pestana$/.test(nombre) && el.dataset && el.dataset.p && typeof location !== 'undefined') anotarPestana(location.hash.slice(1).split('/')[0] || 'hoy', el.dataset.p);
 }
 
 // ---------- Avisos: sonido y vibración (al terminar un descanso, cambio de lado, etc.) ----------

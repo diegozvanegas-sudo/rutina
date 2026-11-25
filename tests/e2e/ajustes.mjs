@@ -10,6 +10,10 @@ export default async (p) => {
 
   await p.computador();
   await p.ir('ajustes');
+  // Ajustes empieza con cada tema cerrado (una fila por tema): se abren todos para recorrerlos
+  await a.esperar('#vista [data-plegable="ajustes|👤 Perfil"]');
+  await p.ev(`document.querySelectorAll('#vista [data-plegable][data-estado=cerrada] [data-t=plegar]').forEach((b) => b.click())`);
+  await a.dormir(400);
   await a.esperar('#vista [data-cambio=conf-nombre]');
   await paso('inicio');
 

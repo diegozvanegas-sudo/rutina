@@ -9,7 +9,12 @@ import { iso } from '../../src/fechas.js';
 export default async (p) => {
   const a = ayudas(p, 'Dieta'), { paso, falla, tocarTexto, escribirCampo } = a;
   const hoy = iso(), dia = async () => (((await p.estado()) || {}).dias || {})[hoy] || {}, dieta = async () => (await p.estado()).dieta;
-  const pestana = async (k) => { await p.tocar('#vista [data-accion=dieta-pestana][data-p=' + k + ']'); await a.dormir(300); };
+  // Las pestañas que no son de las principales están en ⋯ Más: se abre primero
+  const pestana = async (k) => {
+    const sel = '#vista [data-accion=dieta-pestana][data-p=' + k + ']';
+    if (!(await p.ev(`[...document.querySelectorAll(${JSON.stringify(sel)})].some((x) => x.checkVisibility({ visibilityProperty: true }))`))) { await p.tocar('#vista [data-t=pestanas-mas]'); await a.dormir(300); }
+    await p.tocar(sel); await a.dormir(300);
+  };
   // El n-ésimo visible de un selector, marcado con data-e2e-n
   const marcarN = (sel, n = 0) => p.ev(`(()=>{document.querySelectorAll('[data-e2e-n]').forEach(x=>x.removeAttribute('data-e2e-n'));const l=[...document.querySelectorAll(${JSON.stringify(sel)})].filter(x=>x.checkVisibility({visibilityProperty:true}));const n=${n},c=n<0?l[l.length+n]:l[n];if(!c)return false;c.setAttribute('data-e2e-n','1');return true})()`);
   const tocarN = async (sel, n = 0) => { falla(await marcarN(sel, n), 'no encontré ' + sel + ' (' + n + ')'); await p.tocar('[data-e2e-n]'); };

@@ -24,6 +24,10 @@ export default async (p) => {
   await p.computador();
   // En un equipo nuevo aún no hay nada guardado: se guarda algo antes (el sonido de Ajustes, dos veces)
   await p.ir('ajustes');
+  // Ajustes empieza con cada tema cerrado: se abre «Avisos»
+  await a.esperar('#vista [data-plegable="ajustes|Avisos"]');
+  await p.ev(`document.querySelector('#vista [data-plegable="ajustes|Avisos"][data-estado=cerrada] [data-t=plegar]')?.click()`);
+  await a.dormir(400);
   await a.esperar('#vista [data-cambio=conf-sonido]');
   await p.tocar('#vista [data-cambio=conf-sonido]');
   await p.tocar('#vista [data-cambio=conf-sonido]');

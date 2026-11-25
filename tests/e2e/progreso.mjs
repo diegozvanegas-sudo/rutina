@@ -16,6 +16,9 @@ export default async (p) => {
   await p.computador();
   await p.ir('progreso');
   await a.esperar('#vista h1');
+  // Progreso empieza con las tarjetas cerradas (una fila por tema): se abren todas para recorrerlas
+  await p.ev(`document.querySelectorAll('#vista [data-plegable][data-estado=cerrada] [data-t=plegar]').forEach((b) => b.click())`);
+  await a.dormir(400);
   await paso('inicio');
 
   for (const n of ['7', '90', '30']) {
@@ -76,6 +79,9 @@ export default async (p) => {
   await p.celular();
   await p.ir('progreso');
   await a.esperar('#vista h1');
+  // Progreso empieza con las tarjetas cerradas (una fila por tema): se abren todas para recorrerlas
+  await p.ev(`document.querySelectorAll('#vista [data-plegable][data-estado=cerrada] [data-t=plegar]').forEach((b) => b.click())`);
+  await a.dormir(400);
   falla(await p.sinDesborde(), 'se sale de la pantalla en el celular');
   await p.foto('progreso-cel');
   await p.ev('window.scrollBy(0, 1400)');

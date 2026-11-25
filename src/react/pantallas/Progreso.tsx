@@ -49,7 +49,7 @@ const Lista = ({ children }: { children: ReactNode }) => <Box component="ul" sx=
 // La tarjeta de un gráfico: el título se pliega y la › lleva a la sección de donde salen los datos
 function Grafica({ titulo, ir, nota, children }: { titulo: string; ir?: string; nota?: ReactNode; children: ReactNode }) {
   return (
-    <TarjetaPlegable vista={VISTA} clave={titulo} titulo={titulo} sx={{ m: { md: 0 } }}
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave={titulo} titulo={titulo} sx={{ m: { md: 0 } }}
       lado={ir ? <Link href={ir} aria-label={'Ir a ' + titulo} sx={{ color: 'primary.main', fontSize: 22, lineHeight: 1, textDecoration: 'none', minWidth: 44, minHeight: 44, display: 'inline-grid', placeItems: 'center', borderRadius: '10px' }}>›</Link> : undefined}>
       {nota ? <Nota sx={{ mt: 0 }}>{nota}</Nota> : null}
       {children}
@@ -131,7 +131,7 @@ function prediccionesCard(hoy = iso()) {
   const P = predicciones(hoy) as Fin, pe = P.peso, ga = P.gasto, ca = P.carga;
   const fuerza = (P.fuerza as Fin[]).slice().sort((a, b) => (b.aviso ? 1 : 0) - (a.aviso ? 1 : 0)).slice(0, 6);
   return (
-    <TarjetaPlegable vista={VISTA} clave="🔮 Predicciones" titulo="🔮 Predicciones">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🔮 Predicciones" titulo="🔮 Predicciones">
       <Nota sx={{ mt: 0 }}>Salen de tus propios datos, en el celular y sin internet. Cada una se prueba contra tus semanas pasadas antes de mostrarse.</Nota>
       <Box sx={{ display: 'grid', gap: '10px', gridTemplateColumns: { md: '1fr 1fr' } }}>
         <Bloque titulo="⚖️ Tu peso">
@@ -183,7 +183,7 @@ function revision() {
   const filas = comparativa() as Fin[], mejor = filas.filter((x) => x.estado === 'mejor'), peor = filas.filter((x) => x.estado === 'peor');
   const pregunta = peor.length ? '¿Qué hizo más difícil «' + peor[0].nombre.toLowerCase() + '» y qué cambio pequeño lo arreglaría?' : mejor.length ? '¿Qué hiciste distinto en «' + mejor[0].nombre.toLowerCase() + '» y cómo lo repites la próxima semana?' : '';
   return (
-    <TarjetaPlegable vista={VISTA} clave="📝 Revisión de la semana" titulo="📝 Revisión de la semana">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="📝 Revisión de la semana" titulo="📝 Revisión de la semana">
       {mejor.length || peor.length ? (
         <Box sx={{ display: 'grid', gap: '4px', mb: '10px', p: '10px 12px', borderRadius: '12px', bgcolor: tokens.surface2, '& p': { m: 0 } }}>
           {mejor.length ? <p>▲ <b>Mejoró:</b> {mejor.map((x) => x.nombre).join(', ')}</p> : null}
@@ -206,7 +206,7 @@ function cierreSemana(e: Fin, hoy = iso()) {
   const anteriores = Object.entries(e.revisiones || {}).map(([n, x]) => [Number(n), x] as [number, Fin]).filter(([n, x]) => n !== s && x.foco).sort((a, b) => b[0] - a[0]).slice(0, 4);
   const campo = (k: string, etiqueta: string, ph: string) => <CampoLargo key={k + s} etiqueta={etiqueta} filas={2} data-cambio="cierre" data-s={s} data-k={k} placeholder={ph} defaultValue={r[k] || ''} />;
   return (
-    <TarjetaPlegable vista={VISTA} clave="🗓️ Cierre de la semana" titulo="🗓️ Cierre de la semana">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🗓️ Cierre de la semana" titulo="🗓️ Cierre de la semana">
       <Box sx={{ display: 'grid', gap: '10px' }}>
         <Nota sx={{ m: 0 }}>{s > semanaDe(hoy) ? 'Para la semana ' + s + ' (desde el ' + fechaCorta(lunes) + ').' : 'Semana ' + s + '. El sábado o el domingo se planea la siguiente.'} Mira la revisión de arriba y responde.</Nota>
         {campo('funciono', '✅ ¿Qué 20 % me dio el 80 % del avance?', 'Ej.: entrenar temprano, la comida preparada')}
@@ -224,7 +224,7 @@ function cierreSemana(e: Fin, hoy = iso()) {
 function queTeFunciona() {
   const { frases, dias } = queFunciona() as Fin;
   return (
-    <TarjetaPlegable vista={VISTA} clave="🔬 Qué te funciona a ti" titulo="🔬 Qué te funciona a ti">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🔬 Qué te funciona a ti" titulo="🔬 Qué te funciona a ti">
       {frases.length ? <>
         <Lista>{(frases as Fin[]).map(({ titulo, medida, r }) => <li key={titulo + medida}><b>{titulo}</b><span>{Math.round(r.si)} % {medida} cuando sí ({r.nSi} días), frente a {Math.round(r.no)} % cuando no ({r.nNo} días).{r.nota ? '' : ' Casi sin diferencia.'}</span></li>)}</Lista>
         <Nota>Es una relación en tus datos, no prueba la causa. Úsala para decidir qué probar.</Nota>
@@ -236,7 +236,7 @@ function experimentosAnteriores() {
   const hechos = (experimentos() as Fin[]).filter((x) => x.decision && x.decision !== 'cancelado').reverse();
   if (!hechos.length) return null;
   return (
-    <TarjetaPlegable vista={VISTA} clave="🧪 Experimentos anteriores" titulo="🧪 Experimentos anteriores">
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🧪 Experimentos anteriores" titulo="🧪 Experimentos anteriores">
       <Lista>{hechos.map((x, i) => <li key={i}><b>{(x.decision === 'conservar' ? '✅ ' : '❌ ') + x.cambio}</b><span>{fechaCorta(x.inicio)} · cumplido {Object.keys(x.dias || {}).length} de 7 días</span></li>)}</Lista>
     </TarjetaPlegable>
   );
@@ -268,7 +268,7 @@ function filaReto(reto: Fin, activo: Fin, hoy: string) {
 function retos(hoy = iso()) {
   const activo = retoActivo() as Fin, n = cuantosHechos() as number, total = (RETOS as Fin[]).length;
   return (
-    <TarjetaPlegable vista={VISTA} clave="🔥 Retos" titulo="🔥 Retos" lado={<b>{n} / {total}</b>}>
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🔥 Retos" titulo="🔥 Retos" lado={<b>{n} / {total}</b>}>
       <Avance parte={n / total} />
       <Nota>Una racha a la vez. Si fallas un día, vuelve a 0. Lo que más vale son tus notas de cómo te fue.</Nota>
       {activo ? <BloqueReto x={activo} hoy={hoy} /> : null}

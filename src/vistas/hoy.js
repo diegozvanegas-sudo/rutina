@@ -70,6 +70,11 @@ if (typeof window !== 'undefined') {
 
 registrar({
   plantilla({ vacia }) { elegirPlantilla(!!vacia); },
+  // Lo de ahora ↔ todo el día: queda como lo dejó
+  'hoy-todo'() {
+    e().config.hoyTodo = !e().config.hoyTodo;
+    guardar();
+  },
   'hoy-organizar'() { organizando = !organizando; repintar(); },
   'hoy-reordenar'() {
     const t = { ...guardadas() };

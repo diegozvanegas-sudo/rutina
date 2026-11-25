@@ -1,6 +1,6 @@
 // Piezas pequeñas que usan varias pantallas
-import { useEffect, useRef, type ReactNode } from 'react';
-import { Box, ButtonBase, Chip } from '@mui/material';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Box, ButtonBase, Chip, Collapse } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { tokens } from '../tema';
 
@@ -27,6 +27,30 @@ export function Opciones<T extends string>({ opciones, activa, alElegir, datos, 
           label={t} onClick={alElegir ? () => alElegir(id) : undefined} {...(datos ? datos(id) : null)} title={marcada && marcada.id === id ? marcada.titulo : undefined}
           sx={[{ flex: 'none' }, marcada && marcada.id === id && activa !== id ? { borderColor: 'primary.main', borderWidth: 2 } : null]} />
       ))}
+    </Box>
+  );
+}
+
+/** Pestañas con "⋯ Más": se ven las principales (y la activa, si es de las otras); el resto se abre debajo, en renglones.
+ *  Las de "Más" siguen en la página (plegadas), con los mismos data-* de siempre */
+export function PestanasConMas({ opciones, principales, activa, datos, nombre, sx }: {
+  opciones: [string, ReactNode][]; principales: string[]; activa: string; datos: (id: string) => Record<`data-${string}`, string>; nombre: string; sx?: SxProps<Theme>;
+}) {
+  const [abierto, poner] = useState(false);
+  const arriba = opciones.filter(([id]) => principales.includes(id) || id === activa), resto = opciones.filter(([id]) => !principales.includes(id) && id !== activa);
+  const chip = ([id, t]: [string, ReactNode]) => (
+    <Chip key={id} clickable aria-pressed={activa === id} color={activa === id ? 'primary' : 'default'} variant={activa === id ? 'filled' : 'outlined'}
+      label={t} onClick={() => poner(false)} {...datos(id)} sx={{ flex: 'none', minHeight: 40 }} />
+  );
+  return (
+    <Box sx={[{ p: '2px 0 12px' }, ...(Array.isArray(sx) ? sx : [sx])]}>
+      <Box role="group" aria-label={nombre} sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {arriba.map(chip)}
+        {resto.length ? <Chip clickable data-t="pestanas-mas" aria-expanded={abierto} variant="outlined" label={abierto ? '▴ Menos' : '⋯ Más (' + resto.length + ')'} onClick={() => poner(!abierto)} sx={{ flex: 'none', minHeight: 40, fontWeight: 700 }} /> : null}
+      </Box>
+      <Collapse in={abierto} timeout={150}>
+        <Box role="group" aria-label={nombre + ': más'} sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px', pt: '10px', mt: '10px', borderTop: '1px solid', borderColor: 'divider' }}>{resto.map(chip)}</Box>
+      </Collapse>
     </Box>
   );
 }

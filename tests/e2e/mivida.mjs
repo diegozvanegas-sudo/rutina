@@ -13,6 +13,8 @@ export default async (p) => {
 
   await p.computador();
   await p.ir('hoy');
+  // ⏱ Hoy muestra lo de ahora: el ánimo sale de noche, se pide todo el día
+  if (await p.cuantos('#vista [data-accion=hoy-todo]') && !((await p.estado()) || { config: {} }).config.hoyTodo) { await p.tocar('#vista [data-accion=hoy-todo]'); await a.dormir(400); }
   await a.esperar('#vista h1');
   await abrir('Ánimo y energía'); await abrir('Trabajo e ingresos');
   await a.dormir(300);

@@ -18,6 +18,7 @@ import { rutinaDe } from '../../descarga.js';
 import { deseosDelMes, pesos } from '../../finanzas.js';
 import { cumplimientoEstandares, IDEAS_POR_TEMA } from '../../vida.js';
 import { editandoLosEstandares } from '../../vistas/vida.js';
+import { Flecha } from '../ui/Flecha';
 import { cierreDeHoy, piezasSesiones } from '../../vistas/sesiones.js';
 import { piezasEstudio, librosVisibles } from '../../vistas/estudiar.js';
 import { curso } from '../../contenidos.js';
@@ -153,7 +154,7 @@ export function ProximoEntreno({ e, max = Infinity }: { e: Fin; max?: number }) 
             </Box>
           ))}
         </Box>
-        {metas.length > max ? <Button variant="text" data-accion="ir-dia" data-dia={d.id} sx={{ minHeight: 32, p: 0, color: 'info.main', fontWeight: 400, textDecoration: 'underline', justifySelf: 'start' }}>Ver las {metas.length} metas en el Gym →</Button> : null}
+        {metas.length > max ? <Button variant="text" data-accion="ir-dia" data-dia={d.id} sx={{ minHeight: 44, p: 0, color: 'info.main', fontWeight: 400, textDecoration: 'underline', justifySelf: 'start' }}>Ver las {metas.length} metas en el Gym →</Button> : null}
       </>
     );
   }
@@ -261,7 +262,7 @@ export function Partido({ e, fecha }: { e: Fin; fecha: string }) {
       </Box>
       <Campo etiqueta="Nota" data-cambio="partido" data-f={fecha} data-k="nota" defaultValue={p.nota || ''} placeholder="Ej.: gol, cancha mojada, me faltó aire…" />
       {(p.molestias || []).length ? <Aviso>Con molestias: hoy haz ejercicios suaves de {(zonasDeMolestias(p.molestias) as string[]).map((z, i) => <span key={z}>{i ? ' · ' : ''}<Link href={'#sesiones/banco-' + z}>{(ZONAS as Record<string, string>)[z]}</Link></span>)} o estira suave, y si el dolor sigue en 2-3 días o es punzante, consulta a un fisioterapeuta.</Aviso> : null}
-      {hecho ? null : <Button variant="text" data-accion="futbol-pausar" sx={{ justifySelf: 'start', minHeight: 32, p: 0, color: 'info.main', fontWeight: 400, textDecoration: 'underline' }}>⏸ No estoy jugando por estos días</Button>}
+      {hecho ? null : <Button variant="text" data-accion="futbol-pausar" sx={{ justifySelf: 'start', minHeight: 44, p: 0, color: 'info.main', fontWeight: 400, textDecoration: 'underline' }}>⏸ No estoy jugando por estos días</Button>}
     </Tarjeta>
   );
 }
@@ -383,16 +384,22 @@ export function Animo({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
 }
 
 // ---------- 💼 Trabajo e ingresos: trabajo profundo y acciones que traen plata ----------
-export function Trabajo({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
+// compacta (Hoy en "lo de ahora"): las acciones hacia el ingreso quedan en una fila que se abre al tocarla
+export function Trabajo({ e, fecha = iso(), compacta = false }: { e: Fin; fecha?: string; compacta?: boolean }) {
   const t = trabajoDe(fecha, e) as Fin, sem = resumenTrabajo(rango(7, fecha), e) as Fin, hechas = accionesDe(t) as number;
+  const [verAcciones, ponerVer] = useState(false), plegar = compacta && !verAcciones;
   return (
     <Tarjeta titulo="💼 Trabajo e ingresos" lado={<Nota sx={{ m: 0 }}><span title="Últimos 7 días">7 días: <b>{f1(Math.round(sem.horas * 10) / 10)} h · {sem.acciones}</b></span></Nota>}>
       <Ajustar etiqueta="Trabajo profundo hoy" valor={t.minutos || null} base={0} paso={15} min={0} max={960} unidad="min" accion="trabajo-min" datos={{ f: fecha }}
         fichas={[30, 60, 90, 120].filter((n) => n !== t.minutos).map((n) => [n, n + ' min'] as [number, string])} />
       {t.minutos ? <Avance parte={Math.min(1, t.minutos / META_TRABAJO)} /> : null}
       <Nota sx={{ m: 0 }}>Sin celular ni redes, en lo que te acerca a ganar plata. Meta: {META_TRABAJO / 60} h al día.</Nota>
-      <Box component="p" sx={{ fontWeight: 700, mt: '4px !important' }}>Acciones hacia el ingreso hoy: {hechas}</Box>
-      <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '6px', gridTemplateColumns: { sm: '1fr 1fr' } }}>
+      {plegar ? (
+        <ButtonBase data-t="trabajo-acciones" onClick={() => ponerVer(true)} sx={{ width: '100%', justifyContent: 'flex-start', gap: '6px', minHeight: 44, mt: '4px', font: 'inherit', fontWeight: 700, color: 'text.primary', textAlign: 'left' }}>
+          <Flecha abierta={false} />Acciones hacia el ingreso hoy: {hechas}
+        </ButtonBase>
+      ) : <Box component="p" sx={{ fontWeight: 700, mt: '4px !important' }}>Acciones hacia el ingreso hoy: {hechas}</Box>}
+      {plegar ? null : <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: '6px', gridTemplateColumns: { sm: '1fr 1fr' } }}>
         {(ACCIONES_INGRESO as [string, string, string][]).map(([k, i, n]) => {
           const v = (t.acciones || {})[k] || 0;
           return (
@@ -404,7 +411,7 @@ export function Trabajo({ e, fecha = iso() }: { e: Fin; fecha?: string }) {
             </Box>
           );
         })}
-      </Box>
+      </Box>}
     </Tarjeta>
   );
 }

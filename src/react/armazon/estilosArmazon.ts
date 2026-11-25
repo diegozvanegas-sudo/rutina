@@ -117,7 +117,7 @@ details summary { cursor: pointer; color: ${t.muted}; padding: 6px 0; }
 .flotante { position: fixed; left: 12px; right: 12px; bottom: calc(12px + var(--abajo, 0px) + env(safe-area-inset-bottom)); z-index: 40; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: ${t.flotanteFondo}; border: 1px solid ${t.brand}; box-shadow: 0 8px 30px ${t.velo}; overflow: hidden; }
 .flotante[hidden] { display: none; }
 /* 📝 Notas: botón redondo siempre a la vista, abajo a la derecha; sube cuando hay cronómetro o ☰ de una mano */
-.boton-notas { position: fixed; right: 16px; bottom: calc(16px + var(--abajo, 0px) + env(safe-area-inset-bottom)); z-index: 42; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; text-decoration: none; background: ${t.surface2}; border: 2px solid ${t.brand}; box-shadow: 0 6px 20px ${t.velo}; }
+.boton-notas { position: fixed; right: 16px; bottom: calc(16px + var(--abajo, 0px) + env(safe-area-inset-bottom)); z-index: 42; width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; font-weight: 800; color: ${t.brand}; cursor: pointer; padding: 0; text-decoration: none; background: ${t.surface2}; border: 2px solid ${t.brand}; box-shadow: 0 6px 20px ${t.velo}; }
 .boton-notas:hover { background: ${t.brandSoft}; }
 .boton-notas:focus-visible { outline: 3px solid ${t.brand}; outline-offset: 2px; }
 .boton-notas[hidden], .sin-sesion .boton-notas { display: none; }

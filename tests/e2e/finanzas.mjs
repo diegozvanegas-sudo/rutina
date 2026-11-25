@@ -377,6 +377,9 @@ export default async (p) => {
   await tocarTexto('💡 Módulo 3 · Despertar creativo');
   falla(!(await a.texto()).includes('Plan B: si te quedas sin empleo'), 'no abrió el módulo 3');
   await tocarTexto('🛟 Módulo 1 · Afrontar el desempleo');
+  // Ahorro está en ⋯ Más (a la vista: Registrar, Mes y Lo que viene)
+  await p.tocar('#vista [data-t=pestanas-mas]');
+  await a.dormir(300);
   await tocarTexto('🐷 Ahorro');
   falla((await a.texto()).includes('Aportar'), 'no volvió a Ahorro');
   await p.computador();

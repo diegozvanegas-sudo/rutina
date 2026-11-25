@@ -423,7 +423,9 @@ export default function Recordatorios() {
           return (
             <TarjetaPlegable key={v.id} vista={VISTA} clave={v.icono + ' ' + v.nombre} titulo={v.icono + ' ' + v.nombre} lado={<b>{actual != null ? R.km(actual) : 'sin km'}</b>}>
               <Box sx={{ display: 'grid', gap: '6px' }}>
-                <Campo etiqueta="Km del odómetro hoy" type="number" inputMode="numeric" min={0} data-cambio="rec-km" data-v={v.id} defaultValue="" placeholder={String(actual ?? 'km')} style={{ fontSize: 28, fontWeight: 800, height: 60 }} />
+                <Campo etiqueta="Km del odómetro hoy" type="number" inputMode="numeric" min={0} data-cambio="rec-km" data-v={v.id} enterKeyHint="done"
+                  // Enter guarda los km ahí mismo (al soltar el campo se dispara el guardado) en vez de saltar al campo siguiente
+                  onKeyDown={(ev) => { if (ev.key === 'Enter') { ev.preventDefault(); ev.stopPropagation(); ev.currentTarget.blur(); } }} defaultValue="" placeholder={String(actual ?? 'km')} style={{ fontSize: 28, fontWeight: 800, height: 60 }} />
                 <Corta>{ritmo ? 'Andas unos ' + Math.round(ritmo) + ' km por día: con eso se calcula la fecha del próximo cambio.' : 'Anota los km de vez en cuando (por ejemplo cada semana) para estimar cuándo toca el próximo cambio.'}</Corta>
                 <Desplegable titulo={<Box component="span" sx={{ fontWeight: 400, color: 'text.secondary' }}>Editar vehículo</Box>}>
                   <Box sx={{ display: 'grid', gap: '8px' }}>

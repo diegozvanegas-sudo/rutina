@@ -68,7 +68,7 @@ export default function Anotar() {
         </>
       ) : null}
       <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', pt: '12px' }}>
-        {ve('seccion', 'finanzas') ? <Button color="secondary" href="#finanzas/registrar" data-t="anotar-gasto">💸 Un gasto</Button> : null}
+        {ve('seccion', 'finanzas') ? <Button color="secondary" href="#finanzas/registrar" data-t="anotar-gasto" data-teclado="#fin-monto">💸 Un gasto</Button> : null}
         {ve('seccion', 'notas') ? <Button color="secondary" href="#notas" data-t="anotar-nota">📝 Notas</Button> : null}
       </Box>
     </Drawer>

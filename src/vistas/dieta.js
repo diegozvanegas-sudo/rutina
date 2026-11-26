@@ -154,9 +154,12 @@ function asegurarAlimento({ alimento: id, nuevo }) {
   if (id && alimento(id)) return alimento(id);
   if (!nuevo) return null;
   const a = JSON.parse(nuevo);
-  if (!alimento(a.id)) d().alimentos.push(a);
+  if (!alimento(a.id)) { d().alimentos.push(a); if (a.etiquetaId) recienDeEtiqueta = a.id; }
   return alimento(a.id);
 }
+// 📋 Un producto de etiqueta recién agregado: el aviso dice dónde ver su ficha (qué es en el plan, sodio, azúcar, sellos…)
+let recienDeEtiqueta = null;
+const conFicha = (a, texto) => { const si = recienDeEtiqueta === a.id; recienDeEtiqueta = null; return si ? texto + ' · 📋 su ficha (sodio, azúcar, sellos…) está en 🥚 Alimentos' : texto; };
 const nombreCant = (a, cant) => a.nombre + (a.por === 'libre' ? '' : ' ' + String(cant).replace('.', ',') + (a.por === 'g' ? ' g' : ' u'));
 registrar({
   'dieta-equiv-abrir'({ tipo, i, j, origen }) {
@@ -167,6 +170,16 @@ registrar({
   },
   'dieta-equiv-alimento'({ j }) { if (cambio) { cambio = { ...cambio, j: Number(j) }; repintar(); } },
   'dieta-equiv-salir'() { volver(); },
+  // 📋 Un producto de etiqueta pasa a 🥚 Alimentos (por 100 g, con su fuente) para usarlo en los planes
+  'dieta-equiv-agregar'({ nuevo }) {
+    if (!nuevo) return;
+    const a = asegurarAlimento({ nuevo });
+    if (!a) return;
+    guardar();
+    const nueva = recienDeEtiqueta === a.id;
+    recienDeEtiqueta = null;
+    toast(nueva ? '✓ Agregada a 🥚 Alimentos' + (a.unidadG ? ' (1 unidad = ' + a.unidadG + ' g)' : '') + ', con su ficha 📋. Para un plan: 📋 Planes → 🔄' : 'Ya estaba en 🥚 Alimentos');
+  },
   // En el plan: queda así todos los días con ese plan
   'dieta-equiv-plan'(ds) {
     if (!cambio) return;
@@ -178,7 +191,7 @@ registrar({
     const a = asegurarAlimento(ds);
     comida.items[cambio.j] = { alimento: a.id, cant };
     guardar();
-    toast('✓ Plan cambiado: ' + nombreCant(a, cant));
+    toast(conFicha(a, '✓ Plan cambiado: ' + nombreCant(a, cant)));
     volver();
   },
   // Solo hoy: el plan no cambia; la comida de hoy (y lo que suma al día) sí
@@ -195,7 +208,7 @@ registrar({
     // Si ya la marcaste como comida, lo que suma al día se actualiza (con la misma hora)
     if (hoy.comidas && hoy.comidas[clave]) hoy.comidas[clave] = { ...marcaComida({ ...comida, items }), ts: hoy.comidas[clave].ts };
     guardar();
-    toast('✓ Solo hoy: ' + nombreCant(a, cant));
+    toast(conFicha(a, '✓ Solo hoy: ' + nombreCant(a, cant)));
     volver();
   },
   // Deshacer los cambios de hoy en una comida (vuelve a la del plan)

@@ -25,6 +25,8 @@ import { Barras } from '../ui/Graficos';
 import { MetaPeso } from './DietaMeta';
 import { SugerenciaComida } from './Control';
 import { Equivalencias } from './DietaEquivalencias';
+import { FichaEtiqueta } from './FichaEtiqueta';
+import { ALIMENTOS_ETIQUETA } from '../../datos_etiquetas.js';
 import { Corte } from './DietaCorte';
 import { Antojos } from './DietaAntojos';
 
@@ -393,6 +395,7 @@ function alimentos(e: Fin) {
               <Numero titulo="Grasa" ruta={r + '.g'} valor={a.g} paso="0.1" />
               <Numero titulo="Carbos" ruta={r + '.c'} valor={a.c} paso="0.1" />
             </Box>
+            {a.etiquetaId ? <FichaEtiqueta datos={ALIMENTOS_ETIQUETA.find((x) => x.id === a.etiquetaId)} /> : null}
           </Card>
         );
       })}

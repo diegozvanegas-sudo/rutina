@@ -8,6 +8,7 @@ import { ejecutar } from '../../ui.js';
 import { armarIndice, buscar } from '../../buscar.js';
 import { datosBuscar } from '../armazon.js';
 import { tokens } from '../tema';
+import { prepararTeclado } from '../../teclado.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -25,9 +26,14 @@ function ir(x: Fin) {
 
 export default function Buscar() {
   const [abierto, ponerAbierto] = useState(false), [texto, ponerTexto] = useState(''), [elegido, ponerElegido] = useState(0);
-  const celular = useMediaQuery('(max-width:899px)'), lista = useRef<HTMLDivElement | null>(null);
+  const celular = useMediaQuery('(max-width:899px)'), lista = useRef<HTMLDivElement | null>(null), campo = useRef<HTMLInputElement | null>(null);
+  // Que salga de una para escribir (src/teclado.js abre el teclado del celular en el mismo toque)
+  const enfocar = () => { const el = campo.current; if (el && document.activeElement !== el) el.focus({ preventScroll: true }); };
   useEffect(() => {
-    const abrir = () => { ponerTexto(''); ponerElegido(0); ponerAbierto(true); };
+    const abrir = () => {
+      prepararTeclado('[data-t=buscar-campo]');
+      ponerTexto(''); ponerElegido(0); ponerAbierto(true);
+    };
     window.addEventListener('rutina:buscar', abrir);
     return () => window.removeEventListener('rutina:buscar', abrir);
   }, []);
@@ -43,11 +49,11 @@ export default function Buscar() {
     else if (ev.key === 'Enter' && resultados[elegido]) { ev.preventDefault(); elegir(resultados[elegido]); }
   };
   return (
-    <Dialog open={abierto} onClose={cerrar} fullScreen={celular} aria-label="Buscar en la app" data-t="buscar"
-      slotProps={{ paper: { sx: { width: { md: 600 }, maxWidth: '100%', alignSelf: { md: 'flex-start' }, mt: { md: '10vh' }, bgcolor: 'background.paper', borderRadius: { xs: 0, md: '16px' }, p: 0 } } }}>
+    <Dialog open={abierto} onClose={cerrar} fullScreen={celular} disableAutoFocus aria-label="Buscar en la app" data-t="buscar"
+      slotProps={{ transition: { onEntered: enfocar }, paper: { sx: { width: { md: 600 }, maxWidth: '100%', alignSelf: { md: 'flex-start' }, mt: { md: '10vh' }, bgcolor: 'background.paper', borderRadius: { xs: 0, md: '16px' }, p: 0 } } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', p: 'calc(10px + env(safe-area-inset-top)) 12px 10px', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box component="span" aria-hidden="true" sx={{ fontSize: 20 }}>🔎</Box>
-        <InputBase autoFocus fullWidth value={texto} onChange={(ev) => { ponerTexto(ev.target.value); ponerElegido(0); }} onKeyDown={tecla}
+        <InputBase autoFocus fullWidth inputRef={campo} value={texto} onChange={(ev) => { ponerTexto(ev.target.value); ponerElegido(0); }} onKeyDown={tecla}
           placeholder="Buscar: un recordatorio, una nota, un ejercicio, un gasto…" inputProps={{ 'aria-label': 'Buscar', 'data-t': 'buscar-campo', enterKeyHint: 'go' }}
           sx={{ fontSize: 17, '& input': { border: 0, minHeight: 44, p: '8px 4px', bgcolor: 'transparent', outline: 'none !important' } }} />
         <ButtonBase onClick={cerrar} aria-label="Cerrar" sx={{ flex: 'none', minWidth: 44, minHeight: 44, borderRadius: '10px', fontSize: 15, color: 'text.secondary', '&:hover': { bgcolor: tokens.surface2 } }}>{celular ? 'Cerrar' : 'Esc'}</ButtonBase>

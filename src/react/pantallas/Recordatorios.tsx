@@ -448,7 +448,7 @@ export default function Recordatorios() {
       </Box>
       <Box sx={{ ...FILA, mb: '8px' }}>
         <TituloGrupo sx={{ m: 0 }}>🔧 Mis recordatorios</TituloGrupo>
-        <Button data-accion="rec-abrir-agregar">＋ Agregar</Button>
+        <Button data-accion="rec-abrir-agregar" data-teclado="#rec-buscar">＋ Agregar</Button>
       </Box>
       {lista.length > 1 ? <Opciones nombre="Filtrar por estado" activa={ver.filtro} opciones={filtros} datos={(k) => ({ 'data-accion': 'rec-filtro', 'data-v': k })} sx={{ mb: '10px' }} /> : null}
       {lista.length

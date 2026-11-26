@@ -4,6 +4,7 @@
 import { useMemo, useRef, useState } from 'react';
 import { Box, Button, Card } from '@mui/material';
 import { ALIMENTOS_USDA, CATEGORIAS_EQUIV, FUENTE_USDA } from '../../datos_equivalencias.js';
+import { ALIMENTOS_ETIQUETA } from '../../datos_etiquetas.js';
 import * as Q from '../../equivalencias.js';
 import { tipoDieta, planDieta } from '../../estado.js';
 import { TIPOS_PLAN } from '../../vistas/dieta.js';
@@ -12,6 +13,7 @@ import { tokens } from '../tema';
 import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { Nota } from '../ui/Textos';
 import { Opciones } from '../ui/Varios';
+import { FichaEtiqueta } from './FichaEtiqueta';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -42,7 +44,7 @@ function ElegirAlimento({ lista, valor, alElegir, etiqueta }: { lista: Fin[]; va
           <b>{ICONO_CAT[valor.categoria] || '🍽'} {Q.nombreCompleto(valor)}</b>
           <Box component="small" sx={{ display: 'block', color: 'text.secondary', fontSize: 12 }}>{numero(valor.kcal)} kcal · P {numero(valor.p, 1)} · C {numero(valor.c, 1)} · G {numero(valor.g, 1)} {base(valor)}{valor.propio ? ' · tus valores' : ''}</Box>
         </Box>
-        <Button color="secondary" onClick={() => { ponerAbierto(true); setTimeout(() => campo.current?.focus(), 0); }} sx={{ flex: 'none' }}>Cambiar</Button>
+        <Button color="secondary" data-teclado="" onClick={() => { ponerAbierto(true); setTimeout(() => campo.current?.focus(), 0); }} sx={{ flex: 'none' }}>Cambiar</Button>
       </Box>
     );
   }
@@ -108,8 +110,9 @@ const cambiosCortos = (tabla: Fin[], criterio: string) => tabla.filter((x) => ['
 
 // cambio: abierta desde una comida ({ tipo, i, j, origen }); entonces trae ese alimento y se puede guardar el cambio
 export function Equivalencias({ e, cambio = null }: { e: Fin; cambio?: Fin }) {
-  const lista: Fin[] = useMemo(() => Q.todos(ALIMENTOS_USDA, e.dieta.alimentos || []), [e.dieta.alimentos]);
-  const porId = (id: string) => lista.find((a) => a.id === id) || null;
+  const lista: Fin[] = useMemo(() => Q.todos([...ALIMENTOS_USDA, ...ALIMENTOS_ETIQUETA], e.dieta.alimentos || []), [e.dieta.alimentos, (e.dieta.alimentos || []).length]);
+  // Uno de USDA o de etiqueta que ya pasaste a 🥚 Alimentos se sigue encontrando (ahora como tuyo)
+  const porId = (id: string) => lista.find((a) => a.id === id) || (id && id.startsWith('usda:') ? lista.find((a) => a.id === 'tu:usda-' + id.slice(5)) : null) || null;
   const comida: Fin = cambio ? (cambio.origen === 'hoy' && cambio.tipo === tipoDieta() ? planDieta() : e.dieta.planes[cambio.tipo])?.comidas?.[cambio.i] : null;
   const item: Fin = comida && cambio.j != null ? comida.items[cambio.j] : null;
   const [origId, ponerOrig] = useState<string>(() => (item ? 'tu:' + item.alimento : porId('tu:arroz') ? 'tu:arroz' : 'usda:arroz-cocido'));
@@ -124,6 +127,13 @@ export function Equivalencias({ e, cambio = null }: { e: Fin; cambio?: Fin }) {
   const cambiarOrig = (a: Fin) => { ponerOrig(a.id); if (a.por !== orig?.por) ponerTexto(a.por === 'u' ? '1' : '100'); if (sustId === a.id) ponerSust(null); };
   const intercambiar = () => { if (!r || r.error || !sust) return; ponerOrig(sust.id); ponerSust(origId); ponerTexto(String(r.cantidad)); };
   const unidad = orig ? Q.unidadDe(orig) : 'g';
+  // 📋 Producto de etiqueta: su ficha, y si todavía no está en 🥚 Alimentos, el botón para agregarlo
+  const datosEtiqueta = (a: Fin) => (!a ? null : a.datosEtiqueta || (a.propio ? ALIMENTOS_ETIQUETA.find((x) => x.id === ((e.dieta.alimentos as Fin[]).find((y) => y.id === a.idPropio) || {}).etiquetaId) : null) || null);
+  const ficha = (a: Fin) => {
+    const d = datosEtiqueta(a);
+    if (!d) return null;
+    return <FichaEtiqueta key={'ficha-' + a.id} datos={d} abierta={!a.propio} agregar={a.propio ? null : () => accion('dieta-equiv-agregar', { nuevo: JSON.stringify(Q.paraDieta(a)) })} />;
+  };
   // Lo que viaja a la acción: un alimento tuyo por su id; uno de USDA completo, para agregarlo a 🥚 Alimentos con su fuente
   const datosCambio = () => ({ alimento: sust.propio ? sust.idPropio : '', nuevo: sust.propio ? '' : JSON.stringify(Q.paraDieta(sust)), cant: r.cantidad });
   // ⭐ Favoritos: { de, a, criterio }. Un id de USDA que ya pasó a tus alimentos se busca también como tuyo
@@ -167,6 +177,7 @@ export function Equivalencias({ e, cambio = null }: { e: Fin; cambio?: Fin }) {
           </Box>
         ) : null}
         {cambio && comida && !item ? null : <ElegirAlimento lista={lista} valor={orig} alElegir={cambiarOrig} etiqueta="Lo que tienes en el plan" />}
+        {cambio && comida && !item ? null : ficha(orig)}
         <Box sx={{ display: 'grid', gap: '6px' }}>
           <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
             <Box component="label" htmlFor="equiv-cant" sx={{ fontSize: 14, color: 'text.secondary' }}>Cantidad</Box>
@@ -185,6 +196,7 @@ export function Equivalencias({ e, cambio = null }: { e: Fin; cambio?: Fin }) {
           <Opciones nombre="Criterio de equivalencia" activa={criterio} opciones={CRITERIOS} alElegir={(k: string) => ponerCriterio(k)} />
         </Box>
         <ElegirAlimento key={sustId || 'nada'} lista={lista.filter((a) => a.id !== origId)} valor={sust} alElegir={elegirSust} etiqueta="Por qué lo cambias" />
+        {ficha(sust)}
 
         {r ? (
           <Box ref={resultado} data-t="resultado" sx={{ minWidth: 0, overflowX: 'auto', display: 'grid', gap: '6px', p: '12px', borderRadius: '12px', border: '1px solid', borderColor: r.error ? tokens.rojo : 'primary.main', bgcolor: 'background.default' }}>
@@ -193,12 +205,13 @@ export function Equivalencias({ e, cambio = null }: { e: Fin; cambio?: Fin }) {
                 <Box component="small" sx={{ color: 'text.secondary' }}>{cant(cantidad as number, orig)} de {Q.nombreCompleto(orig)} equivalen a</Box>
                 <Box component="b" data-t="cantidad" sx={{ fontSize: 30, lineHeight: 1.1, color: 'primary.main' }}>≈ {cant(r.cantidad, sust)}</Box>
                 <b>de {Q.nombreCompleto(sust)}</b>
+                {sust.unidadG && r.unidad === 'g' ? <Box component="small" data-t="en-unidades" sx={{ color: 'text.secondary' }}>≈ {numero(r.cantidad / sust.unidadG, 1)} {r.cantidad / sust.unidadG >= 1.05 ? 'unidades' : 'unidad'} de {sust.unidadG} g (según la etiqueta)</Box> : null}
                 <Box component="small" sx={{ color: 'text.secondary' }}>en {NOMBRE[criterio].toLowerCase()}: {numero(r.objetivo, criterio === 'kcal' ? 0 : 1)} {criterio === 'kcal' ? 'kcal' : 'g'}{r.cantidad !== Math.round(r.exacta * 10) / 10 ? ' (exacto: ' + cant(r.exacta, sust) + ')' : ''}</Box>
                 {!r.practica.ok ? <Box component="p" data-t="poco-practica" sx={{ m: 0, color: 'warning.main', bgcolor: tokens.amarilloFondo, borderRadius: '10px', p: '8px 10px', fontSize: 14 }}>⚠ Porción poco práctica: {r.practica.motivo}. Mira los sugeridos de abajo.</Box> : null}
                 <Nota sx={{ my: 0 }}>{Q.AVISO_MACROS}</Nota>
                 <Tabla tabla={r.tabla} orig={orig} sust={sust} />
                 <Box sx={{ ...FILA, flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                  <Box component="small" sx={{ color: 'text.secondary', fontSize: 12 }}>Datos: {[orig, sust].map((a: Fin) => (a.propio ? 'tus valores' : 'USDA ' + a.fdc)).filter((x, i, l) => l.indexOf(x) === i).join(' · ')}</Box>
+                  <Box component="small" sx={{ color: 'text.secondary', fontSize: 12 }}>Datos: {[orig, sust].map((a: Fin) => (a.propio ? 'tus valores' : a.deEtiqueta ? 'etiqueta del empaque' : 'USDA ' + a.fdc)).filter((x, i, l) => l.indexOf(x) === i).join(' · ')}</Box>
                   <Box sx={{ display: 'flex', gap: '6px' }}>
                     <Button size="small" color="secondary" onClick={alternarFavorito} aria-pressed={esFavorito} aria-label={esFavorito ? 'Quitar de favoritos' : 'Guardar como favorito'}>{esFavorito ? '★ Favorito' : '☆ Favorito'}</Button>
                     {item ? null : <Button size="small" color="secondary" onClick={intercambiar} aria-label="Intercambiar original y sustituto">⇄ Al revés</Button>}
@@ -259,7 +272,7 @@ export function Equivalencias({ e, cambio = null }: { e: Fin; cambio?: Fin }) {
           {!sugeridas.length ? <Nota>No hay sustitutos con {NOMBRE[criterio].toLowerCase()} en esa categoría.</Nota> : null}
         </TarjetaPlegable>
       ) : null}
-      <Nota>Valores por 100 g de {FUENTE_USDA}, dominio público, más los tuyos de 🥚 Alimentos. Crudo y cocido son alimentos distintos: elige el que pesas. Las marcas pueden variar un poco.</Nota>
+      <Nota>Valores por 100 g de {FUENTE_USDA}, dominio público, de la etiqueta de algunos productos colombianos, más los tuyos de 🥚 Alimentos. Crudo y cocido son alimentos distintos: elige el que pesas. Las marcas pueden variar un poco.</Nota>
     </>
   );
 }

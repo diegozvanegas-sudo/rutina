@@ -16,7 +16,7 @@ const GRUPO_A_CATEGORIA = { proteina: 'carnes', carbo: 'cereales', grasa: 'grasa
 
 // Todo alimento queda igual: valores por 100 g (por 'g') o por unidad (por 'u'), con su fuente
 export function deUsda(a, fuente = 'USDA FoodData Central') {
-  return { id: 'usda:' + a.id, nombre: a.nombre, estado: a.estado, categoria: a.categoria, por: 'g', kcal: a.kcal, p: a.p, c: a.c, g: a.g, fibra: num(a.fibra), fuente: fuente + ' · ' + a.fdc, fdc: a.fdc, usda: a.usda };
+  return { id: 'usda:' + a.id, nombre: a.nombre, estado: a.estado, categoria: a.categoria, por: 'g', kcal: a.kcal, p: a.p, c: a.c, g: a.g, fibra: num(a.fibra), fuente: a.marca ? 'Etiqueta del empaque · ' + a.marca : fuente + ' · ' + a.fdc, deEtiqueta: !!a.marca, unidadG: a.unidadG, etiqueta: a.etiqueta, datosEtiqueta: a.marca ? a : undefined, fdc: a.fdc, usda: a.usda || a.marca };
 }
 export function dePropio(a) {
   if (!a || (a.por !== 'g' && a.por !== 'u')) return null;
@@ -117,7 +117,8 @@ export function buscar(lista, texto, { categoria = null, max = 12 } = {}) {
 // Un alimento de USDA pasa a 🥚 Alimentos (para usarlo en un plan): por 100 g, con su grupo y su fuente
 export function paraDieta(a) {
   const grupo = { carnes: 'proteina', pescados: 'proteina', 'huevos-lacteos': 'proteina', grasas: 'grasa', verduras: 'verdura' }[a.categoria] || 'carbo';
-  return { id: a.id.replace(/^usda:/, 'usda-'), nombre: nombreCompleto(a), por: 'g', p: a.p, g: a.g, c: a.c, kcal: a.kcal, grupo, fibra: a.fibra ?? undefined, fuente: a.fuente };
+  return { id: a.id.replace(/^usda:/, 'usda-'), nombre: nombreCompleto(a), por: 'g', p: a.p, g: a.g, c: a.c, kcal: a.kcal, grupo, fibra: a.fibra ?? undefined, fuente: a.fuente,
+    ...(a.deEtiqueta ? { etiquetaId: a.id.replace(/^usda:/, ''), unidadG: a.unidadG, sodio: a.datosEtiqueta?.sodio } : {}) };
 }
 
 // Reemplazar el alimento i de una comida: copia nueva, la original no cambia

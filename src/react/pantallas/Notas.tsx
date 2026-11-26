@@ -574,7 +574,7 @@ export default function Notas({ pestana }: { pestana?: string } = {}) {
     <>
       <Box sx={{ ...FILA, justifyContent: 'space-between', mb: '10px' }}>
         <TituloPantalla sx={{ m: 0 }}>📝 Notas</TituloPantalla>
-        <Button onClick={nueva} sx={{ minHeight: 44, maxWidth: '60%' }} data-t="nota-nueva">
+        <Button onClick={nueva} sx={{ minHeight: 44, maxWidth: '60%' }} data-t="nota-nueva" data-teclado="">
           <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>＋ {enCarpeta ? 'Nota en ' + enCarpeta.nombre : 'Nota nueva'}</Box>
         </Button>
       </Box>

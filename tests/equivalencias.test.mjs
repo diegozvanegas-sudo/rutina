@@ -168,3 +168,24 @@ test('un alimento de USDA que ya pasó a tus alimentos sale una sola vez (el tuy
   assert.ok(!l.some((a) => a.id === 'usda:papa-cocida'));
   assert.equal(l.length, todos(ALIMENTOS_USDA, ALIMENTOS).length);
 });
+
+test('alimentos de etiqueta: la arepa El Carbón sale con sus valores del empaque y se encuentra por nombre o marca', async () => {
+  const { ALIMENTOS_ETIQUETA } = await import('../src/datos_etiquetas.js');
+  const cats = new Set(CATEGORIAS_EQUIV.map(([k]) => k));
+  for (const a of ALIMENTOS_ETIQUETA) {
+    for (const k of ['kcal', 'p', 'c', 'g']) assert.equal(typeof a[k], 'number', a.id + ' sin ' + k);
+    assert.ok(a.marca && cats.has(a.categoria), a.id);
+    assert.ok(!ALIMENTOS_USDA.some((u) => u.id === a.id), a.id + ' repetido con USDA');
+  }
+  const lista = todos([...ALIMENTOS_USDA, ...ALIMENTOS_ETIQUETA], ALIMENTOS);
+  const arepa = lista.find((a) => a.id === 'usda:arepa-el-carbon');
+  assert.equal(arepa.kcal, 152);
+  assert.ok(arepa.deEtiqueta && /Etiqueta/.test(arepa.fuente));
+  // Una unidad (88 g) da lo de la etiqueta por porción: 134 kcal y 35 g de carbos
+  casi(valoresDe(arepa, 88).kcal, 134, 0.5);
+  casi(valoresDe(arepa, 88).c, 35.2, 0.01);
+  assert.ok(buscar(lista, 'carbon').some((a) => a.id === arepa.id));
+  assert.ok(buscar(lista, 'abundancia').some((a) => a.id === arepa.id));
+  // Al pasarla a 🥚 Alimentos guarda de dónde salió
+  assert.match(paraDieta(arepa).fuente, /Etiqueta/);
+});

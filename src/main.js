@@ -30,6 +30,7 @@ import './vistas/estudiar.js';
 import { montarReact, desmontarReact, montarFijo } from './react/montar.js';
 import { ponerLateral, ponerSesion, ponerBuscar } from './react/armazon.js';
 import { idsAbajo, alternarAbajo } from './barra-abajo.js';
+import './teclado.js';
 import { aplicarLetra, ponerTema, ponerLetra } from './apariencia.js';
 import { cargarContenidos, alCargarContenidos } from './contenidos.js';
 import { pedirQueNoSeBorre } from './almacen.js';

@@ -17,7 +17,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Antes de publicar: todos los recorridos de punta a punta (tests/e2e/todo.mjs) en Chrome sin ventana, con clics reales.
+  # Si uno falla, no se publica. Se intenta 2 veces, por si una falla fue de tiempos de la máquina de GitHub y no de la app
+  probar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TZ: America/Bogota
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Recorridos de punta a punta (e2e)
+        run: npm run e2e -- capturas || npm run e2e -- capturas
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: capturas-e2e
+          path: capturas
+          retention-days: 7
+
   publicar:
+    needs: probar
     runs-on: ubuntu-latest
     environment:
       name: github-pages

@@ -14,7 +14,9 @@ const NUBE = `(() => {
   const rpc = async (nombre, args = {}) => {
     await new Promise((r) => setTimeout(r, 30));
     let data = null, error = null;
-    if (s.vieja && (nombre === 'rutina_version' || nombre === 'rutina_guardar_partes' || nombre === 'rutina_cambios')) error = { code: 'PGRST202', message: 'Could not find the function public.' + nombre };
+    // Como rutina.exigir_nivel: con nivel mínimo, no deja guardar a una versión de la app de nivel menor
+    if (s.minimo && (nombre === 'rutina_guardar' || nombre === 'rutina_guardar_partes') && (args.p_app || 0) < s.minimo) error = { message: 'Versión vieja de la app: cierra la app y ábrela otra vez para actualizarla.' };
+    else if (s.vieja && (nombre === 'rutina_version' || nombre === 'rutina_guardar_partes' || nombre === 'rutina_cambios')) error = { code: 'PGRST202', message: 'Could not find the function public.' + nombre };
     else if (nombre === 'rutina_version') data = s.fila ? s.fila.version : null;
     else if (nombre === 'rutina_cambios') {
       const antes = s.versiones[args.p_desde];
@@ -40,7 +42,7 @@ const NUBE = `(() => {
 export default async (p) => {
   const a = ayudas(p, 'Nube'), { falla, tocarTexto } = a;
   const llamadas = async () => p.ev(`window.__nube.s.llamadas.splice(0)`);
-  const nombres = (ls) => ls.map((x) => x.nombre).filter((n) => n !== 'rutina_mis_permisos').join(' ');
+  const nombres = (ls) => ls.map((x) => x.nombre).filter((n) => n !== 'rutina_mis_permisos' && n !== 'rutina_error_anotar').join(' ');
   const enNube = () => p.ev(`window.__nube.s.fila && window.__nube.s.fila.datos`);
   const sincronizar = () => p.ev(`window.rutinaPrueba.sincronizar()`);
   // Espera a que la subida programada (3 s después de un cambio) termine
@@ -117,14 +119,38 @@ export default async (p) => {
   falla((await p.estado()).finanzas.movimientos.filter((m) => /^otro-/.test(m.id)).length === 8, 'este equipo no quedó con lo del otro');
   console.log('✓ una copia vieja no borra nada de la nube: los 8 movimientos del otro equipo siguen y lo de aquí subió');
 
+  // 6b. Versión vieja (rutina.exigir_nivel): cada guardado lleva el nivel de la app; si la nube pide uno mayor, no se
+  // guarda nada, no se insiste cada 20 s y lo de aquí queda en el equipo hasta que la app se actualice
+  await p.ev(`window.__nube.s.minimo = 99`);
+  const aguaAntes = await agua();
+  await tocarTexto('+250 ml');
+  await a.dormir(3800);
+  ls = await llamadas();
+  const estadoVieja = await p.ev(`window.rutinaPrueba.estadoNube()`);
+  falla(estadoVieja.vieja === true, 'la nube dijo versión vieja y la app no se enteró: ' + JSON.stringify(estadoVieja));
+  falla((await agua()) === aguaAntes, 'con versión vieja la nube cambió: ' + aguaAntes + ' → ' + (await agua()));
+  falla((await p.estado()).dias[iso()].metas.agua === aguaAntes + 250, 'lo de este equipo se perdió');
+  await sincronizar();
+  ls = await llamadas();
+  falla(!nombres(ls), 'con versión vieja siguió insistiendo: ' + nombres(ls));
+  console.log('✓ versión vieja: la nube no deja guardar, la app no insiste y lo de aquí queda en el equipo');
+  // Al actualizarse (aquí: otra vez la nube sin mínimo y la app «nueva»), lo de este equipo sube
+  await p.ev(`window.__nube.s.minimo = 0`);
+  await p.ev(`window.rutinaPrueba.nube(window.__nube.cliente, { id: 'u-prueba', correo: 'prueba@ejemplo.com' })`);
+  await sincronizar(); await esperarSubida();
+  falla((await agua()) === aguaAntes + 250, 'después de actualizar no subió lo de este equipo: ' + (await agua()));
+  await llamadas();
+  console.log('✓ al actualizarse, lo que quedó en el equipo sube');
+
   // 7. La nube de antes (sin las funciones nuevas): todo sigue funcionando como siempre
   await p.ev(`window.__nube.s.vieja = true`);
   await p.ev(`window.rutinaPrueba.nube(window.__nube.cliente, { id: 'u-prueba', correo: 'prueba@ejemplo.com' })`);
+  const agua7 = await agua();
   await tocarTexto('+250 ml');
   await esperarSubida();
   ls = await llamadas();
   falla(/rutina_leer rutina_guardar$/.test(nombres(ls)), 'con la nube de antes: ' + nombres(ls));
-  falla((await agua()) === 1000, 'con la nube de antes no subió: ' + (await agua()));
+  falla((await agua()) === agua7 + 250, 'con la nube de antes no subió: ' + (await agua()));
   await sincronizar();
   ls = await llamadas();
   falla(nombres(ls) === 'rutina_leer', 'con la nube de antes, sin cambios: ' + nombres(ls));

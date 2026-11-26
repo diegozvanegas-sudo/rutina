@@ -59,9 +59,11 @@ export default async (p) => {
   falla((await d()).peso === 80, 'no guardó el peso');
   await paso('sueño y peso');
   // Comidas
-  if (await hay('[data-accion=dieta-comer]')) {
-    await p.tocar('#vista [data-accion=dieta-comer]');
-    falla(Object.keys((await d()).comidas || {}).length === 1, 'no marcó la comida');
+  // Una que no esté marcada (otro recorrido de antes, como Dieta, pudo dejar marcada la primera: tocarla la desmarca)
+  if (await hay('[data-accion=dieta-comer][aria-pressed=false]')) {
+    const antes = Object.keys((await d()).comidas || {}).length;
+    await p.tocar('#vista [data-accion=dieta-comer][aria-pressed=false]');
+    falla(Object.keys((await d()).comidas || {}).length === antes + 1, 'no marcó la comida');
   }
   // Suplementos: de un toque
   if (await hay('[data-accion=sup-plantilla]')) {

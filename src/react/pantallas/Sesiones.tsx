@@ -12,6 +12,7 @@ import { tokens } from '../tema';
 import { usarEstado } from '../usarEstado';
 import { CampoLista } from '../ui/Campo';
 import { Desplegable } from '../ui/Desplegable';
+import { TarjetaPlegable } from '../ui/TarjetaPlegable';
 import { TituloPantalla, Nota } from '../ui/Textos';
 import { Opciones, Avance, HtmlViejo } from '../ui/Varios';
 import { Paso, Pasos } from '../ui/Lectura';
@@ -31,9 +32,11 @@ const Mini = ({ html, ancho }: { html: string; ancho: number }) => <HtmlViejo ht
 // ---------- Checklists ----------
 function checklist(s: Fin) {
   const marcas = S.marcasDe(s.id), a = S.avanceChecklist(s, marcas) as Fin;
+  // Cada lista en una fila con su avance; se abre al tocarla (y se recuerda abierta en este equipo)
   return (
-    <Tarjeta key={s.id}>
-      <Box sx={FILA}><b>{s.nombre}</b><Box component="span" sx={a.completa ? { color: 'success.main' } : null}>{a.completa ? '✓ Lista' : a.hechos + ' / ' + a.total + ' hoy'}</Box></Box>
+    <TarjetaPlegable key={s.id} cerradaAlInicio vista="sesiones" clave={'checklist ' + s.id} titulo={s.nombre}
+      lado={<Box component="span" sx={{ whiteSpace: 'nowrap', fontSize: 14, ...(a.completa ? { color: 'success.main' } : { color: 'text.secondary' }) }}>{a.completa ? '✓ Lista' : a.hechos + ' / ' + a.total + ' hoy'}</Box>}>
+      <Box sx={{ display: 'grid', gap: '10px' }}>
       <Avance parte={a.total ? a.hechos / a.total : 0} />
       {s.pasos.length ? (
         <Pasos>
@@ -44,7 +47,8 @@ function checklist(s: Fin) {
         </Pasos>
       ) : <Nota>Sin puntos todavía: agrégalos en ✏️ Editar → Sesiones.</Nota>}
       {a.hechos ? <Button fullWidth color="secondary" data-accion="check-limpiar" data-sesion={s.id}>↺ Desmarcar todo</Button> : null}
-    </Tarjeta>
+      </Box>
+    </TarjetaPlegable>
   );
 }
 

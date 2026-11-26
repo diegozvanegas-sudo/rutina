@@ -15,7 +15,9 @@ export default async (p) => {
   await a.esperar('#vista [data-accion=ses-tipo]');
   await paso('inicio');
 
-  // Checklist: marcar un punto y desmarcar todo
+  // Checklist: cerradas en una fila con su avance; se abre la primera, marcar un punto y desmarcar todo
+  falla(await p.cuantos('#vista [data-plegable^="sesiones|checklist"][data-estado=cerrada]') >= 1, 'las checklists no empiezan cerradas');
+  await p.tocar('#vista [data-plegable^="sesiones|checklist"] [data-t=plegar]');
   const ses = await p.ev(`document.querySelector('#vista [data-accion=check-paso]').dataset.sesion`);
   await p.tocar('#vista [data-accion=check-paso]');
   falla(Object.keys((await marcas())[ses] || {}).length === 1, 'no marcó el punto');

@@ -240,6 +240,8 @@ export function usarUsuario(id) {
   repintar();
 }
 export const claveActual = () => CLAVE;
+// Ya se sabe de quién son los datos y se guardan en este equipo (con nube, después de entrar)
+export const guardandoAqui = () => escribible;
 
 // Bienvenida de un usuario nuevo: empezar vacío o cargar el ejemplo (rutina, hábitos y días de fútbol). El ejemplo solo
 // llena lo que está vacío: nunca reemplaza lo que ya tiene (por ejemplo, si sus datos acaban de bajar de la nube)

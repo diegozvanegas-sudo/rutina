@@ -36,6 +36,9 @@ export default async (p) => {
   await abrir('presupuesto', 'Cómo repartir');
   await paso('presupuesto');
   const primera = (await fin()).categorias.gasto[0].id, cuantas = (await fin()).categorias.gasto.length;
+  // Cada categoría es una fila cerrada: se abre la primera para cambiarla
+  falla(await p.cuantos('#vista [data-t=categoria][aria-expanded=false]') === cuantas, 'las categorías no empiezan cerradas');
+  await p.tocar('#vista [data-t=categoria]');
   await escribirCampo('Presupuesto del mes', '300000');
   await p.poner(await a.campo('Grupo'), 'deseo');
   f = await fin();

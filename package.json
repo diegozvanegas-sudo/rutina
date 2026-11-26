@@ -13,7 +13,8 @@
     "iconos": "node tools/generar_iconos.mjs",
     "db:esquema": "node tools/aplicar_esquema.mjs",
     "tipos": "tsc --noEmit",
-    "e2e": "node .claude/skills/probar-rutina/scripts/probar.mjs tests/e2e/todo.mjs"
+    "e2e": "node .claude/skills/probar-rutina/scripts/probar.mjs tests/e2e/todo.mjs",
+    "db:nivel": "node tools/nivel_minimo.mjs"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

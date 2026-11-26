@@ -5,6 +5,9 @@ import { e, alGuardarse, datosParaNube, reemplazar, marcarNube, repintar, usarUs
 import { combinarEstado, difiereDeLaNube, tieneDatosPropios, cambiosParaNube, aplicarCambios, registrosQuitados, limpiarRepetidos, LIMITE_QUITAR } from './combinar.js';
 import { toast } from './ui.js';
 import { ponerPermisos, permisosGuardados, quitarPermisos, esSinAcceso } from './permisos.js';
+import { NIVEL_APP } from './version.js';
+import { buscarVersionNueva } from './actualizar.js';
+import { anotarError, erroresPorSubir, marcarSubidos } from './errores.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL, llave = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const configurada = !!(url && llave);
@@ -14,7 +17,8 @@ let supabase = configurada ? createClient(url, llave, { auth: { persistSession: 
 // lista: ya se sabe si hay sesión guardada (al abrir, Supabase la lee un instante después)
 // proteccion: la nube no dejó subir porque se iban a borrar más de la mitad de los registros (supabase/esquema.sql)
 // rechazo: la cuenta existe pero no tiene acceso a Rutina (es de microrrutas): se cerró la sesión y Entrar dice por qué
-export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '', lista: !configurada, proteccion: false, rechazo: '' };
+// vieja: la nube no deja guardar desde esta versión de la app (rutina.exigir_nivel): se espera a que se actualice sola
+export const nube = { usuario: null, estado: configurada ? 'sin-sesion' : 'no-configurada', ultima: null, error: '', lista: !configurada, proteccion: false, rechazo: '', vieja: false };
 function poner(estado, error = '') { nube.estado = estado; nube.error = error; repintar(); }
 
 // Las cuentas son las mismas de microrrutas y su administrador decide a qué app entra cada una: sin acceso a Rutina se cierra
@@ -73,6 +77,8 @@ export async function sincronizar(silencio = false) {
   if (!navigator.onLine) { poner('sin-conexion'); return; }
   // Mientras la nube no deje subir, no se insiste cada 20 s: se espera a que se elija qué hacer en Ajustes
   if (nube.proteccion) return;
+  // Versión vieja: no se insiste; lo de aquí queda guardado en el equipo y sube cuando la app se actualice
+  if (nube.vieja) { buscarVersionNueva(true); return; }
   corriendo = (async () => {
     if (!silencio) poner('sincronizando');
     const cuenta = cuentaDe();
@@ -104,11 +110,14 @@ export async function sincronizar(silencio = false) {
       }
       nube.ultima = Date.now();
       if (!silencio || nube.estado !== 'al-dia') poner('al-dia');
+      subirErrores();
     } catch (err) {
       if (err instanceof CambioDeCuenta) return;
       const msg = err.message || String(err);
       if (esSinAcceso(msg)) { await rechazar(msg); return; }
       if (/^Protecci/.test(msg)) nube.proteccion = true;
+      if (/^Versi[oó]n vieja/.test(msg)) { nube.vieja = true; buscarVersionNueva(true); }
+      else if (navigator.onLine) anotarError('nube', msg);
       poner(navigator.onLine ? 'error' : 'sin-conexion', msg);
     }
   })();
@@ -116,6 +125,29 @@ export async function sincronizar(silencio = false) {
     corriendo = null;
     if (otraVez) { otraVez = false; sincronizar(); }
   }
+}
+
+// 🐞 Los errores de este equipo suben para que el administrador los vea (rutina_error_anotar). Sin la función en la nube
+// (esquema sin aplicar) no se insiste
+let sinErrores = false, subiendoErrores = false;
+async function subirErrores() {
+  if (sinErrores || subiendoErrores || !supabase || !nube.usuario) return;
+  const lista = erroresPorSubir();
+  if (!lista.length) return;
+  subiendoErrores = true;
+  try {
+    const { error } = await supabase.rpc('rutina_error_anotar', { p_lista: lista.map((x) => ({ ...x, app: NIVEL_APP, equipo: equipo() })) });
+    if (noExiste(error)) sinErrores = true;
+    else if (!error) marcarSubidos(Math.max(...lista.map((x) => x.ts)));
+  } catch (err) {} finally { subiendoErrores = false; }
+}
+// Qué equipo es, en pocas palabras (para saber si pasa en el iPhone o en el computador), sin nada que identifique a nadie
+function equipo() {
+  const u = navigator.userAgent || '';
+  const so = /iPhone|iPad/.test(u) ? 'iPhone' : /Android/.test(u) ? 'Android' : /Windows/.test(u) ? 'Windows' : /Mac/.test(u) ? 'Mac' : 'Otro';
+  const nav = /Edg\//.test(u) ? 'Edge' : /CriOS|Chrome\//.test(u) ? 'Chrome' : /Safari\//.test(u) ? 'Safari' : /Firefox\//.test(u) ? 'Firefox' : '';
+  const instalada = typeof matchMedia === 'function' && matchMedia('(display-mode: standalone)').matches;
+  return [so, nav, instalada ? 'instalada' : ''].filter(Boolean).join(' · ');
 }
 
 // Hay algo propio en este celular (más allá de lo que trae la app de entrada y de los días vacíos que crea al pintar)
@@ -146,7 +178,7 @@ async function subir(local, cuenta, previo = null) {
   let respuesta = null;
   if (previo && porPartes && !sinPartes) {
     const { partes, quitar } = cambiosParaNube(previo.datos, datos);
-    respuesta = await supabase.rpc('rutina_guardar_partes', { p_partes: partes, p_quitar: quitar, p_base: previo.version, p_version: cambio });
+    respuesta = await supabase.rpc('rutina_guardar_partes', { p_partes: partes, p_quitar: quitar, p_base: previo.version, p_version: cambio, p_app: NIVEL_APP });
     if (noExiste(respuesta.error)) { sinPartes = true; respuesta = null; }
     else if (!respuesta.error && Number(respuesta.data) !== cambio) {
       // La nube ya no estaba en esa versión (otro equipo guardó en el medio) y no cambió nada: otra vuelta para combinar
@@ -155,7 +187,7 @@ async function subir(local, cuenta, previo = null) {
       return;
     }
   }
-  respuesta ??= await supabase.rpc('rutina_guardar', { p_datos: datos, p_version: cambio });
+  respuesta ??= await supabase.rpc('rutina_guardar', { p_datos: datos, p_version: cambio, p_app: NIVEL_APP });
   const { data, error } = respuesta;
   if (error) throw error;
   seguir(cuenta);
@@ -290,7 +322,7 @@ export function iniciarNube() {
 let dePrueba = false;
 export function nubeDePrueba(cliente, usuario) {
   if (!import.meta.env.DEV) return;
-  supabase = cliente; sinPartes = false; porPartes = false; sinCambios = false; corriendo = null; otraVez = false; nube.proteccion = false;
+  supabase = cliente; nube.vieja = false; sinPartes = false; porPartes = false; sinCambios = false; corriendo = null; otraVez = false; nube.proteccion = false;
   nube.usuario = usuario; nube.lista = true; nube.estado = 'pendiente';
   usarUsuario(usuario.id);
   if (!dePrueba) { dePrueba = true; alGuardarse(programar); }

@@ -33,8 +33,9 @@ const VISTA = 'gym';
 const FILA = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' };
 const GRIS = { fontSize: 14, color: 'text.secondary', '& b': { color: 'text.primary' } };
 const ICONO_SESION: Record<string, string> = { checklist: '✅', calentamiento: '🔥', estiramiento: '🧘', fortalecimiento: '🦵', mente: '🧠' };
-const ENLACE = { minHeight: 32, p: 0, minWidth: 0, color: 'info.main', fontWeight: 400, fontSize: 14, textDecoration: 'underline', justifyContent: 'flex-start', textAlign: 'left', '&:hover': { textDecoration: 'underline', bgcolor: 'transparent' } };
-const MINI = { minHeight: 32, borderRadius: 999, fontSize: 13 };
+// Toques de 40 px como mínimo, también en los enlaces y botones chicos (se usan con el celular en la mano, sudando)
+const ENLACE = { minHeight: 40, p: 0, minWidth: 0, color: 'info.main', fontWeight: 400, fontSize: 14, textDecoration: 'underline', justifyContent: 'flex-start', textAlign: 'left', '&:hover': { textDecoration: 'underline', bgcolor: 'transparent' } };
+const MINI = { minHeight: 40, borderRadius: 999, fontSize: 13 };
 // Color de la fila según cómo va: falta (amarillo), completo (verde), sube peso (azul)
 const BORDE: Record<string, string> = { falta: tokens.amarillo, completo: tokens.verde, sube: tokens.azul };
 const CONTADOR: Record<string, { bgcolor: string; color: string }> = {
@@ -579,12 +580,17 @@ function cardio(d: Fin, sem: number) {
         <CronoCardio d={d} sem={sem} c={c} />
         <Nota sx={{ m: 0 }}>Plan: {G.planCardio()}</Nota>
         {ult ? <Box component="p" sx={{ ...GRIS, m: 0 }}>Último (semana {ult.semana}): <b>{textoCardio(ult)}</b></Box> : null}
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
-          {(CAMPOS_CARDIO as [string, string, string][]).map(([k, t, paso]) => (
-            <Campo key={k} etiqueta={t} inputMode="decimal" min="0" step={paso} data-cambio="cardio" data-dia={d.id} data-k={k} defaultValue={c[k] ?? ''} placeholder={ult && ult[k] != null && ult[k] !== '' ? String(ult[k]) : undefined} />
-          ))}
-        </Box>
-        <Campo etiqueta="Nota" data-cambio="cardio" data-dia={d.id} data-k="nota" defaultValue={c.nota || ''} placeholder="Ej.: escaladora en vez de cinta, me sentí pesado…" />
+        {/* Los 7 datos y la nota, cerrados hasta que hay cardio anotado (el cronómetro pone los minutos solo) */}
+        <Desplegable key={String(hecho)} abiertoAlInicio={hecho} titulo={hecho ? '📝 Datos del cardio' : '📝 Anotar minutos, velocidad, FC…'}>
+          <Box sx={{ display: 'grid', gap: '8px' }}>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '8px' }}>
+              {(CAMPOS_CARDIO as [string, string, string][]).map(([k, t, paso]) => (
+                <Campo key={k} etiqueta={t} inputMode="decimal" min="0" step={paso} data-cambio="cardio" data-dia={d.id} data-k={k} defaultValue={c[k] ?? ''} placeholder={ult && ult[k] != null && ult[k] !== '' ? String(ult[k]) : undefined} />
+              ))}
+            </Box>
+            <Campo etiqueta="Nota" data-cambio="cardio" data-dia={d.id} data-k="nota" defaultValue={c.nota || ''} placeholder="Ej.: escaladora en vez de cinta, me sentí pesado…" />
+          </Box>
+        </Desplegable>
         {ult && !hecho ? <Button color="secondary" onClick={() => accion('cardio-repetir', { dia: d.id })} sx={{ justifySelf: 'start' }}>↻ Igual que la última vez</Button> : null}
         <Desplegable titulo="Editar plan del cardio">
           <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -606,8 +612,8 @@ function analisis(d: Fin, sem: number) {
       <Nota>{[cuenta('record') && '🏆 ' + cuenta('record') + ' récord' + (cuenta('record') > 1 ? 's' : ''), cuenta('sube') && '⬆️ ' + cuenta('sube') + ' subieron',
         cuenta('igual') && '➖ ' + cuenta('igual') + ' igual', cuenta('baja') && '⬇️ ' + cuenta('baja') + ' bajaron', cuenta('estancado') && '⚠️ ' + cuenta('estancado') + ' estancados'].filter(Boolean).join(' · ')}</Nota>
       <Box component="ul" sx={{ listStyle: 'none', m: '8px 0 12px', p: 0, display: 'grid', gap: '8px' }}>
-        {lista.map((x) => (
-          <Box component="li" key={x.nombre} sx={x.estado === 'sin-dato' ? { opacity: 0.6 } : null}>
+        {lista.filter((x) => x.estado !== 'sin-dato').map((x) => (
+          <Box component="li" key={x.nombre}>
             <Box component="span" sx={{ display: 'grid', gap: '2px' }}>
               <b>{ICONO[x.estado]} {x.nombre}</b>
               <Box component="small" sx={{ color: 'text.secondary' }}>{TEXTO[x.estado] + (x.cambio != null && Math.abs(x.cambio) >= 0.005 ? ' (' + (x.cambio > 0 ? '+' : '') + (Math.round(x.cambio * 1000) / 10).toLocaleString('es-CO') + ' %)' : '') +
@@ -616,6 +622,8 @@ function analisis(d: Fin, sem: number) {
           </Box>
         ))}
       </Box>
+      {/* Lo que no se anotó va en una línea, no uno por uno */}
+      {cuenta('sin-dato') ? <Box data-t="analisis-sin-anotar"><Nota>{cuenta('sin-dato') === lista.length ? 'Todavía no has anotado nada hoy: aquí verás cómo te fue en cada ejercicio.' : '⏳ Sin anotar (' + cuenta('sin-dato') + '): ' + lista.filter((x) => x.estado === 'sin-dato').map((x) => x.nombre).join(', ')}</Nota></Box> : null}
       <Button fullWidth onClick={() => accion('gym-analisis', { dia: d.id })}>📋 Copiar análisis completo para Claude</Button>
       <Nota>Lleva la sesión, el historial de cada ejercicio, el volumen por músculo, el sueño, la proteína, el peso y el fútbol, con las instrucciones para que te responda como entrenador. Pégalo en Claude.</Nota>
       <Desplegable perezoso titulo="Ver el texto">

@@ -15,14 +15,15 @@ mkdirSync(fotos, { recursive: true });
 
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const puertoLibre = () => new Promise((r) => { const s = createServer().listen(0, () => { const { port } = s.address(); s.close(() => r(port)); }); });
-const navegador = ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync);
+// En Windows (este computador) o en Linux (GitHub Actions, antes de publicar: .github/workflows/github-pages.yml)
+const navegador = [process.env.CHROME_PATH, 'C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable', '/usr/bin/chromium-browser', '/usr/bin/chromium'].filter(Boolean).find(existsSync);
 if (!navegador) { console.error('No encontré Chrome ni Edge'); process.exit(2); }
 
 const [web, depurar] = [await puertoLibre(), await puertoLibre()];
 const perfil = mkdtempSync(join(tmpdir(), 'rutina-perfil-'));
 // Sin las claves de Supabase la app arranca en modo "Sin nube"
 const vite = spawn(process.execPath, ['node_modules/vite/bin/vite.js', '--port', String(web), '--strictPort'], { env: { ...process.env, VITE_SUPABASE_URL: '', VITE_SUPABASE_ANON_KEY: '' }, stdio: 'ignore' });
-const chrome = spawn(navegador, ['--headless=new', '--remote-debugging-port=' + depurar, '--user-data-dir=' + perfil, '--no-first-run', 'about:blank'], { stdio: 'ignore' });
+const chrome = spawn(navegador, ['--headless=new', '--remote-debugging-port=' + depurar, '--user-data-dir=' + perfil, '--no-first-run', ...(process.env.CI ? ['--no-sandbox', '--disable-dev-shm-usage'] : []), 'about:blank'], { stdio: 'ignore' });
 
 let codigo = 0;
 const errores = [];
@@ -72,7 +73,8 @@ try {
     cuantos: (s) => ev(`document.querySelectorAll(${texto(s)}).length`),
     foto: async (nombre) => { const r = await cdp('Page.captureScreenshot', { format: 'png' }); const f = join(fotos, nombre + '.png'); writeFileSync(f, Buffer.from(r.data, 'base64')); console.log('📷', f); },
     // Los datos guardados (null hasta la primera vez que la app guarda)
-    estado: () => ev(`(()=>{const k=Object.keys(localStorage).find(k=>k.startsWith('rutina_v1'));return k?JSON.parse(localStorage[k]):null})()`),
+    // Los de la cuenta en uso (claveActual): no la copia de «antes» ni la de la nube (rutina_v1:antes, :base), que también empiezan así
+    estado: () => ev(`(async()=>{let k;try{k=(await import('/src/estado.js')).claveActual()}catch(e){}if(!k||localStorage.getItem(k)==null)k=Object.keys(localStorage).find(k=>/^rutina_v1(:[^:]+)?$/.test(k)&&!/:(antes|base)$/.test(k));return k?JSON.parse(localStorage[k]):null})()`),
     sinDesborde: () => ev('document.documentElement.scrollWidth<=innerWidth'),
     recargar: async () => { await cdp('Page.reload'); await dormir(1800); },
   };

@@ -8,7 +8,7 @@ import { esAdmin, catalogo, tiposCatalogo, SIEMPRE, reglaDe, permisosDe, ponerVe
 let datos = null, cargando = false, error = '', pestana = 'usuarios';
 // vuelta: sube cada vez que se vuelve a leer o falla un cambio; las casillas de React se rehacen con lo guardado
 let vuelta = 0;
-const PESTANAS = { usuarios: '👥 Usuarios', entrenadores: '🧑‍🏫 Entrenadores', porUsuario: '🔐 Permisos por usuario', permisos: '🏷️ Permisos por rol', roles: '🏷️ Roles', ver: '👁 Ver como' };
+const PESTANAS = { usuarios: '👥 Usuarios', entrenadores: '🧑‍🏫 Entrenadores', porUsuario: '🔐 Permisos por usuario', permisos: '🏷️ Permisos por rol', roles: '🏷️ Roles', ver: '👁 Ver como', errores: '🐞 Errores' };
 
 async function cargar() {
   cargando = true; error = ''; repintar();
@@ -44,14 +44,22 @@ async function cargarEntrenadores() {
   try { entrenadores = await llamar('rutina_admin_entrenadores'); } catch (err) { errorEnt = err.message; }
   cargandoEnt = false; repintar();
 }
+// 🐞 Errores de los equipos de todos (src/errores.js → rutina_error_anotar): solo el mensaje, dónde y qué equipo
+let errores = null, cargandoErr = false, errorErr = '';
+async function cargarErrores() {
+  cargandoErr = true; errorErr = ''; repintar();
+  try { errores = await llamar('rutina_admin_errores'); } catch (err) { errorErr = err.message; }
+  cargandoErr = false; repintar();
+}
 const ESTADO_ASIG = { activo: ['al-dia', 'Activo'], invitado: ['pronto', 'Invitado'] };
 
 // Lo que necesita la pantalla de React (src/react/pantallas/Administrar.tsx): lo cargado, la pestaña y las reglas de texto
 export const piezasAdmin = {
-  ver: () => ({ datos, cargando, error, pestana, entrenadores, cargandoEnt, errorEnt, vuelta }),
+  ver: () => ({ datos, cargando, error, pestana, entrenadores, cargandoEnt, errorEnt, errores, cargandoErr, errorErr, vuelta }),
   // Pide los datos la primera vez que se abre (como hacía la pantalla de antes al pintarse)
   pedir: () => { if (configurada && esAdmin() && !datos && !cargando && !error) cargar(); },
   pedirEntrenadores: () => { if (entrenadores == null && !cargandoEnt && !errorEnt) cargarEntrenadores(); },
+  pedirErrores: () => { if (errores == null && !cargandoErr && !errorErr) cargarErrores(); },
   PESTANAS, ESTADO_ASIG, rolesNoAdmin, nombreRol, cuando, elementos, veUsuario, corto,
 };
 
@@ -60,7 +68,8 @@ const idDe = (nombre) => nombre.normalize('NFD').replace(/[̀-ͯ]/g, '').toLower
 
 registrar({
   'adm-pestana'({ p }) { pestana = p; repintar(); },
-  'adm-recargar'() { cargar(); entrenadores = null; },
+  'adm-recargar'() { cargar(); entrenadores = null; errores = null; },
+  'adm-errores'() { cargarErrores(); },
   'adm-entrenadores'() { cargarEntrenadores(); },
   'adm-rol'({ u }, el) { cambiar('rutina_admin_rol', { p_usuario: u, p_rol: el.value }, 'Rol cambiado a ' + nombreRol(el.value)); },
   // Excepción de un usuario: "" quita la regla, "1" ver, "0" no ver

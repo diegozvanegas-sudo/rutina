@@ -197,10 +197,38 @@ function entrenadores(ver: Fin) {
   );
 }
 
+// 🐞 Lo que les ha fallado a todos (los más nuevos primero), agrupado por mensaje para ver qué arreglar primero
+function errores(ver: Fin) {
+  if (ver.errorErr) return <Tarjeta><Aviso>No se pudo cargar: {ver.errorErr}</Aviso><Nota>Si dice que la función no existe, falta aplicar el esquema nuevo (npm run db:esquema).</Nota><Button data-accion="adm-errores">Reintentar</Button></Tarjeta>;
+  if (ver.errores == null) return <Nota>Cargando…</Nota>;
+  const lista = ver.errores as Fin[];
+  const grupos = new Map<string, Fin>();
+  for (const x of lista) {
+    const g = grupos.get(x.mensaje) || { mensaje: x.mensaje, veces: 0, personas: new Set(), ultimo: x, equipos: new Set() };
+    g.veces += x.veces || 1; g.personas.add(x.correo); if (x.equipo) g.equipos.add(x.equipo);
+    grupos.set(x.mensaje, g);
+  }
+  return (
+    <>
+      <Tarjeta>
+        <Nota>{lista.length ? grupos.size + (grupos.size === 1 ? ' error distinto' : ' errores distintos') + ' en los últimos 60 días, el más reciente primero. Solo el mensaje, dónde pasó y qué equipo: nunca los datos de nadie.' : '✓ A nadie le ha fallado nada en los últimos 60 días.'}</Nota>
+        <Button color="secondary" data-accion="adm-errores">↻ Actualizar</Button>
+      </Tarjeta>
+      {[...grupos.values()].map((g, k) => (
+        <Tarjeta key={k}>
+          <Box sx={{ fontSize: 14, overflowWrap: 'anywhere', mb: '4px' }}><b>{g.mensaje}</b></Box>
+          <Nota sx={{ m: 0 }}>{g.veces} {g.veces === 1 ? 'vez' : 'veces'} · {[...g.personas].map(A.corto).join(', ')} · {g.ultimo.origen}{g.ultimo.app != null ? ' · versión ' + g.ultimo.app : ''} · última: {A.cuando(g.ultimo.cuando)}</Nota>
+          {g.ultimo.donde || g.equipos.size ? <Nota sx={{ m: 0, overflowWrap: 'anywhere' }}>{[g.ultimo.donde, [...g.equipos].join(', ')].filter(Boolean).join(' · ')}</Nota> : null}
+        </Tarjeta>
+      ))}
+    </>
+  );
+}
+
 export default function Administrar() {
   usarEstado();
   const ver = A.ver(), d = ver.datos;
-  useEffect(() => { A.pedir(); if (d && ver.pestana === 'entrenadores') A.pedirEntrenadores(); });
+  useEffect(() => { A.pedir(); if (d && ver.pestana === 'entrenadores') A.pedirEntrenadores(); if (d && ver.pestana === 'errores') A.pedirErrores(); });
   const titulo = (
     <Box sx={{ ...FILA, flexWrap: 'wrap' }}>
       <TituloPantalla>Administrar</TituloPantalla>
@@ -222,7 +250,7 @@ export default function Administrar() {
     <>
       {titulo}
       <Opciones nombre="Pestañas de Administrar" activa={p} opciones={Object.entries(A.PESTANAS as Record<string, string>)} datos={(k) => ({ 'data-accion': 'adm-pestana', 'data-p': k })} sx={{ '& .MuiChip-root': { fontSize: 15 } }} />
-      {p === 'entrenadores' ? entrenadores(ver) : p === 'porUsuario' ? porUsuario(d, ver.vuelta) : p === 'permisos' ? permisos(d, ver.vuelta) : p === 'roles' ? roles(d) : p === 'ver' ? verComo(d) : usuarios(d, ver.vuelta)}
+      {p === 'errores' ? errores(ver) : p === 'entrenadores' ? entrenadores(ver) : p === 'porUsuario' ? porUsuario(d, ver.vuelta) : p === 'permisos' ? permisos(d, ver.vuelta) : p === 'roles' ? roles(d) : p === 'ver' ? verComo(d) : usuarios(d, ver.vuelta)}
     </>
   );
 }

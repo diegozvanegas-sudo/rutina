@@ -2,10 +2,12 @@
 // copia de seguridad y empezar de cero. React pinta; las reglas son las de src/vistas/ajustes.js: los campos y casillas
 // llevan data-cambio y los botones data-accion (main.js los despacha igual que antes).
 // pantallaEntrar y pantallaBloqueo (vistas/ajustes.js) son del armazón de la app y se quedan allá.
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { copiasLocales, volverACopia, textoDeCopia, espacio, mb, LIMITE_LOCAL, DIAS as DIAS_COPIAS } from '../../copias-locales.js';
+import { erroresDelEquipo, borrarErrores, textoErrores, alAnotarError } from '../../errores.js';
 import { Box, Button, Checkbox, Chip, Link } from '@mui/material';
 import { semanaActual } from '../../estado.js';
-import { hora, fechaLarga } from '../../fechas.js';
+import { hora, fechaLarga, iso as hoyIso } from '../../fechas.js';
 import { nube, configurada, textoNube } from '../../nube.js';
 import { hoja, hojaLista } from '../../hoja.js';
 import { AVISOS, HORAS_AVISOS, avisosDelDia } from '../../registro.js';
@@ -93,6 +95,86 @@ function Copias() {
   );
 }
 
+// 🗂️ Las copias de cada día en este equipo (src/copias-locales.js) y cuánto espacio usa la app aquí
+const DIA_COPIA = (fecha: string) => (fecha === hoyIso() ? 'Hoy' : fechaLarga(fecha));
+function CopiasDelEquipo() {
+  const [copias, ponerCopias] = useState<Fin[] | null>(null), [esp, ponerEsp] = useState<Fin>(null), [vuelta, ponerVuelta] = useState(0);
+  useEffect(() => {
+    let vivo = true;
+    copiasLocales().then((l: Fin[]) => { if (vivo) ponerCopias(l); }).catch(() => { if (vivo) ponerCopias([]); });
+    espacio().then((x: Fin) => { if (vivo) ponerEsp(x); });
+    return () => { vivo = false; };
+  }, [vuelta]);
+  const volver = async (c: Fin) => {
+    if (!confirm('¿Volver a cómo estaban tus datos el ' + fechaLarga(c.fecha) + '? Lo de ahora reemplaza a eso en este equipo' + (N.usuario ? ' y en la nube' : '') + '. Exporta antes una copia si la quieres.')) return;
+    try { await volverACopia(c.id); toast('🗂️ Listo: tus datos quedaron como el ' + fechaLarga(c.fecha)); ponerVuelta((v) => v + 1); }
+    catch (err) { toast('No se pudo: ' + (err as Error).message); }
+  };
+  const bajar = async (c: Fin) => {
+    const texto = await textoDeCopia(c.id);
+    if (!texto) return;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([texto], { type: 'application/json' }));
+    a.download = 'rutina-copia-' + c.fecha + '.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  return (
+    <>
+      <Subtitulo>🗂️ Copias de cada día en este equipo</Subtitulo>
+      <Nota>Una por día, de los últimos {DIAS_COPIAS} días, tomada con lo primero que anotas ese día. Sirven aunque no haya internet o la nube falle.</Nota>
+      {copias == null ? <Nota>Cargando…</Nota> : copias.length ? (
+        <Box component="ul" data-t="copias-equipo" sx={{ listStyle: 'none', p: 0, m: 0, display: 'grid', gap: '4px' }}>
+          {copias.map((c) => (
+            <Box component="li" key={c.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', py: '6px', borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Box component="span" sx={{ flex: '1 1 10em', minWidth: 0 }}>{DIA_COPIA(c.fecha)} · {hora(c.ts)} · {c.dias} {c.dias === 1 ? 'día' : 'días'} · {mb(c.tam)}</Box>
+              <Box sx={{ display: 'flex', gap: '6px' }}>
+                <Button color="secondary" onClick={() => bajar(c)} aria-label={'Descargar la copia del ' + fechaLarga(c.fecha)}>⬇</Button>
+                <Button color="secondary" onClick={() => volver(c)} data-t="copia-volver">Volver a esta</Button>
+              </Box>
+            </Box>
+          ))}
+        </Box>
+      ) : <Nota>Todavía no hay: la primera se guarda con lo primero que anotes hoy.</Nota>}
+      {esp ? (
+        <>
+          <Subtitulo>💾 Espacio en este equipo</Subtitulo>
+          <Box data-t="espacio"><Nota>Tus datos: {mb(esp.local)} de unos {mb(LIMITE_LOCAL)} que deja el navegador{esp.usado != null && esp.total ? '. Con imágenes y audios, la app usa ' + mb(esp.usado) + ' de los ' + mb(esp.total) + ' que le deja este equipo' : ''}.</Nota></Box>
+          {esp.aviso === 'local' ? <Aviso alerta>⚠️ Tus datos ocupan casi todo el espacio que deja el navegador: si se llena, la app no podrá guardar. Exporta una copia y avísale al administrador.</Aviso>
+            : esp.aviso === 'equipo' ? <Aviso alerta>⚠️ Este equipo casi no tiene espacio libre. Libera espacio (fotos, apps) para que la app pueda seguir guardando.</Aviso> : null}
+        </>
+      ) : null}
+    </>
+  );
+}
+
+// 🐞 Lo que ha fallado en este equipo (src/errores.js), para mandarlo si algo no funciona
+function Errores() {
+  const [, ponerVuelta] = useState(0);
+  useEffect(() => alAnotarError(() => ponerVuelta((v) => v + 1)), []);
+  const lista = erroresDelEquipo() as Fin[];
+  return (
+    <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="🐞 Errores" titulo={'🐞 Errores' + (lista.length ? ' · ' + lista.length : '')}>
+      <Nota>Lo que ha fallado en este equipo (solo el mensaje, nunca tus datos).{configurada ? ' También le llega al administrador para arreglarlo.' : ''}</Nota>
+      {lista.length ? (
+        <>
+          <Box component="ul" data-t="errores" sx={{ listStyle: 'none', p: 0, m: 0, display: 'grid', gap: '6px' }}>
+            {lista.slice(0, 15).map((x, i) => (
+              <Box component="li" key={i} sx={{ py: '6px', borderBottom: '1px solid', borderColor: 'divider', fontSize: 14, overflowWrap: 'anywhere' }}>
+                <Box component="span" sx={{ color: 'text.secondary', fontSize: 13 }}>{new Date(x.ts).toLocaleString('es-CO')} · {x.origen}{x.veces > 1 ? ' · ' + x.veces + ' veces' : ''}</Box><br />{x.mensaje}
+              </Box>
+            ))}
+          </Box>
+          <Botones>
+            <Button color="secondary" onClick={() => navigator.clipboard.writeText(textoErrores()).then(() => toast('📋 Copiado: pégalo en WhatsApp o en un correo'), () => toast('No se pudo copiar'))}>📋 Copiar</Button>
+            <Button color="secondary" onClick={() => { if (confirm('¿Borrar la lista de errores de este equipo?')) borrarErrores(); }}>🗑 Borrar la lista</Button>
+          </Botones>
+        </>
+      ) : <Box data-t="sin-errores"><Nota>✓ Nada ha fallado en este equipo.</Nota></Box>}
+    </TarjetaPlegable>
+  );
+}
+
 function Huella() {
   if (huellaActiva()) {
     return (
@@ -120,6 +202,7 @@ function Nube() {
       <Parrafo>{N.usuario.correo}</Parrafo>
       <Box component="p" sx={{ fontSize: 13, color: COLOR_NUBE[N.estado] || 'text.secondary', my: '6px' }}>{textoNube()}{N.ultima ? ' · ' + hora(N.ultima) : ''}</Box>
       {N.error ? <Aviso>{N.error}</Aviso> : null}
+      {N.vieja ? <Botones><Button data-t="actualizar-app" onClick={() => location.reload()}>↻ Actualizar la app ahora</Button></Botones> : null}
       {N.proteccion ? (
         <>
           <Nota>Lo de este equipo tiene muchos menos datos que la nube. Si no los borraste a propósito, quédate con lo de la nube.</Nota>
@@ -346,7 +429,9 @@ export default function Ajustes() {
           <Button color="secondary" data-accion="csv" data-que="gym">🏋️ Gym por semana</Button>
           <Button color="secondary" data-accion="csv" data-que="dias">☀️ Hábitos y metas por día</Button>
         </Botones>
+        <CopiasDelEquipo />
       </TarjetaPlegable>
+      <Errores />
       <TarjetaPlegable cerradaAlInicio vista={VISTA} clave="Empezar de cero" titulo="Empezar de cero">
         <Botones><Button data-accion="reiniciar" sx={{ bgcolor: tokens.rojoFondo, color: tokens.peligroInk, '&:hover': { bgcolor: tokens.rojoFondo } }}>Borrar todos los datos</Button></Botones>
       </TarjetaPlegable>

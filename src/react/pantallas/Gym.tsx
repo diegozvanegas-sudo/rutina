@@ -239,12 +239,16 @@ export function fuerza(estado: Fin, hasta: number, semActual: number, elegido: s
 }
 
 // ---------- Progreso de peso: la primera fila de cada ejercicio, semana a semana ----------
-function Mini({ estado, f, hasta, filtro }: { estado: Fin; f: Fin; hasta: number; filtro: Fin }) {
+function puntosDe(estado: Fin, f: Fin, hasta: number, filtro: Fin) {
   const puntos: [number, number][] = [];
   for (let s = 1; s <= hasta; s++) {
     const p = (registrosDeFila(estado.semanas[s], f) as Fin[]).filter((r) => !filtro || varianteDe(r, filtro.ej) === filtro.v).map((r) => numero(r.peso)).find((n) => n != null);
     if (p != null) puntos.push([s, p]);
   }
+  return puntos;
+}
+function Mini({ estado, f, hasta, filtro }: { estado: Fin; f: Fin; hasta: number; filtro: Fin }) {
+  const puntos = puntosDe(estado, f, hasta, filtro);
   if (!puntos.length) return <Chico>sin datos</Chico>;
   const ps = puntos.map((p) => p[1]), min = Math.min(...ps), max = Math.max(...ps), W = 120, H = 32;
   const x = (s: number) => (hasta > 1 ? ((s - 1) / (hasta - 1)) * (W - 8) + 4 : W / 2), y = (p: number) => (max > min ? H - 4 - ((p - min) / (max - min)) * (H - 8) : H / 2);
@@ -259,9 +263,12 @@ function Mini({ estado, f, hasta, filtro }: { estado: Fin; f: Fin; hasta: number
   );
 }
 function progreso(estado: Fin, sem: number) {
-  const filas = (estado.rutina as Fin[]).flatMap((d) => (d.ejercicios as Fin[]).flatMap((ej) => (tieneVariantes(ej) ? ej.variantes as string[] : [null]).map((v) => ({ d, ej, v }))));
+  const todas = (estado.rutina as Fin[]).flatMap((d) => (d.ejercicios as Fin[]).flatMap((ej) => (tieneVariantes(ej) ? ej.variantes as string[] : [null]).map((v) => ({ d, ej, v }))));
+  // Solo los que tienen pesos anotados; los demás en una línea (antes eran decenas de filas «sin datos»)
+  const filas = todas.filter((x) => puntosDe(estado, x.ej.filas[0], sem, x.v ? { ej: x.ej, v: x.v } : null).length > 0), sin = todas.length - filas.length;
   return (
     <Box sx={{ display: 'grid', gap: '10px' }}>
+      {sin ? <Chico>{filas.length ? sin + (sin === 1 ? ' ejercicio todavía sin pesos anotados.' : ' ejercicios todavía sin pesos anotados.') : 'Cuando anotes pesos en el gym, aquí verás cómo sube cada ejercicio semana a semana.'}</Chico> : null}
       {filas.map(({ d, ej, v }) => (
         <Box key={d.id + ej.id + (v || '')} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
           <Box component="span" sx={{ display: 'grid', fontSize: 14 }}>{nombreConVariante(ej, v)}<Chico>{d.nombre} · {ej.filas[0].tipo}</Chico></Box>

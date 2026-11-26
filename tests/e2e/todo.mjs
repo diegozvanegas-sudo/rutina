@@ -35,9 +35,10 @@ import mivida from './mivida.mjs';
 import voz from './voz.mjs';
 import notas from './notas.mjs';
 import equivalencias from './equivalencias.mjs';
+import guardado from './guardado.mjs';
 // Al final: cambia la nube por una de mentira y la cuenta por una de prueba
 import nube from './nube.mjs';
 
 export default async (p) => {
-  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, equivalencias, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo, prediccion, mivida, voz, notas, diario, nube]) await recorrido(p);
+  for (const recorrido of [calendario, compras, ventas, finanzas, planb, gym, gymdia, gymextra, recordatorios, dieta, equivalencias, administrar, libros, lugares, metas, suplementos, manana, estudiar, sesiones, hoy, progreso, editar, clientes, ajustes, entrenador, menu, flotante, reproductor, entrar, nuevo, prediccion, mivida, voz, notas, diario, guardado, nube]) await recorrido(p);
 };

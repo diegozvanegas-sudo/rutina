@@ -378,13 +378,43 @@ begin
 end;
 $$;
 
-create or replace function public.rutina_guardar(p_datos jsonb, p_version bigint)
+-- Versiones viejas de la app: cada versión manda su nivel (p_app, NIVEL_APP de src/version.js; las de antes no mandan nada
+-- y cuentan como 0). Si es menor que nivel_minimo, la nube no deja guardar y la app se actualiza sola (src/actualizar.js).
+-- Se sube con `npm run db:nivel` después de publicar un arreglo del guardado: así una pestaña o un celular que lleva días
+-- con la versión de antes (23 nov 2026) no puede subir su copia vieja. Lo de ese equipo no se pierde: sube al actualizarse
+create table if not exists rutina.ajustes_app (
+  id           boolean primary key default true check (id),
+  nivel_minimo int not null default 0
+);
+alter table rutina.ajustes_app enable row level security;
+insert into rutina.ajustes_app (id) values (true) on conflict (id) do nothing;
+
+create or replace function rutina.exigir_nivel(p_app int)
+returns void
+language plpgsql stable security definer set search_path = ''
+as $$
+declare m int;
+begin
+  select a.nivel_minimo into m from rutina.ajustes_app a where a.id;
+  if coalesce(p_app, 0) < coalesce(m, 0) then
+    raise exception 'Versión vieja de la app: cierra la app y ábrela otra vez para actualizarla. Lo de este equipo no se pierde: se sube al actualizar.';
+  end if;
+end;
+$$;
+revoke all on function rutina.exigir_nivel(int) from public, anon, authenticated;
+
+-- Las de antes, sin p_app: se cambian por las de abajo (las versiones viejas de la app siguen llegando a estas, sin p_app)
+drop function if exists public.rutina_guardar(jsonb, bigint);
+drop function if exists public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint);
+
+create or replace function public.rutina_guardar(p_datos jsonb, p_version bigint, p_app int default null)
 returns bigint
 language plpgsql security definer set search_path = ''
 as $$
 begin
   if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
   perform rutina.exigir_acceso();
+  perform rutina.exigir_nivel(p_app);
   return rutina.guardar_en(auth.uid(), p_datos, p_version);
 end;
 $$;
@@ -395,7 +425,7 @@ $$;
 -- p_quitar: rutas que se borran, con la misma forma.
 -- Si la nube ya no está en p_base (otro equipo guardó en el medio) no cambia nada y devuelve la versión de la nube: la app
 -- baja lo que cambió y combina como siempre. Lo armado pasa por las mismas protecciones y el mismo historial.
-create or replace function public.rutina_guardar_partes(p_partes jsonb, p_quitar jsonb, p_base bigint, p_version bigint)
+create or replace function public.rutina_guardar_partes(p_partes jsonb, p_quitar jsonb, p_base bigint, p_version bigint, p_app int default null)
 returns bigint
 language plpgsql security definer set search_path = ''
 as $$
@@ -403,6 +433,7 @@ declare d jsonb; viejo jsonb; v bigint; parte jsonb; ruta text[];
 begin
   if auth.uid() is null then raise exception 'Inicia sesión para guardar en la nube'; end if;
   perform rutina.exigir_acceso();
+  perform rutina.exigir_nivel(p_app);
   if jsonb_typeof(p_partes) is distinct from 'array' or jsonb_typeof(p_quitar) is distinct from 'array' then
     raise exception 'Protección: lo que llegó no son cambios de la app. No se subió; la nube sigue igual.';
   end if;
@@ -481,13 +512,13 @@ revoke all on function rutina.respaldar(uuid, text) from public, anon, authentic
 revoke all on function rutina.guardar_en(uuid, jsonb, bigint, jsonb) from public, anon, authenticated;
 revoke all on function rutina.partes_revisar() from public, anon, authenticated;
 revoke execute on function public.rutina_leer() from public, anon;
-revoke execute on function public.rutina_guardar(jsonb, bigint) from public, anon;
-revoke execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) from public, anon;
+revoke execute on function public.rutina_guardar(jsonb, bigint, int) from public, anon;
+revoke execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint, int) from public, anon;
 revoke execute on function public.rutina_historial() from public, anon;
 revoke execute on function public.rutina_restaurar(bigint) from public, anon;
 grant execute on function public.rutina_leer() to authenticated;
-grant execute on function public.rutina_guardar(jsonb, bigint) to authenticated;
-grant execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint) to authenticated;
+grant execute on function public.rutina_guardar(jsonb, bigint, int) to authenticated;
+grant execute on function public.rutina_guardar_partes(jsonb, jsonb, bigint, bigint, int) to authenticated;
 grant execute on function public.rutina_historial() to authenticated;
 grant execute on function public.rutina_restaurar(bigint) to authenticated;
 
@@ -878,6 +909,67 @@ grant execute on function public.rutina_cliente_aceptar(text) to authenticated;
 grant execute on function public.rutina_cliente_planes() to authenticated;
 grant execute on function public.rutina_cliente_compartir(jsonb) to authenticated;
 grant execute on function public.rutina_cliente_salir(uuid) to authenticated;
+
+-- 🐞 Errores de los equipos (src/errores.js): cada quien sube lo que le falló (solo el mensaje, dónde pasó y qué equipo es,
+-- nunca sus datos) y el administrador los ve todos en ⚙️ Administrar → 🐞 Errores. Quedan los últimos 200 de cada usuario
+-- y nada de más de 60 días
+create table if not exists rutina.errores (
+  id      bigint generated always as identity primary key,
+  usuario uuid not null references auth.users(id) on delete cascade,
+  cuando  timestamptz not null,
+  origen  text not null,
+  mensaje text not null,
+  donde   text,
+  veces   int not null default 1,
+  app     int,
+  equipo  text,
+  llegado timestamptz not null default now()
+);
+create index if not exists errores_cuando on rutina.errores (cuando desc);
+create index if not exists errores_usuario on rutina.errores (usuario, cuando desc);
+alter table rutina.errores enable row level security;
+
+create or replace function public.rutina_error_anotar(p_lista jsonb)
+returns int
+language plpgsql security definer set search_path = ''
+as $$
+declare x jsonb; n int := 0;
+begin
+  perform rutina.exigir_acceso();
+  if jsonb_typeof(p_lista) is distinct from 'array' then return 0; end if;
+  for x in select v from jsonb_array_elements(p_lista) v limit 20 loop
+    if jsonb_typeof(x) is distinct from 'object' or coalesce(x->>'mensaje', '') = '' then continue; end if;
+    insert into rutina.errores (usuario, cuando, origen, mensaje, donde, veces, app, equipo)
+    values (auth.uid(),
+      case when (x->>'ts') ~ '^\d{10,14}$' then least(now(), to_timestamp((x->>'ts')::bigint / 1000.0)) else now() end,
+      left(coalesce(x->>'origen', '?'), 20), left(x->>'mensaje', 400), left(x->>'donde', 200),
+      case when (x->>'veces') ~ '^\d{1,6}$' then (x->>'veces')::int else 1 end,
+      case when (x->>'app') ~ '^\d{1,6}$' then (x->>'app')::int else null end, left(x->>'equipo', 60));
+    n := n + 1;
+  end loop;
+  delete from rutina.errores e where e.usuario = auth.uid() and e.id not in (
+    select e2.id from rutina.errores e2 where e2.usuario = auth.uid() order by e2.cuando desc limit 200);
+  delete from rutina.errores e where e.cuando < now() - interval '60 days';
+  return n;
+end;
+$$;
+revoke execute on function public.rutina_error_anotar(jsonb) from public, anon;
+grant execute on function public.rutina_error_anotar(jsonb) to authenticated;
+
+create or replace function public.rutina_admin_errores()
+returns jsonb
+language plpgsql stable security definer set search_path = ''
+as $$
+begin
+  perform rutina.solo_admin();
+  return coalesce((
+    select jsonb_agg(jsonb_build_object('correo', u.email, 'cuando', e.cuando, 'origen', e.origen, 'mensaje', e.mensaje,
+      'donde', e.donde, 'veces', e.veces, 'app', e.app, 'equipo', e.equipo) order by e.cuando desc)
+    from (select * from rutina.errores order by cuando desc limit 300) e left join auth.users u on u.id = e.usuario), '[]'::jsonb);
+end;
+$$;
+revoke execute on function public.rutina_admin_errores() from public, anon;
+grant execute on function public.rutina_admin_errores() to authenticated;
 
 -- Que la API vea las funciones nuevas sin esperar
 notify pgrst, 'reload schema';

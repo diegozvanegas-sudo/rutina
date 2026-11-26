@@ -1,4 +1,5 @@
-import { registerSW } from 'virtual:pwa-register';
+import { iniciarActualizar } from './actualizar.js';
+import { iniciarErrores } from './errores.js';
 // Banderas (🇨🇴) en Chrome y Edge de Windows, que las muestran como letras ("CO"): solo ahí se carga una fuente con las
 // banderas, guardada dentro de la app (funciona sin internet). En el celular no hace nada
 import { polyfillCountryFlagEmojis } from 'country-flag-emoji-polyfill';
@@ -6,7 +7,7 @@ import fuenteBanderas from 'country-flag-emoji-polyfill/dist/TwemojiCountryFlags
 polyfillCountryFlagEmojis('Twemoji Country Flags', fuenteBanderas);
 import { e, cargar, esperarUsuario, alCambiar, guardar, empezarDePrueba, habitosDe, hechosManana, fraccionManana, avanceMetas, segundosCrono } from './estado.js';
 import { reloj } from './fechas.js';
-import { ejecutar, registrar, prepararAudio, pct } from './ui.js';
+import { ejecutar, registrar, prepararAudio, pct, toast } from './ui.js';
 import { anotarUso, pocoUsadas } from './uso.js';
 import { revisar, sumar, detener } from './temporizador.js';
 import { resumenSemana } from './gym.js';
@@ -34,6 +35,7 @@ import './teclado.js';
 import { aplicarLetra, ponerTema, ponerLetra } from './apariencia.js';
 import { cargarContenidos, alCargarContenidos } from './contenidos.js';
 import { pedirQueNoSeBorre } from './almacen.js';
+import { iniciarCopias, espacio } from './copias-locales.js';
 import { refrescarReact } from './react/refrescar.js';
 import './vistas/lugares.js';
 import './vistas/suplementos.js';
@@ -49,7 +51,10 @@ import { SECCIONES, FIJAS, visibles, enOrden, oculto, alternar, colocar, restabl
 import { ve, veRuta, esAdmin, viendoComo, ponerPermisos, rolVisto } from './permisos.js';
 import { ponerDatosAdmin } from './vistas/administrar.js';
 
-registerSW({ immediate: true });
+// La app se actualiza sola: al abrirla, al volver a ella y cada hora (src/actualizar.js)
+iniciarActualizar();
+// 🐞 Lo que se caiga queda anotado (Ajustes → 🐞 Errores; con nube, el administrador lo ve en Administrar)
+iniciarErrores();
 // 🔠 El tamaño de letra de este equipo (Ajustes → 🎨 Cómo se ve), antes de pintar nada
 aplicarLetra();
 // Con nube, los datos son del usuario que entre: hasta saber quién es no se lee ni se escribe nada suyo
@@ -65,6 +70,14 @@ cargarContenidos().catch(() => {});
 alCargarContenidos(() => { pedirPintar(); refrescarReact(); });
 // 🛡️ Que el navegador no borre los datos de este equipo cuando le falte espacio (o tras días sin abrir, en el iPhone)
 pedirQueNoSeBorre();
+// 🗂️ Una copia de cada día en este equipo (los últimos 7), y aviso si el espacio se está llenando
+iniciarCopias();
+setTimeout(() => espacio().then(({ aviso }) => {
+  if (!aviso) return;
+  const hoy = new Date().toDateString();
+  try { if (localStorage.getItem('rutina-aviso-espacio') === hoy) return; localStorage.setItem('rutina-aviso-espacio', hoy); } catch (err) {}
+  toast(aviso === 'local' ? '⚠️ El espacio de la app en este equipo se está llenando: mira Ajustes → Copia de seguridad.' : '⚠️ Este equipo casi no tiene espacio: si se llena, la app no podrá guardar. Mira Ajustes → Copia de seguridad.');
+}).catch(() => {}), 6000);
 iniciarNube();
 iniciarHoja();
 iniciarAvisos();

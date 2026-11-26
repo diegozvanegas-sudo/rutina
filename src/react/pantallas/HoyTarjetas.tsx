@@ -26,6 +26,7 @@ import { leccion } from '../../estudio.js';
 import { lecturaQueToca } from '../../biblioteca.js';
 import { rachaEstudio } from '../../estudio.js';
 import { tokens } from '../tema';
+import { Desplegable } from '../ui/Desplegable';
 import { Campo, CampoLargo, CampoSolo, DOS } from '../ui/Campo';
 import { Nota } from '../ui/Textos';
 import { Avance, Opciones } from '../ui/Varios';
@@ -252,15 +253,22 @@ export function Partido({ e, fecha }: { e: Fin; fecha: string }) {
       {fecha === iso() && !hecho ? <Nota sx={{ m: 0 }}>Anótalo después del partido (o mañana). Con esto se ve si la pierna te deja cansado para jugar.</Nota> : null}
       <Ajustar etiqueta="Minutos jugados" valor={p.minutos || null} base={60} paso={5} min={0} max={200} unidad="min" accion="partido" datos={{ f: fecha, k: 'minutos' }}
         fichas={[60, 70, 90].filter((n) => n !== p.minutos).map((n) => [n, n + ' min'] as [number, string])} />
-      <Nota sx={{ m: 0 }}>Esfuerzo (1 = suave · 10 = al máximo)</Nota>
-      <Escala n={10} valor={p.rpe} accion="partido-punto" datos={{ ...datos, 'data-k': 'rpe' }} etiqueta="Esfuerzo del partido" />
-      <Nota sx={{ m: 0 }}>Energía de las piernas (1 = sin piernas · 5 = volando)</Nota>
-      <Escala n={5} valor={p.energia} accion="partido-punto" datos={{ ...datos, 'data-k': 'energia' }} etiqueta="Energía" />
-      <Nota sx={{ m: 0 }}>Molestias</Nota>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-        {(MOLESTIAS as string[]).map((m) => { const activo = (p.molestias || []).includes(m); return <Chip key={m} clickable data-accion="partido-molestia" data-f={fecha} data-m={m} aria-pressed={activo} color={activo ? 'primary' : 'default'} variant={activo ? 'filled' : 'outlined'} label={m} />; })}
-      </Box>
-      <Campo etiqueta="Nota" data-cambio="partido" data-f={fecha} data-k="nota" defaultValue={p.nota || ''} placeholder="Ej.: gol, cancha mojada, me faltó aire…" />
+      {/* Los minutos a la vista (lo de un toque); esfuerzo, piernas, molestias y nota detrás de una fila, abierta si ya
+          hay algo de eso anotado. Antes todo abierto ocupaba unos 700 px de Hoy en el celular */}
+      <Desplegable abiertoAlInicio={!!(p.rpe || p.energia || (p.molestias || []).length || p.nota)}
+        titulo={'Esfuerzo, piernas, molestias y nota' + ((p.molestias || []).length ? ' · ⚠️ ' + (p.molestias as string[]).join(', ') : '')}>
+        <Box sx={{ display: 'grid', gap: '8px' }}>
+          <Nota sx={{ m: 0 }}>Esfuerzo (1 = suave · 10 = al máximo)</Nota>
+          <Escala n={10} valor={p.rpe} accion="partido-punto" datos={{ ...datos, 'data-k': 'rpe' }} etiqueta="Esfuerzo del partido" />
+          <Nota sx={{ m: 0 }}>Energía de las piernas (1 = sin piernas · 5 = volando)</Nota>
+          <Escala n={5} valor={p.energia} accion="partido-punto" datos={{ ...datos, 'data-k': 'energia' }} etiqueta="Energía" />
+          <Nota sx={{ m: 0 }}>Molestias</Nota>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {(MOLESTIAS as string[]).map((m) => { const activo = (p.molestias || []).includes(m); return <Chip key={m} clickable data-accion="partido-molestia" data-f={fecha} data-m={m} aria-pressed={activo} color={activo ? 'primary' : 'default'} variant={activo ? 'filled' : 'outlined'} label={m} />; })}
+          </Box>
+          <Campo etiqueta="Nota" data-cambio="partido" data-f={fecha} data-k="nota" defaultValue={p.nota || ''} placeholder="Ej.: gol, cancha mojada, me faltó aire…" />
+        </Box>
+      </Desplegable>
       {(p.molestias || []).length ? <Aviso>Con molestias: hoy haz ejercicios suaves de {(zonasDeMolestias(p.molestias) as string[]).map((z, i) => <span key={z}>{i ? ' · ' : ''}<Link href={'#sesiones/banco-' + z}>{(ZONAS as Record<string, string>)[z]}</Link></span>)} o estira suave, y si el dolor sigue en 2-3 días o es punzante, consulta a un fisioterapeuta.</Aviso> : null}
       {hecho ? null : <Button variant="text" data-accion="futbol-pausar" sx={{ justifySelf: 'start', minHeight: 44, p: 0, color: 'info.main', fontWeight: 400, textDecoration: 'underline' }}>⏸ No estoy jugando por estos días</Button>}
     </Tarjeta>

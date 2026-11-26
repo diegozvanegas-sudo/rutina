@@ -5,8 +5,9 @@
 // src/vistas/finanzas.js y src/vistas/editar.js. Se llaman de dos formas:
 //  - botones: accion('nombre', datos);
 //  - campos que guardan al salir: data-cambio="nombre" con sus data-* (los despacha main.js, igual que antes).
-import type { ReactNode } from 'react';
-import { Box, Button, Card, Chip } from '@mui/material';
+import { useState, type ReactNode } from 'react';
+import { Box, Button, ButtonBase, Card, Chip } from '@mui/material';
+import { Flecha } from '../ui/Flecha';
 import { iso, fechaCorta } from '../../fechas.js';
 import {
   mesDe, sumarMeses, pesos, resumenMes, gastoPromedio, aportado, objetivoMeta, estadoFijo, planMeta, saldoCuenta, patrimonio, fijosPorRevisar, DIAS_REVISION, valorMeta,
@@ -102,6 +103,29 @@ function resumen(f: Fin) {
 }
 
 // ---------- 🎯 Presupuesto ----------
+function CategoriaPresupuesto({ c, i, total }: { c: Fin; i: number; total: number }) {
+  const [abierta, poner] = useState(false), r = 'finanzas.categorias.gasto.' + i;
+  return (
+    <Box sx={{ borderBottom: i < total - 1 ? '1px solid' : 0, borderColor: 'divider' }}>
+      <ButtonBase data-t="categoria" aria-expanded={abierta} onClick={() => poner(!abierta)}
+        sx={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between', textAlign: 'left', font: 'inherit', color: 'inherit', borderRadius: '8px', px: '2px' }}>
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}><Flecha abierta={abierta} /><Box component="b" sx={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.icono} {c.nombre}</Box></Box>
+        <Box component="span" sx={{ flex: 'none', fontSize: 14, color: c.presupuesto ? 'text.primary' : 'text.secondary' }}>{c.presupuesto ? pesos(c.presupuesto) : 'sin monto'} <Box component="span" sx={{ color: 'text.secondary' }}>· {c.grupo === 'deseo' ? 'Deseo' : 'Necesidad'}</Box></Box>
+      </ButtonBase>
+      {abierta ? (
+        <Box sx={{ display: 'grid', gap: '8px', pb: '12px' }}>
+          <Box sx={DOS}>
+            <CampoPesos titulo="Presupuesto del mes" ruta={r + '.presupuesto'} valor={c.presupuesto} />
+            <Selector titulo="Grupo" ruta={r + '.grupo'} valor={c.grupo} opciones={[{ id: 'necesidad', nombre: 'Necesidad' }, { id: 'deseo', nombre: 'Deseo' }]} />
+          </Box>
+          <Box sx={DOS}><CampoTexto titulo="Nombre" ruta={r + '.nombre'} valor={c.nombre} /><CampoTexto titulo="Ícono" ruta={r + '.icono'} valor={c.icono} max={4} /></Box>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}><Controles lista="finanzas.categorias.gasto" i={i} nombre={c.nombre} total={total} /></Box>
+        </Box>
+      ) : null}
+    </Box>
+  );
+}
+
 function presupuesto(f: Fin) {
   const lista: Fin[] = f.categorias.gasto, hoy = iso();
   const ingresos = [1, 2, 3].map((i) => resumenMes(f, mesDe(sumarMeses(hoy.slice(0, 8) + '01', -i))).ingresos as number).filter(Boolean);
@@ -120,21 +144,11 @@ function presupuesto(f: Fin) {
           ]} />
         ) : <Aviso>Cuando registres ingresos, aquí aparece cuánto te toca por grupo.</Aviso>}
       </TarjetaPlegable>
-      {lista.map((c, i) => {
-        const r = 'finanzas.categorias.gasto.' + i;
-        return (
-          <Item key={c.id || i}>
-            <Box sx={{ ...FILA, gap: '8px' }}><b>{c.icono} {c.nombre}</b><Controles lista="finanzas.categorias.gasto" i={i} nombre={c.nombre} total={lista.length} /></Box>
-            <Box sx={DOS}>
-              <CampoPesos titulo="Presupuesto del mes" ruta={r + '.presupuesto'} valor={c.presupuesto} />
-              <Selector titulo="Grupo" ruta={r + '.grupo'} valor={c.grupo} opciones={[{ id: 'necesidad', nombre: 'Necesidad' }, { id: 'deseo', nombre: 'Deseo' }]} />
-            </Box>
-            <Desplegable titulo="Nombre e ícono">
-              <Box sx={DOS}><CampoTexto titulo="Nombre" ruta={r + '.nombre'} valor={c.nombre} /><CampoTexto titulo="Ícono" ruta={r + '.icono'} valor={c.icono} max={4} /></Box>
-            </Desplegable>
-          </Item>
-        );
-      })}
+      {/* Una fila por categoría (ícono, nombre, monto y grupo); al tocarla se abre para cambiarla. Antes cada una era
+          una tarjeta con sus campos a la vista: 23 categorías eran 5.600 px en el celular */}
+      <Card component="section" data-t="categorias-presupuesto" sx={{ mb: '14px', p: '4px 12px' }}>
+        {lista.map((c, i) => <CategoriaPresupuesto key={c.id || i} c={c} i={i} total={lista.length} />)}
+      </Card>
       <Button fullWidth color="secondary" sx={GRANDE} onClick={() => accion('ed-agregar', { lista: 'finanzas.categorias.gasto' })}>＋ Categoría</Button>
     </>
   );

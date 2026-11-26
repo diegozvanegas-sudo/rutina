@@ -339,7 +339,7 @@ function peso(e: Fin) {
           <Numero titulo="Proteína fija (g al día; 0 = según el peso)" ruta="dieta.config.protFija" valor={c.protFija || 0} />
           <Corta>Por cada kg de peso, cada plan apunta a (gramos por kg):</Corta>
           <Box sx={{ overflowX: 'auto' }}>
-            <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, '& th, & td': { p: '6px 4px', textAlign: 'center' }, '& td': { minWidth: 76 }, '& tbody th': { textAlign: 'left', whiteSpace: 'nowrap', fontWeight: 600 } }}>
+            <Box component="table" sx={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, '& th, & td': { p: '6px 4px', textAlign: 'center' }, '& td': { minWidth: 58 }, '& td input': { textAlign: 'center' }, '& tbody th': { textAlign: 'left', fontWeight: 600, lineHeight: 1.25 } }}>
               <thead><tr><th></th><th>Proteína</th><th>Carbos</th><th>Grasa</th><th>≈ kcal / kg</th></tr></thead>
               <tbody>
                 {Object.entries(TIPOS).map(([k, t]) => {

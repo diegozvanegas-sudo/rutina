@@ -120,7 +120,9 @@ export function problemaDrive({ url, clave }) {
 export function explicarError(mensaje) {
   const m = String(mensaje || '');
   if (/clave incorrecta/i.test(m)) return 'La clave no coincide con la del script. Copia el script con tu clave (paso 1), pégalo en tu proyecto reemplazando todo, guarda y en Implementar → Gestionar implementaciones → ✏️ → Versión: Nueva versión → Implementar (la dirección no cambia).';
-  if (/failed to fetch|networkerror|load failed/i.test(m)) return 'No se pudo llegar al script. Revisa que la dirección termine en /exec, que tengas internet y que en la implementación diga Acceso: «Cualquier usuario».';
+  // Google responde con su página de iniciar sesión (sin permiso para la app): casi siempre el acceso quedó en «Solo yo» o en
+  // «Cualquier usuario con una cuenta de Google», que se parece pero no sirve
+  if (/failed to fetch|networkerror|load failed/i.test(m)) return 'Google no dejó entrar a la app: pide iniciar sesión. En script.google.com → Implementar → Gestionar implementaciones → ✏️, pon Quién tiene acceso: «Cualquier usuario» (no «Cualquier usuario con una cuenta de Google» ni «Solo yo»), Versión: Nueva versión → Implementar, y acepta los permisos. Si esa opción no aparece, tu cuenta es de empresa o universidad: usa una cuenta de Gmail personal. Revisa también que tengas internet.';
   if (/json|unexpected token|<!doctype/i.test(m)) return 'Google pidió iniciar sesión en vez de responder: en la implementación, Acceso debe ser «Cualquier usuario» (no «Solo yo»).';
   if (/autoriza|authoriz|permission|permiso/i.test(m)) return 'Falta autorizar el script: en el editor, ejecuta una vez «doPost» o vuelve a Implementar y acepta los permisos de Drive.';
   return m;

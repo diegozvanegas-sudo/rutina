@@ -2,6 +2,7 @@
 // Escribes y salen secciones, recordatorios, notas, ejercicios, hábitos, gastos y compras (src/buscar.js); tocar uno lleva
 // a su lugar. Con ↑ ↓ se elige y Enter abre. main.js avisa que se abra con el evento "rutina:buscar"
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { Box, ButtonBase, Dialog, InputBase, useMediaQuery } from '@mui/material';
 import { e } from '../../estado.js';
 import { ejecutar } from '../../ui.js';
@@ -27,12 +28,14 @@ function ir(x: Fin) {
 export default function Buscar() {
   const [abierto, ponerAbierto] = useState(false), [texto, ponerTexto] = useState(''), [elegido, ponerElegido] = useState(0);
   const celular = useMediaQuery('(max-width:899px)'), lista = useRef<HTMLDivElement | null>(null), campo = useRef<HTMLInputElement | null>(null);
-  // Que salga de una para escribir (src/teclado.js abre el teclado del celular en el mismo toque)
+  // Que salga de una para escribir: el iPhone solo abre el teclado si el cursor se pone en el mismo toque. La ventana queda
+  // armada (keepMounted), se abre de una (flushSync) y el cursor va al buscador ahí mismo. src/teclado.js queda de respaldo
   const enfocar = () => { const el = campo.current; if (el && document.activeElement !== el) el.focus({ preventScroll: true }); };
   useEffect(() => {
     const abrir = () => {
       prepararTeclado('[data-t=buscar-campo]');
-      ponerTexto(''); ponerElegido(0); ponerAbierto(true);
+      try { flushSync(() => { ponerTexto(''); ponerElegido(0); ponerAbierto(true); }); } catch { ponerTexto(''); ponerElegido(0); ponerAbierto(true); }
+      enfocar();
     };
     window.addEventListener('rutina:buscar', abrir);
     return () => window.removeEventListener('rutina:buscar', abrir);
@@ -49,7 +52,7 @@ export default function Buscar() {
     else if (ev.key === 'Enter' && resultados[elegido]) { ev.preventDefault(); elegir(resultados[elegido]); }
   };
   return (
-    <Dialog open={abierto} onClose={cerrar} fullScreen={celular} disableAutoFocus aria-label="Buscar en la app" data-t="buscar"
+    <Dialog open={abierto} onClose={cerrar} fullScreen={celular} keepMounted disableAutoFocus aria-label="Buscar en la app" data-t="buscar"
       slotProps={{ transition: { onEntered: enfocar }, paper: { sx: { width: { md: 600 }, maxWidth: '100%', alignSelf: { md: 'flex-start' }, mt: { md: '10vh' }, bgcolor: 'background.paper', borderRadius: { xs: 0, md: '16px' }, p: 0 } } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: '8px', p: 'calc(10px + env(safe-area-inset-top)) 12px 10px', borderBottom: '1px solid', borderColor: 'divider' }}>
         <Box component="span" aria-hidden="true" sx={{ fontSize: 20 }}>🔎</Box>

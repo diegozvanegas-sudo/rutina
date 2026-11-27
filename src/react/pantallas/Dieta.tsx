@@ -29,6 +29,7 @@ import { FichaEtiqueta } from './FichaEtiqueta';
 import { ALIMENTOS_ETIQUETA } from '../../datos_etiquetas.js';
 import { Corte } from './DietaCorte';
 import { Antojos } from './DietaAntojos';
+import { Controles as ControlesComposicion } from './DietaControles';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Fin = any;
@@ -311,6 +312,7 @@ function peso(e: Fin) {
         </Box>
         {medidas.length ? <Lista filas={medidas.slice(-6).reverse().map((m) => ({ k: m.fecha, izq: fechaCorta(m.fecha), der: <>{MEDIDAS.filter(([k]) => m[k] > 0).map(([k, t], n) => <span key={k}>{n ? ' · ' : ''}{t} <b>{f1(m[k])}</b></span>)}</> }))} /> : null}
       </TarjetaPlegable>
+      <ControlesComposicion e={e} />
       <TarjetaPlegable vista={VISTA} clave="💡 Sugerencia de la semana" titulo="💡 Sugerencia de la semana">
         <Cifras datos={[
           { titulo: 'Peso / semana', valor: conSigno(sen.peso, ' kg') }, { titulo: 'Cintura / 2 sem.', valor: conSigno(sen.cintura, ' cm') },
